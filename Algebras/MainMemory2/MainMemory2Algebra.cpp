@@ -22311,7 +22311,7 @@ int mcreatentreeVMT(Word* args, Word& result, int message, Word& local,
      new NTree<MTreeEntry<T>, StdDistComp<T>, variant>(degree, maxLeafSize, dc,
                                                        partMethod, index);
   tree->build(contents);
-  tree->print(cout);
+//   tree->print(cout);
   size_t usedMem = tree->memSize();
   ListExpr typeList = nl->Second(qp->GetType(s));
   MemoryNtreeObject<T, StdDistComp<T>, variant>* ntree = 
@@ -22942,7 +22942,7 @@ int importntreeVMT(Word* args, Word& result, int message, Word& local,
     res->setPointer(0);
     return 0;
   }
-  tree->print(cout);
+//   tree->print(cout);
   size_t usedMem = tree->memSize();
   ListExpr typeList = nl->Second(qp->GetType(s));
   bool flobused = (nl->ToString(typeList) == "mpoint" || 

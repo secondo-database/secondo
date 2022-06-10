@@ -275,12 +275,12 @@ class PersistentNTree {
       result = new innernode_t(ntree->getDegree(), ntree->getMaxLeafSize(),
                               ntree->getCandOrder(), ntree->getPruningMethod());
     }
-    cout << "process " << (isLeaf ? "LEAF node #" : "INNER node #") << nodeId 
-         << endl;
+//     cout << "process " << (isLeaf ? "LEAF node #" : "INNER node #") << nodeId 
+//          << endl;
     while (currentNodeId == nodeId) {
       tid = ((CcInt*)nodeInfoTuple->GetAttribute(attr0))->GetValue();
       entry = ((CcInt*)nodeInfoTuple->GetAttribute(attr0 + 2))->GetValue();
-      cout << "begin iteration, entry = " << entry;
+//       cout << "begin iteration, entry = " << entry;
       entries.push_back(entry);
       if (isLeaf) {
         if (entry == 0) {
@@ -291,13 +291,13 @@ class PersistentNTree {
       else { // inner node
         subnodeId =
                    ((CcInt*)nodeInfoTuple->GetAttribute(attr0 + 3))->GetValue();
-        cout << ", subnodeId = " << subnodeId;
+//         cout << ", subnodeId = " << subnodeId;
         subnodeIds.push(std::make_pair(entry, subnodeId));
         maxDist.push_back( 
                  ((CcReal*)nodeInfoTuple->GetAttribute(attr0 + 4))->GetValue());
       }
       T *obj = (T*)((T*)(nodeInfoTuple->GetAttribute(attrNo))->Clone());
-      cout << ", tid = " << tid << endl;
+//       cout << ", tid = " << tid << endl;
       objects.push_back(new MTreeEntry<T>(*obj, tid));
       obj->DeleteIfAllowed();
       nodeInfoPos++;
@@ -307,7 +307,7 @@ class PersistentNTree {
                  ((CcInt*)(nodeInfoTuple->GetAttribute(attr0 + 1)))->GetValue();
       }
       else {
-        cout << "end of nodeInfo" << endl;
+//         cout << "end of nodeInfo" << endl;
         currentNodeId = -1;
       }
     }
@@ -317,9 +317,9 @@ class PersistentNTree {
     int entry1, entry2, distMatrixSize(0);
     double dist;
     std::vector<std::tuple<int, int, double> > distEntries;
-    cout << "PROCESS NODE ID " << currentNodeId << endl; 
+//     cout << "PROCESS NODE ID " << currentNodeId << endl; 
     if (currentNodeId != nodeId) {
-      cout << "ALERT: " << currentNodeId << " != " << nodeId << endl;
+//       cout << "ALERT: " << currentNodeId << " != " << nodeId << endl;
       distMatrixSize = 1;
     }
     while (currentNodeId == nodeId) {
@@ -336,12 +336,12 @@ class PersistentNTree {
         currentNodeId = ((CcInt*)(nodeDistTuple->GetAttribute(0)))->GetValue();
       }
       else {
-        cout << "end of nodeDist" << endl;
+//         cout << "end of nodeDist" << endl;
         currentNodeId = -1;
       }
     }
     double** distMatrix = new double*[distMatrixSize];
-    cout << "distMatrix created, size is " << distMatrixSize << endl;
+//     cout << "distMatrix created, size is " << distMatrixSize << endl;
     for (int i = 0; i < distMatrixSize; i++) {
       distMatrix[i] = new double[distMatrixSize];
       std::fill_n(distMatrix[i], distMatrixSize, -1.0);
@@ -376,7 +376,7 @@ class PersistentNTree {
         currentNodeId = ((CcInt*)(pivotInfoTuple->GetAttribute(0)))->GetValue();
       }
       else {
-        cout << "end of pivotInfo" << endl;
+//         cout << "end of pivotInfo" << endl;
         currentNodeId = -1;
       }
     }
@@ -399,13 +399,13 @@ class PersistentNTree {
       subnodes.pop();
       std::queue<std::pair<int, int> > nextSubnodes;
       node_t *subnode = buildNextNode(nextSubnodes);
-      if (nextSubnode.second != subnode->getNodeId()) {
-        cout << nextSubnode.second << " != " << subnode->getNodeId() << endl;
-      }
+//       if (nextSubnode.second != subnode->getNodeId()) {
+//         cout << nextSubnode.second << " != " << subnode->getNodeId() << endl;
+//       }
       assert(nextSubnode.second == subnode->getNodeId());
       root->setChild(nextSubnode.first, subnode, false);
-      cout << "node " << subnode->getNodeId() << " inserted as child of "
-           << root->getNodeId() << endl;
+//       cout << "node " << subnode->getNodeId() << " inserted as child of "
+//            << root->getNodeId() << endl;
       if (!subnode->isLeaf()) {
         growSubtree(((innernode_t*)subnode), nextSubnodes);
       }
@@ -421,7 +421,7 @@ class PersistentNTree {
     std::queue<std::pair<int, int> > subnodes;
     node_t* root = buildNextNode(subnodes);
     ntree->setRoot((innernode_t*)root);
-    ntree->getRoot()->print(cout, ntree->getDistComp(), true, true, true);
+//     ntree->getRoot()->print(cout, ntree->getDistComp(), true, true, true);
     if (!root->isLeaf()) {
       growSubtree(((innernode_t*)root), subnodes);
     }    
@@ -564,8 +564,6 @@ class PersistentNTree {
                   ((innernode_t*)node)->getChild(i)->getNodeId() + firstNodeId);
       double maxDist = (node->isLeaf() ? ((leafnode_t*)node)->getMaxDist() : 
                                          ((innernode_t*)node)->getMaxDist(i));
-//       nodeInfo.push_back(std::make_tuple(node->getNodeId() + firstNodeId, i, 
-//                                          subtreeNodeId, maxDist, tid - 1));
       nodeInfoTuple = new Tuple(nodeInfoType);
       srcTuple = (*srcTuples)[tid - 1];
       for (int j = 0; j < srcTuple->GetNoAttributes(); j++) {
@@ -580,8 +578,6 @@ class PersistentNTree {
       nodeInfoRel->AppendTuple(nodeInfoTuple); 
       delete nodeInfoTuple;
       for (int j = 0; j < i; j++) {
-//         nodeDist.push_back(std::make_tuple(node->getNodeId() + firstNodeId, 
-//                       i, j, node->getPrecomputedDist(i, j, node->isLeaf())));
         nodeDistTuple = new Tuple(nodeDistType);
         nodeDistTuple->PutAttribute(0, new CcInt(true, nodeId));
         nodeDistTuple->PutAttribute(1, new CcInt(true, i));
@@ -594,8 +590,6 @@ class PersistentNTree {
       std::vector<double> pivotDists = node->getPivotDistances(i);
       bool isPivot = (i == std::get<0>(refDistPos) || 
                       i == std::get<1>(refDistPos));
-//       pivotInfo.push_back(std::make_tuple(node->getNodeId() + firstNodeId, i,
-//                                      pivotDists[0], pivotDists[1], isPivot));
       pivotInfoTuple = new Tuple(pivotInfoType);
       pivotInfoTuple->PutAttribute(0, new CcInt(true, nodeId));
       pivotInfoTuple->PutAttribute(1, new CcInt(true, i));
