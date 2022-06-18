@@ -65,7 +65,7 @@ int FileTransferServer::communicate() {
             return true;
         }
         if (line != FileTransferKeywords::FileTransferClient()) {
-            cerr << "Protocol error" << endl;
+            cerr << "Protocol error (1) (" << line << ")" << endl;
             return 3;
         }
         getline(io, line);
@@ -74,7 +74,7 @@ int FileTransferServer::communicate() {
         } else if (line == FileTransferKeywords::ReceiveFile()) {
             return receiveFile(io);
         } else {
-            cerr << "protocol error" << endl;
+            cerr << "Protocol error (2) (" << line << ")" << endl;
             return 4;
         }
     } catch (...) {
