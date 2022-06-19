@@ -18389,7 +18389,7 @@ class AReduceTask{
 
           cmd = "query " + rel + " feed extend[ OK : getFileTCP( .R, .IP, " +
                 stringutils::int2str(port) + ", TRUE, .L)] " +
-                "filter[isdefined(.OK) = FALSE] count";
+                "filter[.OK = FALSE] count";
 
 
           ListExpr resList = nl->TheEmptyList();
