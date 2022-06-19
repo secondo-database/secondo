@@ -16984,7 +16984,8 @@ class fileCopy{
         if(line==FileTransferKeywords::Cancel()){
           errMsg = "remote file not found";
         } else {
-            errMsg = "Protocol error (file keywords expecteed)";
+            errMsg = "Protocol error. File keywords expected. But got: ";
+            errMsg.append(line);
         }
         socket->Close();
         delete socket;       
@@ -16994,14 +16995,16 @@ class fileCopy{
       bool ok;
       size_t length = stringutils::str2int<size_t>(line,ok);
       if(!ok){
-        errMsg = "Protocol error (length expected)";
+        errMsg = "Protocol error. Length expected. But got: ";
+        errMsg.append(line);
         socket->Close();
         delete socket;       
         return false;
       }
       getline(io,line);
       if(line!=FileTransferKeywords::Data()){
-        errMsg = "Protocol error (data expected)";
+        errMsg = "Protocol error. Data expected. But got: ";
+        errMsg.append(line);
         socket->Close();
         delete socket;       
         return false;
