@@ -18223,7 +18223,25 @@ ListExpr areduceTM(ListExpr args){
 
 }
 
-
+int getCount(int error, ListExpr& resList){
+       int res = -1;
+       if(error!=0){
+         cerr << "problem in executing query" << endl;
+       } else {
+         if(!nl->HasLength(resList,2)){
+           cerr << " unexpected result " << endl;
+         } else {
+            ListExpr rv = nl->Second(resList);
+            if(nl->AtomType(rv) != IntType){
+              cerr << " unexpected result " << endl
+                   << nl->ToString(resList) << endl;
+            } else {
+               res = nl->IntValue(rv);
+            }
+         }
+      }
+      return res;
+   }
 
 class AReduceListener{
 
@@ -18366,25 +18384,38 @@ class AReduceTask{
           }
           rv += ")";
 
+          string rel = "[const " + rt + " value " + rv + "]";
+          string nlrel = "(" + nlrt + " " + rv + ")";
 
-          string rel = "[const " + rt + " value " + rv+ "]";
-          string nlrel="(" + nlrt + " " + rv +")";
-          cmd =   "query " + rel + " feed extend[ OK : getFileTCP( .R, .IP, " 
-                + stringutils::int2str(port) + ", TRUE, .L)] count";
-          ci->simpleCommand(cmd, err, errMsg, res, false, runtime, showCommands,
-                            commandLog, false, 
-                            algInstance->getTimeout());
-          if(err){
-               cerr << "command  " << cmd  << " on worker " 
-                    << worker << "failed" << endl;
-               cerr << errMsg << endl;
-               writeLog(ci,cmd,errMsg);
-               listener->ready(currentSlot,worker, runner);
-               return;
+          cmd = "query " + rel + " feed extend[ OK : getFileTCP( .R, .IP, " +
+                stringutils::int2str(port) + ", TRUE, .L)] " +
+                "filter[isdefined(.OK) = FALSE] count";
+
+
+          ListExpr resList = nl->TheEmptyList();
+          ci->simpleCommand(cmd, err, errMsg, resList, false, runtime, 
+                  showCommands, commandLog, false, algInstance->getTimeout());
+
+          if (err) {
+            cerr << "command  " << cmd << " on worker " << worker << "failed"
+                 << endl;
+            cerr << errMsg << endl;
+            writeLog(ci, cmd, errMsg);
+            listener->ready(currentSlot, worker, runner);
+            return;
+          }
+
+          // Are there any undefined (failed) file transfers? 
+          int errors = getCount(err, resList);
+          if(errors > 0) {
+            errMsg = "Got errors during file transfer";
+            cerr << errMsg << endl;
+            writeLog(ci, cmd, errMsg);
+            listener->ready(currentSlot, worker, runner);
+            return;
           }
 
           // now, all required files are on the worker workernum
-
           // produce query  doing the actually work, the query 
           // must be given in nested list syntax 
           // because the function is in nl
@@ -18644,28 +18675,6 @@ version using a single query
         counts.push_back(value);
      }
    }
-
-
-   int getCount(int error, ListExpr& resList){
-       int res = -1;
-       if(error!=0){
-         cerr << "problem in executing query" << endl;
-       } else {
-         if(!nl->HasLength(resList,2)){
-           cerr << " unexpected result " << endl;
-         } else {
-            ListExpr rv = nl->Second(resList);
-            if(nl->AtomType(rv) != IntType){
-              cerr << " unexpected result " << endl
-                   << nl->ToString(resList) << endl;
-            } else {
-               res = nl->IntValue(rv);
-            }
-         }
-      }
-      return res;
-   }
-
 };
 
 template<bool tupleSizes>
