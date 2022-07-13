@@ -75,6 +75,9 @@ operator mcreatentree5 alias MCREATENTREE5 pattern _ op [_,_,_,_]
 operator mcreatentree6 alias MCREATENTREE6 pattern _ op [_,_,_,_]
 operator mcreatentree7 alias MCREATENTREE7 pattern _ op [_,_,_,_]
 operator mcreatentree8 alias MCREATENTREE8 pattern _ op [_,_,_,_]
+
+operator minsertntree alias MINSERTNTREE pattern _ op [_,_]
+
 operator exportntree alias EXPORTNTREE pattern _ _ op [_,_]
 operator importntree alias IMPORTNTREE pattern op(_,_)
 

@@ -608,6 +608,9 @@ class NTreeNode {
   virtual void build(std::vector<T>& contents, DistComp& dc, int depth,
                      const PartitionMethod partMethod) = 0;
   
+  virtual void insert(const T& entry, DistComp& dc,
+                      const PartitionMethod partMethod) = 0;
+  
   virtual void clear(const bool deleteContent) = 0;
   
   virtual std::ostream& print(std::ostream& out, DistComp& dc) const = 0;
@@ -1232,8 +1235,6 @@ class NTreeInnerNode : public NTreeNode<T, DistComp, variant> {
   
   int getNoEntries() const {
     int sum = 0;
-    cout << "inner node " << node_t::nodeId << "; node count is "
-         << node_t::count << endl;
     for (int i = 0; i < node_t::count; i++) {
       if (children[i] != 0) {
         sum += children[i]->getNoEntries();
@@ -1505,6 +1506,34 @@ class NTreeInnerNode : public NTreeNode<T, DistComp, variant> {
     node_t::count = degree;
   }
   
+  void insert(const T& entry, DistComp& dc, const PartitionMethod partMethod) {
+    double minDist;
+    int nearestCenter = getNearestCenterPos(entry, dc, this->getDegree(),
+                                            minDist);
+    node_t *nearestChild = children[nearestCenter];
+    if (nearestChild->isLeaf()) {
+      int size = ((leafnode_t*)(nearestChild))->getNoEntries();
+      if (((leafnode_t*)nearestChild)->contains(entry, dc)) { // nothing to do
+        return;
+      }
+      if (size == node_t::maxLeafSize) { // split required
+        std::vector<T> contents;
+        for (int i = 0; i < size; i++) {
+          contents.push_back(*(((leafnode_t*)nearestChild)->getObject(i)));
+        }
+        contents.push_back(entry);
+        delete nearestChild;
+        children[nearestCenter] = new innernode_t(node_t::degree,
+                 node_t::maxLeafSize, node_t::candOrder, node_t::pMethod);
+        children[nearestCenter]->build(contents, dc, 0, partMethod);
+        return;
+        
+        // TODO. care about auxiliary values
+      }
+    }
+    nearestChild->insert(entry, dc, partMethod);
+  }
+  
   double getMaxDist(const int i) const {
     assert(i >= 0 && i < degree);
     return maxDist[i];
@@ -1654,6 +1683,16 @@ class NTreeLeafNode : public NTreeNode<T, DistComp, variant> {
     this->maxDist = maxDist[0];
   }
   
+  bool contains(const T& entry, DistComp& dc) {
+    double minDist;
+    int nearestEntry = getNearestCenterPos(entry, dc, node_t::count, minDist);
+    if (entries[nearestEntry]->getKey() == entry.getKey() &&
+        entries[nearestEntry]->getTid() == entry.getTid()) {
+      return true;
+    }
+    return false;
+  }
+  
   void insert(std::vector<T>& contents, const TupleId centerTid) {
     assert(node_t::count + (int)contents.size() <= node_t::maxLeafSize);
     for (unsigned int i = 0; i < contents.size(); i++) {
@@ -1700,6 +1739,14 @@ class NTreeLeafNode : public NTreeNode<T, DistComp, variant> {
   void build(std::vector<T>& contents, DistComp& dc, int depth,
              const PartitionMethod partMethod) {
     assert(false);
+  }
+  
+  void insert(const T& entry, DistComp& dc, const PartitionMethod partMethod) {
+    if (node_t::count < node_t::maxLeafSize) {
+      entries[node_t::count] = new T(entry);
+      node_t::count++;
+      // TODO: recompute aux values
+    }
   }
   
   leafnode_t* clone() {
@@ -2586,6 +2633,18 @@ class NTree {
     computeStatistics(root);
     cout << endl;
     stat.print(cout);
+  }
+  
+  void insert(const T& entry) {
+    if (!root) { // empty tree
+      std::vector<T> contents;
+      contents.push_back(entry);
+      root = new leafnode_t(degree, maxLeafSize, candOrder, pMethod, dc, 0,
+                            contents);
+    }
+    else {
+      root->insert(entry, dc, partMethod);
+    }
   }
   
   std::ostream& print(std::ostream& out) {
