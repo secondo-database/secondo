@@ -22816,8 +22816,6 @@ class minsertntreeInfo{
       MTreeEntry<T> entry(*attr, id);
       int size = ntree->getNoEntries();
       ntree->insert(entry);
-      cout << size << " before insert, " << ntree->getNoEntries() 
-           << " after" << endl;
     } 
     return tuple;
   }
@@ -22957,7 +22955,7 @@ OperatorSpec minsertntreeSpec(
 Operator minsertntreeOp(
   "minsertntree",
    minsertntreeSpec.getStr(),
-   32,
+   64,
    minsertntreeVM,
    minsertntreeSelect,
    minsertntreeTM

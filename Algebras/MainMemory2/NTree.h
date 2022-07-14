@@ -1527,8 +1527,6 @@ class NTreeInnerNode : public NTreeNode<T, DistComp, variant> {
                  node_t::maxLeafSize, node_t::candOrder, node_t::pMethod);
         children[nearestCenter]->build(contents, dc, 0, partMethod);
         return;
-        
-        // TODO. care about auxiliary values
       }
     }
     nearestChild->insert(entry, dc, partMethod);
@@ -1742,11 +1740,12 @@ class NTreeLeafNode : public NTreeNode<T, DistComp, variant> {
   }
   
   void insert(const T& entry, DistComp& dc, const PartitionMethod partMethod) {
-    if (node_t::count < node_t::maxLeafSize) {
-      entries[node_t::count] = new T(entry);
-      node_t::count++;
-      // TODO: recompute aux values
-    }
+    assert(node_t::count < node_t::maxLeafSize);
+    node_t::deleteAuxStructures(node_t::count);
+    entries[node_t::count] = new T(entry);
+    node_t::count++;
+    node_t::initAuxStructures(node_t::count);
+    node_t::precomputeDistances(dc, node_t::count, true);
   }
   
   leafnode_t* clone() {
@@ -2362,7 +2361,7 @@ class NNIteratorN {
               const int _k = 10) : ref(r), dc(di), k(_k) {
     results.clear();
     if (k == 0) {
-      k = INT_MAX;
+      k = root->getNoEntries();
     }
     collectNN(root);
     stat.print(cout, dc.getNoDistFunCalls(), true);
@@ -2636,6 +2635,7 @@ class NTree {
   }
   
   void insert(const T& entry) {
+    int previousSize = root->getNoEntries();
     if (!root) { // empty tree
       std::vector<T> contents;
       contents.push_back(entry);
@@ -2644,6 +2644,10 @@ class NTree {
     }
     else {
       root->insert(entry, dc, partMethod);
+    }
+    if (root->getNoEntries() > previousSize) {
+      int firstNodeId = root->getNodeId();
+      assignNodeIds(firstNodeId);
     }
   }
   
