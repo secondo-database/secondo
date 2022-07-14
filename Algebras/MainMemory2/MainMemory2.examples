@@ -336,6 +336,12 @@ Signature : stream(tuple) x NTREEx(T), IDENT -> stream(tuple)
 Example   : query Kinos feed head[1] addid minsertntree[mKinos_GeoData_ntree8, GeoData] count = 1
 Result    : TRUE
 
+Operator  : mdeletentree
+Number    : 1928
+Signature : stream(tuple) x NTREEx(T), IDENT -> stream(tuple)
+Example   : query Kinos feed head[0] addid mdeletentree[mKinos_GeoData_ntree8, GeoData] count = 0
+Result    : TRUE
+
 Operator  : exportntree
 Number    : 1924
 Signature : NTREEx(T) x string x int [x int] -> bool
