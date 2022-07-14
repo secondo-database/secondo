@@ -22995,7 +22995,7 @@ class mdeletentreeInfo{
     if (id != 0) {
       T* attr = (T*)tuple->GetAttribute(attrIndex);
       MTreeEntry<T> entry(*attr, id);
-      ntree->insert(entry);
+      ntree->remove(entry);
     } 
     return tuple;
   }

@@ -611,6 +611,9 @@ class NTreeNode {
   virtual void insert(const T& entry, DistComp& dc,
                       const PartitionMethod partMethod) = 0;
   
+  virtual void remove(const T& entry, DistComp& dc,
+                      const PartitionMethod partMethod) = 0;
+  
   virtual void clear(const bool deleteContent) = 0;
   
   virtual std::ostream& print(std::ostream& out, DistComp& dc) const = 0;
@@ -1532,6 +1535,10 @@ class NTreeInnerNode : public NTreeNode<T, DistComp, variant> {
     nearestChild->insert(entry, dc, partMethod);
   }
   
+  void remove(const T& entry, DistComp& dc, const PartitionMethod partMethod) {
+    
+  }
+  
   double getMaxDist(const int i) const {
     assert(i >= 0 && i < degree);
     return maxDist[i];
@@ -1746,6 +1753,22 @@ class NTreeLeafNode : public NTreeNode<T, DistComp, variant> {
     node_t::count++;
     node_t::initAuxStructures(node_t::count);
     node_t::precomputeDistances(dc, node_t::count, true);
+  }
+  
+  void remove(const T& entry, DistComp& dc, const PartitionMethod partMethod) {
+    double minDist;
+    int nearestEntryPos = getNearestCenterPos(entry, dc, node_t::count,minDist);
+    T* nearestEntry = entries[nearestEntryPos];
+    if (nearestEntry->getKey() == entry.getKey() && 
+        nearestEntry->getTid() == entry.getTid()) {
+      delete nearestEntry;
+    
+      if (nearestEntryPos < node_t::count - 1) {
+        entries[nearestEntryPos] = entries[node_t::count - 1];
+        entries[node_t::count - 1] = 0;
+      }
+      node_t::count--;
+    }
   }
   
   leafnode_t* clone() {
@@ -2646,6 +2669,18 @@ class NTree {
       root->insert(entry, dc, partMethod);
     }
     if (root->getNoEntries() > previousSize) {
+      int firstNodeId = root->getNodeId();
+      assignNodeIds(firstNodeId);
+    }
+  }
+  
+  void remove(const T& entry) {
+    if (!root) { // empty tree
+      return;
+    }
+    root->remove(entry, dc, partMethod);
+    int previousSize = root->getNoEntries();
+    if (root->getNoEntries() < previousSize && root->getNoEntries() > 0) {
       int firstNodeId = root->getNodeId();
       assignNodeIds(firstNodeId);
     }
