@@ -1049,7 +1049,7 @@ class NTreeInnerNode : public NTreeNode<T, DistComp, variant> {
         }
       }
       else {
-        children[i]->getContents(result);
+        ((innernode_t*)children[i])->getContents(result);
       }
     }
   }
