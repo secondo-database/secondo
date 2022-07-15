@@ -1039,6 +1039,21 @@ class NTreeInnerNode : public NTreeNode<T, DistComp, variant> {
     return centers[childPos];
   }
   
+  void getContents(std::vector<T>& result) {
+    int size;
+    for (int i = 0; i < node_t::count; i++) {
+      if (children[i]->isLeaf()) {
+        size = children[i]->getNoEntries();
+        for (int j = 0; j < size; j++) {
+          result.push_back(children[i]->getObject(j));
+        }
+      }
+      else {
+        children[i]->getContents(result);
+      }
+    }
+  }
+  
   int getNearestCenterPos(const T& o, DistComp& dc, const int size,
                           double& minDist) {
     if (variant == 2 || variant >= 6) {
@@ -1536,7 +1551,32 @@ class NTreeInnerNode : public NTreeNode<T, DistComp, variant> {
   }
   
   void remove(const T& entry, DistComp& dc, const PartitionMethod partMethod) {
-    
+    double minDist;
+    int nearestCenter = getNearestCenterPos(entry, dc, this->getDegree(),
+                                            minDist);
+    node_t *nearestChild = children[nearestCenter];
+    nearestChild->remove(entry, dc, partMethod);
+    bool redistribute = false;
+    if (nearestChild->isLeaf()) {
+      if (((leafnode_t*)nearestChild)->isEmpty()) {
+        redistribute = true;
+      }
+    }
+    else {
+      if (((innernode_t*)nearestChild)->getNoEntries() <= node_t::maxLeafSize) {
+        redistribute = true;
+      }
+    }
+    if (redistribute) {
+      std::vector<T> contents;
+      getContents(contents);
+      node_t::deleteAuxStructures(node_t::count);
+      for (int i = 0; i < node_t::count; i++) {
+        delete children[i];
+        delete centers[i];
+      }
+      build(contents, dc, 0, partMethod);
+    }
   }
   
   double getMaxDist(const int i) const {
@@ -1630,6 +1670,10 @@ class NTreeLeafNode : public NTreeNode<T, DistComp, variant> {
   
   int getNoEntries() const {
     return node_t::count;
+  }
+  
+  bool isEmpty() const {
+    return getNoEntries() == 0;
   }
   
   int getNoNodes() const {
@@ -1756,18 +1800,22 @@ class NTreeLeafNode : public NTreeNode<T, DistComp, variant> {
   }
   
   void remove(const T& entry, DistComp& dc, const PartitionMethod partMethod) {
+    assert(node_t::count > 0);
     double minDist;
     int nearestEntryPos = getNearestCenterPos(entry, dc, node_t::count,minDist);
     T* nearestEntry = entries[nearestEntryPos];
+    // TODO: check all values
     if (nearestEntry->getKey() == entry.getKey() && 
         nearestEntry->getTid() == entry.getTid()) {
       delete nearestEntry;
-    
       if (nearestEntryPos < node_t::count - 1) {
         entries[nearestEntryPos] = entries[node_t::count - 1];
         entries[node_t::count - 1] = 0;
       }
+      node_t::deleteAuxStructures(node_t::count);
       node_t::count--;
+      node_t::initAuxStructures(node_t::count);
+      node_t::precomputeDistances(dc, node_t::count, true);
     }
   }
   
