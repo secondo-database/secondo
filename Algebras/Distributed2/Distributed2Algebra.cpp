@@ -18389,8 +18389,7 @@ class AReduceTask{
 
           cmd = "query " + rel + " feed extend[ OK : getFileTCP( .R, .IP, " +
                 stringutils::int2str(port) + ", TRUE, .L)] " +
-                "filter[.OK = FALSE] count";
-
+                "filter[.OK = FALSE] consume";
 
           ListExpr resList = nl->TheEmptyList();
           ci->simpleCommand(cmd, err, errMsg, resList, false, runtime, 
@@ -18406,9 +18405,10 @@ class AReduceTask{
           }
 
           // Are there any undefined (failed) file transfers? 
-          int errors = getCount(err, resList);
-          if(errors > 0) {
-            errMsg = "Got errors during file transfer";
+          // ((rel (tuple ((R text) (IP text) (L text) (M int) (OK bool)))) ())
+          if(! nl->IsEmpty(nl->Second(resList))) {
+            errMsg = "Got errors during file transfer: " 
+                     + nl->ToString(resList);
             cerr << errMsg << endl;
             writeLog(ci, cmd, errMsg);
             listener->ready(currentSlot, worker, runner);
