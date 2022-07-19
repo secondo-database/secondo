@@ -1831,7 +1831,7 @@ class RangeIteratorN {
         break;
       }
     }
-    stat.print(cout, dc.getNoDistFunCalls(), true);
+    //stat.print(cout, dc.getNoDistFunCalls(), true);
   }
   
   void addResult(T* o) {
@@ -2318,7 +2318,7 @@ class NNIteratorN {
       k = INT_MAX;
     }
     collectNN(root);
-    stat.print(cout, dc.getNoDistFunCalls(), true);
+    //stat.print(cout, dc.getNoDistFunCalls(), true);
   }
   
   void addResult(const TupleId id, const double d) {
