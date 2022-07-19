@@ -330,10 +330,22 @@ Signature : MREL x IDENT x int x int [x geoid] -> (mpointer(mem(ntree ...) )
 Example   : let mKinos_GeoData_ntree8 = mKinos mcreatentree8[GeoData, 4, 8]
 Result    : ()
 
+Operator  : minsertntree
+Number    : 1927
+Signature : stream(tuple) x NTREEx(T), IDENT -> stream(tuple)
+Example   : query Kinos feed head[1] addid minsertntree[mKinos_GeoData_ntree8, GeoData] count = 1
+Result    : TRUE
+
+Operator  : mdeletentree
+Number    : 1928
+Signature : stream(tuple) x NTREEx(T), IDENT -> stream(tuple)
+Example   : query Kinos feed head[0] addid mdeletentree[mKinos_GeoData_ntree8, GeoData] count = 0
+Result    : TRUE
+
 Operator  : exportntree
 Number    : 1924
 Signature : NTREEx(T) x string x int [x int] -> bool
-Example   : query mKinos_GeoData_ntree8 mKinos exportntree["kinos", 1]
+Example   : query mKinos_GeoData_ntree7 mKinos exportntree["kinos", 1]
 Result    : TRUE
 
 Operator  : importntree7

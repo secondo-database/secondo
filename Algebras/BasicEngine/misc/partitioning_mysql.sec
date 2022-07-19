@@ -1,0 +1,12 @@
+query be_init_cluster('mysql', 'nidzwetzki', be_password, 20101, 'janmaster', WorkersMySQL)
+
+let_ users_distributed = be_part_hash("users", "firstname", 60)
+let_ users_distributed = be_part_hash("users", "firstname", 60)
+let_ users_distributed = be_part_hash("users", "lastname", 60)
+let_ users_distributed = be_part_hash("users", "age", 60)
+
+query be_repart_hash("users", "firstname", users_distributed)
+query be_repart_hash("users", "lastname", users_distributed)
+query be_repart_hash("users", "age", users_distributed)
+
+

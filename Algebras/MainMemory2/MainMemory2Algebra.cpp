@@ -22732,6 +22732,404 @@ Operator mcreatentree8Op(
 );
 
 /*
+Operator ~minsertntree~
+
+*/
+
+ListExpr minsertdeletentreeTM(ListExpr args) {
+  if (!nl->HasLength(args, 3)) {
+    return listutils::typeError("three arguments required");
+  }
+  ListExpr a1 = nl->First(args);
+  if (!Stream<Tuple>::checkType(a1)) {
+    return listutils::typeError("first argument is not a tuple stream");
+  }
+  ListExpr a2 = nl->Second(args);
+  if (MPointer::checkType(a2)) {
+    a2 = nl->Second(a2);
+  }
+  if (!Mem::checkType(a2)) {
+     return listutils::typeError("second argument is not a memory object");
+  }
+  a2 = nl->Second(a2); // remove mem
+  ListExpr a3 = nl->Third(args);
+  if (!listutils::isSymbol(a3)) {
+    return listutils::typeError("third arg is not a valid attribute name");
+  }
+  ListExpr attrList = nl->Second(nl->Second(a1));
+  ListExpr attrType;
+  string attrName = nl->SymbolValue(a3);
+  int attrIndex = listutils::findAttribute(attrList, attrName, attrType);
+  if (!attrIndex) {
+    return listutils::typeError("attribute name " + attrName +
+                                " is not part of the tuple");
+  }
+  if (!mtreehelper::checkTypeN(a2, attrType, 7) &&
+      !mtreehelper::checkTypeN(a2, attrType, 8)) {
+    return listutils::typeError("second arg is not a memory ntree over " +
+                                nl->ToString(attrType));
+  }
+  ListExpr tidType;
+  int tidIndex = listutils::findAttribute(attrList, "TID", tidType);
+  if (tidIndex == 0) {
+     return listutils::typeError("no TID attribute found");
+  }
+  if (!TupleIdentifier::checkType(tidType)) {
+    return listutils::typeError("TID attribute not of type tid");
+  }
+  ListExpr appendList = nl->TwoElemList(nl->IntAtom(attrIndex -1),
+                                        nl->IntAtom(tidIndex -1));
+  return nl->ThreeElemList(nl->SymbolAtom(Symbols::APPEND()), appendList,
+                           nl->First(args));
+}
+
+
+template<class T, int variant>
+class minsertntreeInfo{
+ public:
+  typedef StdDistComp<T> D;
+   
+  minsertntreeInfo(Word _stream, MemoryNtreeObject<T, D, variant>* _tree,
+                   int _attrIndex, int _tidIndex) : stream(_stream) {
+    ntree = _tree->getNtreeX();
+    attrIndex = _attrIndex;
+    tidIndex = _tidIndex;
+    stream.open();
+  }
+
+  ~minsertntreeInfo() {
+    stream.close();
+  }
+
+  Tuple* next() {
+    Tuple* tuple = stream.request();
+    if (tuple == 0) {
+      return 0;
+    }
+    TupleIdentifier* tid = (TupleIdentifier*)tuple->GetAttribute(tidIndex);
+    if (!tid->IsDefined()) {
+      return tuple;
+    }
+    TupleId id = tid->GetTid();
+    if (id != 0) {
+      T* attr = (T*)tuple->GetAttribute(attrIndex);
+      MTreeEntry<T> entry(*attr, id);
+      ntree->insert(entry);
+    } 
+    return tuple;
+  }
+
+ private:
+  Stream<Tuple> stream;
+  NTree<MTreeEntry<T>, D, variant>* ntree;
+  int attrIndex;
+  int tidIndex;
+};
+
+
+template<class T, class M, int variant>
+int minsertntreeVMT(Word* args, Word& result, int message, Word& local,
+                    Supplier s) {
+  minsertntreeInfo<T, variant >* li = (minsertntreeInfo<T, variant>*)local.addr;
+  switch (message) {
+    case OPEN : {
+      if (li) {
+        delete li;
+      }
+      int attrIndex = ((CcInt*)args[3].addr)->GetValue();
+      int tidIndex = ((CcInt*)args[4].addr)->GetValue(); 
+      M* m = (M*)args[1].addr;
+      MemoryNtreeObject<T, StdDistComp<T>, variant>* ntree = 
+                                                    getNtreeX<M, T, variant>(m);
+      local.addr = new minsertntreeInfo<T, variant>(args[0], ntree, attrIndex,
+                                                    tidIndex);
+      return 0;
+    }
+    case REQUEST : {
+      result.addr = li ? li->next() : 0;
+      return result.addr ? YIELD : CANCEL;
+    }
+    case CLOSE : {
+      if (li) {
+        delete li;
+        local.addr = 0;
+      }
+      return 0;
+    }
+
+  }
+  return -1;
+}
+
+
+ValueMapping minsertntreeVM[] = {
+  minsertntreeVMT<mtreehelper::t1, Mem, 7>,
+  minsertntreeVMT<mtreehelper::t2, Mem, 7>,
+  minsertntreeVMT<mtreehelper::t3, Mem, 7>,
+  minsertntreeVMT<mtreehelper::t4, Mem, 7>,
+  minsertntreeVMT<mtreehelper::t5, Mem, 7>,
+  minsertntreeVMT<mtreehelper::t6, Mem, 7>,
+  minsertntreeVMT<mtreehelper::t7, Mem, 7>,
+  minsertntreeVMT<mtreehelper::t8, Mem, 7>,
+  minsertntreeVMT<mtreehelper::t9, Mem, 7>,
+  minsertntreeVMT<mtreehelper::t10, Mem, 7>,
+  minsertntreeVMT<mtreehelper::t11, Mem, 7>,
+  minsertntreeVMT<mtreehelper::t12, Mem, 7>,
+  minsertntreeVMT<mtreehelper::t13, Mem, 7>,
+  minsertntreeVMT<mtreehelper::t14, Mem, 7>,
+  minsertntreeVMT<mtreehelper::t15, Mem, 7>,
+  minsertntreeVMT<mtreehelper::t16, Mem, 7>,
+  minsertntreeVMT<mtreehelper::t1, MPointer, 7>,
+  minsertntreeVMT<mtreehelper::t2, MPointer, 7>,
+  minsertntreeVMT<mtreehelper::t3, MPointer, 7>,
+  minsertntreeVMT<mtreehelper::t4, MPointer, 7>,
+  minsertntreeVMT<mtreehelper::t5, MPointer, 7>,
+  minsertntreeVMT<mtreehelper::t6, MPointer, 7>,
+  minsertntreeVMT<mtreehelper::t7, MPointer, 7>,
+  minsertntreeVMT<mtreehelper::t8, MPointer, 7>,
+  minsertntreeVMT<mtreehelper::t9, MPointer, 7>,
+  minsertntreeVMT<mtreehelper::t10, MPointer, 7>,
+  minsertntreeVMT<mtreehelper::t11, MPointer, 7>,
+  minsertntreeVMT<mtreehelper::t12, MPointer, 7>,
+  minsertntreeVMT<mtreehelper::t13, MPointer, 7>,
+  minsertntreeVMT<mtreehelper::t14, MPointer, 7>,
+  minsertntreeVMT<mtreehelper::t15, MPointer, 7>,
+  minsertntreeVMT<mtreehelper::t16, MPointer, 7>,
+  minsertntreeVMT<mtreehelper::t1, Mem, 8>,
+  minsertntreeVMT<mtreehelper::t2, Mem, 8>,
+  minsertntreeVMT<mtreehelper::t3, Mem, 8>,
+  minsertntreeVMT<mtreehelper::t4, Mem, 8>,
+  minsertntreeVMT<mtreehelper::t5, Mem, 8>,
+  minsertntreeVMT<mtreehelper::t6, Mem, 8>,
+  minsertntreeVMT<mtreehelper::t7, Mem, 8>,
+  minsertntreeVMT<mtreehelper::t8, Mem, 8>,
+  minsertntreeVMT<mtreehelper::t9, Mem, 8>,
+  minsertntreeVMT<mtreehelper::t10, Mem, 8>,
+  minsertntreeVMT<mtreehelper::t11, Mem, 8>,
+  minsertntreeVMT<mtreehelper::t12, Mem, 8>,
+  minsertntreeVMT<mtreehelper::t13, Mem, 8>,
+  minsertntreeVMT<mtreehelper::t14, Mem, 8>,
+  minsertntreeVMT<mtreehelper::t15, Mem, 8>,
+  minsertntreeVMT<mtreehelper::t16, Mem, 8>,
+  minsertntreeVMT<mtreehelper::t1, MPointer, 8>,
+  minsertntreeVMT<mtreehelper::t2, MPointer, 8>,
+  minsertntreeVMT<mtreehelper::t3, MPointer, 8>,
+  minsertntreeVMT<mtreehelper::t4, MPointer, 8>,
+  minsertntreeVMT<mtreehelper::t5, MPointer, 8>,
+  minsertntreeVMT<mtreehelper::t6, MPointer, 8>,
+  minsertntreeVMT<mtreehelper::t7, MPointer, 8>,
+  minsertntreeVMT<mtreehelper::t8, MPointer, 8>,
+  minsertntreeVMT<mtreehelper::t9, MPointer, 8>,
+  minsertntreeVMT<mtreehelper::t10, MPointer, 8>,
+  minsertntreeVMT<mtreehelper::t11, MPointer, 8>,
+  minsertntreeVMT<mtreehelper::t12, MPointer, 8>,
+  minsertntreeVMT<mtreehelper::t13, MPointer, 8>,
+  minsertntreeVMT<mtreehelper::t14, MPointer, 8>,
+  minsertntreeVMT<mtreehelper::t15, MPointer, 8>,
+  minsertntreeVMT<mtreehelper::t16, MPointer, 8>
+};
+
+int minsertdeletentreeSelect(ListExpr args) {
+  string treeType = 
+              nl->ToString(nl->First(nl->Second(nl->Second(nl->Second(args)))));
+  int o1 = (treeType == "ntree7" ? 0 : 32);
+  int o2 = Mem::checkType(nl->Second(args)) ? 0 : 16;
+  string attrName = nl->SymbolValue(nl->Third(args));
+  ListExpr attrList = nl->Second(nl->Second(nl->First(args)));
+  ListExpr type;
+  listutils::findAttribute(attrList, attrName, type);
+  return o1 + o2 + mtreehelper::getTypeNo(type, 16);
+}
+
+OperatorSpec minsertntreeSpec(
+  "stream(tuple) x NTREEx(T) x IDENT -> stream(tuple)",
+  "_ minsertntree[ _ , _ ]",
+  "Inserts the tuples from a stream into an existing main memory ntree7 or "
+  "ntree8. TupleIDs are extracted from the TID attribute expected in the tuple."
+  " Tuples with an undefined id or an id of value 0 are not inserted "
+  "into the tree. All incoming tuples are put into the output stream.",
+  "query Kinos feed addid minsertntree[mKinos_GeoData_ntree7, GeoData] count"
+);
+
+Operator minsertntreeOp(
+  "minsertntree",
+   minsertntreeSpec.getStr(),
+   64,
+   minsertntreeVM,
+   minsertdeletentreeSelect,
+   minsertdeletentreeTM
+);
+
+/*
+Operator ~mdeletentree~
+
+*/
+
+template<class T, int variant>
+class mdeletentreeInfo{
+ public:
+  typedef StdDistComp<T> D;
+   
+  mdeletentreeInfo(Word _stream, MemoryNtreeObject<T, D, variant>* _tree,
+                   int _attrIndex, int _tidIndex) : stream(_stream) {
+    ntree = _tree->getNtreeX();
+    attrIndex = _attrIndex;
+    tidIndex = _tidIndex;
+    stream.open();
+  }
+
+  ~mdeletentreeInfo() {
+    stream.close();
+  }
+
+  Tuple* next() {
+    Tuple* tuple = stream.request();
+    if (tuple == 0) {
+      return 0;
+    }
+    TupleIdentifier* tid = (TupleIdentifier*)tuple->GetAttribute(tidIndex);
+    if (!tid->IsDefined()) {
+      return tuple;
+    }
+    TupleId id = tid->GetTid();
+    if (id != 0) {
+      T* attr = (T*)tuple->GetAttribute(attrIndex);
+      MTreeEntry<T> entry(*attr, id);
+      ntree->remove(entry);
+    } 
+    return tuple;
+  }
+
+ private:
+  Stream<Tuple> stream;
+  NTree<MTreeEntry<T>, D, variant>* ntree;
+  int attrIndex;
+  int tidIndex;
+};
+
+
+template<class T, class M, int variant>
+int mdeletentreeVMT(Word* args, Word& result, int message, Word& local,
+                    Supplier s) {
+  mdeletentreeInfo<T, variant >* li = (mdeletentreeInfo<T, variant>*)local.addr;
+  switch (message) {
+    case OPEN : {
+      if (li) {
+        delete li;
+      }
+      int attrIndex = ((CcInt*)args[3].addr)->GetValue();
+      int tidIndex = ((CcInt*)args[4].addr)->GetValue(); 
+      M* m = (M*)args[1].addr;
+      MemoryNtreeObject<T, StdDistComp<T>, variant>* ntree = 
+                                                    getNtreeX<M, T, variant>(m);
+      local.addr = new mdeletentreeInfo<T, variant>(args[0], ntree, attrIndex,
+                                                    tidIndex);
+      return 0;
+    }
+    case REQUEST : {
+      result.addr = li ? li->next() : 0;
+      return result.addr ? YIELD : CANCEL;
+    }
+    case CLOSE : {
+      if (li) {
+        delete li;
+        local.addr = 0;
+      }
+      return 0;
+    }
+
+  }
+  return -1;
+}
+
+
+ValueMapping mdeletentreeVM[] = {
+  mdeletentreeVMT<mtreehelper::t1, Mem, 7>,
+  mdeletentreeVMT<mtreehelper::t2, Mem, 7>,
+  mdeletentreeVMT<mtreehelper::t3, Mem, 7>,
+  mdeletentreeVMT<mtreehelper::t4, Mem, 7>,
+  mdeletentreeVMT<mtreehelper::t5, Mem, 7>,
+  mdeletentreeVMT<mtreehelper::t6, Mem, 7>,
+  mdeletentreeVMT<mtreehelper::t7, Mem, 7>,
+  mdeletentreeVMT<mtreehelper::t8, Mem, 7>,
+  mdeletentreeVMT<mtreehelper::t9, Mem, 7>,
+  mdeletentreeVMT<mtreehelper::t10, Mem, 7>,
+  mdeletentreeVMT<mtreehelper::t11, Mem, 7>,
+  mdeletentreeVMT<mtreehelper::t12, Mem, 7>,
+  mdeletentreeVMT<mtreehelper::t13, Mem, 7>,
+  mdeletentreeVMT<mtreehelper::t14, Mem, 7>,
+  mdeletentreeVMT<mtreehelper::t15, Mem, 7>,
+  mdeletentreeVMT<mtreehelper::t16, Mem, 7>,
+  mdeletentreeVMT<mtreehelper::t1, MPointer, 7>,
+  mdeletentreeVMT<mtreehelper::t2, MPointer, 7>,
+  mdeletentreeVMT<mtreehelper::t3, MPointer, 7>,
+  mdeletentreeVMT<mtreehelper::t4, MPointer, 7>,
+  mdeletentreeVMT<mtreehelper::t5, MPointer, 7>,
+  mdeletentreeVMT<mtreehelper::t6, MPointer, 7>,
+  mdeletentreeVMT<mtreehelper::t7, MPointer, 7>,
+  mdeletentreeVMT<mtreehelper::t8, MPointer, 7>,
+  mdeletentreeVMT<mtreehelper::t9, MPointer, 7>,
+  mdeletentreeVMT<mtreehelper::t10, MPointer, 7>,
+  mdeletentreeVMT<mtreehelper::t11, MPointer, 7>,
+  mdeletentreeVMT<mtreehelper::t12, MPointer, 7>,
+  mdeletentreeVMT<mtreehelper::t13, MPointer, 7>,
+  mdeletentreeVMT<mtreehelper::t14, MPointer, 7>,
+  mdeletentreeVMT<mtreehelper::t15, MPointer, 7>,
+  mdeletentreeVMT<mtreehelper::t16, MPointer, 7>,
+  mdeletentreeVMT<mtreehelper::t1, Mem, 8>,
+  mdeletentreeVMT<mtreehelper::t2, Mem, 8>,
+  mdeletentreeVMT<mtreehelper::t3, Mem, 8>,
+  mdeletentreeVMT<mtreehelper::t4, Mem, 8>,
+  mdeletentreeVMT<mtreehelper::t5, Mem, 8>,
+  mdeletentreeVMT<mtreehelper::t6, Mem, 8>,
+  mdeletentreeVMT<mtreehelper::t7, Mem, 8>,
+  mdeletentreeVMT<mtreehelper::t8, Mem, 8>,
+  mdeletentreeVMT<mtreehelper::t9, Mem, 8>,
+  mdeletentreeVMT<mtreehelper::t10, Mem, 8>,
+  mdeletentreeVMT<mtreehelper::t11, Mem, 8>,
+  mdeletentreeVMT<mtreehelper::t12, Mem, 8>,
+  mdeletentreeVMT<mtreehelper::t13, Mem, 8>,
+  mdeletentreeVMT<mtreehelper::t14, Mem, 8>,
+  mdeletentreeVMT<mtreehelper::t15, Mem, 8>,
+  mdeletentreeVMT<mtreehelper::t16, Mem, 8>,
+  mdeletentreeVMT<mtreehelper::t1, MPointer, 8>,
+  mdeletentreeVMT<mtreehelper::t2, MPointer, 8>,
+  mdeletentreeVMT<mtreehelper::t3, MPointer, 8>,
+  mdeletentreeVMT<mtreehelper::t4, MPointer, 8>,
+  mdeletentreeVMT<mtreehelper::t5, MPointer, 8>,
+  mdeletentreeVMT<mtreehelper::t6, MPointer, 8>,
+  mdeletentreeVMT<mtreehelper::t7, MPointer, 8>,
+  mdeletentreeVMT<mtreehelper::t8, MPointer, 8>,
+  mdeletentreeVMT<mtreehelper::t9, MPointer, 8>,
+  mdeletentreeVMT<mtreehelper::t10, MPointer, 8>,
+  mdeletentreeVMT<mtreehelper::t11, MPointer, 8>,
+  mdeletentreeVMT<mtreehelper::t12, MPointer, 8>,
+  mdeletentreeVMT<mtreehelper::t13, MPointer, 8>,
+  mdeletentreeVMT<mtreehelper::t14, MPointer, 8>,
+  mdeletentreeVMT<mtreehelper::t15, MPointer, 8>,
+  mdeletentreeVMT<mtreehelper::t16, MPointer, 8>
+};
+
+OperatorSpec mdeletentreeSpec(
+  "stream(tuple) x NTREEx(T) x IDENT -> stream(tuple)",
+  "_ mdeletentree[ _ , _ ]",
+  "Deletes the tuples in a stream from an existing main memory ntree7 or "
+  "ntree8. TupleIDs are extracted from the TID attribute expected in the tuple."
+  " Tuples with an undefined id or an id of value 0 are ignored. All incoming "
+  "tuples are written to the output stream.",
+  "query Kinos feed addid mdeletentree[mKinos_GeoData_ntree7, GeoData] count"
+);
+
+Operator mdeletentreeOp(
+  "mdeletentree",
+   mdeletentreeSpec.getStr(),
+   64,
+   mdeletentreeVM,
+   minsertdeletentreeSelect,
+   minsertdeletentreeTM
+);
+
+/*
 operator ~makeNtreePersistent~
 
 */
@@ -23130,6 +23528,9 @@ class MainMemory2Algebra : public Algebra {
           AddOperator(&mcreatentree6Op);
           AddOperator(&mcreatentree7Op);
           AddOperator(&mcreatentree8Op);
+          
+          AddOperator(&minsertntreeOp);
+          AddOperator(&mdeletentreeOp);
           
           AddOperator(&exportntreeOp);
           AddOperator(&importntree7Op);
