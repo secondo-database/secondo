@@ -15200,8 +15200,17 @@ public:
       if (line == FileTransferKeywords::Cancel()) {
         errMsg = "remote file not found";
       } else {
-        errMsg = "Protocol error. File keywords expected. But got: ";
+        errMsg = "Protocol error. Transfer ok keyword expected. But got line: ";
         errMsg.append(line);
+        errMsg.append("\n");
+        errMsg.append("Remaining buffer: ");
+
+        // Read remaining message buffer for improved debugging
+        char buffer[4096];
+        while (io.read(buffer, sizeof(buffer))) {
+          errMsg.append(buffer, sizeof(buffer));
+        }
+        errMsg.append(buffer, sizeof(buffer));
       }
       socket->Close();
       delete socket;
