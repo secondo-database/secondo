@@ -3,6 +3,7 @@ $Header$
 @author Nikolai van Kempen
 
 Temporary utility predicates that are NOT NEEDED for the regular program execution.
+
 */
 
 :- op(999, fx, tracegoal).
@@ -43,6 +44,7 @@ traceGoalsOff :-
 /*
 Write all facts by its given name to stdout. 
 Only useful for facts, not for predicates.
+
 */
 writefacts(P) :-
 	write('Facts '), 
@@ -68,6 +70,7 @@ writefacts(P) :-
 /*
 Predicates to force writing the entire output without "..." within terms.
 Use 0 for unlimited depth.
+
 */
 debugMaxDepth(N) :-
 	current_prolog_flag(debugger_print_options, Y),
@@ -85,10 +88,11 @@ maxOutput :-
 	debugMaxDepth(0),
 	toplevelMaxDepth(0).
 
-:- maxOutput.
+% :- maxOutput.
 
 /*
 Debug utility predicates that only takes affect for non test runs.
+
 */
 sl :-
   testRunning, !.
