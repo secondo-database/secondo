@@ -18,7 +18,7 @@ if [ -x $checkpd ]; then
    for filename in $changed; do
      if [[ $filename == *.h ]] || [[ $filename == *.hpp ]] || [[ $filename == *.c ]] || [[ $filename == *.cpp ]] || [[ $filename == *.java ]] || [[ $filename == *.pl ]]; then
         echo Running checkpd for $filename
-        $checkpd --verystrong $filename
+        $checkpd --strong $filename
      fi
    done
 
