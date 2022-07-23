@@ -86,7 +86,7 @@ function runTest() {
   rc=$LU_RC
 
   if [ $rc -ne 0 ]; then
-    #let error++
+    let error++
     echo -e "\nTest failed with returncode $LU_RC \n"
     echo "=============================="
     echo "File: ${logFile}"
