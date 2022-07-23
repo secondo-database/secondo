@@ -3053,7 +3053,7 @@ indexselect2(arg(N), pr(Y = attr(AttrName, _, _), _)) =>
   [orange(rel(Name, Z), Y, Y), [order(AttrName)]]
   :-
   argument(N, rel(Name, Z)),
-  downcase_atom(AttrName, DCAttrName),
+  downcase_attr(AttrName, DCAttrName),
   is_orel(Name, DCAttrName).
 
 % generic rule for between(Attr, X, Y): orange using an ordered relation
@@ -3062,7 +3062,7 @@ indexselect2(arg(N), pr(between(attr(AttrName, _, _), X, Y), _)) =>
   [orange(rel(Name, Z), X, Y), [order(AttrName)]]
   :-
   argument(N, rel(Name, Z)),
-  downcase_atom(AttrName, DCAttrName),
+  downcase_attr(AttrName, DCAttrName),
   is_orel(Name, DCAttrName).
 
 
@@ -8594,6 +8594,14 @@ spelled(Rel, Rel2, u) :-
   !.
 
 spelled(_, _, _) :- !, fail.  % no rel entry in spelling table.
+
+
+downcase_attr(_:Attr, DCAttr) :-
+  downcase_atom(Attr, DCAttr),
+  !.
+  
+downcase_attr(Attr, DCAttr) :-
+  downcase_atom(Attr, DCAttr).
 
 
 
