@@ -128,7 +128,7 @@ bool WorkerConnection::executeSecondoCommand(const string &command,
 Execute a command or query on the worker.
 
 Returns true if everything is OK and there are no failure.
-Displays an error massage if something goes wrong.
+Displays an error message if something goes wrong.
 
 */
 bool WorkerConnection::performSimpleSecondoCommand(const std::string &command) {

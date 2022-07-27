@@ -41,21 +41,21 @@ dbs\_con is a pointer to a connection, for example to postgres
 extern BasicEngineControl *be_control;
 
 /*
-noMaster is just a default string for an error massage.
+noMaster is just a default string for an error message.
 
 */
 std::string const noMaster = "\nPlease use at first an init-Operator "
                              "before using this operator!\n";
 
 /*
-noWorker is just a default string for an error massage.
+noWorker is just a default string for an error message.
 
 */
 std::string const noWorker = "\nPlease use at first an init-Worker-Operator "
                              "before using this operator!\n";
 
 /*
-negSlots is just a default string for an error massage.
+negSlots is just a default string for an error message.
 
 */
 std::string const negSlots =
