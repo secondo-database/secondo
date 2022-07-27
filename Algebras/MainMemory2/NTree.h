@@ -1804,7 +1804,8 @@ class NTreeLeafNode : public NTreeNode<T, DistComp, variant> {
     double minDist;
     bool removed = true;
     while (removed && node_t::count > 0) {
-      int nearestEntryPos = getNearestCenterPos(entry, dc, node_t::count,minDist);
+      int nearestEntryPos = getNearestCenterPos(entry, dc, node_t::count, 
+                                                minDist);
       T* nearestEntry = entries[nearestEntryPos];
       if (dc(entry, *nearestEntry) == 0.0 && 
           nearestEntry->getTid() == entry.getTid()) {
