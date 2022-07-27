@@ -1802,20 +1802,25 @@ class NTreeLeafNode : public NTreeNode<T, DistComp, variant> {
   void remove(const T& entry, DistComp& dc, const PartitionMethod partMethod) {
     assert(node_t::count > 0);
     double minDist;
-    int nearestEntryPos = getNearestCenterPos(entry, dc, node_t::count,minDist);
-    T* nearestEntry = entries[nearestEntryPos];
-    // TODO: check all values
-    if (nearestEntry->getKey() == entry.getKey() && 
-        nearestEntry->getTid() == entry.getTid()) {
-      delete nearestEntry;
-      if (nearestEntryPos < node_t::count - 1) {
-        entries[nearestEntryPos] = entries[node_t::count - 1];
-        entries[node_t::count - 1] = 0;
+    bool removed = true;
+    while (removed && node_t::count > 0) {
+      int nearestEntryPos = getNearestCenterPos(entry, dc, node_t::count,minDist);
+      T* nearestEntry = entries[nearestEntryPos];
+      if (dc(entry, *nearestEntry) == 0.0 && 
+          nearestEntry->getTid() == entry.getTid()) {
+        delete nearestEntry;
+        if (nearestEntryPos < node_t::count - 1) {
+          entries[nearestEntryPos] = entries[node_t::count - 1];
+          entries[node_t::count - 1] = 0;
+        }
+        node_t::deleteAuxStructures(node_t::count);
+        node_t::count--;
+        node_t::initAuxStructures(node_t::count);
+        node_t::precomputeDistances(dc, node_t::count, true);
       }
-      node_t::deleteAuxStructures(node_t::count);
-      node_t::count--;
-      node_t::initAuxStructures(node_t::count);
-      node_t::precomputeDistances(dc, node_t::count, true);
+      else {
+        removed = false;
+      }
     }
   }
   
@@ -1835,9 +1840,7 @@ class NTreeLeafNode : public NTreeNode<T, DistComp, variant> {
       if (i > 0) {
         out << ", ";
       }
-      out << "(";
       dc.print(*entries[i], out);
-      out << ", TID " << entries[i]->getTid() << ")";
     }
     out << "\"]" << endl;
     out << "maxDist = " << maxDist << endl;

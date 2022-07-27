@@ -22995,6 +22995,8 @@ class mdeletentreeInfo{
     if (id != 0) {
       T* attr = (T*)tuple->GetAttribute(attrIndex);
       MTreeEntry<T> entry(*attr, id);
+//       cout << endl << "remove entry " << *(entry.getKey()) << " with tid "
+//            << entry.getTid() << endl << endl;
       ntree->remove(entry);
     } 
     return tuple;
