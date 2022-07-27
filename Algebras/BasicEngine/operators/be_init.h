@@ -38,9 +38,9 @@ ListExpr be_init_tm(ListExpr args);
 1.1.2 Value Mapping
 
 */
-template<class T>
-int be_init_sf_vm(Word* args, Word& result, int message,
-        Word& local, Supplier s) {
+template <class T>
+int be_init_sf_vm(Word *args, Word &result, int message, Word &local,
+                  Supplier s) {
 
   T *dbtype = (T *)args[0].addr;
   T *dbUser = (T *)args[1].addr;
@@ -54,8 +54,9 @@ int be_init_sf_vm(Word* args, Word& result, int message,
 
   if (be_control != nullptr) {
     std::cerr << "Error: Basic engine is already initialized. "
-         << "Please shutdown first, using be_shutdown_cluster()." << std::endl
-         << endl;
+              << "Please shutdown first, using be_shutdown_cluster()."
+              << std::endl
+              << endl;
 
     ((CcBool *)result.addr)->Set(true, false);
     return 0;
@@ -128,46 +129,39 @@ int be_init_sf_vm(Word* args, Word& result, int message,
 1.1.3 Specification
 
 */
-OperatorSpec init_be_spec (
-   "{string, text} x {string, text} x {string, text} x "
-      "int x {string, text} --> bool",
-   "be_init(_,_,_,_,_)",
-   "Set the db-type, user, pass, port and the db-name for initialization "
-   "the local BE-Worker. Your username and password have to be stored "
-   "in the .pgpass file in your home location. For creating a distributed "
-   "PostgreSQL-System please use the operator be_init_cluster.",
-   "query be_init('pgsql','user','pass',5432,'gisdb')"
-);
+OperatorSpec init_be_spec(
+    "{string, text} x {string, text} x {string, text} x "
+    "int x {string, text} --> bool",
+    "be_init(_,_,_,_,_)",
+    "Set the db-type, user, pass, port and the db-name for initialization "
+    "the local BE-Worker. Your username and password have to be stored "
+    "in the .pgpass file in your home location. For creating a distributed "
+    "PostgreSQL-System please use the operator be_init_cluster.",
+    "query be_init('pgsql','user','pass',5432,'gisdb')");
 
 /*
 1.1.4 ValueMapping Array
 
 */
 ValueMapping be_init_vm[] = {
-  be_init_sf_vm<CcString>,
-  be_init_sf_vm<FText>,
+    be_init_sf_vm<CcString>,
+    be_init_sf_vm<FText>,
 };
 
 /*
 1.1.5 Selection Function
 
 */
-int be_init_select(ListExpr args){
-    return CcString::checkType(nl->First(args))?0:1;
+int be_init_select(ListExpr args) {
+  return CcString::checkType(nl->First(args)) ? 0 : 1;
 };
 
 /*
 1.1.6 Operator instance
 
 */
-Operator be_init_op(
-  "be_init",
-  init_be_spec.getStr(),
-  sizeof(be_init_vm),
-  be_init_vm,
-  be_init_select,
-  be_init_tm
-);
+Operator be_init_op("be_init", init_be_spec.getStr(), sizeof(be_init_vm),
+                    be_init_vm, be_init_select, be_init_tm);
 
 } // namespace BasicEngine
 

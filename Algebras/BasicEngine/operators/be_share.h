@@ -74,44 +74,31 @@ int be_shareSFVM(Word *args, Word &result, int message, Word &local,
 1.3.3 Specification
 
 */
-OperatorSpec be_shareSpec(
-   "{string, text} --> bool",
-   "be_share(_)",
-   "This operator shares the given relation with all workers.",
-   "query be_share('cars')"
-);
+OperatorSpec
+    be_shareSpec("{string, text} --> bool", "be_share(_)",
+                 "This operator shares the given relation with all workers.",
+                 "query be_share('cars')");
 
 /*
 1.3.4 ValueMapping Array
 
 */
-ValueMapping be_shareVM[] = {
-  be_shareSFVM<CcString>,
-  be_shareSFVM<FText>
-};
+ValueMapping be_shareVM[] = {be_shareSFVM<CcString>, be_shareSFVM<FText>};
 
 /*
 1.3.5 Selection Function
 
 */
-int be_shareSelect(ListExpr args){
-  return CcString::checkType(nl->First(args))?0:1;
+int be_shareSelect(ListExpr args) {
+  return CcString::checkType(nl->First(args)) ? 0 : 1;
 }
 
 /*
 1.3.6 Operator instance
 
 */
-Operator be_shareOp(
-  "be_share",
-  be_shareSpec.getStr(),
-  sizeof(be_shareVM),
-  be_shareVM,
-  be_shareSelect,
-  be_shareTM
-);
-
-
+Operator be_shareOp("be_share", be_shareSpec.getStr(), sizeof(be_shareVM),
+                    be_shareVM, be_shareSelect, be_shareTM);
 
 } // namespace BasicEngine
 

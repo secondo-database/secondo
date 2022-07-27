@@ -39,7 +39,6 @@ using namespace std;
 
 namespace BasicEngine {
 
-
 /*
 1.1.1 Type Mapping
 
@@ -47,9 +46,9 @@ This operator has no paramter
 
 */
 ListExpr be_shutdown_cluster_tm(ListExpr args) {
-string err = "No parameter (--> bool) expected";
+  string err = "No parameter (--> bool) expected";
 
-  if(!(nl->HasLength(args,0))){
+  if (!(nl->HasLength(args, 0))) {
     return listutils::typeError("No arguments expected. " + err);
   }
   return nl->SymbolAtom(CcBool::BasicType());

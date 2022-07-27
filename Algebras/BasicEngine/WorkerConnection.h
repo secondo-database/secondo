@@ -50,114 +50,102 @@ struct RemoteConnectionInfo {
 
 class WorkerConnection {
 
-    public:
-    WorkerConnection(RemoteConnectionInfo* _connectionInfo) : 
-        connectionInfo(_connectionInfo) {
+public:
+  WorkerConnection(RemoteConnectionInfo *_connectionInfo)
+      : connectionInfo(_connectionInfo) {}
 
+  virtual ~WorkerConnection() {
+    if (connectionInfo != nullptr) {
+      delete connectionInfo;
+      connectionInfo = nullptr;
     }
 
-    virtual ~WorkerConnection() {
-        if(connectionInfo != nullptr) {
-            delete connectionInfo;
-            connectionInfo = nullptr;
-        }
-
-        if(connection != nullptr) {
-            BOOST_LOG_TRIVIAL(debug) 
-                << "Releasing connection to " << connection->getHost() 
-                << " / " << connection->getPort();
-            connection->deleteIfAllowed();
-            connection = nullptr;
-        }
+    if (connection != nullptr) {
+      BOOST_LOG_TRIVIAL(debug)
+          << "Releasing connection to " << connection->getHost() << " / "
+          << connection->getPort();
+      connection->deleteIfAllowed();
+      connection = nullptr;
     }
+  }
 
-    RemoteConnectionInfo* getRemoteConnectionInfo() const {
-        return connectionInfo;
-    }
+  RemoteConnectionInfo *getRemoteConnectionInfo() const {
+    return connectionInfo;
+  }
 
-    distributed2::ConnectionInfo* getConnection() const {
-        return connection;
-    }
+  distributed2::ConnectionInfo *getConnection() const { return connection; }
 
-    friend std::ostream& operator<<(std::ostream &os,
-                                    const WorkerConnection &connection) {
+  friend std::ostream &operator<<(std::ostream &os,
+                                  const WorkerConnection &connection) {
 
-      return os << "(WorkerConnection" << connection.connectionInfo->host << ","
-                << connection.connectionInfo->port
-                << "," << connection.connectionInfo->config << ")";
-    }
+    return os << "(WorkerConnection" << connection.connectionInfo->host << ","
+              << connection.connectionInfo->port << ","
+              << connection.connectionInfo->config << ")";
+  }
 
-/**
- 1.1 Establish the connection to the remote system
- 
-*/
-    bool createConnection();
+  /**
+   1.1 Establish the connection to the remote system
 
-/**
- 1.2 Execute a SECONDO command
- 
-*/
-bool executeSecondoCommand(const std::string &command, const bool checkResult);
+  */
+  bool createConnection();
 
-/**
- 1.2 Execute a simple SECONDO command
- 
-*/
-bool performSimpleSecondoCommand(const std::string &command);
+  /**
+   1.2 Execute a SECONDO command
 
+  */
+  bool executeSecondoCommand(const std::string &command,
+                             const bool checkResult);
 
-/**
-1.3 Get the send path of the connection
+  /**
+   1.2 Execute a simple SECONDO command
 
-*/
-std::string getSendPath() {
-    return connection -> getSendPath();
-}
+  */
+  bool performSimpleSecondoCommand(const std::string &command);
 
-/**
-1.3 Get the send path of the connection
+  /**
+  1.3 Get the send path of the connection
 
-*/
-std::string getRequestPath() {
-    return connection -> getRequestPath();
-}
+  */
+  std::string getSendPath() { return connection->getSendPath(); }
 
-/**
- 1.3 The default timeout value
- 
-*/
+  /**
+  1.3 Get the send path of the connection
+
+  */
+  std::string getRequestPath() { return connection->getRequestPath(); }
+
+  /**
+   1.3 The default timeout value
+
+  */
   static const size_t defaultTimeout = 0;
 
-/**
- 1.4 the defailt heartbeat value
- 
-*/
+  /**
+   1.4 the defailt heartbeat value
+
+  */
   static const int defaultHeartbeat = 0;
 
-/**
- 1.5 The connection mutex
+  /**
+   1.5 The connection mutex
 
-*/
-    std::mutex connectionMutex;
+  */
+  std::mutex connectionMutex;
 
-    private:
+private:
+  /**
+   2.1 The remote connction info
 
-/**
- 2.1 The remote connction info
+  */
+  RemoteConnectionInfo *connectionInfo = nullptr;
 
-*/
-    RemoteConnectionInfo* connectionInfo = nullptr;
+  /**
+   2.2 The remote connection
 
-/**
- 2.2 The remote connection
-
-*/
-    distributed2::ConnectionInfo* connection = nullptr;
-
-
-
+  */
+  distributed2::ConnectionInfo *connection = nullptr;
 };
 
-}
+} // namespace BasicEngine
 
 #endif

@@ -39,7 +39,6 @@ using namespace std;
 
 namespace BasicEngine {
 
-
 /*
 1.13 Operator  ~be\_runsql~
 

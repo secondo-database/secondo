@@ -74,27 +74,23 @@ int be_validateQuerySFVM(Word *args, Word &result, int message, Word &local,
 1.3.3 Specification
 
 */
-OperatorSpec be_validateQuerySpec(
-   "{string, text} --> bool",
-   "be_validate_query(_)",
-   "This operator validates the given SQL query.",
-   "query be_validate_query('SELECT * FROM users')"
-);
+OperatorSpec
+    be_validateQuerySpec("{string, text} --> bool", "be_validate_query(_)",
+                         "This operator validates the given SQL query.",
+                         "query be_validate_query('SELECT * FROM users')");
 
 /*
 1.3.4 ValueMapping Array
 
 */
-ValueMapping be_validateQueryVM[] = {
-  be_validateQuerySFVM<CcString>,
-  be_validateQuerySFVM<FText>
-};
+ValueMapping be_validateQueryVM[] = {be_validateQuerySFVM<CcString>,
+                                     be_validateQuerySFVM<FText>};
 
 /*
 1.3.5 Selection Function
 
 */
-int be_validateQuerySelect(ListExpr args){
+int be_validateQuerySelect(ListExpr args) {
   return CcString::checkType(nl->First(args)) ? 0 : 1;
 }
 
@@ -102,14 +98,9 @@ int be_validateQuerySelect(ListExpr args){
 1.3.6 Operator instance
 
 */
-Operator be_validateQueryOp(
-  "be_validate_query",
-  be_validateQuerySpec.getStr(),
-  sizeof(be_validateQueryVM),
-  be_validateQueryVM,
-  be_validateQuerySelect,
-  be_validateQueryTM
-);
+Operator be_validateQueryOp("be_validate_query", be_validateQuerySpec.getStr(),
+                            sizeof(be_validateQueryVM), be_validateQueryVM,
+                            be_validateQuerySelect, be_validateQueryTM);
 
 } // namespace BasicEngine
 

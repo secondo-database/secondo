@@ -42,7 +42,7 @@ namespace BasicEngine {
 /*
 1.3 Operator  ~be\_validate\_query~
 
-Validate the syntqx of the given query 
+Validate the syntqx of the given query
 
 1.3.2 Type Mapping
 
@@ -51,19 +51,18 @@ Validate the syntqx of the given query
 ListExpr be_validateQueryTM(ListExpr args) {
   string err = "\n {string, text} expected";
 
-  if(!nl->HasLength(args,1)){
+  if (!nl->HasLength(args, 1)) {
     return listutils::typeError("One argument expected. " + err);
   }
 
-  if(!CcString::checkType(nl->First(args))
-      && !FText::checkType(nl->First(args))){
+  if (!CcString::checkType(nl->First(args)) &&
+      !FText::checkType(nl->First(args))) {
     return listutils::typeError("Value of first argument have "
-        "to be a string or a text." + err);
+                                "to be a string or a text." +
+                                err);
   }
-  
+
   return nl->SymbolAtom(CcBool::BasicType());
 }
-
-
 
 } // namespace BasicEngine

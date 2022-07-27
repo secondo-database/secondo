@@ -33,35 +33,35 @@ namespace BasicEngine {
   1.1 Is a new tuple available in the iterator
 
 */
-    bool ResultIteratorPostgres::hasNextTuple() {
-        return currentTuple < totalTuples;
-    }
+bool ResultIteratorPostgres::hasNextTuple() {
+  return currentTuple < totalTuples;
+}
 
 /*
   1.2 Return the next tuple from the iterator
 
 */
-    Tuple* ResultIteratorPostgres::getNextTuple() {
+Tuple *ResultIteratorPostgres::getNextTuple() {
 
-        Tuple* result = basicTuple->Clone();
-    
-        for(size_t i = 0; i < attributeInstances.size(); i++) {
-            
-            Attribute* attr = attributeInstances[i]->Clone();
+  Tuple *result = basicTuple->Clone();
 
-            if(PQgetisnull(res, currentTuple, i)) {
-                attr->SetDefined(false);
-            } else {
-                char* value = PQgetvalue(res, currentTuple, i);
-                attr->ReadFromString(value);
-                attr->SetDefined(true);
-            }
+  for (size_t i = 0; i < attributeInstances.size(); i++) {
 
-            result->PutAttribute(i, attr);
-        }
+    Attribute *attr = attributeInstances[i]->Clone();
 
-        currentTuple++;
-
-        return result;
+    if (PQgetisnull(res, currentTuple, i)) {
+      attr->SetDefined(false);
+    } else {
+      char *value = PQgetvalue(res, currentTuple, i);
+      attr->ReadFromString(value);
+      attr->SetDefined(true);
     }
-}; // End namespace
+
+    result->PutAttribute(i, attr);
+  }
+
+  currentTuple++;
+
+  return result;
+}
+}; // namespace BasicEngine

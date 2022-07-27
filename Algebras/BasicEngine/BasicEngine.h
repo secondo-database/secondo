@@ -38,37 +38,39 @@ namespace BasicEngine {
 dbs\_con is a pointer to a connection, for example to postgres
 
 */
-extern BasicEngineControl* be_control;
+extern BasicEngineControl *be_control;
 
 /*
 noMaster is just a default string for an error massage.
 
 */
-std::string const noMaster ="\nPlease use at first an init-Operator "
-       "before using this operator!\n" ;
+std::string const noMaster = "\nPlease use at first an init-Operator "
+                             "before using this operator!\n";
 
 /*
 noWorker is just a default string for an error massage.
 
 */
-std::string const noWorker ="\nPlease use at first an init-Worker-Operator "
-       "before using this operator!\n" ;
+std::string const noWorker = "\nPlease use at first an init-Worker-Operator "
+                             "before using this operator!\n";
 
 /*
 negSlots is just a default string for an error massage.
 
 */
-std::string const negSlots ="\nThe number of slots have to be greater than 0."
-       "The number should be a multiple of your number of workers.\n" ;
-
+std::string const negSlots =
+    "\nThe number of slots have to be greater than 0."
+    "The number should be a multiple of your number of workers.\n";
 
 /*
 1.1.2 Generic database connection factory
 
 */
-ConnectionGeneric* getAndInitDatabaseConnection(const std::string &dbType, 
-     const std::string &dbUser, const std::string &dbPass, 
-     const int dbPort, const std::string &dbName);
-}
+ConnectionGeneric *getAndInitDatabaseConnection(const std::string &dbType,
+                                                const std::string &dbUser,
+                                                const std::string &dbPass,
+                                                const int dbPort,
+                                                const std::string &dbName);
+} // namespace BasicEngine
 
 #endif

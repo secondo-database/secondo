@@ -39,7 +39,6 @@ using namespace std;
 
 namespace BasicEngine {
 
-
 /*
 1.6 Operator  ~be\_command~
 
@@ -51,16 +50,17 @@ This operator gets a command
 
 */
 ListExpr be_commandTM(ListExpr args) {
-string err = "\n {string, text} --> bool"
-       "(command sql) expected";
+  string err = "\n {string, text} --> bool"
+               "(command sql) expected";
 
-  if(!nl->HasLength(args,1)){
+  if (!nl->HasLength(args, 1)) {
     return listutils::typeError("One argument expected." + err);
   }
-  if(!CcString::checkType(nl->First(args))
-      && !FText::checkType(nl->First(args))){
+  if (!CcString::checkType(nl->First(args)) &&
+      !FText::checkType(nl->First(args))) {
     return listutils::typeError("Value of first argument have "
-                  "to be a string or a text." + err);
+                                "to be a string or a text." +
+                                err);
   }
 
   return nl->SymbolAtom(CcBool::BasicType());

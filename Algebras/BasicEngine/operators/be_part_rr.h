@@ -35,7 +35,6 @@ namespace BasicEngine {
 
 ListExpr be_partRRTM(ListExpr args);
 
-
 /*
 1.2.2 Value Mapping
 
@@ -85,29 +84,24 @@ int be_partRRSFVM(Word *args, Word &result, int message, Word &local,
 1.2.3 Specification
 
 */
-OperatorSpec be_partRRSpec(
-   "{string, text} x int --> DArray(SQLREL)",
-   "be_part_rr(_,_)",
-   "This operator distribute a relation by round-robin "
-   "to the worker. The number of slots have to be positiv "
-   "and should be a multiple of your number of workers.",
-   "query be_part_rr('cars',60)"
-);
+OperatorSpec
+    be_partRRSpec("{string, text} x int --> DArray(SQLREL)", "be_part_rr(_,_)",
+                  "This operator distribute a relation by round-robin "
+                  "to the worker. The number of slots have to be positiv "
+                  "and should be a multiple of your number of workers.",
+                  "query be_part_rr('cars',60)");
 
 /*
 1.2.4 ValueMapping Array
 
 */
-ValueMapping be_partRRVM[] = {
-  be_partRRSFVM<CcString>,
-  be_partRRSFVM<FText>
-};
+ValueMapping be_partRRVM[] = {be_partRRSFVM<CcString>, be_partRRSFVM<FText>};
 
 /*
 1.2.5 Selection Function
 
 */
-int be_partRRSelect(ListExpr args){
+int be_partRRSelect(ListExpr args) {
   return CcString::checkType(nl->First(args)) ? 0 : 1;
 };
 
@@ -115,13 +109,7 @@ int be_partRRSelect(ListExpr args){
 1.2.6 Operator instance
 
 */
-Operator be_partRROp(
-  "be_part_rr",
-  be_partRRSpec.getStr(),
-  sizeof(be_partRRVM),
-  be_partRRVM,
-  be_partRRSelect,
-  be_partRRTM
-);
+Operator be_partRROp("be_part_rr", be_partRRSpec.getStr(), sizeof(be_partRRVM),
+                     be_partRRVM, be_partRRSelect, be_partRRTM);
 
 } // namespace BasicEngine

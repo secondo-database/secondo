@@ -66,7 +66,7 @@ int be_partFunSFVM(Word *args, Word &result, int message, Word &local,
     }
 
     PartitionData partitionData = {};
-    partitionData.table =  tab->toText();
+    partitionData.table = tab->toText();
     partitionData.key = key->toText();
     partitionData.partitionfun = partitionfun->toText();
     partitionData.slotnum = slot->GetIntval();
@@ -142,4 +142,3 @@ Operator be_partFunOp("be_part_fun", be_partFunSpec.getStr(),
                       be_partFunTM);
 
 } // namespace BasicEngine
-

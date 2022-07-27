@@ -48,12 +48,13 @@ Implementation.
 6.1 ~Constructor~
 
 */
-ConnectionPostgres::ConnectionPostgres(const std::string &_dbUser, 
-  const std::string &_dbPass, const int _dbPort, 
-  const std::string &_dbName) : ConnectionGeneric(
-    _dbUser, _dbPass, _dbPort, _dbName) {
+ConnectionPostgres::ConnectionPostgres(const std::string &_dbUser,
+                                       const std::string &_dbPass,
+                                       const int _dbPort,
+                                       const std::string &_dbName)
+    : ConnectionGeneric(_dbUser, _dbPass, _dbPort, _dbName) {
 
-    sqlDialect = buildSQLDialect();
+  sqlDialect = buildSQLDialect();
 }
 
 /*
@@ -61,7 +62,7 @@ ConnectionPostgres::ConnectionPostgres(const std::string &_dbUser,
 
 */
 ConnectionPostgres::~ConnectionPostgres() {
-  if(conn != nullptr) {
+  if (conn != nullptr) {
     PQfinish(conn);
     conn = nullptr;
   }
@@ -73,21 +74,21 @@ ConnectionPostgres::~ConnectionPostgres() {
 */
 bool ConnectionPostgres::createConnection() {
 
-  if(conn != nullptr) {
+  if (conn != nullptr) {
     return false;
   }
 
-  string keyword = "host=localhost user=" + dbUser  
-      + " password=" + dbPass + " port=" + to_string(dbPort)
-      + " dbname=" + dbName + " connect_timeout=10";
-  
+  string keyword = "host=localhost user=" + dbUser + " password=" + dbPass +
+                   " port=" + to_string(dbPort) + " dbname=" + dbName +
+                   " connect_timeout=10";
+
   conn = PQconnectdb(keyword.c_str());
-  
+
   if (PQstatus(conn) == CONNECTION_BAD) {
-    BOOST_LOG_TRIVIAL(error) << "Unable to connect to PostgresSQL: "
-      << PQerrorMessage(conn);
-    
-    if(conn != nullptr) {
+    BOOST_LOG_TRIVIAL(error)
+        << "Unable to connect to PostgresSQL: " << PQerrorMessage(conn);
+
+    if (conn != nullptr) {
       PQfinish(conn);
       conn = nullptr;
     }
@@ -108,7 +109,7 @@ bool ConnectionPostgres::checkConnection() {
 
   const std::lock_guard<std::recursive_mutex> lock(connection_mutex);
 
-  if(conn == nullptr) {
+  if (conn == nullptr) {
     return false;
   }
 
@@ -129,36 +130,34 @@ Returns TRUE if the execution was ok.
 
 */
 bool ConnectionPostgres::sendCommand(const string &command, bool printErrors) {
-  
+
   const std::lock_guard<std::recursive_mutex> lock(connection_mutex);
 
   const char *query_exec = command.c_str();
 
-  if (! checkConnection()) {
+  if (!checkConnection()) {
     return false;
   }
 
-  PGresult* res = PQexec(conn, query_exec);
+  PGresult *res = PQexec(conn, query_exec);
 
   if (!res) {
-    if(printErrors) {
-      BOOST_LOG_TRIVIAL(error) 
-        << "Error with Command: " << command;
+    if (printErrors) {
+      BOOST_LOG_TRIVIAL(error) << "Error with Command: " << command;
     }
 
     return false;
-  } 
-  
-  if(PQresultStatus(res) != PGRES_COMMAND_OK) {
-    if(printErrors) {
-      BOOST_LOG_TRIVIAL(error) 
-        << "Error with Command: " << command
-        << " error is: " <<  PQresultErrorMessage(res);
+  }
+
+  if (PQresultStatus(res) != PGRES_COMMAND_OK) {
+    if (printErrors) {
+      BOOST_LOG_TRIVIAL(error) << "Error with Command: " << command
+                               << " error is: " << PQresultErrorMessage(res);
     }
 
     PQclear(res);
     res = nullptr;
-  
+
     return false;
   }
 
@@ -176,27 +175,27 @@ Sending a query to postgres.
 Returns the Result of the query.
 
 */
-PGresult* ConnectionPostgres::sendQuery(const string &query) {
-   
+PGresult *ConnectionPostgres::sendQuery(const string &query) {
+
   const std::lock_guard<std::recursive_mutex> lock(connection_mutex);
 
   const char *query_exec = query.c_str();
 
-  if (! checkConnection()) {
+  if (!checkConnection()) {
     return nullptr;
   }
 
   PGresult *res = PQexec(conn, query_exec);
-  
+
   if (!res) {
-      BOOST_LOG_TRIVIAL(error)
-        << "Error with Query: " <<  PQresultErrorMessage(res);
-      return nullptr;
-  } 
-  
-  if(PQresultStatus(res) != PGRES_TUPLES_OK) {
-      BOOST_LOG_TRIVIAL(error)
-        << "Error with Query: " <<  PQresultErrorMessage(res);
+    BOOST_LOG_TRIVIAL(error)
+        << "Error with Query: " << PQresultErrorMessage(res);
+    return nullptr;
+  }
+
+  if (PQresultStatus(res) != PGRES_TUPLES_OK) {
+    BOOST_LOG_TRIVIAL(error)
+        << "Error with Query: " << PQresultErrorMessage(res);
 
     PQclear(res);
     res = nullptr;
@@ -213,37 +212,42 @@ Creates a Create-Statement of a given table and
 return this string.
 
 */
-string ConnectionPostgres::getCreateTableSQL(const string &tab){
+string ConnectionPostgres::getCreateTableSQL(const string &tab) {
 
   const std::lock_guard<std::recursive_mutex> lock(connection_mutex);
-  
-  string query_exec;
-  PGresult* res;
-  string write="";
 
-  query_exec = "SELECT a.attname as column_name, "
+  string query_exec;
+  PGresult *res;
+  string write = "";
+
+  query_exec =
+      "SELECT a.attname as column_name, "
       "    pg_catalog.format_type(a.atttypid, a.atttypmod) as column_type "
       "FROM pg_catalog.pg_attribute a "
       "INNER JOIN (SELECT oid FROM pg_catalog.pg_class "
-      "WHERE relname ='" + tab +
+      "WHERE relname ='" +
+      tab +
       "' AND pg_catalog.pg_table_is_visible(oid)) b "
-        "ON a.attrelid = b.oid "
+      "ON a.attrelid = b.oid "
       "WHERE a.attnum > 0 "
       "    AND NOT a.attisdropped "
       "ORDER BY a.attnum ";
 
   res = sendQuery(query_exec);
 
-  if (PQntuples(res) > 0){
-    
-    write = "DROP TABLE IF EXISTS public." + tab +";\n"
-      "CREATE TABLE public." + tab +" (\n";
-    
-    for (int i = 0; i<PQntuples(res); i++) {
-      if (i>0) write.append(",");
-      write.append(PQgetvalue (res,i,0));
+  if (PQntuples(res) > 0) {
+
+    write = "DROP TABLE IF EXISTS public." + tab +
+            ";\n"
+            "CREATE TABLE public." +
+            tab + " (\n";
+
+    for (int i = 0; i < PQntuples(res); i++) {
+      if (i > 0)
+        write.append(",");
+      write.append(PQgetvalue(res, i, 0));
       write.append(" ");
-      write.append(PQgetvalue(res,i,1)) ;
+      write.append(PQgetvalue(res, i, 1));
       write.append("\n");
     }
 
@@ -261,8 +265,9 @@ string ConnectionPostgres::getCreateTableSQL(const string &tab){
 Creates a table in postgreSQL with the partitioned data by round robin.
 
 */
-void ConnectionPostgres::partitionRoundRobin(const string &tab, 
-  const size_t anzSlots, const string &targetTab) {
+void ConnectionPostgres::partitionRoundRobin(const string &tab,
+                                             const size_t anzSlots,
+                                             const string &targetTab) {
 
   const std::lock_guard<std::recursive_mutex> lock(connection_mutex);
 
@@ -271,26 +276,27 @@ void ConnectionPostgres::partitionRoundRobin(const string &tab,
 
   bool res = sendCommand(createSequenceSQL);
 
-  if(! res) {
+  if (!res) {
     BOOST_LOG_TRIVIAL(error) << "Unable to create sequence";
     throw SecondoException(
-      "Error in rr paritioning: Unable to create sequence");
+        "Error in rr paritioning: Unable to create sequence");
   }
 
   // Apply sequence counter to the relation
-  string selectSQL = "SELECT (nextval('temp_seq') %" 
-    + to_string(anzSlots) + ""
-    " ) As " + be_partition_slot + ",t.* FROM " + tab + " AS t";
+  string selectSQL = "SELECT (nextval('temp_seq') %" + to_string(anzSlots) +
+                     ""
+                     " ) As " +
+                     be_partition_slot + ",t.* FROM " + tab + " AS t";
 
-  string createTableSQL = sqlDialect 
-    -> getCreateTableFromPredicateSQL(targetTab, selectSQL);
+  string createTableSQL =
+      sqlDialect->getCreateTableFromPredicateSQL(targetTab, selectSQL);
 
   res = sendCommand(createTableSQL);
 
-  if(! res) {
+  if (!res) {
     BOOST_LOG_TRIVIAL(error) << "Unable to create round robin table";
     throw SecondoException(
-      "Error in rr paritioning: Unable to create round robin table");
+        "Error in rr paritioning: Unable to create round robin table");
   }
 }
 
@@ -301,8 +307,8 @@ Creates a table in postgreSQL with the partitioned data by hash value.
 
 */
 void ConnectionPostgres::partitionHash(const string &tab, const string &key,
-                                 const size_t anzSlots,
-                                 const string &targetTab) {
+                                       const size_t anzSlots,
+                                       const string &targetTab) {
 
   const std::lock_guard<std::recursive_mutex> lock(connection_mutex);
 
@@ -310,16 +316,21 @@ void ConnectionPostgres::partitionHash(const string &tab, const string &key,
   boost::replace_all(usedKey, ",", ",'%_%',");
 
   string select = "SELECT (get_byte(decode(md5(concat("
-        "" + usedKey + ")),'hex'),15) %"
-        " " + to_string(anzSlots) + " ) As " + be_partition_slot + ","
-        "t.* FROM "+ tab + " AS t";
+                  "" +
+                  usedKey +
+                  ")),'hex'),15) %"
+                  " " +
+                  to_string(anzSlots) + " ) As " + be_partition_slot +
+                  ","
+                  "t.* FROM " +
+                  tab + " AS t";
 
-  string createTableSQL = sqlDialect 
-    -> getCreateTableFromPredicateSQL(targetTab, select);
+  string createTableSQL =
+      sqlDialect->getCreateTableFromPredicateSQL(targetTab, select);
 
   bool res = sendCommand(createTableSQL);
 
-  if(! res) {
+  if (!res) {
     BOOST_LOG_TRIVIAL(error) << "Unable to execute hash partitioning";
     throw SecondoException("Error in hash paritioning");
   }
@@ -332,8 +343,8 @@ This function is for organizing the special partitioning functions.
 
 */
 void ConnectionPostgres::partitionFunc(const string &table, const string &key,
-                                 const size_t anzSlots, const string &fun,
-                                 const string &targetTab) {
+                                       const size_t anzSlots, const string &fun,
+                                       const string &targetTab) {
 
   const std::lock_guard<std::recursive_mutex> lock(connection_mutex);
 
@@ -349,8 +360,8 @@ void ConnectionPostgres::partitionFunc(const string &table, const string &key,
 
   BOOST_LOG_TRIVIAL(debug) << "Partition SQL statement is: " << selectSQL;
 
-  string createTableSQL = sqlDialect 
-    -> getCreateTableFromPredicateSQL(targetTab, selectSQL);
+  string createTableSQL =
+      sqlDialect->getCreateTableFromPredicateSQL(targetTab, selectSQL);
 
   bool res = sendCommand(createTableSQL);
 
@@ -363,23 +374,23 @@ void ConnectionPostgres::partitionFunc(const string &table, const string &key,
 /*
 6.13 ~getImportTableSQL~
 
-Creating a statement for exporting the data. 
+Creating a statement for exporting the data.
 
 */
-string ConnectionPostgres::getImportTableSQL(const std::string &table, 
-  const std::string &full_path) {
+string ConnectionPostgres::getImportTableSQL(const std::string &table,
+                                             const std::string &full_path) {
 
-    return "COPY " + table + " FROM '" + full_path + "' BINARY;";
+  return "COPY " + table + " FROM '" + full_path + "' BINARY;";
 }
 
 /*
 6.14 ~getExportTableSQL~
 
-Creating a statement for exporting the data. 
+Creating a statement for exporting the data.
 
 */
-string ConnectionPostgres::getExportTableSQL(const std::string &table, 
-  const std::string &full_path) {
+string ConnectionPostgres::getExportTableSQL(const std::string &table,
+                                             const std::string &full_path) {
 
   return "COPY " + table + " TO '" + full_path + "' BINARY;";
 }
@@ -390,25 +401,25 @@ string ConnectionPostgres::getExportTableSQL(const std::string &table,
 Get the SECONDO type of the given SQL query
 
 */
-std::vector<std::tuple<string, string>> 
-    ConnectionPostgres::getTypeFromSQLQuery(const std::string &sqlQuery) {
+std::vector<std::tuple<string, string>>
+ConnectionPostgres::getTypeFromSQLQuery(const std::string &sqlQuery) {
 
   const std::lock_guard<std::recursive_mutex> lock(connection_mutex);
 
   string usedSQLQuery = limitSQLQuery(sqlQuery);
   vector<tuple<string, string>> result;
 
-  if( ! checkConnection()) {
-    BOOST_LOG_TRIVIAL(error) 
-      << "Connection is not ready in getTypeFromSQLQuery";
+  if (!checkConnection()) {
+    BOOST_LOG_TRIVIAL(error)
+        << "Connection is not ready in getTypeFromSQLQuery";
     return result;
   }
-  
-  PGresult* res = PQexec(conn, usedSQLQuery.c_str());
+
+  PGresult *res = PQexec(conn, usedSQLQuery.c_str());
 
   if (!res || PQresultStatus(res) != PGRES_TUPLES_OK) {
-    BOOST_LOG_TRIVIAL(error) 
-      << "Unable to fetch type from non tuple returning result";
+    BOOST_LOG_TRIVIAL(error)
+        << "Unable to fetch type from non tuple returning result";
     return result;
   }
 
@@ -423,15 +434,15 @@ std::vector<std::tuple<string, string>>
 6.16 ~getTypeFromQuery~
 
 */
-vector<std::tuple<std::string, std::string>> 
-  ConnectionPostgres::getTypeFromQuery(PGresult* res) {
+vector<std::tuple<std::string, std::string>>
+ConnectionPostgres::getTypeFromQuery(PGresult *res) {
 
   const std::lock_guard<std::recursive_mutex> lock(connection_mutex);
 
   vector<tuple<string, string>> result;
   int columns = PQnfields(res);
-  
-  for(int i = 0; i < columns; i++) {
+
+  for (int i = 0; i < columns; i++) {
 
     int columnType = PQftype(res, i);
     string attributeName = string(PQfname(res, i));
@@ -442,33 +453,33 @@ vector<std::tuple<std::string, std::string>>
     string attributeType;
 
     // Convert to SECONDO attribute type
-    switch(columnType) {
-      case BOOLOID:
-        attributeType = CcBool::BasicType();
-        break;
+    switch (columnType) {
+    case BOOLOID:
+      attributeType = CcBool::BasicType();
+      break;
 
-      case CHAROID:
-      case TEXTOID:
-      case VARCHAROID:
-        attributeType = FText::BasicType();
-        break;
+    case CHAROID:
+    case TEXTOID:
+    case VARCHAROID:
+      attributeType = FText::BasicType();
+      break;
 
-      case INT2OID:
-      case INT4OID:
-      case INT8OID:
-        attributeType = CcInt::BasicType();
-        break;
+    case INT2OID:
+    case INT4OID:
+    case INT8OID:
+      attributeType = CcInt::BasicType();
+      break;
 
-      case FLOAT4OID:
-      case FLOAT8OID:
-          attributeType = CcReal::BasicType();
-        break;
+    case FLOAT4OID:
+    case FLOAT8OID:
+      attributeType = CcReal::BasicType();
+      break;
 
-      default:
-          BOOST_LOG_TRIVIAL(warning) 
-              << "Unknown column type: " << attributeName << " / " 
-              << columnType << " will be mapped to text";
-          attributeType = FText::BasicType();
+    default:
+      BOOST_LOG_TRIVIAL(warning)
+          << "Unknown column type: " << attributeName << " / " << columnType
+          << " will be mapped to text";
+      attributeType = FText::BasicType();
     }
 
     // Attribute name and type
@@ -485,35 +496,34 @@ vector<std::tuple<std::string, std::string>>
 Perform the given query and return a result iterator
 
 */
-ResultIteratorGeneric* ConnectionPostgres::performSQLSelectQuery(
-  const std::string &sqlQuery) {
+ResultIteratorGeneric *
+ConnectionPostgres::performSQLSelectQuery(const std::string &sqlQuery) {
 
   const std::lock_guard<std::recursive_mutex> lock(connection_mutex);
 
-  if( ! checkConnection()) {
-    BOOST_LOG_TRIVIAL(error) 
-      << "Connection check failed in performSQLSelectQuery()";
+  if (!checkConnection()) {
+    BOOST_LOG_TRIVIAL(error)
+        << "Connection check failed in performSQLSelectQuery()";
     return nullptr;
   }
 
-  PGresult* res = sendQuery(sqlQuery.c_str());
+  PGresult *res = sendQuery(sqlQuery.c_str());
 
-  if(res == nullptr) {
+  if (res == nullptr) {
     return nullptr;
-  }    
+  }
 
   vector<std::tuple<std::string, std::string>> types = getTypeFromQuery(res);
   ListExpr resultList = convertTypeVectorIntoSecondoNL(types);
 
-  if(nl->IsEmpty(resultList)) {
-    BOOST_LOG_TRIVIAL(error) 
-      << "Unable to get tuple type form query: " << sqlQuery;
+  if (nl->IsEmpty(resultList)) {
+    BOOST_LOG_TRIVIAL(error)
+        << "Unable to get tuple type form query: " << sqlQuery;
     return nullptr;
   }
 
   return new ResultIteratorPostgres(res, resultList);
 }
-
 
 /*
 6.16 Validate the given query
@@ -523,24 +533,23 @@ bool ConnectionPostgres::validateQuery(const std::string &query) {
 
   const std::lock_guard<std::recursive_mutex> lock(connection_mutex);
 
-    if( ! checkConnection()) {
-        BOOST_LOG_TRIVIAL(error) 
-             << "Connection check failed in validateQuery()";
-        return false;
-    }
+  if (!checkConnection()) {
+    BOOST_LOG_TRIVIAL(error) << "Connection check failed in validateQuery()";
+    return false;
+  }
 
-    string restrictedQuery = limitSQLQuery(query);
+  string restrictedQuery = limitSQLQuery(query);
 
-    PGresult* res = sendQuery(restrictedQuery.c_str());
+  PGresult *res = sendQuery(restrictedQuery.c_str());
 
-    if(res == nullptr) {
-      return false;
-    }
+  if (res == nullptr) {
+    return false;
+  }
 
-    PQclear(res);
-    res = nullptr;
+  PQclear(res);
+  res = nullptr;
 
-    return true;
+  return true;
 }
 
 /*
@@ -551,97 +560,93 @@ bool ConnectionPostgres::createGridTable(const std::string &table) {
 
   const std::lock_guard<std::recursive_mutex> lock(connection_mutex);
 
-    string createTable = "CREATE TABLE " + table + " (id " 
-        + " SERIAL PRIMARY KEY, "
-        + " cell geometry NOT NULL);";
+  string createTable = "CREATE TABLE " + table + " (id " +
+                       " SERIAL PRIMARY KEY, " + " cell geometry NOT NULL);";
 
-    PGresult *res = sendQuery(createTable.c_str());
+  PGresult *res = sendQuery(createTable.c_str());
 
-    if(res == nullptr) {
-        BOOST_LOG_TRIVIAL(error) 
-            << "Unable to execute: " + createTable;
-        return false;
-    }
+  if (res == nullptr) {
+    BOOST_LOG_TRIVIAL(error) << "Unable to execute: " + createTable;
+    return false;
+  }
 
-    // Create index on grid
-    string createIndex = "CREATE INDEX " + table + "_idx ON"
-                " " + table + " USING GIST (cell);";
+  // Create index on grid
+  string createIndex = "CREATE INDEX " + table +
+                       "_idx ON"
+                       " " +
+                       table + " USING GIST (cell);";
 
-    res = sendQuery(createIndex.c_str());
+  res = sendQuery(createIndex.c_str());
 
-    if(res == nullptr) {
-        BOOST_LOG_TRIVIAL(error) 
-            << "Unable to execute: " + createIndex;
-        return false;
-    }
+  if (res == nullptr) {
+    BOOST_LOG_TRIVIAL(error) << "Unable to execute: " + createIndex;
+    return false;
+  }
 
-    PQclear(res);
-    res = nullptr;
+  PQclear(res);
+  res = nullptr;
 
-    return true;
+  return true;
 }
 
 /*
 6.17 Insert a rectangle into the grid table
 
 */
-bool ConnectionPostgres::insertRectangle(const std::string &table, 
-        double x, double y, double sizeX, double sizeY) {
+bool ConnectionPostgres::insertRectangle(const std::string &table, double x,
+                                         double y, double sizeX, double sizeY) {
 
   const std::lock_guard<std::recursive_mutex> lock(connection_mutex);
 
-    string polygon = "POLYGON((" + to_string(x) + " " + to_string(y) + 
-        "," + to_string(x+sizeX) + " " + to_string(y) + 
-        "," + to_string(x+sizeX) + " " + to_string(y+sizeY) + 
-        "," + to_string(x) + " " + to_string(y+sizeY) + 
-        "," + to_string(x) + " " + to_string(y) + "))";
+  string polygon = "POLYGON((" + to_string(x) + " " + to_string(y) + "," +
+                   to_string(x + sizeX) + " " + to_string(y) + "," +
+                   to_string(x + sizeX) + " " + to_string(y + sizeY) + "," +
+                   to_string(x) + " " + to_string(y + sizeY) + "," +
+                   to_string(x) + " " + to_string(y) + "))";
 
+  string insertSQL = "INSERT INTO " + table + "(cell) values(ST_Polygon('" +
+                     polygon + "'::geometry, 4326))";
 
-    string insertSQL = "INSERT INTO " + table 
-        + "(cell) values(ST_Polygon('" + polygon + "'::geometry, 4326))";
+  PGresult *res = sendQuery(insertSQL.c_str());
 
-    PGresult *res = sendQuery(insertSQL.c_str());
+  if (res == nullptr) {
+    BOOST_LOG_TRIVIAL(error) << "Unable to execute: " + insertSQL;
+    return false;
+  }
 
-    if(res == nullptr) {
-        BOOST_LOG_TRIVIAL(error) 
-            << "Unable to execute: " + insertSQL;
-        return false;
-    }
+  PQclear(res);
+  res = nullptr;
 
-    PQclear(res);
-    res = nullptr;
-
-    return true;
+  return true;
 }
 
 /*
 6.18 Add a new column to the table
 
 */
-void ConnectionPostgres::addColumnToTable(const std::string &table, 
-    const std::string &name, SQLAttribute type) {
+void ConnectionPostgres::addColumnToTable(const std::string &table,
+                                          const std::string &name,
+                                          SQLAttribute type) {
 
   const std::lock_guard<std::recursive_mutex> lock(connection_mutex);
 
-    string sql = "ALTER TABLE " + table + " ADD COLUMN " + name;
+  string sql = "ALTER TABLE " + table + " ADD COLUMN " + name;
 
-    switch(type) {
-        case SQLAttribute::sqlinteger:
-            sql.append(" INTEGER");
-        break;
+  switch (type) {
+  case SQLAttribute::sqlinteger:
+    sql.append(" INTEGER");
+    break;
 
-        default:
-            throw SecondoException("Unsupported datatyepe: " + type);
-    }
+  default:
+    throw SecondoException("Unsupported datatyepe: " + type);
+  }
 
+  bool res = sendCommand(sql.c_str());
 
-   bool res = sendCommand(sql.c_str());
-
-   if(res == false) {
-        BOOST_LOG_TRIVIAL(error) 
-            << "Unable to execute: " << sql;
-        throw SecondoException("Unable to add column to table");
-   }
+  if (res == false) {
+    BOOST_LOG_TRIVIAL(error) << "Unable to execute: " << sql;
+    throw SecondoException("Unable to add column to table");
+  }
 }
 
-}/* namespace BasicEngine */
+} /* namespace BasicEngine */

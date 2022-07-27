@@ -28,7 +28,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #ifndef BASIC_ENGINE_SQL_DIALECT
 #define BASIC_ENGINE_SQL_DIALECT
 
-
 /*
 2 The attribute names for the distribution
 
@@ -39,59 +38,52 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 namespace BasicEngine {
 
 class SQLDialect {
-    public:
+public:
+  SQLDialect() {}
 
-    SQLDialect() {}
+  virtual ~SQLDialect() {}
 
-    virtual ~SQLDialect() {}
+  virtual std::string getDropTableSQL(const std::string &table) {
+    return "DROP TABLE IF EXISTS " + table + ";";
+  }
 
-    virtual std::string getDropTableSQL(const std::string &table) {
-        return "DROP TABLE IF EXISTS " + table + ";";
-    }
+  virtual std::string getCreateTableFromPredicateSQL(const std::string &table,
+                                                     const std::string &query) {
 
-    virtual std::string getCreateTableFromPredicateSQL(const std::string &table,
-                                                const std::string &query) {
+    return "CREATE TABLE " + table + " AS (" + query + ")";
+  }
 
-        return "CREATE TABLE " + table + " AS (" + query + ")";
-    }
+  virtual std::string getCopySchemaSQL(const std::string &table) {
+    return "SELECT * FROM " + table + " LIMIT 0";
+  }
 
-    virtual std::string getCopySchemaSQL(const std::string &table) {
-        return "SELECT * FROM " + table + " LIMIT 0";
-    }
+  virtual std::string getRenameTableSQL(const std::string &source,
+                                        const std::string &destination) {
 
-    virtual std::string getRenameTableSQL(const std::string &source,
-                                    const std::string &destination) {
+    return "ALTER TABLE " + source + " RENAME TO " + destination + ";";
+  }
 
-        return "ALTER TABLE " + source + " RENAME TO " + destination + ";";
-    }
+  virtual std::string getBeginTransactionSQL() { return "START TRANSACTION;"; }
 
-    virtual std::string getBeginTransactionSQL() {
-        return "START TRANSACTION;";
-    }
+  virtual std::string getAbortTransactionSQL() { return "ROLLBACK;"; }
 
-    virtual std::string getAbortTransactionSQL() {
-        return "ROLLBACK;";
-    }
+  virtual std::string getCommitTransactionSQL() { return "COMMIT;"; }
 
-    virtual std::string getCommitTransactionSQL() {
-        return "COMMIT;";
-    }
+  virtual std::string getRemoveColumnFromTableSQL(const std::string &table,
+                                                  const std::string &name) {
+    return "ALTER TABLE " + table + " DROP COLUMN " + name;
+  }
 
-    virtual std::string getRemoveColumnFromTableSQL(const std::string &table,
-                    const std::string &name) {
-        return "ALTER TABLE " + table + " DROP COLUMN " + name;
-    }
+  // Abstract SQL queries
+  virtual std::string getDropIndexSQL(const std::string &table,
+                                      const std::string &column) = 0;
 
-    // Abstract SQL queries
-    virtual std::string getDropIndexSQL(const std::string &table,
-                                        const std::string &column) = 0;
-
-    virtual std::string
-    getExportDataForPartitionSQL(const std::string &table,
-                                 const std::string &exportFile,
-                                 size_t partition) = 0;
+  virtual std::string
+  getExportDataForPartitionSQL(const std::string &table,
+                               const std::string &exportFile,
+                               size_t partition) = 0;
 };
 
-}
+} // namespace BasicEngine
 
 #endif

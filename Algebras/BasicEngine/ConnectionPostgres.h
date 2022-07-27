@@ -74,7 +74,7 @@ public:
 
   */
   ConnectionPostgres(const std::string &_dbUser, const std::string &_dbPass,
-               const int _dbPort, const std::string &_dbName);
+                     const int _dbPort, const std::string &_dbName);
 
   virtual ~ConnectionPostgres();
 
@@ -90,23 +90,21 @@ public:
 
   std::string getCreateTableSQL(const std::string &table);
 
-  void partitionRoundRobin(const std::string &table,
-                           const size_t anzSlots, const std::string &targetTab);
+  void partitionRoundRobin(const std::string &table, const size_t anzSlots,
+                           const std::string &targetTab);
 
-  void partitionHash(const std::string &table,
-                                  const std::string &key, const size_t anzSlots,
-                                  const std::string &targetTab);
+  void partitionHash(const std::string &table, const std::string &key,
+                     const size_t anzSlots, const std::string &targetTab);
 
   void partitionFunc(const std::string &table, const std::string &keyS,
-                              const size_t anzSlots, const std::string &fun,
-                              const std::string &targetTab);
+                     const size_t anzSlots, const std::string &fun,
+                     const std::string &targetTab);
 
   std::string getImportTableSQL(const std::string &table,
                                 const std::string &full_path);
 
   std::string getExportTableSQL(const std::string &table,
                                 const std::string &full_path);
-
 
   std::vector<std::tuple<std::string, std::string>>
   getTypeFromSQLQuery(const std::string &sqlQuery);
@@ -124,10 +122,8 @@ public:
   // The DB Type
   inline static const std::string DBTYPE = "pgsql";
 
-protected: 
-  SQLDialect* buildSQLDialect() {
-    return new SQLDialectPostgres();
-  }
+protected:
+  SQLDialect *buildSQLDialect() { return new SQLDialectPostgres(); }
 
 private:
   /*

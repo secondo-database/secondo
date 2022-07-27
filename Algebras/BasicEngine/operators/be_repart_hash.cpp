@@ -39,7 +39,6 @@ using namespace std;
 
 namespace BasicEngine {
 
-
 /*
 1.3 Operator  ~be\_repart\_hash~
 
@@ -54,9 +53,9 @@ This operator gets a tablename and key-list (semikolon seperated)
 ListExpr be_repartHashTM(ListExpr args) {
 
   string err = "\n {string, text} x {string, text} x DArray(SQLREL) --> bool"
-       "(tab-name, key, number of slots) expected";
+               "(tab-name, key, number of slots) expected";
 
-  if(!nl->HasLength(args,3)){
+  if (!nl->HasLength(args, 3)) {
     return listutils::typeError("Three arguments expected. " + err);
   }
 
@@ -64,31 +63,32 @@ ListExpr be_repartHashTM(ListExpr args) {
   ListExpr attribute = nl->First(nl->Second(args));
   ListExpr darray = nl->First(nl->Third(args));
   string darrayName = nl->ToString(nl->Second(nl->Third(args)));
-  
-  if(!CcString::checkType(table) && !FText::checkType(table)){
+
+  if (!CcString::checkType(table) && !FText::checkType(table)) {
     return listutils::typeError("Value of first argument have "
-        "to be a string or a text." + err);
-  }
-  
-  if(!CcString::checkType(attribute) && !FText::checkType(attribute)){
-    return listutils::typeError("Value of second argument have "
-        "to be a string or a text." + err);
+                                "to be a string or a text." +
+                                err);
   }
 
-  if(!DArray::checkType(darray)){
+  if (!CcString::checkType(attribute) && !FText::checkType(attribute)) {
+    return listutils::typeError("Value of second argument have "
+                                "to be a string or a text." +
+                                err);
+  }
+
+  if (!DArray::checkType(darray)) {
     return listutils::typeError("Value of third argument have "
-        "to be a darray." + err);
+                                "to be a darray." +
+                                err);
   }
 
   // Append the used darray name to the result
   // The darray is distributed in the VM to the worker
-  ListExpr res =
-      nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND()),
-                        nl->OneElemList(nl->StringAtom(darrayName)),
-                        nl->SymbolAtom(CcBool::BasicType()));
+  ListExpr res = nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND()),
+                                   nl->OneElemList(nl->StringAtom(darrayName)),
+                                   nl->SymbolAtom(CcBool::BasicType()));
 
   return res;
-  }
-
+}
 
 } // namespace BasicEngine

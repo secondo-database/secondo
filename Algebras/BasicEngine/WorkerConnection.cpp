@@ -37,7 +37,6 @@ Additionally add an entry to the importer vector.
 using namespace distributed2;
 using namespace std;
 
-
 namespace BasicEngine {
 
 bool WorkerConnection::createConnection() {
@@ -133,7 +132,7 @@ Displays an error massage if something goes wrong.
 
 */
 bool WorkerConnection::performSimpleSecondoCommand(const std::string &command) {
-  
+
   if (connection == nullptr) {
     BOOST_LOG_TRIVIAL(error) << "Connection is not established" << this;
     return false;
@@ -145,22 +144,20 @@ bool WorkerConnection::performSimpleSecondoCommand(const std::string &command) {
   distributed2::CommandLog CommandLog;
   std::string res;
 
-  connection->simpleCommand(command, err, res, false, rt, false,
-                    CommandLog, true, defaultTimeout);
-  
-  if(err != 0){
-    BOOST_LOG_TRIVIAL(error)
-        << "Got error from server: " << this << " "
-        << err << res << " command was: " << command;
+  connection->simpleCommand(command, err, res, false, rt, false, CommandLog,
+                            true, defaultTimeout);
+
+  if (err != 0) {
+    BOOST_LOG_TRIVIAL(error) << "Got error from server: " << this << " " << err
+                             << res << " command was: " << command;
     return false;
   }
 
   bool resultOk = (res == "(bool TRUE)");
 
-  if(! resultOk) {
-    BOOST_LOG_TRIVIAL(error)
-        << "Got unexpected result from server: " << this << " "
-        << res << " command was: " << command;
+  if (!resultOk) {
+    BOOST_LOG_TRIVIAL(error) << "Got unexpected result from server: " << this
+                             << " " << res << " command was: " << command;
     return false;
   }
 

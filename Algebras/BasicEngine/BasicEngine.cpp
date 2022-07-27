@@ -31,7 +31,6 @@ Version 1.0 - Created - C.Behrndt - 2020
 
 */
 
-
 #include <boost/log/core.hpp>
 #include <boost/log/expressions.hpp>
 #include <boost/log/trivial.hpp>
@@ -86,7 +85,7 @@ namespace BasicEngine {
 dbs\_con is a pointer to a connection, for example to postgres
 
 */
-BasicEngineControl* be_control = nullptr;
+BasicEngineControl *be_control = nullptr;
 
 /*
 1 Operators
@@ -105,43 +104,42 @@ of the operation.
 1.1.2 Generic database connection factory
 
 */
-ConnectionGeneric* getAndInitDatabaseConnection(const string &dbType, 
-     const string &dbUser, const string &dbPass, 
-     const int dbPort, const string &dbName) {
+ConnectionGeneric *getAndInitDatabaseConnection(const string &dbType,
+                                                const string &dbUser,
+                                                const string &dbPass,
+                                                const int dbPort,
+                                                const string &dbName) {
 
-    ConnectionGeneric* connection = nullptr;
+  ConnectionGeneric *connection = nullptr;
 
-    if(ConnectionPostgres::DBTYPE == dbType) {
-      connection = new ConnectionPostgres(dbUser, dbPass, dbPort, dbName);
-    } else if(ConnectionMySQL::DBTYPE == dbType) {
-      connection = new ConnectionMySQL(dbUser, dbPass, dbPort, dbName);
-    } else {
-      throw SecondoException("Unsupported database type: " + dbType);
-    }
+  if (ConnectionPostgres::DBTYPE == dbType) {
+    connection = new ConnectionPostgres(dbUser, dbPass, dbPort, dbName);
+  } else if (ConnectionMySQL::DBTYPE == dbType) {
+    connection = new ConnectionMySQL(dbUser, dbPass, dbPort, dbName);
+  } else {
+    throw SecondoException("Unsupported database type: " + dbType);
+  }
 
-    if(connection == nullptr) {
-      throw SecondoException("Unable to establish database connection");
-    }
+  if (connection == nullptr) {
+    throw SecondoException("Unable to establish database connection");
+  }
 
-    bool connectionResult = connection->createConnection();
+  bool connectionResult = connection->createConnection();
 
-    if(! connectionResult) {
-      throw SecondoException("Database connection check failed");
-    }
+  if (!connectionResult) {
+    throw SecondoException("Database connection check failed");
+  }
 
-    return connection;
+  return connection;
 }
-
 
 /*
 1.15 Implementation of the Algebra
 
 */
-class BasicEngineAlgebra : public Algebra
-{
- public:
-  BasicEngineAlgebra() : Algebra()
-  {
+class BasicEngineAlgebra : public Algebra {
+public:
+  BasicEngineAlgebra() : Algebra() {
     AddOperator(&be_init_op);
     be_init_op.SetUsesArgsInTypeMapping();
     AddOperator(&be_init_cluster_op);
@@ -186,18 +184,17 @@ class BasicEngineAlgebra : public Algebra
 
     // configure boost logger
     // TODO: Move to SECONDO core
-    boost::log::core::get()->set_filter
-    (
-         boost::log::trivial::severity >= boost::log::trivial::debug
-//         boost::log::trivial::severity >= boost::log::trivial::info
+    boost::log::core::get()->set_filter(
+        boost::log::trivial::severity >= boost::log::trivial::debug
+        //         boost::log::trivial::severity >= boost::log::trivial::info
     );
   }
 
   ~BasicEngineAlgebra() {
 
-    if(be_control != nullptr) {
+    if (be_control != nullptr) {
 
-      if(be_control->isMaster()) {
+      if (be_control->isMaster()) {
         be_control->shutdownWorker();
       }
 
@@ -213,9 +210,7 @@ class BasicEngineAlgebra : public Algebra
 1.16 Initialization
 
 */
-extern "C"
-Algebra*
-InitializeBasicEngineAlgebra( NestedList* nlRef, QueryProcessor* qpRef )
-{
+extern "C" Algebra *InitializeBasicEngineAlgebra(NestedList *nlRef,
+                                                 QueryProcessor *qpRef) {
   return (new BasicEngine::BasicEngineAlgebra);
 }

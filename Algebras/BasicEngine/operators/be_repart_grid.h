@@ -52,14 +52,14 @@ int be_repartGridSFVM(Word *args, Word &result, int message, Word &local,
   CcInt *slot = (CcInt *)args[4].addr;
   distributed2::DArray *darray = (distributed2::DArray *)args[5].addr;
   FText *darrayName = (FText *)args[6].addr;
-  CcBool *res = (CcBool *) result.addr;
+  CcBool *res = (CcBool *)result.addr;
 
   if (!darrayName->IsDefined()) {
     std::cerr << "Error: DArray name is undefined" << std::endl;
     res->Set(true, false);
     return 0;
-  }  
-  
+  }
+
   std::string darrayNameValue = darrayName->toText();
 
   try {
@@ -83,8 +83,8 @@ int be_repartGridSFVM(Word *args, Word &result, int message, Word &local,
     partitionData.gridname = gridname->toText();
     partitionData.slotnum = slot->GetIntval();
 
-    bool val = be_control -> repartitionTable(partitionData, grid, 
-      darray, darrayNameValue);
+    bool val = be_control->repartitionTable(partitionData, grid, darray,
+                                            darrayNameValue);
 
     res->Set(true, val);
 
@@ -179,4 +179,3 @@ Operator be_repartGridOp("be_repart_grid", be_repartGridSpec.getStr(),
                          be_repartGridSelect, be_repartGridTM);
 
 } // namespace BasicEngine
-

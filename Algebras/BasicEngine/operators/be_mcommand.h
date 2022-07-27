@@ -34,7 +34,6 @@ namespace BasicEngine {
 
 ListExpr be_mcommandTM(ListExpr args);
 
-
 /*
 1.9.2 Value Mapping
 
@@ -67,45 +66,34 @@ int be_mcommandSFVM(Word *args, Word &result, int message, Word &local,
 1.9.3 Specification
 
 */
-OperatorSpec be_mcommandVMSpec(
-   "{string,text} -> bool",
-   "_ be_mcommand(_)",
-   "Distribute a sql-command to the worker. The statement "
-   "must be in a correct syntax for this DBMS.",
-   "query be_mcommand('Drop Table cars;')"
-);
-
+OperatorSpec
+    be_mcommandVMSpec("{string,text} -> bool", "_ be_mcommand(_)",
+                      "Distribute a sql-command to the worker. The statement "
+                      "must be in a correct syntax for this DBMS.",
+                      "query be_mcommand('Drop Table cars;')");
 
 /*
 1.9.4 ValueMapping Array
 
 */
-ValueMapping be_mcommandVM[] = {
-  be_mcommandSFVM<CcString>,
-  be_mcommandSFVM<FText>
-};
+ValueMapping be_mcommandVM[] = {be_mcommandSFVM<CcString>,
+                                be_mcommandSFVM<FText>};
 
 /*
 1.9.5 Selection Function
 
 */
-int be_mcommandSelect(ListExpr args){
-  return CcString::checkType(nl->First(args))?0:1;
+int be_mcommandSelect(ListExpr args) {
+  return CcString::checkType(nl->First(args)) ? 0 : 1;
 };
 
 /*
 1.9.6 Operator instance
 
 */
-Operator be_mcommandOp(
-  "be_mcommand",
-  be_mcommandVMSpec.getStr(),
-  sizeof(be_mcommandVM),
-  be_mcommandVM,
-  be_mcommandSelect,
-  be_mcommandTM
-);
-
+Operator be_mcommandOp("be_mcommand", be_mcommandVMSpec.getStr(),
+                       sizeof(be_mcommandVM), be_mcommandVM, be_mcommandSelect,
+                       be_mcommandTM);
 
 } // namespace BasicEngine
 

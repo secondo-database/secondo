@@ -55,7 +55,7 @@ public:
   1.3 The prefix of the grid tables
 
   */
-   inline static const std::string GRID_TABLE_PREFIX = "grid_";
+  inline static const std::string GRID_TABLE_PREFIX = "grid_";
 };
 
 } // namespace BasicEngine

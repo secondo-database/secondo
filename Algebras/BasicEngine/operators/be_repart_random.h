@@ -35,7 +35,6 @@ namespace BasicEngine {
 
 ListExpr be_repartRandomTM(ListExpr args);
 
-
 /*
 1.2.2 Value Mapping
 
@@ -50,14 +49,14 @@ int be_repartRandomSFVM(Word *args, Word &result, int message, Word &local,
   CcInt *slot = (CcInt *)args[1].addr;
   distributed2::DArray *darray = (distributed2::DArray *)args[2].addr;
   FText *darrayName = (FText *)args[3].addr;
-  CcBool *res = (CcBool *) result.addr;
+  CcBool *res = (CcBool *)result.addr;
 
   if (!darrayName->IsDefined()) {
     std::cerr << "Error: DArray name is undefined" << std::endl;
     res->Set(true, false);
     return 0;
-  }  
-  
+  }
+
   std::string darrayNameValue = darrayName->toText();
 
   try {
@@ -74,14 +73,13 @@ int be_repartRandomSFVM(Word *args, Word &result, int message, Word &local,
       return 0;
     }
 
-
     PartitionData partitionData = {};
     partitionData.table = tab->toText();
     partitionData.slotnum = slot->GetIntval();
 
-    bool val = be_control -> repartitionTable(partitionData, random, 
-        darray, darrayNameValue);
-    
+    bool val = be_control->repartitionTable(partitionData, random, darray,
+                                            darrayNameValue);
+
     res->Set(true, val);
   } catch (SecondoException &e) {
     BOOST_LOG_TRIVIAL(error)
@@ -98,27 +96,24 @@ int be_repartRandomSFVM(Word *args, Word &result, int message, Word &local,
 
 */
 OperatorSpec be_repartRandomSpec(
-   "{string, text} x distributed2::DArray(SQLREL) --> bool",
-   "be_repart_random(_,_)",
-   "This operator repartition a relation by random "
-   "to the worker of the darray.",
-   "query be_repart_random('cars', darray)"
-);
+    "{string, text} x distributed2::DArray(SQLREL) --> bool",
+    "be_repart_random(_,_)",
+    "This operator repartition a relation by random "
+    "to the worker of the darray.",
+    "query be_repart_random('cars', darray)");
 
 /*
 1.2.4 ValueMapping Array
 
 */
-ValueMapping be_repartRandomVM[] = {
-  be_repartRandomSFVM<CcString>,
-  be_repartRandomSFVM<FText>
-};
+ValueMapping be_repartRandomVM[] = {be_repartRandomSFVM<CcString>,
+                                    be_repartRandomSFVM<FText>};
 
 /*
 1.2.5 Selection Function
 
 */
-int be_repartRandomSelect(ListExpr args){
+int be_repartRandomSelect(ListExpr args) {
   return CcString::checkType(nl->First(args)) ? 0 : 1;
 };
 
@@ -126,14 +121,8 @@ int be_repartRandomSelect(ListExpr args){
 1.2.6 Operator instance
 
 */
-Operator be_repartRandomOp(
-  "be_repart_random",
-  be_repartRandomSpec.getStr(),
-  sizeof(be_repartRandomVM),
-  be_repartRandomVM,
-  be_repartRandomSelect,
-  be_repartRandomTM
-);
+Operator be_repartRandomOp("be_repart_random", be_repartRandomSpec.getStr(),
+                           sizeof(be_repartRandomVM), be_repartRandomVM,
+                           be_repartRandomSelect, be_repartRandomTM);
 
 } // namespace BasicEngine
-

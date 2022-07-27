@@ -46,7 +46,7 @@ int be_partRandomSFVM(Word *args, Word &result, int message, Word &local,
 
   T *tab = (T *)args[0].addr;
   CcInt *slot = (CcInt *)args[1].addr;
-  distributed2::DArray *res = (distributed2::DArray *) result.addr;
+  distributed2::DArray *res = (distributed2::DArray *)result.addr;
 
   try {
 
@@ -61,13 +61,13 @@ int be_partRandomSFVM(Word *args, Word &result, int message, Word &local,
       res->makeUndefined();
       return 0;
     }
-    
+
     PartitionData partitionData = {};
     partitionData.table = tab->toText();
     partitionData.slotnum = slot->GetIntval();
 
-    distributed2::DArray val =  be_control -> 
-      partitionTableFromMaster(partitionData, random);
+    distributed2::DArray val =
+        be_control->partitionTableFromMaster(partitionData, random);
 
     res->copyFrom(val);
 
@@ -80,34 +80,30 @@ int be_partRandomSFVM(Word *args, Word &result, int message, Word &local,
   return 0;
 }
 
-
 /*
 1.2.3 Specification
 
 */
-OperatorSpec be_partRandomSpec(
-   "{string, text} x int --> DArray(SQLREL)",
-   "be_part_random(_,_)",
-   "This operator distribute a relation by random "
-   "to the worker. The number of slots have to be positiv "
-   "and should be a multiple of your number of workers.",
-   "query be_part_random('cars','moid',60)"
-);
+OperatorSpec
+    be_partRandomSpec("{string, text} x int --> DArray(SQLREL)",
+                      "be_part_random(_,_)",
+                      "This operator distribute a relation by random "
+                      "to the worker. The number of slots have to be positiv "
+                      "and should be a multiple of your number of workers.",
+                      "query be_part_random('cars','moid',60)");
 
 /*
 1.2.4 ValueMapping Array
 
 */
-ValueMapping be_partRandomVM[] = {
-  be_partRandomSFVM<CcString>,
-  be_partRandomSFVM<FText>
-};
+ValueMapping be_partRandomVM[] = {be_partRandomSFVM<CcString>,
+                                  be_partRandomSFVM<FText>};
 
 /*
 1.2.5 Selection Function
 
 */
-int be_partRandomSelect(ListExpr args){
+int be_partRandomSelect(ListExpr args) {
   return CcString::checkType(nl->First(args)) ? 0 : 1;
 };
 
@@ -115,16 +111,8 @@ int be_partRandomSelect(ListExpr args){
 1.2.6 Operator instance
 
 */
-Operator be_partRandomOp(
-  "be_part_random",
-  be_partRandomSpec.getStr(),
-  sizeof(be_partRandomVM),
-  be_partRandomVM,
-  be_partRandomSelect,
-  be_partRandomTM
-);
-
-
+Operator be_partRandomOp("be_part_random", be_partRandomSpec.getStr(),
+                         sizeof(be_partRandomVM), be_partRandomVM,
+                         be_partRandomSelect, be_partRandomTM);
 
 } // namespace BasicEngine
-

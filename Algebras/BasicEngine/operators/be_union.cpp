@@ -50,20 +50,20 @@ This operator gets a tablename
 
 */
 ListExpr be_unionTM(ListExpr args) {
-string err = "\n {string,text} -> bool"
-       "(tab-name) expected";
+  string err = "\n {string,text} -> bool"
+               "(tab-name) expected";
 
-  if(!nl->HasLength(args,1)){
+  if (!nl->HasLength(args, 1)) {
     return listutils::typeError("One argument expected. " + err);
   }
-  if(!CcString::checkType(nl->First(args))
-      && !FText::checkType(nl->First(args))){
+  if (!CcString::checkType(nl->First(args)) &&
+      !FText::checkType(nl->First(args))) {
     return listutils::typeError("Value of first argument have "
-                  "to be a string or a text." + err);
+                                "to be a string or a text." +
+                                err);
   }
 
   return nl->SymbolAtom(CcBool::BasicType());
 }
-
 
 } // namespace BasicEngine

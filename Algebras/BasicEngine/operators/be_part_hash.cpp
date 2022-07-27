@@ -39,8 +39,6 @@ using namespace std;
 
 namespace BasicEngine {
 
-
-
 /*
 1.3 Operator  ~be\_partHash~
 
@@ -53,24 +51,27 @@ This operator gets a tablename and key-list (semikolon seperated)
 
 */
 ListExpr be_partHashTM(ListExpr args) {
-string err = "\n {string, text} x {string, text} x int --> DArray(SQLREL)"
-       "(tab-name, key, number of slots) expected";
-  if(!nl->HasLength(args,3)){
+  string err = "\n {string, text} x {string, text} x int --> DArray(SQLREL)"
+               "(tab-name, key, number of slots) expected";
+  if (!nl->HasLength(args, 3)) {
     return listutils::typeError("Three arguments expected. " + err);
   }
-  if(!CcString::checkType(nl->First(args))
-      && !FText::checkType(nl->First(args))){
+  if (!CcString::checkType(nl->First(args)) &&
+      !FText::checkType(nl->First(args))) {
     return listutils::typeError("Value of first argument have "
-        "to be a string or a text." + err);
+                                "to be a string or a text." +
+                                err);
   }
-  if(!CcString::checkType(nl->Second(args))
-      && !FText::checkType(nl->Second(args))){
+  if (!CcString::checkType(nl->Second(args)) &&
+      !FText::checkType(nl->Second(args))) {
     return listutils::typeError("Value of second argument have "
-        "to be a string or a text." + err);
+                                "to be a string or a text." +
+                                err);
   }
-  if(!CcInt::checkType(nl->Third(args))){
+  if (!CcInt::checkType(nl->Third(args))) {
     return listutils::typeError("Value of third argument have "
-        "to be an integer." + err);
+                                "to be an integer." +
+                                err);
   }
 
   return nl->SymbolAtom(DArray::BasicType());

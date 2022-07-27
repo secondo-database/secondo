@@ -34,7 +34,6 @@ namespace BasicEngine {
 
 ListExpr be_init_cluster_tm(ListExpr args);
 
-
 /*
 1.12.2 Value Mapping
 
@@ -55,8 +54,9 @@ int init_be_workerSFVM(Word *args, Word &result, int message, Word &local,
 
   if (be_control != nullptr) {
     std::cerr << "Error: Basic engine is already initialized. "
-         << "Please shutdown first, using be_shutdown_cluster()." << std::endl
-         << std::endl;
+              << "Please shutdown first, using be_shutdown_cluster()."
+              << std::endl
+              << std::endl;
 
     ((CcBool *)result.addr)->Set(true, false);
     return 0;
@@ -116,8 +116,8 @@ int init_be_workerSFVM(Word *args, Word &result, int message, Word &local,
 
     if (!createConnectionResult) {
       std::cerr << "Error: Connection error, please check the previous messages"
-           << " for error messages." << std::endl
-           << endl;
+                << " for error messages." << std::endl
+                << endl;
       ((CcBool *)result.addr)->Set(true, false);
       return 0;
     }
@@ -126,8 +126,8 @@ int init_be_workerSFVM(Word *args, Word &result, int message, Word &local,
 
     if (!connectionsAvailable) {
       std::cerr << "Error: Not all connections available, please check the"
-           << " previous messages for error messages." << std::endl
-           << std::endl;
+                << " previous messages for error messages." << std::endl
+                << std::endl;
       ((CcBool *)result.addr)->Set(true, false);
       return 0;
     }
@@ -146,47 +146,41 @@ int init_be_workerSFVM(Word *args, Word &result, int message, Word &local,
 1.12.3 Specification
 
 */
-OperatorSpec be_init_cluster_spec (
-   "{string, text} x {string, text}  x {string, text} "
-      "x int x {string, text} x rel --> bool",
-   "be_init_cluster(_,_,_,_,_,_)",
-   "Set the dbtype, user, pass, port and the db-name for initialization the "
-   "local BE-Worker. Additional you have to specified a Workers-Relation with "
-   "all connection information from the worker, including the information "
-   "about the second DBMS. The structure of this relation should be "
-   "[Host: string, Port: int, Config: string, PGPort: int, DBName: string]",
-   "query be_init_cluster('pgsql','user','pass',5432,'gisdb',WorkersPG)"
-);
+OperatorSpec be_init_cluster_spec(
+    "{string, text} x {string, text}  x {string, text} "
+    "x int x {string, text} x rel --> bool",
+    "be_init_cluster(_,_,_,_,_,_)",
+    "Set the dbtype, user, pass, port and the db-name for initialization the "
+    "local BE-Worker. Additional you have to specified a Workers-Relation with "
+    "all connection information from the worker, including the information "
+    "about the second DBMS. The structure of this relation should be "
+    "[Host: string, Port: int, Config: string, PGPort: int, DBName: string]",
+    "query be_init_cluster('pgsql','user','pass',5432,'gisdb',WorkersPG)");
 
 /*
 1.12.4 ValueMapping Array
 
 */
 ValueMapping be_init_cluster_vm[] = {
-  init_be_workerSFVM<CcString>,
-  init_be_workerSFVM<FText>,
+    init_be_workerSFVM<CcString>,
+    init_be_workerSFVM<FText>,
 };
 
 /*
 1.12.5 Selection Function
 
 */
-int be_init_cluster_select(ListExpr args){
-    return CcString::checkType(nl->First(args))?0:1;
+int be_init_cluster_select(ListExpr args) {
+  return CcString::checkType(nl->First(args)) ? 0 : 1;
 }
 
 /*
 1.12.6 Operator instance
 
 */
-Operator be_init_cluster_op (
-  "be_init_cluster",
-  be_init_cluster_spec.getStr(),
-  sizeof(be_init_cluster_vm),
-  be_init_cluster_vm,
-  be_init_cluster_select,
-  be_init_cluster_tm
-);
+Operator be_init_cluster_op("be_init_cluster", be_init_cluster_spec.getStr(),
+                            sizeof(be_init_cluster_vm), be_init_cluster_vm,
+                            be_init_cluster_select, be_init_cluster_tm);
 
 } // namespace BasicEngine
 

@@ -49,8 +49,7 @@ class ConnectionGeneric {
 public:
   ConnectionGeneric(const std::string &_dbUser, const std::string &_dbPass,
                     const int _dbPort, const std::string &_dbName)
-      : dbUser(_dbUser), dbPass(_dbPass), dbPort(_dbPort), dbName(_dbName) {
-  }
+      : dbUser(_dbUser), dbPass(_dbPass), dbPort(_dbPort), dbName(_dbName) {}
 
   virtual ~ConnectionGeneric() {
     if (sqlDialect != nullptr) {
@@ -67,30 +66,26 @@ public:
 
   virtual bool validateQuery(const std::string &query) = 0;
 
-  virtual bool sendCommand(const std::string &command, 
+  virtual bool sendCommand(const std::string &command,
                            bool printErrors = true) = 0;
 
   virtual std::string getCreateTableSQL(const std::string &table) = 0;
 
   virtual void dropTable(const std::string &table);
 
-  virtual void dropIndex(const std::string &table,
-                         const std::string &column) ;
+  virtual void dropIndex(const std::string &table, const std::string &column);
 
   virtual void partitionRoundRobin(const std::string &table,
                                    const size_t anzSlots,
                                    const std::string &targetTab) = 0;
 
-  virtual void partitionHash(const std::string &table,
-                                          const std::string &key,
-                                          const size_t anzSlots,
-                                          const std::string &targetTab) = 0;
+  virtual void partitionHash(const std::string &table, const std::string &key,
+                             const size_t anzSlots,
+                             const std::string &targetTab) = 0;
 
-  virtual void partitionFunc(const std::string &table,
-                                      const std::string &key,
-                                      const size_t anzSlots,
-                                      const std::string &fun,
-                                      const std::string &targetTab) = 0;
+  virtual void partitionFunc(const std::string &table, const std::string &key,
+                             const size_t anzSlots, const std::string &fun,
+                             const std::string &targetTab) = 0;
 
   virtual void partitionGrid(const std::string &table, const std::string &key,
                              const std::string &geo_col, const size_t noOfSlots,
@@ -98,8 +93,8 @@ public:
                              const std::string &targetTab);
 
   virtual void exportDataForPartition(const std::string &table,
-                                       const std::string &exportFile, 
-                                       size_t partition);
+                                      const std::string &exportFile,
+                                      size_t partition);
 
   virtual std::string getImportTableSQL(const std::string &table,
                                         const std::string &full_path) = 0;
@@ -114,10 +109,10 @@ public:
       const std::vector<std::tuple<std::string, std::string>> &types);
 
   virtual ResultIteratorGeneric *
-    performSQLSelectQuery(const std::string &sqlQuery) = 0;
+  performSQLSelectQuery(const std::string &sqlQuery) = 0;
 
   virtual std::string
-    getAttributeProjectionSQLForTable(const std::string &table,
+  getAttributeProjectionSQLForTable(const std::string &table,
                                     const std::string &prefix = "");
 
   virtual bool createGridTable(const std::string &table) = 0;
@@ -137,12 +132,11 @@ public:
   virtual void removeColumnFromTable(const std::string &table,
                                      const std::string &name);
 
-
   std::string getFilenameForPartition(const std::string &table,
                                       size_t &partitionNumber) {
 
-    return table + "_" + std::to_string(WinUnix::getpid()) 
-      + "_" + std::to_string(partitionNumber) + ".bin";
+    return table + "_" + std::to_string(WinUnix::getpid()) + "_" +
+           std::to_string(partitionNumber) + ".bin";
   }
 
   /*
@@ -183,11 +177,10 @@ public:
   Get the used SQL dialect
 
   */
-  SQLDialect* getSQLDialect() { return sqlDialect; }
+  SQLDialect *getSQLDialect() { return sqlDialect; }
 
 protected:
-
-  virtual SQLDialect* buildSQLDialect() = 0;
+  virtual SQLDialect *buildSQLDialect() = 0;
 
   /*
   5.2.0 Try to limit the given SQL query to 1 result.
@@ -232,8 +225,7 @@ protected:
   5.2.5 The referenece to the SQL dialect
 
   */
-  SQLDialect* sqlDialect = nullptr;
-
+  SQLDialect *sqlDialect = nullptr;
 
   /*
   5.2.6 The connection mutex

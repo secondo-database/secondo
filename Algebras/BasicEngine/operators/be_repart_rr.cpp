@@ -39,7 +39,6 @@ using namespace std;
 
 namespace BasicEngine {
 
-
 /*
 1.2 Operator  ~be\_repart\_rr~
 
@@ -50,11 +49,11 @@ to the worker and import the data
 
 */
 ListExpr be_repartRRTM(ListExpr args) {
-    
-string err = "{string, text} x DArray(SQLREL) --> bool"
-       "(tab-name, key, darray) expected";
 
-  if(!nl->HasLength(args,2)){
+  string err = "{string, text} x DArray(SQLREL) --> bool"
+               "(tab-name, key, darray) expected";
+
+  if (!nl->HasLength(args, 2)) {
     return listutils::typeError("Three arguments expected.\n " + err);
   }
 
@@ -62,22 +61,23 @@ string err = "{string, text} x DArray(SQLREL) --> bool"
   ListExpr darray = nl->First(nl->Second(args));
   string darrayName = nl->ToString(nl->Second(nl->Second(args)));
 
-  if(!CcString::checkType(table) && !FText::checkType(table)) {
+  if (!CcString::checkType(table) && !FText::checkType(table)) {
     return listutils::typeError("Value of first argument have "
-                  "to be a string or a text.\n" + err);
+                                "to be a string or a text.\n" +
+                                err);
   }
 
-  if(!DArray::checkType(darray)){
+  if (!DArray::checkType(darray)) {
     return listutils::typeError("Value of second argument have "
-                    "to be a darray.\n" + err);
+                                "to be a darray.\n" +
+                                err);
   }
 
   // Append the used darray name to the result
   // The darray is distributed in the VM to the worker
-  ListExpr res =
-      nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND()),
-                        nl->OneElemList(nl->StringAtom(darrayName)),
-                        nl->SymbolAtom(CcBool::BasicType()));
+  ListExpr res = nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND()),
+                                   nl->OneElemList(nl->StringAtom(darrayName)),
+                                   nl->SymbolAtom(CcBool::BasicType()));
 
   return res;
 }

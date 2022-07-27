@@ -39,7 +39,6 @@ using namespace std;
 
 namespace BasicEngine {
 
-
 /*
 
 1.2 Operator  ~be\_part\_random~
@@ -51,25 +50,26 @@ to the worker and import the data
 
 */
 ListExpr be_partRandomTM(ListExpr args) {
-string err = "{string, text} x int --> DArray(SQLREL)"
-       "(tab-name, key, number of slots) expected";
+  string err = "{string, text} x int --> DArray(SQLREL)"
+               "(tab-name, key, number of slots) expected";
 
-  if(!nl->HasLength(args,2)){
+  if (!nl->HasLength(args, 2)) {
     return listutils::typeError("Three arguments expected.\n " + err);
   }
-  if(!CcString::checkType(nl->First(args))
-        && !FText::checkType(nl->First(args))){
+  if (!CcString::checkType(nl->First(args)) &&
+      !FText::checkType(nl->First(args))) {
     return listutils::typeError("Value of first argument have "
-                  "to be a string or a text.\n" + err);
+                                "to be a string or a text.\n" +
+                                err);
   }
 
-  if(!CcInt::checkType(nl->Second(args))){
+  if (!CcInt::checkType(nl->Second(args))) {
     return listutils::typeError("Value of second argument have "
-                    "to be an integer.\n" + err);
+                                "to be an integer.\n" +
+                                err);
   }
 
   return nl->SymbolAtom(DArray::BasicType());
 }
-
 
 } // namespace BasicEngine

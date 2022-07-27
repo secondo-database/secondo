@@ -34,8 +34,6 @@ namespace BasicEngine {
 
 ListExpr be_runsqlTM(ListExpr args);
 
-
-
 /*
 1.13.2 Value Mapping
 
@@ -70,44 +68,35 @@ int be_runsqlSFVM(Word *args, Word &result, int message, Word &local,
 
 */
 OperatorSpec be_runsqlSpec(
-   "{string, text}  --> bool",
-   "be_runsql(_)",
-   "Opens a specified file and reading the SQL-Statement. After the the "
-   "system execute this statement on the second DBMS. The statement "
-   "must be in a correct syntax for this DBMS.",
-   "query be_runsql('/home/cbe/filetransfer/createroads.sql')"
-);
+    "{string, text}  --> bool", "be_runsql(_)",
+    "Opens a specified file and reading the SQL-Statement. After the the "
+    "system execute this statement on the second DBMS. The statement "
+    "must be in a correct syntax for this DBMS.",
+    "query be_runsql('/home/cbe/filetransfer/createroads.sql')");
 
 /*
 1.13.4 ValueMapping Array
 
 */
 ValueMapping be_runsqlVM[] = {
-  be_runsqlSFVM<CcString>,
-  be_runsqlSFVM<FText>,
+    be_runsqlSFVM<CcString>,
+    be_runsqlSFVM<FText>,
 };
 
 /*
 1.13.5 Selection Function
 
 */
-int be_runsqlSelect(ListExpr args){
-    return CcString::checkType(nl->First(args))?0:1;
+int be_runsqlSelect(ListExpr args) {
+  return CcString::checkType(nl->First(args)) ? 0 : 1;
 };
 
 /*
 1.13.6 Operator instance
 
 */
-Operator be_runsqlOp(
-  "be_runsql",
-  be_runsqlSpec.getStr(),
-  sizeof(be_runsqlVM),
-  be_runsqlVM,
-  be_runsqlSelect,
-  be_runsqlTM
-);
-
+Operator be_runsqlOp("be_runsql", be_runsqlSpec.getStr(), sizeof(be_runsqlVM),
+                     be_runsqlVM, be_runsqlSelect, be_runsqlTM);
 
 } // namespace BasicEngine
 

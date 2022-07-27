@@ -109,14 +109,12 @@ public:
 
   virtual void addColumnToTable(const std::string &table,
                                 const std::string &name, SQLAttribute type);
-                                
+
   // The DB Type
   inline static const std::string DBTYPE = "mysql";
 
-protected: 
-  SQLDialect* buildSQLDialect() {
-    return new SQLDialectMySQL();
-  }
+protected:
+  SQLDialect *buildSQLDialect() { return new SQLDialectMySQL(); }
 
 private:
   /*

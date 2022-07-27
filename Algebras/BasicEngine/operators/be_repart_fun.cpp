@@ -39,8 +39,6 @@ using namespace std;
 
 namespace BasicEngine {
 
-
-
 /*
 1.4.1 Type Mapping
 
@@ -65,33 +63,35 @@ ListExpr be_repartFunTM(ListExpr args) {
 
   if (!CcString::checkType(table) && !FText::checkType(table)) {
     return listutils::typeError("Value of first argument have "
-                                "to be a string or a text." + err);
+                                "to be a string or a text." +
+                                err);
   }
 
   if (!CcString::checkType(attribute) && !FText::checkType(attribute)) {
     return listutils::typeError("Value of second argument have "
-                                "to be a string or a text." + err);
+                                "to be a string or a text." +
+                                err);
   }
 
   if (!CcString::checkType(function) && !FText::checkType(function)) {
     return listutils::typeError("Value of third argument have "
-                                "to be a string or a text." + err);
+                                "to be a string or a text." +
+                                err);
   }
 
   if (!DArray::checkType(darray)) {
     return listutils::typeError("Value of fourth argument have "
-                                "to be a darray." + err);
+                                "to be a darray." +
+                                err);
   }
 
   // Append the used darray name to the result
   // The darray is distributed in the VM to the worker
-  ListExpr res =
-      nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND()),
-                        nl->OneElemList(nl->StringAtom(darrayName)),
-                        nl->SymbolAtom(CcBool::BasicType()));
+  ListExpr res = nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND()),
+                                   nl->OneElemList(nl->StringAtom(darrayName)),
+                                   nl->SymbolAtom(CcBool::BasicType()));
 
   return res;
 }
-
 
 } // namespace BasicEngine

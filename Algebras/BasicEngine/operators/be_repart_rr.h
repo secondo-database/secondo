@@ -49,14 +49,14 @@ int be_repartRRSFVM(Word *args, Word &result, int message, Word &local,
   CcInt *slot = (CcInt *)args[1].addr;
   distributed2::DArray *darray = (distributed2::DArray *)args[2].addr;
   FText *darrayName = (FText *)args[3].addr;
-  CcBool *res = (CcBool *) result.addr;
+  CcBool *res = (CcBool *)result.addr;
 
   if (!darrayName->IsDefined()) {
     std::cerr << "Error: DArray name is undefined" << std::endl;
     res->Set(true, false);
     return 0;
-  }  
-  
+  }
+
   std::string darrayNameValue = darrayName->toText();
 
   try {
@@ -77,9 +77,9 @@ int be_repartRRSFVM(Word *args, Word &result, int message, Word &local,
     partitionData.table = tab->toText();
     partitionData.slotnum = slot->GetIntval();
 
-    bool val = be_control -> repartitionTable(partitionData, rr, 
-        darray, darrayNameValue);
-        
+    bool val = be_control->repartitionTable(partitionData, rr, darray,
+                                            darrayNameValue);
+
     res->Set(true, val);
 
   } catch (SecondoException &e) {

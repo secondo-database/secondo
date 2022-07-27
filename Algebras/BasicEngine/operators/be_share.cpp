@@ -39,8 +39,6 @@ using namespace std;
 
 namespace BasicEngine {
 
-
-
 /*
 1.3 Operator  ~be\_share~
 
@@ -53,19 +51,18 @@ Share a relation with all worker
 ListExpr be_shareTM(ListExpr args) {
   string err = "\n {string, text} expected";
 
-  if(!nl->HasLength(args,1)){
+  if (!nl->HasLength(args, 1)) {
     return listutils::typeError("One argument expected. " + err);
   }
 
-  if(!CcString::checkType(nl->First(args))
-      && !FText::checkType(nl->First(args))){
+  if (!CcString::checkType(nl->First(args)) &&
+      !FText::checkType(nl->First(args))) {
     return listutils::typeError("Value of first argument have "
-        "to be a string or a text." + err);
+                                "to be a string or a text." +
+                                err);
   }
-  
+
   return nl->SymbolAtom(CcBool::BasicType());
 }
-
-
 
 } // namespace BasicEngine

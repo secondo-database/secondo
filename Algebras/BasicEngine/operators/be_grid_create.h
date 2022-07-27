@@ -32,9 +32,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 namespace BasicEngine {
 
-
 ListExpr be_gridCreateTM(ListExpr args);
-
 
 /*
 1.3.3 Value Mapping
@@ -74,8 +72,9 @@ int be_GridCreateSFVM(Word *args, Word &result, int message, Word &local,
       size_t cellsXInt = cellsX->GetValue();
       size_t cellsYInt = cellsY->GetValue();
 
-      GridManager::createGrid(be_control, gridNameString, startXDouble, 
-        startYDouble, cellSizeDouble, cellsXInt, cellsYInt);
+      GridManager::createGrid(be_control, gridNameString, startXDouble,
+                              startYDouble, cellSizeDouble, cellsXInt,
+                              cellsYInt);
       operationResult = true;
     }
 
@@ -94,28 +93,25 @@ int be_GridCreateSFVM(Word *args, Word &result, int message, Word &local,
 
 */
 OperatorSpec be_gridCreateSpec(
-   "{string, text} x real x real x real x int x int--> bool",
-   "be_repart_grid(_)",
-   "This operator creates a new grid with the given name and specification."
-   "(1) Name of the grid, (2) start x, (3) start y, (4) cell size x/y, "
-   "(5) cells x, (6) cells y",
-   "query be_repart_grid('mygrid', 'gid', 'geod', 'mygrid', darray)"
-);
+    "{string, text} x real x real x real x int x int--> bool",
+    "be_repart_grid(_)",
+    "This operator creates a new grid with the given name and specification."
+    "(1) Name of the grid, (2) start x, (3) start y, (4) cell size x/y, "
+    "(5) cells x, (6) cells y",
+    "query be_repart_grid('mygrid', 'gid', 'geod', 'mygrid', darray)");
 
 /*
 1.3.4 ValueMapping Array
 
 */
-ValueMapping be_gridCreateVM[] = {
-  be_GridCreateSFVM<CcString>,
-  be_GridCreateSFVM<FText>
-};
+ValueMapping be_gridCreateVM[] = {be_GridCreateSFVM<CcString>,
+                                  be_GridCreateSFVM<FText>};
 
 /*
 1.3.5 Selection Function
 
 */
-int be_gridCreateSelect(ListExpr args){
+int be_gridCreateSelect(ListExpr args) {
   return CcString::checkType(nl->First(args)) ? 0 : 1;
 }
 
@@ -123,14 +119,9 @@ int be_gridCreateSelect(ListExpr args){
 1.3.6 Operator instance
 
 */
-Operator be_gridCreateOp(
-  "be_grid_create",
-  be_gridCreateSpec.getStr(),
-  sizeof(be_gridCreateVM),
-  be_gridCreateVM,
-  be_gridCreateSelect,
-  be_gridCreateTM
-);
+Operator be_gridCreateOp("be_grid_create", be_gridCreateSpec.getStr(),
+                         sizeof(be_gridCreateVM), be_gridCreateVM,
+                         be_gridCreateSelect, be_gridCreateTM);
 
 } // namespace BasicEngine
 

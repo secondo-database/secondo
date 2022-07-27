@@ -34,8 +34,6 @@ namespace BasicEngine {
 
 ListExpr be_gridDeleteTM(ListExpr args);
 
-
-
 /*
 1.3.3 Value Mapping
 
@@ -80,27 +78,23 @@ int be_GridDeleteSFVM(Word *args, Word &result, int message, Word &local,
 1.3.3 Specification
 
 */
-OperatorSpec be_gridDeleteSpec(
-   "{string, text} --> bool",
-   "be_grid_delete(_)",
-   "This operator deletes the grid with the given name.",
-   "query be_delete_grid('mygrid')"
-);
+OperatorSpec
+    be_gridDeleteSpec("{string, text} --> bool", "be_grid_delete(_)",
+                      "This operator deletes the grid with the given name.",
+                      "query be_delete_grid('mygrid')");
 
 /*
 1.3.4 ValueMapping Array
 
 */
-ValueMapping be_gridDeleteVM[] = {
-  be_GridDeleteSFVM<CcString>,
-  be_GridDeleteSFVM<FText>
-};
+ValueMapping be_gridDeleteVM[] = {be_GridDeleteSFVM<CcString>,
+                                  be_GridDeleteSFVM<FText>};
 
 /*
 1.3.5 Selection Function
 
 */
-int be_gridDeleteSelect(ListExpr args){
+int be_gridDeleteSelect(ListExpr args) {
   return CcString::checkType(nl->First(args)) ? 0 : 1;
 }
 
@@ -108,15 +102,9 @@ int be_gridDeleteSelect(ListExpr args){
 1.3.6 Operator instance
 
 */
-Operator be_gridDeleteOp(
-  "be_grid_delete",
-  be_gridDeleteSpec.getStr(),
-  sizeof(be_gridDeleteVM),
-  be_gridDeleteVM,
-  be_gridDeleteSelect,
-  be_gridDeleteTM
-);
-
+Operator be_gridDeleteOp("be_grid_delete", be_gridDeleteSpec.getStr(),
+                         sizeof(be_gridDeleteVM), be_gridDeleteVM,
+                         be_gridDeleteSelect, be_gridDeleteTM);
 
 } // namespace BasicEngine
 

@@ -89,7 +89,7 @@ int be_copySFVM(Word *args, Word &result, int message, Word &local,
     }
 
     std::cerr << "Error: Exactly one parameter has to be a "
-         << "absolute path, starting with '/'" << std::endl;
+              << "absolute path, starting with '/'" << std::endl;
 
     ((CcBool *)result.addr)->Set(true, false);
   } catch (SecondoException &e) {

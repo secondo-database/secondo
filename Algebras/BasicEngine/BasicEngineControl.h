@@ -50,7 +50,7 @@ namespace BasicEngine {
 1.0 ENum ~PartitionMode~
 
 */
-enum PartitionMode {hash, rr, random, grid, fun};
+enum PartitionMode { hash, rr, random, grid, fun };
 
 /*
 1.1 Struct ~PartitonData~
@@ -69,7 +69,6 @@ typedef struct {
   std::string gridname;
 } PartitionData;
 
-
 /*
 1.3 Struct ~ExportedSlotData~
 
@@ -79,7 +78,7 @@ typedef struct {
   bool partitionedTable;
   std::string destinationTable;
   std::string filename;
-  WorkerConnection* workerConnection;
+  WorkerConnection *workerConnection;
 } ExportedSlotData;
 
 /*
@@ -97,28 +96,26 @@ This class represents the controling from the system.
 class BasicEngineControl {
 
 public:
+  /*
+  2.1 Public Methods
 
-/*
-2.1 Public Methods
-
-*/
-  BasicEngineControl(ConnectionGeneric* _dbms_connection, 
-    Relation* _workerRelation, std::string _workerRelationName, 
-    bool _isMaster);
+  */
+  BasicEngineControl(ConnectionGeneric *_dbms_connection,
+                     Relation *_workerRelation, std::string _workerRelationName,
+                     bool _isMaster);
 
   virtual ~BasicEngineControl();
 
-  ConnectionGeneric* getDBMSConnection() {
-    return dbms_connection;
-  }
+  ConnectionGeneric *getDBMSConnection() { return dbms_connection; }
 
   bool checkAllConnections();
 
   std::string partitionTable(PartitionData &partitionData,
                              const PartitionMode &repartitionMode);
 
-  distributed2::DArray partitionTableFromMaster(
-      PartitionData &partitionData, const PartitionMode &repartitionMode);
+  distributed2::DArray
+  partitionTableFromMaster(PartitionData &partitionData,
+                           const PartitionMode &repartitionMode);
 
   bool repartitionTableMaster(PartitionData &partitionData,
                               const PartitionMode &repartitionMode,
@@ -126,15 +123,16 @@ public:
                               const std::string &darrayName);
 
   bool repartitionTable(PartitionData &partitionData,
-    const PartitionMode &repartitionMode, distributed2::DArray* darray, 
-    const std::string &darrayName);
+                        const PartitionMode &repartitionMode,
+                        distributed2::DArray *darray,
+                        const std::string &darrayName);
 
-  void exportTableCreateStatementSQL(const std::string &table, 
-    const std::string &outputFile,
-    const std::string &renameExportTable = "");
+  void exportTableCreateStatementSQL(const std::string &table,
+                                     const std::string &outputFile,
+                                     const std::string &renameExportTable = "");
 
-  std::string requestRemoteTableSchema(
-    const std::string &table, WorkerConnection* connection);
+  std::string requestRemoteTableSchema(const std::string &table,
+                                       WorkerConnection *connection);
 
   bool importTable(const std::string &table, const std::string &full_path) {
     std::string sqlQuery = dbms_connection->getImportTableSQL(table, full_path);
@@ -148,8 +146,8 @@ public:
 
   bool createTable(const std::string &table, const std::string &query) {
     std::string sqlQuery =
-        dbms_connection->getSQLDialect()
-        ->getCreateTableFromPredicateSQL(table, query);
+        dbms_connection->getSQLDialect()->getCreateTableFromPredicateSQL(table,
+                                                                         query);
     return dbms_connection->sendCommand(sqlQuery);
   }
 
@@ -169,26 +167,23 @@ public:
 
   bool runsql(const std::string &filepath);
 
-  bool initBasicEngineOnWorker(WorkerConnection* connection);
+  bool initBasicEngineOnWorker(WorkerConnection *connection);
 
   bool shutdownWorker();
 
   ListExpr getTypeFromSQLQuery(const std::string &sqlQuery);
 
-  ResultIteratorGeneric* performSQLSelectQuery(const std::string &sqlQuery);
+  ResultIteratorGeneric *performSQLSelectQuery(const std::string &sqlQuery);
 
   std::string exportSecondoRelation(const std::string &relationName);
 
-  bool exportWorkerRelationToWorker(WorkerConnection* connection,
-    const std::optional<std::string> &workerRelationFileName);
+  bool exportWorkerRelationToWorker(
+      WorkerConnection *connection,
+      const std::optional<std::string> &workerRelationFileName);
 
-  bool isMaster() {
-    return master;
-  }
+  bool isMaster() { return master; }
 
-  std::string getWorkerRelationName() {
-    return workerRelationName;
-  }
+  std::string getWorkerRelationName() { return workerRelationName; }
 
   bool createAllConnections();
 
@@ -196,25 +191,22 @@ public:
 
   bool validateQuery(const std::string &query);
 
-  bool performPartitionImport(WorkerConnection* connection,
-        const std::string &table,
-        const std::string &remoteFileName);
+  bool performPartitionImport(WorkerConnection *connection,
+                              const std::string &table,
+                              const std::string &remoteFileName);
 
-  bool performSchemaTransfer(const std::string &table, 
-        const ExportedSlotData &exportSlot);
+  bool performSchemaTransfer(const std::string &table,
+                             const ExportedSlotData &exportSlot);
 
-  bool performPartitionExport(WorkerConnection* connection,
-        size_t workerId,
-        const std::string &table, 
-        const std::string &path, 
-        const std::string &partitionFile);
+  bool performPartitionExport(WorkerConnection *connection, size_t workerId,
+                              const std::string &table, const std::string &path,
+                              const std::string &partitionFile);
 
-  bool performBEQuery(WorkerConnection* connection,
-        const std::string &table, 
-        const std::string &query);
+  bool performBEQuery(WorkerConnection *connection, const std::string &table,
+                      const std::string &query);
 
-  bool performBECommand(WorkerConnection* connection,
-        const std::string &command);
+  bool performBECommand(WorkerConnection *connection,
+                        const std::string &command);
 
   std::string getSchemaFile(const std::string &table) {
     return "schema_" + table + ".sql";
@@ -227,57 +219,54 @@ public:
     return std::string("/home/") + getenv("USER") + "/filetransfer";
   }
 
-  
 private:
+  /*
+  2.2 Members
 
-/*
-2.2 Members
+  2.2.1 ~dbms\_connection~
 
-2.2.1 ~dbms\_connection~
+  In this template variable were stores the connection,
+  to a secondary dbms (for example postgresql)
 
-In this template variable were stores the connection,
-to a secondary dbms (for example postgresql)
+  */
+  ConnectionGeneric *dbms_connection;
 
-*/
-ConnectionGeneric* dbms_connection;
+  /*
+  2.2.2 workerRelationName is the name of the used worker relation
 
-/*
-2.2.2 workerRelationName is the name of the used worker relation
+  */
+  std::string workerRelationName = "";
 
-*/
-std::string workerRelationName = "";
+  /*
+  2.2.3 ~connections~
 
-/*
-2.2.3 ~connections~
+  In this vector all connection to the worker are stored.
 
-In this vector all connection to the worker are stored.
+  */
+  std::vector<WorkerConnection *> connections;
 
-*/
-std::vector<WorkerConnection*> connections;
+  /*
+  2.2.5 master is a variable which shows, if this system is a master (true)
+  or a worker(false).
 
-/*
-2.2.5 master is a variable which shows, if this system is a master (true)
-or a worker(false).
+  */
+  bool master = false;
 
-*/
-bool master = false;
+  /*
+  2.3 Private Methods
 
-
-/*
-2.3 Private Methods
-
-*/
-bool createAndInitConnection(
-  WorkerConnection* connection,
-  const std::optional<std::string> &workerRelationFileName);
+  */
+  bool createAndInitConnection(
+      WorkerConnection *connection,
+      const std::optional<std::string> &workerRelationFileName);
 
   std::string partRoundRobin(const std::string &tab, size_t slotnum);
 
-  std::string partHash(const std::string &tab, const std::string &key, 
-    size_t slotnum);
+  std::string partHash(const std::string &tab, const std::string &key,
+                       size_t slotnum);
 
   std::string partFun(const std::string &tab, const std::string &key,
-         const std::string &fun, size_t slotnum);
+                      const std::string &fun, size_t slotnum);
 
   std::string partGrid(const std::string &tab, const std::string &key,
                        const std::string &geo_col, const std::string &gridname,
@@ -292,11 +281,11 @@ bool createAndInitConnection(
 
   bool exportPartitionsToWorker(std::list<ExportedSlotData>);
 
-  void exportSchemaToWorker(const std::string &table, 
-    std::list<ExportedSlotData>);
+  void exportSchemaToWorker(const std::string &table,
+                            std::list<ExportedSlotData>);
 
-  std::string getTableNameForPartitioning(const std::string &tab, 
-    const std::string &key);
+  std::string getTableNameForPartitioning(const std::string &tab,
+                                          const std::string &key);
 
   std::string getRepartitionTableName(const std::string &table) {
     return table + "_repartition";
@@ -304,21 +293,18 @@ bool createAndInitConnection(
 
   std::string getFirstAttributeNameFromTable(const std::string &table);
 
-  void dropAttributeIfExists(const std::string &table, 
-    const std::string &attribute);
+  void dropAttributeIfExists(const std::string &table,
+                             const std::string &attribute);
 
-  ConnectionGeneric* getDbmsConnection() {
-    return dbms_connection;
-  }
+  ConnectionGeneric *getDbmsConnection() { return dbms_connection; }
 
   distributed2::DArray convertSlotMappingToDArray(
-    const std::string &name, 
-    const std::list<ExportedSlotData> partitionWorkerMapping);
+      const std::string &name,
+      const std::list<ExportedSlotData> partitionWorkerMapping);
 
-  WorkerConnection* getConnectionForSlot(std::string host, std::string port);
-
+  WorkerConnection *getConnectionForSlot(std::string host, std::string port);
 };
 
-};  /* namespace BasicEngine */
+}; /* namespace BasicEngine */
 
 #endif //_BasicEngineControl_H_

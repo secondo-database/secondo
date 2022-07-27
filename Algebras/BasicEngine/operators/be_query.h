@@ -34,8 +34,6 @@ namespace BasicEngine {
 
 ListExpr be_queryTM(ListExpr args);
 
-
-
 /*
 1.5.2 Value Mapping
 
@@ -84,34 +82,29 @@ int be_querySFVM(Word *args, Word &result, int message, Word &local,
 
 */
 OperatorSpec be_queryVMSpec(
-   "{string, text} x {string, text} --> bool",
-   "be_query(_ , _ )",
-   "Execute a sql-statement at the locale second DBMS and stores the "
-   "result in the specified table. The statement must be in a correct "
-   "syntax for this DBMS. ",
-   "query be_query('select * from cars where Speed = 30', 'cars_neu')"
-);
+    "{string, text} x {string, text} --> bool", "be_query(_ , _ )",
+    "Execute a sql-statement at the locale second DBMS and stores the "
+    "result in the specified table. The statement must be in a correct "
+    "syntax for this DBMS. ",
+    "query be_query('select * from cars where Speed = 30', 'cars_neu')");
 
 /*
 1.5.4 ValueMapping Array
 
 */
 ValueMapping be_queryVM[] = {
-  be_querySFVM<CcString,CcString>,
-  be_querySFVM<FText,CcString>,
-  be_querySFVM<CcString,FText>,
-  be_querySFVM<FText,FText>
-};
+    be_querySFVM<CcString, CcString>, be_querySFVM<FText, CcString>,
+    be_querySFVM<CcString, FText>, be_querySFVM<FText, FText>};
 
 /*
 1.5.5 Selection Function
 
 */
-int be_querySelect(ListExpr args){
-  if(CcString::checkType(nl->First(args))){
-    return CcString::checkType(nl->Second(args))?0:2;
-  }else{
-    return CcString::checkType(nl->Second(args))?1:3;
+int be_querySelect(ListExpr args) {
+  if (CcString::checkType(nl->First(args))) {
+    return CcString::checkType(nl->Second(args)) ? 0 : 2;
+  } else {
+    return CcString::checkType(nl->Second(args)) ? 1 : 3;
   }
 }
 
@@ -119,14 +112,8 @@ int be_querySelect(ListExpr args){
 1.5.6 Operator instance
 
 */
-Operator be_queryOp(
-  "be_query",
-  be_queryVMSpec.getStr(),
-  sizeof(be_queryVM),
-  be_queryVM,
-  be_querySelect,
-  be_queryTM
-);
+Operator be_queryOp("be_query", be_queryVMSpec.getStr(), sizeof(be_queryVM),
+                    be_queryVM, be_querySelect, be_queryTM);
 
 } // namespace BasicEngine
 

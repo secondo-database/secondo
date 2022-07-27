@@ -39,7 +39,6 @@ using namespace std;
 
 namespace BasicEngine {
 
-
 /*
 1.5 Operator  ~be\_query~
 
@@ -52,21 +51,23 @@ and a config-relation
 
 */
 ListExpr be_queryTM(ListExpr args) {
-string err = "\n {string, text} x {string, text} --> bool"
-       "(sql-query, target tab name) expected";
+  string err = "\n {string, text} x {string, text} --> bool"
+               "(sql-query, target tab name) expected";
 
-  if(!nl->HasLength(args,2)){
+  if (!nl->HasLength(args, 2)) {
     return listutils::typeError("Two arguments expected." + err);
   }
-  if(!CcString::checkType(nl->First(args))
-      && !FText::checkType(nl->First(args))){
+  if (!CcString::checkType(nl->First(args)) &&
+      !FText::checkType(nl->First(args))) {
     return listutils::typeError("Value of first argument have "
-        "          to be a string or a text." + err);
+                                "          to be a string or a text." +
+                                err);
   }
-  if(!CcString::checkType(nl->Second(args))
-      && !FText::checkType(nl->Second(args))){
+  if (!CcString::checkType(nl->Second(args)) &&
+      !FText::checkType(nl->Second(args))) {
     return listutils::typeError("Value of second argument have "
-                  "to be a string or a text." + err);
+                                "to be a string or a text." +
+                                err);
   }
 
   return nl->SymbolAtom(CcBool::BasicType());

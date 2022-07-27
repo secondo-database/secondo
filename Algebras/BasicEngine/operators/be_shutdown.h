@@ -44,7 +44,7 @@ OperatorSpec
     be_shutdown_spec(" --> bool", "be_shutdown()",
                      "Shutdown the connection to the basic engine worker",
                      "query be_shutdown()");
-                     
+
 /*
 1.1.6 Definition of operator ~be\_shutdown~
 

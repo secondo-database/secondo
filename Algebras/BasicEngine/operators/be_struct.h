@@ -34,7 +34,6 @@ namespace BasicEngine {
 
 ListExpr be_structTM(ListExpr args);
 
-
 /*
 1.11.2 Value Mapping
 
@@ -50,8 +49,8 @@ int be_structSFVM(Word *args, Word &result, int message, Word &local,
 
     if (be_control) {
       std::string table = tab->GetValue();
-      std::string localCreateName =  be_control->getBasePath()
-          + "/" +  be_control->getSchemaFile(table);
+      std::string localCreateName =
+          be_control->getBasePath() + "/" + be_control->getSchemaFile(table);
       be_control->exportTableCreateStatementSQL(table, localCreateName);
       ((CcBool *)result.addr)->Set(true, true);
     } else {
@@ -72,45 +71,36 @@ int be_structSFVM(Word *args, Word &result, int message, Word &local,
 
 */
 OperatorSpec be_structVMSpec(
-   "{string,text} -> bool",
-   "be_struct(_)",
-   "This operator creates a table-create-Statement for a "
-   "specified table and stores it in a file. This file is "
-   "located in your local home-directory in the filetransfer folder."
-   "Be sure to have this directory with the correct permissions.",
-   "query be_struct('cars_short')"
-);
+    "{string,text} -> bool", "be_struct(_)",
+    "This operator creates a table-create-Statement for a "
+    "specified table and stores it in a file. This file is "
+    "located in your local home-directory in the filetransfer folder."
+    "Be sure to have this directory with the correct permissions.",
+    "query be_struct('cars_short')");
 
 /*
 1.11.4 ValueMapping Array
 
 */
 ValueMapping be_structVM[] = {
-  be_structSFVM<CcString>,
-  be_structSFVM<FText>,
+    be_structSFVM<CcString>,
+    be_structSFVM<FText>,
 };
 
 /*
 1.11.5 Selection Function
 
 */
-int be_structSelect(ListExpr args){
-    return CcString::checkType(nl->First(args))?0:1;
+int be_structSelect(ListExpr args) {
+  return CcString::checkType(nl->First(args)) ? 0 : 1;
 }
 
 /*
 1.11.6 Operator instance
 
 */
-Operator be_structOp(
-  "be_struct",
-  be_structVMSpec.getStr(),
-  sizeof(be_structVM),
-  be_structVM,
-  be_structSelect,
-  be_structTM
-);
-
+Operator be_structOp("be_struct", be_structVMSpec.getStr(), sizeof(be_structVM),
+                     be_structVM, be_structSelect, be_structTM);
 
 } // namespace BasicEngine
 

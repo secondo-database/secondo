@@ -34,8 +34,6 @@ namespace BasicEngine {
 
 ListExpr be_commandTM(ListExpr args);
 
-
-
 /*
 1.6.2 Value Mapping
 
@@ -71,42 +69,32 @@ int be_commandSFVM(Word *args, Word &result, int message, Word &local,
 
 */
 OperatorSpec be_commandVMSpec(
-   "{string, text} --> bool",
-   "be_command(_ )",
-   "Execute a sql-statement at the locale second DBMS. "
-   "The statement must be in a correct syntax for this DBMS. ",
-   "query be_command('COPY cars FROM /home/filetransfers/cars_3.bin BINARY')"
-);
+    "{string, text} --> bool", "be_command(_ )",
+    "Execute a sql-statement at the locale second DBMS. "
+    "The statement must be in a correct syntax for this DBMS. ",
+    "query be_command('COPY cars FROM /home/filetransfers/cars_3.bin BINARY')");
 
 /*
 1.6.4 ValueMapping Array
 
 */
-ValueMapping be_commandVM[] = {
-  be_commandSFVM<CcString>,
-  be_commandSFVM<FText>
-};
+ValueMapping be_commandVM[] = {be_commandSFVM<CcString>, be_commandSFVM<FText>};
 
 /*
 1.6.5 Selection Function
 
 */
-int be_commandSelect(ListExpr args){
-  return CcString::checkType(nl->First(args))?0:1;
+int be_commandSelect(ListExpr args) {
+  return CcString::checkType(nl->First(args)) ? 0 : 1;
 };
 
 /*
 1.6.6 Operator instance
 
 */
-Operator be_commandOp(
-  "be_command",
-  be_commandVMSpec.getStr(),
-  sizeof(be_commandVM),
-  be_commandVM,
-  be_commandSelect,
-  be_commandTM
-);
+Operator be_commandOp("be_command", be_commandVMSpec.getStr(),
+                      sizeof(be_commandVM), be_commandVM, be_commandSelect,
+                      be_commandTM);
 
 } // namespace BasicEngine
 

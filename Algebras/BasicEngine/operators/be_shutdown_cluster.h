@@ -41,24 +41,22 @@ int be_shutdown_cluster_vm(Word *args, Word &result, int message, Word &local,
 1.1.3 Specification
 
 */
-OperatorSpec be_shutdown_cluster_spec (
-   " --> bool",
-   "be_shutdown_cluster()",
-   "Shutdown the connection to the basic engine worker",
-   "query be_shutdown_cluster()"
-);
+OperatorSpec be_shutdown_cluster_spec(
+    " --> bool", "be_shutdown_cluster()",
+    "Shutdown the connection to the basic engine worker",
+    "query be_shutdown_cluster()");
 
 /*
 1.1.6 Definition of operator ~be\_shutdown\_cluster~
 
 */
-Operator be_shutdown_cluster (
-         "be_shutdown_cluster",                 // name
-         be_shutdown_cluster_spec.getStr(),     // specification
-         be_shutdown_cluster_vm,                // value mapping
-         Operator::SimpleSelect,               // trivial selection function
-         be_shutdown_cluster_tm                 // type mapping
-);
+Operator
+    be_shutdown_cluster("be_shutdown_cluster",             // name
+                        be_shutdown_cluster_spec.getStr(), // specification
+                        be_shutdown_cluster_vm,            // value mapping
+                        Operator::SimpleSelect, // trivial selection function
+                        be_shutdown_cluster_tm  // type mapping
+    );
 
 } // namespace BasicEngine
 

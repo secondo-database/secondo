@@ -48,63 +48,63 @@ Implementation.
 3.1 Constructor
 
 */
-BasicEngineControl::BasicEngineControl(ConnectionGeneric* _dbms_connection, 
-    Relation* _workerRelation, std::string _workerRelationName, 
-    bool _isMaster) : dbms_connection(_dbms_connection),
-    workerRelationName(_workerRelationName), master(_isMaster) {
+BasicEngineControl::BasicEngineControl(ConnectionGeneric *_dbms_connection,
+                                       Relation *_workerRelation,
+                                       std::string _workerRelationName,
+                                       bool _isMaster)
+    : dbms_connection(_dbms_connection),
+      workerRelationName(_workerRelationName), master(_isMaster) {
 
-    // Check relation type
-    TupleType* tt = _workerRelation->GetTupleType();
+  // Check relation type
+  TupleType *tt = _workerRelation->GetTupleType();
 
-    if(! tt) {
-      BOOST_LOG_TRIVIAL(error) << "Unable to get tuple type from relation";
-      return;
-    }
+  if (!tt) {
+    BOOST_LOG_TRIVIAL(error) << "Unable to get tuple type from relation";
+    return;
+  }
 
-    if(tt->GetNoAttributes() != 7) {
-      BOOST_LOG_TRIVIAL(error) 
+  if (tt->GetNoAttributes() != 7) {
+    BOOST_LOG_TRIVIAL(error)
         << "Provided relation has to contain 7 attributes "
-        << " provided number of attributes: "  << tt->GetNoAttributes();
-        return;
+        << " provided number of attributes: " << tt->GetNoAttributes();
+    return;
+  }
+
+  unique_ptr<GenericRelationIterator> it(_workerRelation->MakeScan());
+  Tuple *tuple = nullptr;
+
+  while ((tuple = it->GetNextTuple()) != 0) {
+
+    RemoteConnectionInfo *info = new RemoteConnectionInfo();
+
+    info->host = tuple->GetAttribute(0)->toText();
+    info->port = tuple->GetAttribute(1)->toText();
+    info->config = tuple->GetAttribute(2)->toText();
+    info->dbUser = tuple->GetAttribute(3)->toText();
+    info->dbPass = tuple->GetAttribute(4)->toText();
+    info->dbPort = tuple->GetAttribute(5)->toText();
+    info->dbName = tuple->GetAttribute(6)->toText();
+
+    if (tuple != nullptr) {
+      tuple->DeleteIfAllowed();
     }
 
-    unique_ptr<GenericRelationIterator> it(_workerRelation->MakeScan());
-    Tuple* tuple = nullptr;
-
-    while ((tuple = it->GetNextTuple()) != 0) {
-
-      RemoteConnectionInfo* info = new RemoteConnectionInfo();
-
-      info->host = tuple->GetAttribute(0)->toText();
-      info->port = tuple->GetAttribute(1)->toText();
-      info->config = tuple->GetAttribute(2)->toText();
-      info->dbUser = tuple->GetAttribute(3)->toText();
-      info->dbPass = tuple->GetAttribute(4)->toText();
-      info->dbPort = tuple->GetAttribute(5)->toText();
-      info->dbName = tuple->GetAttribute(6)->toText();
-
-      if(tuple != nullptr) {
-        tuple->DeleteIfAllowed();
-      }
-
-      WorkerConnection* workerConnection = new WorkerConnection(info);
-      connections.push_back(workerConnection);
-    }
+    WorkerConnection *workerConnection = new WorkerConnection(info);
+    connections.push_back(workerConnection);
+  }
 }
-
-
 
 /*
 3.2 Destructor
 
 */
 BasicEngineControl::~BasicEngineControl() {
-    if(dbms_connection != nullptr) {
-      delete dbms_connection;
-      dbms_connection = nullptr;
-    }
+  if (dbms_connection != nullptr) {
+    delete dbms_connection;
+    dbms_connection = nullptr;
+  }
 
-    shutdownAllConnections();
+  shutdownAllConnections();
 }
 
 /*
@@ -116,7 +116,7 @@ Shutdown all connections
 void BasicEngineControl::shutdownAllConnections() {
 
   // Delete connections
-  for(WorkerConnection* connection: connections) {
+  for (WorkerConnection *connection : connections) {
     delete connection;
   }
 
@@ -129,22 +129,21 @@ void BasicEngineControl::shutdownAllConnections() {
 Init the basic engine on the given worker
 
 */
-bool BasicEngineControl::initBasicEngineOnWorker(WorkerConnection* connection) {
+bool BasicEngineControl::initBasicEngineOnWorker(WorkerConnection *connection) {
 
-    string dbType = dbms_connection->getDbType();
+  string dbType = dbms_connection->getDbType();
 
-    RemoteConnectionInfo* remoteConnectionInfo 
-      = connection -> getRemoteConnectionInfo();
+  RemoteConnectionInfo *remoteConnectionInfo =
+      connection->getRemoteConnectionInfo();
 
-    // Call be worker init on remote nodes
-    string initCommand = "query be_init('" + dbType + "','"
-      + remoteConnectionInfo->dbUser + "','" 
-      + remoteConnectionInfo->dbPass + "'," 
-      + remoteConnectionInfo->dbPort + ",'"
-      + remoteConnectionInfo->dbName + "'," 
-      + workerRelationName + ");";
-  
-    return connection->executeSecondoCommand(initCommand, true);
+  // Call be worker init on remote nodes
+  string initCommand =
+      "query be_init('" + dbType + "','" + remoteConnectionInfo->dbUser +
+      "','" + remoteConnectionInfo->dbPass + "'," +
+      remoteConnectionInfo->dbPort + ",'" + remoteConnectionInfo->dbName +
+      "'," + workerRelationName + ");";
+
+  return connection->executeSecondoCommand(initCommand, true);
 }
 
 /*
@@ -154,22 +153,22 @@ Init the basic engine on the given worker
 
 */
 bool BasicEngineControl::exportWorkerRelationToWorker(
-  WorkerConnection* connection,
-  const optional<string> &workerRelationFileName) {
+    WorkerConnection *connection,
+    const optional<string> &workerRelationFileName) {
 
-      if(! workerRelationFileName.has_value()) {
-          BOOST_LOG_TRIVIAL(error) 
-            << "We are in master mode, but worker relation is not exported";
-          return false;
-        }
+  if (!workerRelationFileName.has_value()) {
+    BOOST_LOG_TRIVIAL(error)
+        << "We are in master mode, but worker relation is not exported";
+    return false;
+  }
 
-      ConnectionInfo* ci = connection -> getConnection();
+  ConnectionInfo *ci = connection->getConnection();
 
-      CommandLog commandLog;
+  CommandLog commandLog;
 
-      return ci->createOrUpdateRelationFromBinFile(
-        workerRelationName, workerRelationFileName.value(), false, 
-        commandLog, true, false, WorkerConnection::defaultTimeout);
+  return ci->createOrUpdateRelationFromBinFile(
+      workerRelationName, workerRelationFileName.value(), false, commandLog,
+      true, false, WorkerConnection::defaultTimeout);
 }
 
 /*
@@ -182,49 +181,47 @@ bool BasicEngineControl::createAllConnections() {
 
   optional<string> workerRelationFileName = nullopt;
 
-  if(connections.empty()) {
-    BOOST_LOG_TRIVIAL(warning) << "No known remote nodes known"; 
+  if (connections.empty()) {
+    BOOST_LOG_TRIVIAL(warning) << "No known remote nodes known";
     return false;
   }
 
   // Export the worker relation with the clients
-  if(master) {
+  if (master) {
     string exportedFile = exportSecondoRelation(workerRelationName);
-    workerRelationFileName.emplace(exportedFile); 
+    workerRelationFileName.emplace(exportedFile);
   }
 
   vector<std::future<bool>> connectionFutures;
-  
-  // Establish the connections async in futures
-  for(WorkerConnection* connection : connections) {
 
-    std::future<bool> asyncResult = std::async(
-        &BasicEngineControl::createAndInitConnection, 
-        this, 
-        connection, 
-        workerRelationFileName);
-        
+  // Establish the connections async in futures
+  for (WorkerConnection *connection : connections) {
+
+    std::future<bool> asyncResult =
+        std::async(&BasicEngineControl::createAndInitConnection, this,
+                   connection, workerRelationFileName);
+
     connectionFutures.push_back(std::move(asyncResult));
   }
 
   // Get future results
   bool errorInConnection = false;
-  for(std::future<bool> &result : connectionFutures) {
+  for (std::future<bool> &result : connectionFutures) {
 
-    if(! result.get()) {
+    if (!result.get()) {
       errorInConnection = true;
     }
   }
 
   // Delete relation file
-  if(workerRelationFileName.has_value()){
-      FileSystem::DeleteFileOrFolder(workerRelationFileName.value());
-      workerRelationFileName.reset();
+  if (workerRelationFileName.has_value()) {
+    FileSystem::DeleteFileOrFolder(workerRelationFileName.value());
+    workerRelationFileName.reset();
   }
 
-  if(errorInConnection) {
+  if (errorInConnection) {
     BOOST_LOG_TRIVIAL(error)
-         << "Error: Unable to create all needed worker connections";
+        << "Error: Unable to create all needed worker connections";
     return false;
   }
 
@@ -232,40 +229,38 @@ bool BasicEngineControl::createAllConnections() {
 }
 
 bool BasicEngineControl::createAndInitConnection(
-  WorkerConnection* connection,
-  const optional<string> &workerRelationFileName) {
+    WorkerConnection *connection,
+    const optional<string> &workerRelationFileName) {
 
-  connection -> createConnection();
-  ConnectionInfo* ci = connection -> getConnection();
+  connection->createConnection();
+  ConnectionInfo *ci = connection->getConnection();
 
-  if(ci == nullptr) {
-    BOOST_LOG_TRIVIAL(error)  
-          << "Error: Unable to establish connection to worker: "
-          << connection;
+  if (ci == nullptr) {
+    BOOST_LOG_TRIVIAL(error)
+        << "Error: Unable to establish connection to worker: " << connection;
 
     return false;
   }
-  
-  // Share the worker relation
-  if(master) {
-    bool exportResult 
-      = exportWorkerRelationToWorker(connection, workerRelationFileName);
 
-    if(! exportResult) {
-      BOOST_LOG_TRIVIAL(error) 
-        << "Error while distributing worker relation to" << connection;
+  // Share the worker relation
+  if (master) {
+    bool exportResult =
+        exportWorkerRelationToWorker(connection, workerRelationFileName);
+
+    if (!exportResult) {
+      BOOST_LOG_TRIVIAL(error)
+          << "Error while distributing worker relation to" << connection;
 
       return false;
     }
   }
 
   // Init basic engine connection on worker
-  bool initResult 
-    = initBasicEngineOnWorker(connection);
+  bool initResult = initBasicEngineOnWorker(connection);
 
-  if(! initResult) {
-    BOOST_LOG_TRIVIAL(error) << "Error while init basic engine on" 
-      << connection;
+  if (!initResult) {
+    BOOST_LOG_TRIVIAL(error)
+        << "Error while init basic engine on" << connection;
 
     return false;
   }
@@ -279,8 +274,8 @@ bool BasicEngineControl::createAndInitConnection(
 Returns a name of a table with the keys included.
 
 */
-string BasicEngineControl::getTableNameForPartitioning(
-  const string &tab, const string &key) {
+string BasicEngineControl::getTableNameForPartitioning(const string &tab,
+                                                       const string &key) {
 
   string usedKey(key);
 
@@ -316,29 +311,28 @@ void BasicEngineControl::exportTableCreateStatementSQL(
   // Rename the table to create if needed
   if (!renameExportTable.empty()) {
 
-    BOOST_LOG_TRIVIAL(debug) << "Renaming table " 
-      << table << " to " << renameExportTable;
+    BOOST_LOG_TRIVIAL(debug)
+        << "Renaming table " << table << " to " << renameExportTable;
 
     // Rename table at two positions
     // (1) In drop table statement
     // (2) In create table statement
     size_t start_pos = 0;
-    for(size_t run = 0; run < 2; run++) {
+    for (size_t run = 0; run < 2; run++) {
       start_pos = statement.find(table, start_pos);
 
       if (start_pos == std::string::npos) {
         throw SecondoException("Unable to replace table " + table);
       }
 
-      statement = statement.replace(
-          start_pos, table.length(), renameExportTable);
+      statement =
+          statement.replace(start_pos, table.length(), renameExportTable);
 
       start_pos += renameExportTable.length();
     }
   }
 
-   BOOST_LOG_TRIVIAL(debug) 
-    << "Create table statement is: " << statement;
+  BOOST_LOG_TRIVIAL(debug) << "Create table statement is: " << statement;
 
   // Write the SQL statement into the given output file
   ofstream write;
@@ -364,77 +358,76 @@ void BasicEngineControl::exportTableCreateStatementSQL(
 3.8 Drop the attribute from the given table
 
 */
-  void BasicEngineControl::dropAttributeIfExists(const std::string &table, 
-    const std::string &attributeToRemove) {
+void BasicEngineControl::dropAttributeIfExists(
+    const std::string &table, const std::string &attributeToRemove) {
 
-    std::vector<std::tuple<std::string, std::string>> attributes = 
-      dbms_connection -> getTypeFromSQLQuery("SELECT * FROM " + table);
+  std::vector<std::tuple<std::string, std::string>> attributes =
+      dbms_connection->getTypeFromSQLQuery("SELECT * FROM " + table);
 
+  for (std::tuple<std::string, std::string> attribute : attributes) {
+    string attributeName = std::get<0>(attribute);
+    if (attributeName == attributeToRemove) {
 
-    for(std::tuple<std::string, std::string> attribute : attributes) {
-      string attributeName = std::get<0>(attribute);
-      if(attributeName == attributeToRemove) {
+      BOOST_LOG_TRIVIAL(debug)
+          << "Found partitioning attribute " << attributeToRemove
+          << " on table " << table << ", removing ";
 
-        BOOST_LOG_TRIVIAL(debug) << "Found partitioning attribute " 
-          << attributeToRemove  << " on table " << table 
-          << ", removing ";
-
-        dbms_connection -> removeColumnFromTable(table, attributeToRemove);
-        return;
-      }
+      dbms_connection->removeColumnFromTable(table, attributeToRemove);
+      return;
     }
   }
+}
 
-  /*
-  3.8 ~repartition\_table\_worker~
+/*
+3.8 ~repartition\_table\_worker~
 
-  Repartition the given table - worker version
+Repartition the given table - worker version
 
-  */
-  string BasicEngineControl::partitionTable(PartitionData &partitionData,
-                                     const PartitionMode &partitionMode) {
+*/
+string BasicEngineControl::partitionTable(PartitionData &partitionData,
+                                          const PartitionMode &partitionMode) {
 
-    // Remove old cellnumber and slotnumber attributes 
-    // (e.g., needed for repartition the table)
-    dropAttributeIfExists(partitionData.table, be_partition_cellnumber);
-    dropAttributeIfExists(partitionData.table, be_partition_slot);
+  // Remove old cellnumber and slotnumber attributes
+  // (e.g., needed for repartition the table)
+  dropAttributeIfExists(partitionData.table, be_partition_cellnumber);
+  dropAttributeIfExists(partitionData.table, be_partition_slot);
 
-    string resultTable;
-    partitionData.key = getFirstAttributeNameFromTable(partitionData.table);
+  string resultTable;
+  partitionData.key = getFirstAttributeNameFromTable(partitionData.table);
 
-    switch (partitionMode) {
-    case PartitionMode::rr:
-      resultTable = partRoundRobin(partitionData.table, partitionData.slotnum);
-      break;
+  switch (partitionMode) {
+  case PartitionMode::rr:
+    resultTable = partRoundRobin(partitionData.table, partitionData.slotnum);
+    break;
 
-    case PartitionMode::random:
-      resultTable = partFun(partitionData.table, partitionData.key, "random",
+  case PartitionMode::random:
+    resultTable = partFun(partitionData.table, partitionData.key, "random",
+                          partitionData.slotnum);
+    break;
+
+  case PartitionMode::hash:
+    resultTable =
+        partHash(partitionData.table, partitionData.key, partitionData.slotnum);
+    break;
+
+  case PartitionMode::grid:
+    resultTable = partGrid(partitionData.table, partitionData.key,
+                           partitionData.attribute, partitionData.gridname,
                            partitionData.slotnum);
-      break;
+    break;
 
-    case PartitionMode::hash:
-      resultTable = partHash(partitionData.table, partitionData.key,
-                            partitionData.slotnum);
-      break;
+  case PartitionMode::fun:
+    resultTable = partFun(partitionData.table, partitionData.key,
+                          partitionData.partitionfun, partitionData.slotnum);
+    break;
 
-    case PartitionMode::grid:
-      resultTable = partGrid(partitionData.table, partitionData.key,
-                            partitionData.attribute, partitionData.gridname,
-                            partitionData.slotnum);
-      break;
-
-    case PartitionMode::fun:
-      resultTable = partFun(partitionData.table, partitionData.key,
-                           partitionData.partitionfun, partitionData.slotnum);
-      break;
-
-    default:
-      BOOST_LOG_TRIVIAL(error) << "Unknown partition mode: " << partitionMode;
-      throw SecondoException("Unknown partition mode: " + partitionMode);
-    }
-
-    return resultTable;
+  default:
+    BOOST_LOG_TRIVIAL(error) << "Unknown partition mode: " << partitionMode;
+    throw SecondoException("Unknown partition mode: " + partitionMode);
   }
+
+  return resultTable;
+}
 
 /*
 3.8 ~repartition\_table\_master~
@@ -442,124 +435,120 @@ void BasicEngineControl::exportTableCreateStatementSQL(
 Repartition the given table - master version
 
 */
-  bool BasicEngineControl::repartitionTableMaster(
-    PartitionData &partitionData, const PartitionMode &repartitionMode, 
-    distributed2::DArray* darray, const std::string &darrayName) {
+bool BasicEngineControl::repartitionTableMaster(
+    PartitionData &partitionData, const PartitionMode &repartitionMode,
+    distributed2::DArray *darray, const std::string &darrayName) {
 
-    // Step 1 - Export Darray to all workers
-    string darrayrelation = exportSecondoRelation(darrayName);
-    CommandLog commandLog;
+  // Step 1 - Export Darray to all workers
+  string darrayrelation = exportSecondoRelation(darrayName);
+  CommandLog commandLog;
 
-    for(WorkerConnection* connection : connections) {
-      ConnectionInfo* ci = connection -> getConnection();
-      ci->createOrUpdateRelationFromBinFile(
-        workerRelationName, darrayrelation, false, 
-        commandLog, true, false, WorkerConnection::defaultTimeout);
-    }
+  for (WorkerConnection *connection : connections) {
+    ConnectionInfo *ci = connection->getConnection();
+    ci->createOrUpdateRelationFromBinFile(workerRelationName, darrayrelation,
+                                          false, commandLog, true, false,
+                                          WorkerConnection::defaultTimeout);
+  }
 
-    string repartTableName = getRepartitionTableName(partitionData.table);
+  string repartTableName = getRepartitionTableName(partitionData.table);
 
-    // On the worker: Drop old re-partition table if exists
-    string dropTableSQL = dbms_connection -> getSQLDialect()
-      ->getDropTableSQL(repartTableName);
-    BOOST_LOG_TRIVIAL(debug) << "Delete old re-partion table: "
-      << dropTableSQL;
+  // On the worker: Drop old re-partition table if exists
+  string dropTableSQL =
+      dbms_connection->getSQLDialect()->getDropTableSQL(repartTableName);
+  BOOST_LOG_TRIVIAL(debug) << "Delete old re-partion table: " << dropTableSQL;
 
-    bool dropTableResult = mcommand(dropTableSQL);
+  bool dropTableResult = mcommand(dropTableSQL);
 
-    if(! dropTableResult) {
-      BOOST_LOG_TRIVIAL(error) << "Unable to execute on worker: "
-        << dropTableSQL;
-        return false;
-    }
+  if (!dropTableResult) {
+    BOOST_LOG_TRIVIAL(error) << "Unable to execute on worker: " << dropTableSQL;
+    return false;
+  }
 
-    // On the worker: Create destination table with same structure
-    string copySchemaSQL = dbms_connection->getSQLDialect()
-      ->getCopySchemaSQL(partitionData.table);
+  // On the worker: Create destination table with same structure
+  string copySchemaSQL =
+      dbms_connection->getSQLDialect()->getCopySchemaSQL(partitionData.table);
 
-    BOOST_LOG_TRIVIAL(debug) << "Copy schema of table: "
-      << copySchemaSQL;
+  BOOST_LOG_TRIVIAL(debug) << "Copy schema of table: " << copySchemaSQL;
 
-    bool copySchemaResult = mquery(copySchemaSQL, repartTableName);
-    if(! copySchemaResult) {
-        BOOST_LOG_TRIVIAL(error) << "Unable to execute on worker: "
-          << copySchemaSQL;
-          return false;
-    }
+  bool copySchemaResult = mquery(copySchemaSQL, repartTableName);
+  if (!copySchemaResult) {
+    BOOST_LOG_TRIVIAL(error)
+        << "Unable to execute on worker: " << copySchemaSQL;
+    return false;
+  }
 
-    // On the worker do the real repartiton job
-    string repartitionQuery = "query ";
-    if(repartitionMode == rr) {
-      repartitionQuery.append("be_repart_rr");
-      repartitionQuery.append("('" + partitionData.table + "','" 
-        + partitionData.key 
-        + "'," + to_string(partitionData.slotnum) + ")");
-    } else if(repartitionMode == random) {
-      repartitionQuery.append("be_repart_random");
-      repartitionQuery.append("('" + partitionData.table + "',"
-        + to_string(partitionData.slotnum) + ")");
-    } else if(repartitionMode == hash) {
-      repartitionQuery.append("be_repart_hash");
-      repartitionQuery.append("('" + partitionData.table + "','" 
-        + partitionData.key 
-        + "'," + to_string(partitionData.slotnum) + ")");
-    } else if(repartitionMode == grid) {
-      repartitionQuery.append("be_repart_grid");
-      repartitionQuery.append("('" + partitionData.table + "','"
-      + partitionData.key + "','" + partitionData.attribute + "','"
-      + partitionData.gridname + "',"
-      + to_string(partitionData.slotnum) + ")");
-    } else if(repartitionMode == fun) {
-      repartitionQuery.append("be_repart_fun");
-      repartitionQuery.append("('" + partitionData.partitionfun + "','" 
-        + partitionData.table + "',"
-        + to_string(partitionData.slotnum) + ")");
-    } else {
-      BOOST_LOG_TRIVIAL(error) << "Unsupported repartition mode: "
-        << repartitionMode;
-      return false;
-    }
+  // On the worker do the real repartiton job
+  string repartitionQuery = "query ";
+  if (repartitionMode == rr) {
+    repartitionQuery.append("be_repart_rr");
+    repartitionQuery.append("('" + partitionData.table + "','" +
+                            partitionData.key + "'," +
+                            to_string(partitionData.slotnum) + ")");
+  } else if (repartitionMode == random) {
+    repartitionQuery.append("be_repart_random");
+    repartitionQuery.append("('" + partitionData.table + "'," +
+                            to_string(partitionData.slotnum) + ")");
+  } else if (repartitionMode == hash) {
+    repartitionQuery.append("be_repart_hash");
+    repartitionQuery.append("('" + partitionData.table + "','" +
+                            partitionData.key + "'," +
+                            to_string(partitionData.slotnum) + ")");
+  } else if (repartitionMode == grid) {
+    repartitionQuery.append("be_repart_grid");
+    repartitionQuery.append(
+        "('" + partitionData.table + "','" + partitionData.key + "','" +
+        partitionData.attribute + "','" + partitionData.gridname + "'," +
+        to_string(partitionData.slotnum) + ")");
+  } else if (repartitionMode == fun) {
+    repartitionQuery.append("be_repart_fun");
+    repartitionQuery.append("('" + partitionData.partitionfun + "','" +
+                            partitionData.table + "'," +
+                            to_string(partitionData.slotnum) + ")");
+  } else {
+    BOOST_LOG_TRIVIAL(error)
+        << "Unsupported repartition mode: " << repartitionMode;
+    return false;
+  }
 
-    BOOST_LOG_TRIVIAL(debug) << "Execute repartition job on worker: "
-      << repartitionQuery;
+  BOOST_LOG_TRIVIAL(debug) << "Execute repartition job on worker: "
+                           << repartitionQuery;
 
-    bool partitioningResult = msecondocommand(repartitionQuery);
+  bool partitioningResult = msecondocommand(repartitionQuery);
 
-    if(! partitioningResult) {
-      BOOST_LOG_TRIVIAL(error) << "Unable to execute on worker: "
-        << repartitionQuery;
-        return false;
-    }
+  if (!partitioningResult) {
+    BOOST_LOG_TRIVIAL(error)
+        << "Unable to execute on worker: " << repartitionQuery;
+    return false;
+  }
 
-    // On the worker: Drop source table
-    string dropSourceTableSQL = dbms_connection -> getSQLDialect()
-      -> getDropTableSQL(partitionData.table);
+  // On the worker: Drop source table
+  string dropSourceTableSQL =
+      dbms_connection->getSQLDialect()->getDropTableSQL(partitionData.table);
 
-    BOOST_LOG_TRIVIAL(debug) << "Delete source table: "
-      << dropSourceTableSQL;
+  BOOST_LOG_TRIVIAL(debug) << "Delete source table: " << dropSourceTableSQL;
 
-    bool dropSourceTableResult = mcommand(dropSourceTableSQL);
+  bool dropSourceTableResult = mcommand(dropSourceTableSQL);
 
-    if(! dropSourceTableResult) {
-      BOOST_LOG_TRIVIAL(error) << "Unable to execute on worker: "
-        << dropSourceTableSQL;
-        return false;
-    }
+  if (!dropSourceTableResult) {
+    BOOST_LOG_TRIVIAL(error)
+        << "Unable to execute on worker: " << dropSourceTableSQL;
+    return false;
+  }
 
-    // On the worker: Rename destination table to source table 
-    string renameTableSQL = dbms_connection -> getSQLDialect() 
-      -> getRenameTableSQL(repartTableName, partitionData.table);
-    BOOST_LOG_TRIVIAL(debug) << "Rename table: " << renameTableSQL;
+  // On the worker: Rename destination table to source table
+  string renameTableSQL = dbms_connection->getSQLDialect()->getRenameTableSQL(
+      repartTableName, partitionData.table);
+  BOOST_LOG_TRIVIAL(debug) << "Rename table: " << renameTableSQL;
 
-    bool renameTableResult = mcommand(renameTableSQL);
+  bool renameTableResult = mcommand(renameTableSQL);
 
-    if(! renameTableResult) {
-      BOOST_LOG_TRIVIAL(error) << "Unable to execute on worker: "
-        << renameTableSQL;
-        return false;
-    }
+  if (!renameTableResult) {
+    BOOST_LOG_TRIVIAL(error)
+        << "Unable to execute on worker: " << renameTableSQL;
+    return false;
+  }
 
-    return true;
+  return true;
 }
 
 /*
@@ -575,9 +564,8 @@ void BasicEngineControl::exportSchemaToWorker(
   vector<std::future<bool>> futures;
 
   for (ExportedSlotData exportSlot : slots) {
-    std::future<bool> asyncResult =
-        std::async(&BasicEngineControl::performSchemaTransfer, 
-          this, table, exportSlot);
+    std::future<bool> asyncResult = std::async(
+        &BasicEngineControl::performSchemaTransfer, this, table, exportSlot);
 
     futures.push_back(std::move(asyncResult));
   }
@@ -590,7 +578,7 @@ void BasicEngineControl::exportSchemaToWorker(
   if (!exportRes) {
     throw SecondoException(
         "Something goes wrong with the import at the worker.");
-  } 
+  }
 }
 
 /*
@@ -610,8 +598,8 @@ bool BasicEngineControl::exportPartitionsToWorker(
     SecondoInterfaceCS *si = connection->getConnection()->getInterface();
 
     // sending data
-    string remoteName = getTablenameForPartition(
-        exportSlot.destinationTable, exportSlot.slot);
+    string remoteName =
+        getTablenameForPartition(exportSlot.destinationTable, exportSlot.slot);
     string localName = exportSlot.filename;
 
     int sendFileRes = si->sendFile(localName, remoteName, true);
@@ -652,8 +640,8 @@ bool BasicEngineControl::exportPartitionsToWorker(
     }
 
     std::future<bool> asyncResult =
-        std::async(&BasicEngineControl::performPartitionImport, 
-          this, connection, destinationTable, remoteName);
+        std::async(&BasicEngineControl::performPartitionImport, this,
+                   connection, destinationTable, remoteName);
 
     futures.push_back(std::move(asyncResult));
   }
@@ -680,12 +668,11 @@ Returns true if everything is OK and there are no failure.
 
 */
 string BasicEngineControl::partRoundRobin(const string &table,
-                    size_t numberOfSlots) {
-  
+                                          size_t numberOfSlots) {
+
   string destinationTable = getTableNameForPartitioning(table, "random");
-  dbms_connection -> dropTable(destinationTable);
-  dbms_connection -> partitionRoundRobin(table, 
-    numberOfSlots, destinationTable);
+  dbms_connection->dropTable(destinationTable);
+  dbms_connection->partitionRoundRobin(table, numberOfSlots, destinationTable);
 
   return destinationTable;
 }
@@ -697,13 +684,13 @@ The data were partitions in the database by an hash value.
 Returns true if everything is OK and there are no failure.
 
 */
-string BasicEngineControl::partHash(const string &tab,
-                    const string &key, size_t slotnum) {
+string BasicEngineControl::partHash(const string &tab, const string &key,
+                                    size_t slotnum) {
 
   string partTabName = getTableNameForPartitioning(tab, key);
-  dbms_connection -> dropTable(partTabName);
-  dbms_connection -> partitionHash(tab, key, slotnum, partTabName);
-  
+  dbms_connection->dropTable(partTabName);
+  dbms_connection->partitionHash(tab, key, slotnum, partTabName);
+
   return partTabName;
 }
 
@@ -714,16 +701,15 @@ The data were partitions in the database by an defined function.
 This function have to be defined before using it.
 
 */
-string BasicEngineControl::partFun(const string &tab,
-    const string &key, const string &fun, size_t slotnum){
-                
+string BasicEngineControl::partFun(const string &tab, const string &key,
+                                   const string &fun, size_t slotnum) {
+
   string partTabName = getTableNameForPartitioning(tab, key);
-  dbms_connection -> dropTable(partTabName);
-  dbms_connection -> partitionFunc(tab, key, slotnum, fun, partTabName);
+  dbms_connection->dropTable(partTabName);
+  dbms_connection->partitionFunc(tab, key, slotnum, fun, partTabName);
 
   return partTabName;
 }
-
 
 /*
 3.20 ~partGrid~
@@ -732,22 +718,24 @@ The data were partitions in the database by a grid.
 Returns true if everything is OK and there are no failure.
 
 */
-string BasicEngineControl::partGrid(const std::string &tab, 
-  const std::string &key, const std::string &geo_col, 
-  const std::string &gridName, size_t slotnum) {
+string BasicEngineControl::partGrid(const std::string &tab,
+                                    const std::string &key,
+                                    const std::string &geo_col,
+                                    const std::string &gridName,
+                                    size_t slotnum) {
 
   string gridTable = "grid_" + gridName;
 
   // Dropping parttable
-  string partTabName = getTableNameForPartitioning(tab,key);
-  dbms_connection -> dropTable(partTabName);
+  string partTabName = getTableNameForPartitioning(tab, key);
+  dbms_connection->dropTable(partTabName);
 
   // Drop old index if exists (ignore failure when index does not exists)
   dbms_connection->dropIndex(tab, geo_col);
 
   // Perform partitoning
-  dbms_connection->partitionGrid(tab, key, geo_col, slotnum, 
-    gridTable, partTabName);
+  dbms_connection->partitionGrid(tab, key, geo_col, slotnum, gridTable,
+                                 partTabName);
 
   return partTabName;
 }
@@ -769,9 +757,10 @@ std::list<ExportedSlotData> BasicEngineControl::exportAllPartitions(
 
   for (size_t partition = 0; partition < noOfPartitions; partition++) {
     size_t workerId = partition % noOfWorker;
-    WorkerConnection* worker = connections[workerId];
+    WorkerConnection *worker = connections[workerId];
 
-    string exportFile = getBasePath() + "/" +
+    string exportFile =
+        getBasePath() + "/" +
         dbms_connection->getFilenameForPartition(sourceTable, partition);
 
     ExportedSlotData exportData = {.slot = partition,
@@ -818,8 +807,8 @@ bool BasicEngineControl::importData(const string &table) {
   string cmd = strStream.str();
 
   result = dbms_connection->sendCommand(cmd);
-  
-  if(! result) {
+
+  if (!result) {
     return false;
   }
 
@@ -827,10 +816,10 @@ bool BasicEngineControl::importData(const string &table) {
 
   string basePath = getBasePath();
 
-  //import data (local files from worker)
-  for(size_t i=0; i < connections.size(); i++) {
-   string partitionFile = basePath + "/" +
-      dbms_connection -> getFilenameForPartition(table, i);
+  // import data (local files from worker)
+  for (size_t i = 0; i < connections.size(); i++) {
+    string partitionFile =
+        basePath + "/" + dbms_connection->getFilenameForPartition(table, i);
 
     result = importTable(partitionFile, table) && result;
     FileSystem::DeleteFileOrFolder(partitionFile);
@@ -854,29 +843,29 @@ bool BasicEngineControl::munion(const string &table) {
   vector<std::future<bool>> futures;
   string basePath = getBasePath();
 
-  //doing the export with one thread for each worker
-  for(WorkerConnection* connection : connections) {
+  // doing the export with one thread for each worker
+  for (WorkerConnection *connection : connections) {
 
-    string partitionFile 
-      = dbms_connection -> getFilenameForPartition(table, workerId);
+    string partitionFile =
+        dbms_connection->getFilenameForPartition(table, workerId);
     string exportFile = basePath + "/" + partitionFile;
 
-    std::future<bool> asyncResult = std::async(
-      &BasicEngineControl::performPartitionExport, 
-      this, connection, workerId, table, exportFile, partitionFile);
-        
+    std::future<bool> asyncResult =
+        std::async(&BasicEngineControl::performPartitionExport, this,
+                   connection, workerId, table, exportFile, partitionFile);
+
     futures.push_back(std::move(asyncResult));
 
     workerId++;
   }
 
-  //waiting for finishing the threads
-  for(std::future<bool> &future : futures) {
+  // waiting for finishing the threads
+  for (std::future<bool> &future : futures) {
     val = future.get() && val;
   }
 
-  //import in local database
-  if(val) {
+  // import in local database
+  if (val) {
     BOOST_LOG_TRIVIAL(debug) << "Starting data import on master";
     val = importData(table);
   }
@@ -892,74 +881,70 @@ and stores the result in a table.
 Returns true if everything is OK and there are no failure.
 
 */
-bool BasicEngineControl::mquery(const string &query,
-                    const string &table) {
+bool BasicEngineControl::mquery(const string &query, const string &table) {
 
   // Perform query check
-  if(connections.empty()) {
+  if (connections.empty()) {
     cerr << "Unable to perform mquery, "
          << "no connections are known" << endl;
     return false;
   }
 
-  // Perform the query on the first worker to do a kind of 
+  // Perform the query on the first worker to do a kind of
   // type checking
   //
-  // 1) When the query returns an error, stop processing at 
-  //    this point. 
-  // 2) When the query returns a success result within 
+  // 1) When the query returns an error, stop processing at
+  //    this point.
+  // 2) When the query returns a success result within
   //    one second, start the query on the remaining workers.
-  // 3) When the query runs for more then one second, assume 
+  // 3) When the query runs for more then one second, assume
   //    that the query is ok and start them on the remaining
   //    workers.
 
-  WorkerConnection* validateConnection = connections[0];
+  WorkerConnection *validateConnection = connections[0];
 
   vector<std::future<bool>> futures;
 
-  std::future<bool> asyncResult = std::async(
-    &BasicEngineControl::performBEQuery, 
-    this, validateConnection, table, query);
+  std::future<bool> asyncResult =
+      std::async(&BasicEngineControl::performBEQuery, this, validateConnection,
+                 table, query);
 
   bool queryOk = true;
 
-  BOOST_LOG_TRIVIAL(debug) 
-      << "Waiting up to 1 sec for first result";
+  BOOST_LOG_TRIVIAL(debug) << "Waiting up to 1 sec for first result";
 
-  std::future_status futureStatus 
-    = asyncResult.wait_for(std::chrono::seconds(1));
-  
+  std::future_status futureStatus =
+      asyncResult.wait_for(std::chrono::seconds(1));
+
   // Query result after one second
   if (futureStatus == std::future_status::ready) {
     queryOk = asyncResult.get();
-    
-    BOOST_LOG_TRIVIAL(debug) 
-      << "Query result from first worker is: " << queryOk;
 
-    if(queryOk == false) {
+    BOOST_LOG_TRIVIAL(debug)
+        << "Query result from first worker is: " << queryOk;
+
+    if (queryOk == false) {
       return false;
     }
   } else {
-    BOOST_LOG_TRIVIAL(debug) 
-      << "Query on master is still active, starting query on workers";
+    BOOST_LOG_TRIVIAL(debug)
+        << "Query on master is still active, starting query on workers";
     futures.push_back(std::move(asyncResult));
   }
-  
+
   BOOST_LOG_TRIVIAL(debug) << "Starting query on worker";
 
   // Perform the query on the remaining workers
-  for(auto it = connections.begin() + 1; 
-      it != connections.end(); it++) {
+  for (auto it = connections.begin() + 1; it != connections.end(); it++) {
 
     std::future<bool> asyncResult = std::async(
-    &BasicEngineControl::performBEQuery, 
-    this, *it, table, query);
-        
+        &BasicEngineControl::performBEQuery, this, *it, table, query);
+
     futures.push_back(std::move(asyncResult));
   }
 
   // Waiting for finishing the threads
-  for(std::future<bool> &future : futures) {
+  for (std::future<bool> &future : futures) {
     queryOk = future.get() && queryOk;
   }
 
@@ -978,17 +963,16 @@ bool BasicEngineControl::mcommand(const string &query) {
   vector<std::future<bool>> futures;
 
   // Executing the command in a parallel manner
-  for(WorkerConnection* connection : connections) {
+  for (WorkerConnection *connection : connections) {
     std::future<bool> asyncResult = std::async(
-    &BasicEngineControl::performBECommand, 
-    this, connection, query);
-        
+        &BasicEngineControl::performBECommand, this, connection, query);
+
     futures.push_back(std::move(asyncResult));
   }
 
   // Check that all futures are executed sucesfully
   bool futureSucess = true;
-  for(std::future<bool> &future : futures) {
+  for (std::future<bool> &future : futures) {
     futureSucess = future.get() && futureSucess;
   }
 
@@ -1006,18 +990,17 @@ bool BasicEngineControl::msecondocommand(const string &query) {
 
   bool val = true;
   vector<std::future<bool>> futures;
- 
-  //doing the command with one thread for each worker
-  for(WorkerConnection* connection : connections) {
+
+  // doing the command with one thread for each worker
+  for (WorkerConnection *connection : connections) {
     std::future<bool> asyncResult = std::async(
-    &WorkerConnection::performSimpleSecondoCommand, 
-    connection, query);
-        
+        &WorkerConnection::performSimpleSecondoCommand, connection, query);
+
     futures.push_back(std::move(asyncResult));
   }
 
-  //waiting for finishing the threads
-  for(std::future<bool> &future : futures) {
+  // waiting for finishing the threads
+  for (std::future<bool> &future : futures) {
     val = future.get() && val;
   }
 
@@ -1032,17 +1015,15 @@ Shutdown the remote worker
 */
 bool BasicEngineControl::shutdownWorker() {
 
-   bool result = true;
-   string shutdownCommand("query be_shutdown()");
+  bool result = true;
+  string shutdownCommand("query be_shutdown()");
 
-  for(WorkerConnection* connection : connections) {
-     result = result 
-      && connection -> performSimpleSecondoCommand(shutdownCommand);
-   }
+  for (WorkerConnection *connection : connections) {
+    result = result && connection->performSimpleSecondoCommand(shutdownCommand);
+  }
 
-   return result;
+  return result;
 }
-
 
 /*
 3.18 ~checkAllConnections~
@@ -1053,19 +1034,19 @@ Returns true if everything is OK and there are no failure.
 */
 bool BasicEngineControl::checkAllConnections() {
 
-  //checking connection to the worker
-  for(WorkerConnection* connection : connections) {
+  // checking connection to the worker
+  for (WorkerConnection *connection : connections) {
     CommandLog commandLog;
-    
-    bool connectionState = connection->getConnection()
-      ->check(false, commandLog, WorkerConnection::defaultTimeout);
-    
-    if(!connectionState) {
+
+    bool connectionState = connection->getConnection()->check(
+        false, commandLog, WorkerConnection::defaultTimeout);
+
+    if (!connectionState) {
       return false;
     }
   }
 
-  //checking the connection to the secondary dbms system
+  // checking the connection to the secondary dbms system
   bool localConnectionState = dbms_connection->checkConnection();
   return localConnectionState;
 }
@@ -1080,8 +1061,7 @@ Returns true if everything is OK and there are no failure.
 bool BasicEngineControl::runsql(const string &filepath) {
 
   if (access(filepath.c_str(), 0) != 0) {
-    BOOST_LOG_TRIVIAL(error) 
-      << "Couldn't find the file at path:" + filepath;
+    BOOST_LOG_TRIVIAL(error) << "Couldn't find the file at path:" + filepath;
     return false;
   }
 
@@ -1091,13 +1071,13 @@ bool BasicEngineControl::runsql(const string &filepath) {
 
   inFile.open(filepath);
   strStream << inFile.rdbuf();
-  
+
   // Split up SQL queries from file and execute them
   string query;
   while (getline(strStream, query, ';')) {
     bool result = dbms_connection->sendCommand(query);
 
-    if(! result) {
+    if (!result) {
       BOOST_LOG_TRIVIAL(error) << "Unable to execute: " << query;
       return false;
     }
@@ -1112,15 +1092,13 @@ bool BasicEngineControl::runsql(const string &filepath) {
 Get the SECONDO type for the given SQL query.
 
 */
- ListExpr BasicEngineControl::getTypeFromSQLQuery(
-   const std::string &sqlQuery) {
+ListExpr BasicEngineControl::getTypeFromSQLQuery(const std::string &sqlQuery) {
 
-    std::vector<std::tuple<std::string, std::string>> types = 
+  std::vector<std::tuple<std::string, std::string>> types =
       dbms_connection->getTypeFromSQLQuery(sqlQuery);
 
-   return dbms_connection->convertTypeVectorIntoSecondoNL(types);
- }
-
+  return dbms_connection->convertTypeVectorIntoSecondoNL(types);
+}
 
 /*
 3.22 ~getTypeFromSQLQuery~
@@ -1128,12 +1106,11 @@ Get the SECONDO type for the given SQL query.
 Get the SECONDO type for the given SQL query.
 
 */
- ResultIteratorGeneric* BasicEngineControl::performSQLSelectQuery(
-   const std::string &sqlQuery) {
+ResultIteratorGeneric *
+BasicEngineControl::performSQLSelectQuery(const std::string &sqlQuery) {
 
-   return dbms_connection->performSQLSelectQuery(sqlQuery);
- }
-
+  return dbms_connection->performSQLSelectQuery(sqlQuery);
+}
 
 /*
 3.23 ~exportSecondoRelation~
@@ -1144,13 +1121,11 @@ Export the given SECONDO relation into a file.
 string BasicEngineControl::exportSecondoRelation(const string &relationName) {
 
   // Output file
-  string filename = relationName + "_" 
-                     + stringutils::int2str(WinUnix::getpid()) 
-                     + ".bin";
-
+  string filename =
+      relationName + "_" + stringutils::int2str(WinUnix::getpid()) + ".bin";
 
   // Get type for secondo object
-  SecondoCatalog* ctlg = SecondoSystem::GetCatalog();
+  SecondoCatalog *ctlg = SecondoSystem::GetCatalog();
   string tn;
   bool defined;
   bool hasTypeName;
@@ -1159,28 +1134,28 @@ string BasicEngineControl::exportSecondoRelation(const string &relationName) {
   value.setAddr(0);
 
   try {
-    if(!ctlg->GetObjectExpr(relationName, tn, typeList, value, 
-                            defined, hasTypeName)) {
-      throw SecondoException("Error: Name " 
-        + relationName + " is not on object");
+    if (!ctlg->GetObjectExpr(relationName, tn, typeList, value, defined,
+                             hasTypeName)) {
+      throw SecondoException("Error: Name " + relationName +
+                             " is not on object");
     }
 
-    if(!defined){
+    if (!defined) {
       throw SecondoException("Error: Undefined objects cannot be shared");
     }
-    
+
     // Write relation to file
     bool isRelation = Relation::checkType(typeList);
 
-    if(! isRelation) {
+    if (!isRelation) {
       throw SecondoException("Error: provided relation name is not a relation");
     }
 
     ConnectionInfo::saveRelationToFile(typeList, value, filename);
 
-  } catch(std::exception &e) {
-  
-    if(value.addr){
+  } catch (std::exception &e) {
+
+    if (value.addr) {
       SecondoSystem::GetCatalog()->CloseObject(typeList, value);
       value.setAddr(0);
     }
@@ -1188,7 +1163,7 @@ string BasicEngineControl::exportSecondoRelation(const string &relationName) {
     throw;
   }
 
-  if(value.addr){
+  if (value.addr) {
     SecondoSystem::GetCatalog()->CloseObject(typeList, value);
     value.setAddr(0);
   }
@@ -1196,15 +1171,14 @@ string BasicEngineControl::exportSecondoRelation(const string &relationName) {
   return filename;
 }
 
-
 /*
 3.24 ~performSchemaImport~
 
 Starting the schema import operation.
 
 */
-bool BasicEngineControl::performSchemaTransfer(const string &table, 
-  const ExportedSlotData &exportSlot) {
+bool BasicEngineControl::performSchemaTransfer(
+    const string &table, const ExportedSlotData &exportSlot) {
 
   // Export schema
   string localCreateName;
@@ -1213,8 +1187,8 @@ bool BasicEngineControl::performSchemaTransfer(const string &table,
     localCreateName =
         getBasePath() + "/" + getSchemaFile(table, exportSlot.slot);
 
-    string partitionTable = getTablenameForPartition(
-        exportSlot.destinationTable, exportSlot.slot);
+    string partitionTable =
+        getTablenameForPartition(exportSlot.destinationTable, exportSlot.slot);
 
     // Change SQL create table statement to the name of the partition
     exportTableCreateStatementSQL(table, localCreateName, partitionTable);
@@ -1223,11 +1197,11 @@ bool BasicEngineControl::performSchemaTransfer(const string &table,
     exportTableCreateStatementSQL(table, localCreateName);
   }
 
-  BOOST_LOG_TRIVIAL(debug) << "Dump schema for " << table
-                           << " to " << localCreateName;
+  BOOST_LOG_TRIVIAL(debug) << "Dump schema for " << table << " to "
+                           << localCreateName;
 
   WorkerConnection *connection = exportSlot.workerConnection;
-  const std::lock_guard<std::mutex> lock(connection -> connectionMutex);
+  const std::lock_guard<std::mutex> lock(connection->connectionMutex);
 
   ConnectionInfo *ci = connection->getConnection();
   SecondoInterfaceCS *si = ci->getInterface();
@@ -1255,17 +1229,17 @@ bool BasicEngineControl::performSchemaTransfer(const string &table,
   std::string importCommand = "query be_runsql('" + importPath + "');";
   bool runSqlResult = connection->performSimpleSecondoCommand(importCommand);
 
-  if(! runSqlResult) {
+  if (!runSqlResult) {
     BOOST_LOG_TRIVIAL(error) << "Unable to execute: " << importCommand;
     return false;
   }
 
   // Delete the schema file on the remote system
   std::string removeCommand = "query removeFile('" + importPath + "')";
-  bool importCommandResult = connection
-    ->performSimpleSecondoCommand(removeCommand);
+  bool importCommandResult =
+      connection->performSimpleSecondoCommand(removeCommand);
 
-  if(! importCommandResult) {
+  if (!importCommandResult) {
     BOOST_LOG_TRIVIAL(error) << "Unable to execute: " << removeCommand;
     return false;
   }
@@ -1279,25 +1253,24 @@ bool BasicEngineControl::performSchemaTransfer(const string &table,
 Starting the data import operation.
 
 */
-bool BasicEngineControl::performPartitionImport(
-      WorkerConnection* connection,
-      const std::string &table,
-      const std::string &remoteName) {
+bool BasicEngineControl::performPartitionImport(WorkerConnection *connection,
+                                                const std::string &table,
+                                                const std::string &remoteName) {
 
   std::string importPath;
   std::string cmd;
   bool result = true;
 
   // Import data on the worker
-  if(result) {
-    importPath = connection->getSendPath() + "/"+ remoteName;
-    cmd = "query be_copy('"+ importPath + "','" + table + "')";
+  if (result) {
+    importPath = connection->getSendPath() + "/" + remoteName;
+    cmd = "query be_copy('" + importPath + "','" + table + "')";
     result = connection->performSimpleSecondoCommand(cmd);
   }
 
-  //delete data file on system
-  if(result) {
-    cmd = "query removeFile('"+ importPath + "')";
+  // delete data file on system
+  if (result) {
+    cmd = "query removeFile('" + importPath + "')";
     result = connection->performSimpleSecondoCommand(cmd);
   }
 
@@ -1310,15 +1283,16 @@ bool BasicEngineControl::performPartitionImport(
 Request the remote schema for a table
 
 */
-string BasicEngineControl::requestRemoteTableSchema(
-    const std::string &table, WorkerConnection* connection) {
+string
+BasicEngineControl::requestRemoteTableSchema(const std::string &table,
+                                             WorkerConnection *connection) {
 
   string basePath = getBasePath();
   string schemaFile = getSchemaFile(table);
 
   // export tab structure
   string cmd = "query be_struct('" + table + "');";
-  bool result = connection -> performSimpleSecondoCommand(cmd);
+  bool result = connection->performSimpleSecondoCommand(cmd);
 
   if (!result) {
     BOOST_LOG_TRIVIAL(error) << "Unable to execute SECONDO command" << cmd;
@@ -1328,7 +1302,7 @@ string BasicEngineControl::requestRemoteTableSchema(
   string from = basePath + "/" + schemaFile;
   string to = connection->getRequestPath() + "/" + schemaFile;
   cmd = "query moveFile('" + from + "','" + to + "')";
-  result = connection -> performSimpleSecondoCommand(cmd);
+  result = connection->performSimpleSecondoCommand(cmd);
 
   if (!result) {
     BOOST_LOG_TRIVIAL(error) << "Unable to execute SECONDO command" << cmd;
@@ -1345,7 +1319,7 @@ string BasicEngineControl::requestRemoteTableSchema(
 
   // delete create file on system
   cmd = "query removeFile('" + to + "')";
-  result = connection -> performSimpleSecondoCommand(cmd);
+  result = connection->performSimpleSecondoCommand(cmd);
 
   if (!result) {
     BOOST_LOG_TRIVIAL(error)
@@ -1367,11 +1341,8 @@ Perform the data export operation.
 
 */
 bool BasicEngineControl::performPartitionExport(
-      WorkerConnection* connection,
-      size_t workerId,
-      const std::string &table, 
-      const std::string &exportFile, 
-      const std::string &partitionFile) {
+    WorkerConnection *connection, size_t workerId, const std::string &table,
+    const std::string &exportFile, const std::string &partitionFile) {
 
   std::string from;
   std::string to;
@@ -1379,54 +1350,50 @@ bool BasicEngineControl::performPartitionExport(
   string basePath = getBasePath();
   bool result = true;
 
-  //export the table structure file
-  if(workerId == 0) {
+  // export the table structure file
+  if (workerId == 0) {
     try {
       requestRemoteTableSchema(table, connection);
-    } catch(SecondoException &e) {
-      BOOST_LOG_TRIVIAL(error) 
-        << "Unable to request remote schema" << e.what();
+    } catch (SecondoException &e) {
+      BOOST_LOG_TRIVIAL(error) << "Unable to request remote schema" << e.what();
       return false;
     }
   }
 
-  //export the date to a file
-  cmd = "query be_copy('"+ table + "','"+ exportFile + "');";
+  // export the date to a file
+  cmd = "query be_copy('" + table + "','" + exportFile + "');";
   result = connection->performSimpleSecondoCommand(cmd);
-  if(! result) {
-    BOOST_LOG_TRIVIAL(error) 
-        << "Unable to execute SECONDO command" << cmd;
+  if (!result) {
+    BOOST_LOG_TRIVIAL(error) << "Unable to execute SECONDO command" << cmd;
     return false;
   }
 
-  //move the data-file to the request-folder
+  // move the data-file to the request-folder
   to = connection->getConnection()->getRequestPath() + "/" + partitionFile;
-  cmd = "query moveFile('"+ exportFile + "','" + to +"')";
+  cmd = "query moveFile('" + exportFile + "','" + to + "')";
   result = connection->performSimpleSecondoCommand(cmd);
 
-  if(! result) {
-    BOOST_LOG_TRIVIAL(error) 
-        << "Unable to execute SECONDO command" << cmd;
+  if (!result) {
+    BOOST_LOG_TRIVIAL(error) << "Unable to execute SECONDO command" << cmd;
     return false;
   }
 
-  //sendig the File to the master
-  result =(connection->getConnection()->requestFile(partitionFile,
-                        basePath + "/" + partitionFile ,true)==0);
+  // sendig the File to the master
+  result = (connection->getConnection()->requestFile(
+                partitionFile, basePath + "/" + partitionFile, true) == 0);
 
-  if(! result) {
-    BOOST_LOG_TRIVIAL(error) 
-        << "Error while requesting export file"
-        << partitionFile << " / " << basePath + "/" + partitionFile;
-      return false;
+  if (!result) {
+    BOOST_LOG_TRIVIAL(error)
+        << "Error while requesting export file" << partitionFile << " / "
+        << basePath + "/" + partitionFile;
+    return false;
   }
-  
-  //delete data file on system
-  cmd = "query removeFile('"+ to + "')";
+
+  // delete data file on system
+  cmd = "query removeFile('" + to + "')";
   result = connection->performSimpleSecondoCommand(cmd);
-  if(! result) {
-    BOOST_LOG_TRIVIAL(error) 
-        << "Unable to execute SECONDO command" << cmd;
+  if (!result) {
+    BOOST_LOG_TRIVIAL(error) << "Unable to execute SECONDO command" << cmd;
     return false;
   }
 
@@ -1439,19 +1406,21 @@ bool BasicEngineControl::performPartitionExport(
 Starting a query at the worker.
 
 */
-bool BasicEngineControl::performBEQuery(
-      WorkerConnection* connection,
-      const std::string &table, 
-      const std::string &query) {
-  
+bool BasicEngineControl::performBEQuery(WorkerConnection *connection,
+                                        const std::string &table,
+                                        const std::string &query) {
+
   std::string escapedQuery(query);
 
   boost::replace_all(escapedQuery, "'", "\\'");
 
-  //run the query
+  // run the query
   std::string cmd = "query be_query('"
-         "" + escapedQuery + "','"
-         "" + table + "');";
+                    "" +
+                    escapedQuery +
+                    "','"
+                    "" +
+                    table + "');";
 
   return connection->performSimpleSecondoCommand(cmd);
 }
@@ -1462,13 +1431,12 @@ bool BasicEngineControl::performBEQuery(
 Starting a command at the worker.
 
 */
-bool BasicEngineControl::performBECommand(
-      WorkerConnection* connection,
-      const std::string &command) {
+bool BasicEngineControl::performBECommand(WorkerConnection *connection,
+                                          const std::string &command) {
 
   std::string escapedCommand(command);
 
-  //run the command
+  // run the command
   boost::replace_all(escapedCommand, "'", "\\'");
   std::string cmd = "query be_command('" + escapedCommand + "');";
 
@@ -1481,8 +1449,7 @@ bool BasicEngineControl::performBECommand(
 Share the given table with all workers
 
 */
-bool BasicEngineControl::shareTable(
-      const std::string &table) {
+bool BasicEngineControl::shareTable(const std::string &table) {
 
   // Create trlation schema file
   string localCreateName = getBasePath() + "/" + getSchemaFile(table);
@@ -1491,18 +1458,17 @@ bool BasicEngineControl::shareTable(
   // Export complete relation and duplicate as slots for the worker
   string path = getBasePath();
   size_t workerIdZero = 0;
-  string partZeroFile = dbms_connection 
-    -> getFilenameForPartition(table, workerIdZero);
+  string partZeroFile =
+      dbms_connection->getFilenameForPartition(table, workerIdZero);
 
   string partZeroFullPath = path + "/" + partZeroFile;
-  string exportDataSQL = dbms_connection->getExportTableSQL(
-    table, partZeroFullPath);
+  string exportDataSQL =
+      dbms_connection->getExportTableSQL(table, partZeroFullPath);
 
   bool exportDataRes = dbms_connection->sendCommand(exportDataSQL);
 
-  if(!exportDataRes) {
-    BOOST_LOG_TRIVIAL(error) << "Unable to export from DB: "
-      << exportDataSQL;
+  if (!exportDataRes) {
+    BOOST_LOG_TRIVIAL(error) << "Unable to export from DB: " << exportDataSQL;
 
     return false;
   }
@@ -1510,39 +1476,34 @@ bool BasicEngineControl::shareTable(
   // Create the mapping between the partitions and the worker
   std::list<ExportedSlotData> partitionWorkerMapping;
 
-  // Add Partiton 0 
-  ExportedSlotData exportData = {
-    .slot = 0, 
-    .partitionedTable = false,
-    .destinationTable = table,
-    .filename = partZeroFullPath, 
-    .workerConnection = connections[0]
-  };
+  // Add Partiton 0
+  ExportedSlotData exportData = {.slot = 0,
+                                 .partitionedTable = false,
+                                 .destinationTable = table,
+                                 .filename = partZeroFullPath,
+                                 .workerConnection = connections[0]};
 
   partitionWorkerMapping.push_back(exportData);
 
   // Copy parition 0 to partitions [1-n]
-  for(size_t i = 1; i < connections.size(); i++) {
-    string partitionFile = 
-      dbms_connection -> getFilenameForPartition(table, i);
+  for (size_t i = 1; i < connections.size(); i++) {
+    string partitionFile = dbms_connection->getFilenameForPartition(table, i);
     string partitionFileFullPath = path + "/" + partitionFile;
 
-    BOOST_LOG_TRIVIAL(debug) << "Copy file " << partZeroFullPath 
-      << " to " << partitionFileFullPath;
+    BOOST_LOG_TRIVIAL(debug)
+        << "Copy file " << partZeroFullPath << " to " << partitionFileFullPath;
 
     ifstream src(partZeroFullPath, std::ios::binary);
     ofstream dst(partitionFileFullPath, std::ios::binary);
     dst << src.rdbuf();
 
-    WorkerConnection* worker = connections[i];
+    WorkerConnection *worker = connections[i];
 
-    ExportedSlotData exportData = {
-      .slot = 0, 
-      .partitionedTable = false,
-      .destinationTable = table,
-      .filename = partitionFileFullPath, 
-      .workerConnection = worker
-    };
+    ExportedSlotData exportData = {.slot = 0,
+                                   .partitionedTable = false,
+                                   .destinationTable = table,
+                                   .filename = partitionFileFullPath,
+                                   .workerConnection = worker};
 
     partitionWorkerMapping.push_back(exportData);
   }
@@ -1553,7 +1514,7 @@ bool BasicEngineControl::shareTable(
   // Transfer the data to the worker
   bool transferRes = exportPartitionsToWorker(partitionWorkerMapping);
 
-  if(! transferRes) {
+  if (!transferRes) {
     BOOST_LOG_TRIVIAL(error) << "Couldn't export the data to the worker";
     return false;
   }
@@ -1569,9 +1530,8 @@ bool BasicEngineControl::validateQuery(const std::string &sqlQuery) {
 
   bool validateResult = dbms_connection->validateQuery(sqlQuery);
 
-  if(! validateResult) {
-    BOOST_LOG_TRIVIAL(error) 
-      << "Unable to validate SQL query: " << sqlQuery;
+  if (!validateResult) {
+    BOOST_LOG_TRIVIAL(error) << "Unable to validate SQL query: " << sqlQuery;
 
     return false;
   }
@@ -1583,17 +1543,16 @@ bool BasicEngineControl::validateQuery(const std::string &sqlQuery) {
 3.29 Get the first attribute name from the given table
 
 */
-std::string BasicEngineControl::getFirstAttributeNameFromTable(
-    const std::string &table) {
-    
-   vector<tuple<string, string>> attrs 
-    = dbms_connection->getTypeFromSQLQuery("SELECT * FROM " + table + ";");
+std::string
+BasicEngineControl::getFirstAttributeNameFromTable(const std::string &table) {
 
-  if(attrs.empty()) {
-    BOOST_LOG_TRIVIAL(error) << "Unable to determine table layout for " 
-      << table;
-    throw SecondoException("Unable to determine table layout for " 
-      + table);
+  vector<tuple<string, string>> attrs =
+      dbms_connection->getTypeFromSQLQuery("SELECT * FROM " + table + ";");
+
+  if (attrs.empty()) {
+    BOOST_LOG_TRIVIAL(error)
+        << "Unable to determine table layout for " << table;
+    throw SecondoException("Unable to determine table layout for " + table);
   }
 
   tuple<string, string> firstAttibute = attrs[0];
@@ -1653,7 +1612,6 @@ WorkerConnection *BasicEngineControl::getConnectionForSlot(std::string host,
   return nullptr;
 }
 
-
 /**
 3.31 Repartiton the given table
 
@@ -1689,9 +1647,9 @@ bool BasicEngineControl::repartitionTable(PartitionData &partitionData,
 
       // Export all partitions of the relation into the filesystem and
       // generate a mapping between the paritions and the worker
-      std::list<ExportedSlotData> partitionWorkerMapping = exportAllPartitions(
-          resultTable, destinationTable, partitionData.slotnum,
-          connections.size());
+      std::list<ExportedSlotData> partitionWorkerMapping =
+          exportAllPartitions(resultTable, destinationTable,
+                              partitionData.slotnum, connections.size());
 
       // Call transfer and import data
       bool importResult = exportPartitionsToWorker(partitionWorkerMapping);

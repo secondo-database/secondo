@@ -39,12 +39,12 @@ Implementation.
 6.1 ~Constructor~
 
 */
-ConnectionMySQL::ConnectionMySQL(const std::string &_dbUser, 
-  const std::string &_dbPass, const int _dbPort, 
-  const std::string &_dbName) : ConnectionGeneric(
-    _dbUser, _dbPass, _dbPort, _dbName) {
+ConnectionMySQL::ConnectionMySQL(const std::string &_dbUser,
+                                 const std::string &_dbPass, const int _dbPort,
+                                 const std::string &_dbName)
+    : ConnectionGeneric(_dbUser, _dbPass, _dbPort, _dbName) {
 
-    sqlDialect = buildSQLDialect();
+  sqlDialect = buildSQLDialect();
 }
 
 /*
@@ -52,7 +52,7 @@ ConnectionMySQL::ConnectionMySQL(const std::string &_dbUser,
 
 */
 ConnectionMySQL::~ConnectionMySQL() {
-  if(conn != nullptr) {
+  if (conn != nullptr) {
     mysql_close(conn);
     conn = nullptr;
     mysql_library_end();
@@ -65,40 +65,39 @@ ConnectionMySQL::~ConnectionMySQL() {
 */
 bool ConnectionMySQL::createConnection() {
 
-    if(conn != nullptr) {
-        return false;
+  if (conn != nullptr) {
+    return false;
+  }
+
+  int mysqlInitRes = mysql_library_init(0, NULL, NULL);
+
+  if (mysqlInitRes != 0) {
+    BOOST_LOG_TRIVIAL(error) << "Unable to init MySQL client library";
+    return false;
+  }
+
+  conn = mysql_init(conn);
+
+  if (conn == nullptr) {
+    BOOST_LOG_TRIVIAL(error) << "Unable to create MySQL connection object";
+    return false;
+  }
+
+  if (mysql_real_connect(conn, "127.0.0.1", dbUser.c_str(), dbPass.c_str(),
+                         dbName.c_str(), dbPort, NULL, 0) == nullptr) {
+
+    BOOST_LOG_TRIVIAL(error)
+        << "Unable to connect to MySQL server: " << mysql_error(conn);
+
+    if (conn != nullptr) {
+      mysql_close(conn);
+      conn = nullptr;
     }
 
-    int mysqlInitRes = mysql_library_init(0, NULL, NULL);
+    return false;
+  }
 
-    if(mysqlInitRes != 0) {
-        BOOST_LOG_TRIVIAL(error) << "Unable to init MySQL client library";
-        return false;
-    }
-
-    conn = mysql_init(conn);
-
-    if(conn == nullptr) {
-        BOOST_LOG_TRIVIAL(error) << "Unable to create MySQL connection object";
-        return false;
-    }
-
-    if(mysql_real_connect(conn, "127.0.0.1", 
-            dbUser.c_str(), dbPass.c_str(),
-            dbName.c_str(), dbPort, NULL, 0) == nullptr) {
-
-        BOOST_LOG_TRIVIAL(error) << "Unable to connect to MySQL server: "
-            << mysql_error(conn);
-
-        if(conn != nullptr) {
-            mysql_close(conn);
-            conn = nullptr;
-        }
-
-        return false;
-    }
-
-    return true;
+  return true;
 }
 
 /*
@@ -174,29 +173,29 @@ bool ConnectionMySQL::checkConnection() {
 */
 std::string ConnectionMySQL::getCreateTableSQL(const std::string &table) {
 
-    const std::lock_guard<std::recursive_mutex> lock(connection_mutex);
+  const std::lock_guard<std::recursive_mutex> lock(connection_mutex);
 
-    string createTableSQL = "DROP TABLE IF EXISTS " + table +";\n";
+  string createTableSQL = "DROP TABLE IF EXISTS " + table + ";\n";
 
-    string getTableStructure = "SHOW CREATE TABLE " + table;
+  string getTableStructure = "SHOW CREATE TABLE " + table;
 
-    MYSQL_RES* res = sendQuery(getTableStructure);
+  MYSQL_RES *res = sendQuery(getTableStructure);
 
-    if(res != nullptr) {
-        MYSQL_ROW row = mysql_fetch_row(res);
+  if (res != nullptr) {
+    MYSQL_ROW row = mysql_fetch_row(res);
 
-        // 0 = Tablename
-        // 1 = Create Statement
-        char* createTable = row[1];
-        createTableSQL = createTableSQL + createTable + ";";
-    }
+    // 0 = Tablename
+    // 1 = Create Statement
+    char *createTable = row[1];
+    createTableSQL = createTableSQL + createTable + ";";
+  }
 
-    if(res != nullptr) {
-        mysql_free_result(res);
-        res = nullptr;
-    }
+  if (res != nullptr) {
+    mysql_free_result(res);
+    res = nullptr;
+  }
 
-    return createTableSQL;
+  return createTableSQL;
 }
 
 /*
@@ -214,8 +213,8 @@ void ConnectionMySQL::partitionRoundRobin(const std::string &table,
                      be_partition_slot + ", t.* " +
                      "FROM (SELECT @n:=0) AS initvars, " + table + " AS t";
 
-  string createTableSQL = sqlDialect 
-    -> getCreateTableFromPredicateSQL(targetTab, selectSQL);
+  string createTableSQL =
+      sqlDialect->getCreateTableFromPredicateSQL(targetTab, selectSQL);
 
   bool res = sendCommand(createTableSQL);
 
@@ -246,8 +245,8 @@ void ConnectionMySQL::partitionHash(const std::string &table,
 
   BOOST_LOG_TRIVIAL(debug) << "Partition hash statement is: " << selectSQL;
 
-  string createTableSQL = sqlDialect 
-    -> getCreateTableFromPredicateSQL(targetTab, selectSQL);
+  string createTableSQL =
+      sqlDialect->getCreateTableFromPredicateSQL(targetTab, selectSQL);
 
   bool res = sendCommand(createTableSQL);
 
@@ -281,8 +280,8 @@ void ConnectionMySQL::partitionFunc(const std::string &table,
 
   BOOST_LOG_TRIVIAL(debug) << "Partition SQL statement is: " << selectSQL;
 
-  string createTableSQL = sqlDialect 
-    -> getCreateTableFromPredicateSQL(targetTab, selectSQL);
+  string createTableSQL =
+      sqlDialect->getCreateTableFromPredicateSQL(targetTab, selectSQL);
 
   bool res = sendCommand(createTableSQL);
 
@@ -295,20 +294,21 @@ void ConnectionMySQL::partitionFunc(const std::string &table,
 /*
 6.11 ~getExportColumns~
 
-Regular import and export of MySQL relations with SHAPE datatype fail. 
+Regular import and export of MySQL relations with SHAPE datatype fail.
 
 Cannot get geometry object from data you send to the GEOMETRY field
 
-Therefore, all geometry fields have to be serialized manually to text. 
+Therefore, all geometry fields have to be serialized manually to text.
 In addition, the spatial reference identifier (SRID) has to be exported.
 
 This method returns the column description for an export that can be used
-in queries like SELECT thisResult FROM table INTO OUTFILE. 
+in queries like SELECT thisResult FROM table INTO OUTFILE.
 
 */
 
-std::string ConnectionMySQL::getFieldNamesForExport(
-    const std::string &table, const std::string &fieldPrefix) {
+std::string
+ConnectionMySQL::getFieldNamesForExport(const std::string &table,
+                                        const std::string &fieldPrefix) {
 
   const std::lock_guard<std::recursive_mutex> lock(connection_mutex);
 
@@ -316,7 +316,7 @@ std::string ConnectionMySQL::getFieldNamesForExport(
 
   MYSQL_RES *res = sendQuery(sqlQuery.c_str());
 
-  if(res == nullptr) {
+  if (res == nullptr) {
     throw SecondoException("Unable to read table structure");
   }
 
@@ -325,17 +325,17 @@ std::string ConnectionMySQL::getFieldNamesForExport(
 
   std::vector<std::string> columnNames;
 
-  for(int i = 0; i < columns; i++) {       
+  for (int i = 0; i < columns; i++) {
     enum_field_types columnType = fields[i].type;
     string attributeName = string(fields[i].name);
 
     string renamedField = fieldPrefix + attributeName;
 
-    if(columnType == MYSQL_TYPE_GEOMETRY) {
-        columnNames.push_back("ST_AsWKT(" + renamedField + ")");
-        columnNames.push_back("ST_SRID(" + renamedField + ")");
+    if (columnType == MYSQL_TYPE_GEOMETRY) {
+      columnNames.push_back("ST_AsWKT(" + renamedField + ")");
+      columnNames.push_back("ST_SRID(" + renamedField + ")");
     } else {
-        columnNames.push_back(renamedField);
+      columnNames.push_back(renamedField);
     }
   }
 
@@ -344,14 +344,10 @@ std::string ConnectionMySQL::getFieldNamesForExport(
 
   // Join attribute names as string
   string attributeNames = std::accumulate(
-                            std::begin(columnNames), 
-                            std::end(columnNames), 
-                            string(),
-                            [](string &ss, string &s) {
-                                    return ss.empty() ? s : ss + "," + s;
-                            });
+      std::begin(columnNames), std::end(columnNames), string(),
+      [](string &ss, string &s) { return ss.empty() ? s : ss + "," + s; });
 
-   return attributeNames;
+  return attributeNames;
 }
 
 /*
@@ -362,16 +358,16 @@ two attributes (TEXT, SRID) see ~getFieldNamesForExport~. These attributes
 needs to be handled in a special way.
 
 */
-std::string ConnectionMySQL::getImportTableSQL(const std::string &table, 
-    const std::string &full_path) {
- 
+std::string ConnectionMySQL::getImportTableSQL(const std::string &table,
+                                               const std::string &full_path) {
+
   const std::lock_guard<std::recursive_mutex> lock(connection_mutex);
 
   string sqlQuery = "SELECT * FROM " + table + " LIMIT 1";
 
   MYSQL_RES *res = sendQuery(sqlQuery.c_str());
 
-  if(res == nullptr) {
+  if (res == nullptr) {
     throw SecondoException("Unable to read table structure");
   }
 
@@ -383,26 +379,26 @@ std::string ConnectionMySQL::getImportTableSQL(const std::string &table,
   // Column name, source
   std::string importColumnSQL;
 
-  for(int i = 0; i < columns; i++) {       
+  for (int i = 0; i < columns; i++) {
     enum_field_types columnType = fields[i].type;
     string attributeName = string(fields[i].name);
-    
-    if(i == 0) {
-        importColumnSQL = "SET `" + attributeName + "` = ";
+
+    if (i == 0) {
+      importColumnSQL = "SET `" + attributeName + "` = ";
     } else {
-        importColumnSQL.append(", `" + attributeName + "` = ");
+      importColumnSQL.append(", `" + attributeName + "` = ");
     }
 
     string thisColumn = "@col" + to_string(importColumns);
 
-    if(columnType == MYSQL_TYPE_GEOMETRY) {
-        string nextColumn = "@col" + to_string(importColumns + 1);
-        importColumnSQL.append("ST_PolygonFromText(" + thisColumn 
-            + ", " + nextColumn + ")");
-        importColumns += 2;
+    if (columnType == MYSQL_TYPE_GEOMETRY) {
+      string nextColumn = "@col" + to_string(importColumns + 1);
+      importColumnSQL.append("ST_PolygonFromText(" + thisColumn + ", " +
+                             nextColumn + ")");
+      importColumns += 2;
     } else {
-        importColumnSQL.append(thisColumn);
-        importColumns++;
+      importColumnSQL.append(thisColumn);
+      importColumns++;
     }
   }
 
@@ -411,87 +407,87 @@ std::string ConnectionMySQL::getImportTableSQL(const std::string &table,
 
   // Generate column string
   string columnSQL = "";
-  for(int i = 0; i < importColumns; i++) {
-      string thisColumn = "@col" + to_string(i);
+  for (int i = 0; i < importColumns; i++) {
+    string thisColumn = "@col" + to_string(i);
 
-      if(i == 0) {
-          columnSQL.append("(" + thisColumn);
-      } else {
-          columnSQL.append(", " + thisColumn);
-      }
+    if (i == 0) {
+      columnSQL.append("(" + thisColumn);
+    } else {
+      columnSQL.append(", " + thisColumn);
+    }
   }
   columnSQL.append(")");
 
   // Import example
-  // LOAD DATA INFILE "/tmp/water" into table water_import CHARACTER SET 
-  //   utf8 (@col0, @col1, @col2, @col3, @col4, @col5, @col6) 
-  //   SET `OGR_FID` = @col0, SHAPE = ST_PolygonFromText(@col1, @col2), 
+  // LOAD DATA INFILE "/tmp/water" into table water_import CHARACTER SET
+  //   utf8 (@col0, @col1, @col2, @col3, @col4, @col5, @col6)
+  //   SET `OGR_FID` = @col0, SHAPE = ST_PolygonFromText(@col1, @col2),
   //   osm_id = @col3, code = @col4, fclass = @col5, name = @col6;
 
-   string loadSQL = "LOAD DATA INFILE '" + full_path + "' INTO TABLE " + table 
-        + " CHARACTER SET utf8 " + columnSQL + " " + importColumnSQL + ";";
+  string loadSQL = "LOAD DATA INFILE '" + full_path + "' INTO TABLE " + table +
+                   " CHARACTER SET utf8 " + columnSQL + " " + importColumnSQL +
+                   ";";
 
-   BOOST_LOG_TRIVIAL(debug) << "Import query is: " << loadSQL;
+  BOOST_LOG_TRIVIAL(debug) << "Import query is: " << loadSQL;
 
-   return loadSQL;
+  return loadSQL;
 }
 
 /*
 6.12 ~getExportTableSQL~
 
 */
-std::string ConnectionMySQL::getExportTableSQL(const std::string &table, 
-    const std::string &full_path) {
- 
-    string attributes = getFieldNamesForExport(table);
- 
-    return "SELECT " + attributes + " INTO OUTFILE '" + full_path 
-        + "' CHARACTER SET utf8 FROM " + table + ";";
+std::string ConnectionMySQL::getExportTableSQL(const std::string &table,
+                                               const std::string &full_path) {
+
+  string attributes = getFieldNamesForExport(table);
+
+  return "SELECT " + attributes + " INTO OUTFILE '" + full_path +
+         "' CHARACTER SET utf8 FROM " + table + ";";
 }
 
 /*
 6.13 ~getTypeFromSQLQuery~
 
 */
-std::vector<std::tuple<string, string>> 
-    ConnectionMySQL::getTypeFromSQLQuery(const std::string &sqlQuery) {
+std::vector<std::tuple<string, string>>
+ConnectionMySQL::getTypeFromSQLQuery(const std::string &sqlQuery) {
 
   const std::lock_guard<std::recursive_mutex> lock(connection_mutex);
 
   string usedSQLQuery = limitSQLQuery(sqlQuery);
   vector<tuple<string, string>> result;
 
-  if( ! checkConnection()) {
-    BOOST_LOG_TRIVIAL(error) 
-      << "Connection is not ready in getTypeFromSQLQuery";
+  if (!checkConnection()) {
+    BOOST_LOG_TRIVIAL(error)
+        << "Connection is not ready in getTypeFromSQLQuery";
     throw SecondoException("Connection is not ready in getTypeFromSQLQuery");
   }
-  
+
   MYSQL_RES *res = sendQuery(usedSQLQuery.c_str());
 
-  if(res == nullptr) {
-    BOOST_LOG_TRIVIAL(error)  << "Unable to perform SQL query" << usedSQLQuery;
-    throw SecondoException("Unable to perform SQL query in getTypeFromSQLQuery"
-                           + usedSQLQuery);
+  if (res == nullptr) {
+    BOOST_LOG_TRIVIAL(error) << "Unable to perform SQL query" << usedSQLQuery;
+    throw SecondoException(
+        "Unable to perform SQL query in getTypeFromSQLQuery" + usedSQLQuery);
   }
 
   result = getTypeFromQuery(res);
 
-  if(res != nullptr) {
-     mysql_free_result(res);
-     res = nullptr;
+  if (res != nullptr) {
+    mysql_free_result(res);
+    res = nullptr;
   }
 
   return result;
 }
 
-
 /*
 6.14 ~getTypeFromQuery~
 
 */
-vector<tuple<string, string>> ConnectionMySQL::getTypeFromQuery(
-    MYSQL_RES* res) {
+vector<tuple<string, string>>
+ConnectionMySQL::getTypeFromQuery(MYSQL_RES *res) {
 
   const std::lock_guard<std::recursive_mutex> lock(connection_mutex);
 
@@ -499,9 +495,9 @@ vector<tuple<string, string>> ConnectionMySQL::getTypeFromQuery(
   int columns = mysql_num_fields(res);
   MYSQL_FIELD *fields = mysql_fetch_fields(res);
 
-  for(int i = 0; i < columns; i++) {       
+  for (int i = 0; i < columns; i++) {
     enum_field_types columnType = fields[i].type;
-        
+
     string attributeName = string(fields[i].name);
 
     // Ensure secondo is happy with the name
@@ -510,18 +506,18 @@ vector<tuple<string, string>> ConnectionMySQL::getTypeFromQuery(
     string attributeType;
 
     // Convert to SECONDO attribute type
-    switch(columnType) {
+    switch (columnType) {
 #if LIBMYSQL_VERSION_ID >= 80000
     case MYSQL_TYPE_BOOL:
-        attributeType = CcBool::BasicType();
-        break;
+      attributeType = CcBool::BasicType();
+      break;
 #endif
-    
+
     case MYSQL_TYPE_STRING:
     case MYSQL_TYPE_VARCHAR:
     case MYSQL_TYPE_VAR_STRING:
-        attributeType = FText::BasicType();
-        break;
+      attributeType = FText::BasicType();
+      break;
 
     case MYSQL_TYPE_DECIMAL:
     case MYSQL_TYPE_TINY:
@@ -529,19 +525,19 @@ vector<tuple<string, string>> ConnectionMySQL::getTypeFromQuery(
     case MYSQL_TYPE_LONG:
     case MYSQL_TYPE_TIMESTAMP:
     case MYSQL_TYPE_LONGLONG:
-        attributeType = CcInt::BasicType();
-        break;
+      attributeType = CcInt::BasicType();
+      break;
 
     case MYSQL_TYPE_FLOAT:
     case MYSQL_TYPE_DOUBLE:
-        attributeType = CcReal::BasicType();
-        break;
+      attributeType = CcReal::BasicType();
+      break;
 
     default:
-        BOOST_LOG_TRIVIAL(warning) 
-            << "Unknown column type: " << attributeName << " / " 
-            << columnType << " will be mapped to text";
-        attributeType = FText::BasicType();
+      BOOST_LOG_TRIVIAL(warning)
+          << "Unknown column type: " << attributeName << " / " << columnType
+          << " will be mapped to text";
+      attributeType = FText::BasicType();
     }
 
     // Attribute name and type
@@ -650,8 +646,8 @@ bool ConnectionMySQL::createGridTable(const std::string &table) {
 6.17 Insert a rectangle into the grid table
 
 */
-bool ConnectionMySQL::insertRectangle(const std::string &table, 
-        double x, double y, double sizeX, double sizeY) {
+bool ConnectionMySQL::insertRectangle(const std::string &table, double x,
+                                      double y, double sizeX, double sizeY) {
 
   const std::lock_guard<std::recursive_mutex> lock(connection_mutex);
 

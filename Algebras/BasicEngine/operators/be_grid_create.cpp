@@ -39,12 +39,10 @@ using namespace std;
 
 namespace BasicEngine {
 
-
-
 /*
 1.3 Operator  ~be\_grid\_create~
 
-Create a new grid with the given name and 
+Create a new grid with the given name and
 specification
 
 1.3.2 Type Mapping
@@ -52,43 +50,49 @@ specification
 */
 
 ListExpr be_gridCreateTM(ListExpr args) {
-string err = "\n {string, text} x real x real x real x int x int --> bool"
-             "(grid name, x-value, y-value, slot size, number of slots)"
-             " expected";
+  string err = "\n {string, text} x real x real x real x int x int --> bool"
+               "(grid name, x-value, y-value, slot size, number of slots)"
+               " expected";
 
-  if(!nl->HasLength(args,6)){
+  if (!nl->HasLength(args, 6)) {
     return listutils::typeError("Six arguments expected. " + err);
   }
 
-  if(!CcString::checkType(nl->First(args))
-      && !FText::checkType(nl->First(args))){
+  if (!CcString::checkType(nl->First(args)) &&
+      !FText::checkType(nl->First(args))) {
     return listutils::typeError("Value of first argument have "
-        "to be a string or a text." + err);
+                                "to be a string or a text." +
+                                err);
   }
 
-  if(!CcReal::checkType(nl->Second(args))){
+  if (!CcReal::checkType(nl->Second(args))) {
     return listutils::typeError("Value of second argument have "
-        "to be an real." + err);
+                                "to be an real." +
+                                err);
   }
 
-  if(!CcReal::checkType(nl->Third(args))){
+  if (!CcReal::checkType(nl->Third(args))) {
     return listutils::typeError("Value of third argument have "
-        "to be an real." + err);
+                                "to be an real." +
+                                err);
   }
 
-  if(!CcReal::checkType(nl->Fourth(args))){
+  if (!CcReal::checkType(nl->Fourth(args))) {
     return listutils::typeError("Value of fourth argument have "
-        "to be an real." + err);
+                                "to be an real." +
+                                err);
   }
 
-  if(!CcInt::checkType(nl->Fifth(args))){
+  if (!CcInt::checkType(nl->Fifth(args))) {
     return listutils::typeError("Value of fifth argument have "
-        "to be an integer." + err);
+                                "to be an integer." +
+                                err);
   }
-  
-  if(!CcInt::checkType(nl->Sixth(args))){
+
+  if (!CcInt::checkType(nl->Sixth(args))) {
     return listutils::typeError("Value of sixth argument have "
-        "to be an integer." + err);
+                                "to be an integer." +
+                                err);
   }
 
   return nl->SymbolAtom(CcBool::BasicType());

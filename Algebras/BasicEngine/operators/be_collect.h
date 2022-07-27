@@ -36,32 +36,28 @@ bool EvaluateTypeMappingExpr(std::string expression, std::string &result);
 
 ListExpr be_collect_tm(ListExpr args);
 
-int be_collect_vm(Word* args, Word& result, int message,
-        Word& local, Supplier s);
+int be_collect_vm(Word *args, Word &result, int message, Word &local,
+                  Supplier s);
 
 /*
 1.1.3 Specification
 
 */
-OperatorSpec be_collect_spec (
-   "(text) --> stream(tuple(...))",
-   "be_collect(_)",
-   "Fetches the data from the used database into SECONDO",
-   "query be_collect('select * from cars') collect"
-);
+OperatorSpec
+    be_collect_spec("(text) --> stream(tuple(...))", "be_collect(_)",
+                    "Fetches the data from the used database into SECONDO",
+                    "query be_collect('select * from cars') collect");
 
 /*
 1.1.6 Definition of operator ~be\_collect~
 
 */
-Operator be_collect_op (
-         "be_collect",              // name
-         be_collect_spec.getStr(),  // specification
-         be_collect_vm,             // value mapping
-         Operator::SimpleSelect,    // trivial selection function
-         be_collect_tm             // type mapping
+Operator be_collect_op("be_collect",             // name
+                       be_collect_spec.getStr(), // specification
+                       be_collect_vm,            // value mapping
+                       Operator::SimpleSelect,   // trivial selection function
+                       be_collect_tm             // type mapping
 );
-
 
 } // namespace BasicEngine
 

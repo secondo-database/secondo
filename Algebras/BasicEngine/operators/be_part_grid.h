@@ -70,8 +70,8 @@ int be_partGridSFVM(Word *args, Word &result, int message, Word &local,
     partitionData.gridname = gridname->toText();
     partitionData.slotnum = slot->GetIntval();
 
-    distributed2::DArray val = be_control -> 
-      partitionTableFromMaster(partitionData, grid);
+    distributed2::DArray val =
+        be_control->partitionTableFromMaster(partitionData, grid);
 
     res->copyFrom(val);
 

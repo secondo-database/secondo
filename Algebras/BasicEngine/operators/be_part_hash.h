@@ -68,9 +68,9 @@ int be_partHashSFVM(Word *args, Word &result, int message, Word &local,
     partitionData.key = key->toText();
     partitionData.slotnum = slot->GetIntval();
 
-    distributed2::DArray val 
-      = be_control->partitionTableFromMaster(partitionData, hash);
-      
+    distributed2::DArray val =
+        be_control->partitionTableFromMaster(partitionData, hash);
+
     res->copyFrom(val);
   } catch (SecondoException &e) {
     BOOST_LOG_TRIVIAL(error)

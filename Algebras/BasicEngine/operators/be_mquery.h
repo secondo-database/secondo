@@ -32,8 +32,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 namespace BasicEngine {
 
-ListExpr be_mqueryTM(ListExpr args) ;
-
+ListExpr be_mqueryTM(ListExpr args);
 
 /*
 1.8.2 Value Mapping
@@ -69,51 +68,39 @@ int be_mquerySFVM(Word *args, Word &result, int message, Word &local,
 1.8.3 Specification
 
 */
-OperatorSpec be_mqueryVMSpec(
-   "{string,text} x {string,text}-> bool",
-   "be_mquery(_,_)",
-   "Distribute a query to the worker and writes the result in "
-   "the specified table. The statement must be in a correct "
-   "syntax for this DBMS.",
-   "query be_mquery('select * from cars','cars_short')"
-);
-
+OperatorSpec
+    be_mqueryVMSpec("{string,text} x {string,text}-> bool", "be_mquery(_,_)",
+                    "Distribute a query to the worker and writes the result in "
+                    "the specified table. The statement must be in a correct "
+                    "syntax for this DBMS.",
+                    "query be_mquery('select * from cars','cars_short')");
 
 /*
 1.8.4 ValueMapping Array
 
 */
 ValueMapping be_mqueryVM[] = {
-  be_mquerySFVM<CcString,CcString>,
-  be_mquerySFVM<FText,CcString>,
-  be_mquerySFVM<CcString,FText>,
-  be_mquerySFVM<FText,FText>
-};
+    be_mquerySFVM<CcString, CcString>, be_mquerySFVM<FText, CcString>,
+    be_mquerySFVM<CcString, FText>, be_mquerySFVM<FText, FText>};
 
 /*
 1.8.5 Selection Function
 
 */
-int be_mquerySelect(ListExpr args){
-    if(CcString::checkType(nl->First(args))){
-      return CcString::checkType(nl->Second(args))?0:2;
-    }else{
-      return CcString::checkType(nl->Second(args))?1:3;
-    }
+int be_mquerySelect(ListExpr args) {
+  if (CcString::checkType(nl->First(args))) {
+    return CcString::checkType(nl->Second(args)) ? 0 : 2;
+  } else {
+    return CcString::checkType(nl->Second(args)) ? 1 : 3;
+  }
 };
 
 /*
 1.8.6 Operator instance
 
 */
-Operator be_mqueryOp(
-  "be_mquery",
-  be_mqueryVMSpec.getStr(),
-  sizeof(be_mqueryVM),
-  be_mqueryVM,
-  be_mquerySelect,
-  be_mqueryTM
-);
+Operator be_mqueryOp("be_mquery", be_mqueryVMSpec.getStr(), sizeof(be_mqueryVM),
+                     be_mqueryVM, be_mquerySelect, be_mqueryTM);
 
 } // namespace BasicEngine
 

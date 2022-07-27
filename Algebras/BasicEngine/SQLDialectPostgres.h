@@ -41,15 +41,15 @@ public:
     return "DROP INDEX IF EXISTS " + table + "_idx;";
   }
 
-
   std::string getExportDataForPartitionSQL(const std::string &table,
-                                        const std::string &exportFile, 
-                                        size_t partition) {
+                                           const std::string &exportFile,
+                                           size_t partition) {
 
-    return "COPY (SELECT * FROM " + table 
-            + " WHERE (" + be_partition_slot + " = " 
-            + std::to_string(partition) + ") TO "
-            "'" + exportFile + "' BINARY;";
+    return "COPY (SELECT * FROM " + table + " WHERE (" + be_partition_slot +
+           " = " + std::to_string(partition) +
+           ") TO "
+           "'" +
+           exportFile + "' BINARY;";
   }
 };
 
