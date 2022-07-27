@@ -2716,6 +2716,19 @@ of translation results.
 
 It is necessary to treat some special cases first. The simple standard case is treated at the end of this section, in [Section ArgTranslation].
 
+*/
+
+/*
+The following extra predicate ~translates~ is introduced to resolve problems with new Prolog versions after version 8.4.2, coming with Ubuntu 22.04. These translations are located originally at the beginning of Section 6.3.
+
+*/
+
+translates([res(N), P], [res(N), P]).
+
+translates(res(N), [res(N), [none]]).
+
+/*
+
 6.1 Special Case: Distance Scan
 
 */
@@ -2814,16 +2827,19 @@ arg(N) => [rename(project(feed(rel(Name, Var)), AttrNames), Var), []] :-
 
 
 If the argument is of the form ~res(N)~, then it is a stream already and can be
-used unchanged. 
+used unchanged.
+
+Due to problems with recent Prolog versions, the original definitions below had to be moved into an extra ~translates~ predicate, defined at the beginning of Section 6. 
 
 */
-:- redefine_system_predicate('[|]'/2).
-[res(N), P] => [res(N), P].
+% [res(N), P] => [res(N), P].
 
 % The following rule is needed for listing all plan edges or cost edges, 
 % not for optimization as such.
 
-res(N) => [res(N), [none]].
+% res(N) => [res(N), [none]].
+
+X => Y :- translates(X, Y).
 
 
 % fapra 2015/16 distributed
@@ -3037,7 +3053,7 @@ indexselect2(arg(N), pr(Y = attr(AttrName, _, _), _)) =>
   [orange(rel(Name, Z), Y, Y), [order(AttrName)]]
   :-
   argument(N, rel(Name, Z)),
-  downcase_atom(AttrName, DCAttrName),
+  downcase_attr(AttrName, DCAttrName),
   is_orel(Name, DCAttrName).
 
 % generic rule for between(Attr, X, Y): orange using an ordered relation
@@ -3046,7 +3062,7 @@ indexselect2(arg(N), pr(between(attr(AttrName, _, _), X, Y), _)) =>
   [orange(rel(Name, Z), X, Y), [order(AttrName)]]
   :-
   argument(N, rel(Name, Z)),
-  downcase_atom(AttrName, DCAttrName),
+  downcase_attr(AttrName, DCAttrName),
   is_orel(Name, DCAttrName).
 
 
@@ -5752,17 +5768,17 @@ cost(exactmatchS(dbindexobject(Index), _KeyValue), Sel, _P, Size, Cost) :-
   Cost is Sel * RelSize * C * 0.25 . % balance of 75% is for gettuples
 
 cost(loopjoin(X, Y), Sel, P, S, Cost) :-
-	write('loopjoincost:'), nl,
-	write('X = '), write(X), nl,
-	write('Y = '), write(Y), nl,
+%	write('loopjoincost:'), nl,
+%	write('X = '), write(X), nl,
+%	write('Y = '), write(Y), nl,
   cost(X, 1, P, SizeX, CostX),
   cost(Y, Sel, P, SizeY, CostY),
   S is SizeX * SizeY,
   loopjoinTC(C),
-  Cost is C * SizeX + CostX + SizeX * CostY,
-	write('SizeX = '), write(SizeX), nl,
-	write('CostX = '), write(CostX), nl,
-	write('CostY = '), write(CostY), nl, nl.
+  Cost is C * SizeX + CostX + SizeX * CostY.
+%	write('SizeX = '), write(SizeX), nl,
+%	write('CostX = '), write(CostX), nl,
+%	write('CostY = '), write(CostY), nl, nl.
 
 cost(fun(_, X), Sel, P, Size, Cost) :-
   cost(X, Sel, P, Size, Cost).
@@ -8578,6 +8594,14 @@ spelled(Rel, Rel2, u) :-
   !.
 
 spelled(_, _, _) :- !, fail.  % no rel entry in spelling table.
+
+
+downcase_attr(_:Attr, DCAttr) :-
+  downcase_atom(Attr, DCAttr),
+  !.
+  
+downcase_attr(Attr, DCAttr) :-
+  downcase_atom(Attr, DCAttr).
 
 
 

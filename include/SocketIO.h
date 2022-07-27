@@ -197,11 +197,7 @@ a client socket to a server socket.
 Defines the default time interval between two connect attempts.
 
 */
-#define DEFAULT_LISTEN_QUEUE_SIZE    5
-/*
-Defines the default capacity of the listener queue.
 
-*/
 #define LINGER_TIME                  10 // seconds
 /*
 Defines how long the kernel should try to send data still waiting in
@@ -324,8 +320,7 @@ first checked by its ~IsOk~ method.
 
 */
   static Socket*  CreateLocal( const std::string& address,
-                               const int listenQueueSize =
-                                 DEFAULT_LISTEN_QUEUE_SIZE,
+                               const int listenQueueSize = SOMAXCONN,
                                  std::ostream* traceInStream=0,
                                  std::ostream* traceOutStream=0,
                                  bool destroyStreams = false);
@@ -342,8 +337,7 @@ first checked by its ~IsOk~ method.
 */
   static Socket*  CreateGlobal( const std::string& address,
                                 const std::string& port,
-                                const int listenQueueSize =
-                                  DEFAULT_LISTEN_QUEUE_SIZE,
+                                const int listenQueueSize = SOMAXCONN,
                                 std::ostream* traceInStream=0,
                                 std::ostream* traceOutStream=0,
                                 bool destroyStreams = false);

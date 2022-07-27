@@ -1019,8 +1019,7 @@ This is useful to set global options.
 
 */
 
-:- dynamic flag/2,
-   clearflags.
+:- dynamic flag/2.
 
 clearflags :-
   retractall( flag(_,_) ).
