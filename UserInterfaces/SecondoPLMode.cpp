@@ -109,6 +109,16 @@ int SecondoPLMode(TTYParameter &tp) {
       // end VTA
     }
 
+    // Restrict autoloading for SWI-Prolog 8.x compatibility
+    // set_prolog_flag(autoload, user).
+    // See https://github.com/SWI-Prolog/issues/issues/117
+    term_t term_first = PL_new_term_refs(2);
+    term_t term_second = term_first + 1;
+    PL_put_atom_chars(term_first, "autoload");
+    PL_put_atom_chars(term_second, "user");
+    predicate_t flag_predicate = PL_predicate("set_prolog_flag", 2, "");
+    PL_call_predicate(NULL, PL_Q_NORMAL, flag_predicate, term_first);
+
     /* load the auxiliary and calloptimizer */
     term_t a0 = PL_new_term_refs(1);
     static predicate_t p = PL_predicate("consult", 1, "");
