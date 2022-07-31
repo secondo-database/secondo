@@ -1,9 +1,9 @@
 /*
----- 
+----
 This file is part of SECONDO.
 
-Copyright (C) 2006, University in Hagen, 
-Faculty of Mathematics and  Computer Science, 
+Copyright (C) 2006, University in Hagen,
+Faculty of Mathematics and  Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -29,7 +29,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 
-#include <iostream> 
+#include <iostream>
 #include "SWI-Prolog.h"
 #include <stdlib.h>
 #include "SecondoConfig.h"
@@ -39,7 +39,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <assert.h>
 
 using namespace std;
-
 
 /*
 2 predicates
@@ -51,12 +50,9 @@ Secondo.
 
 extern PL_extension predicates[];
 extern void handle_exit(void);
-//extern char* GetConfigFileNameFromArgV(int&, char**);
-//extern char* GetParameterFromArg(int&, char**,string,string);
-extern bool StartSecondoC(TTYParameter& tp);
-
-
-
+// extern char* GetConfigFileNameFromArgV(int&, char**);
+// extern char* GetParameterFromArg(int&, char**,string,string);
+extern bool StartSecondoC(TTYParameter &tp);
 
 /*
 2 SecondoPLMode
@@ -65,15 +61,11 @@ This function is the ~main~ function of SecondoPL.
 
 */
 
-int
-SecondoPLMode(TTYParameter& tp)
-{
+int SecondoPLMode(TTYParameter &tp) {
   atexit(handle_exit);
 
-  if( !StartSecondoC(tp) )
-  {
-    cout << "Usage : SecondoPL [Secondo-options] [Prolog-options]" 
-         << endl;
+  if (!StartSecondoC(tp)) {
+    cout << "Usage : SecondoPL [Secondo-options] [Prolog-options]" << endl;
     exit(1);
   }
 
@@ -83,62 +75,58 @@ SecondoPLMode(TTYParameter& tp)
   /* initialize the PROLOG engine */
 
   int argc = 0;
-  char** argv = tp.Get_plargs(argc);
+  char **argv = tp.Get_plargs(argc);
 
-  //cerr << endl <<__FILE__ << ":" << __LINE__ 
-  //     << " Calling PL_initialize with ";    
+  // cerr << endl <<__FILE__ << ":" << __LINE__
+  //     << " Calling PL_initialize with ";
 
-  //for (int i = 0; i < argc; i++) {
-  //  cerr << argv[i] << " ";    
-  //}    
-  //cerr << endl << endl;
+  // for (int i = 0; i < argc; i++) {
+  //  cerr << argv[i] << " ";
+  //}
+  // cerr << endl << endl;
 
-  if( !PL_initialise(argc,argv) ) 
-  {
+  if (!PL_initialise(argc, argv)) {
     PL_halt(1);
-  }
-  else
-  {
-         
-      {
+  } else {
+
+    {
       // VTA - 15.11.2005
       // I added this piece of code in order to run with newer versions
       // of prolog. Without this code, the libraries (e.g. list.pl) are
       // not automatically loaded. It seems that something in our code
-      // (auxiliary.pl and calloptimizer.pl) prevents them to be 
+      // (auxiliary.pl and calloptimizer.pl) prevents them to be
       // automatically loaded. In order to solve this problem I added
-      // a call to 'member(x, []).' so that the libraries are loaded 
+      // a call to 'member(x, []).' so that the libraries are loaded
       // before running our scripts.
-      term_t t0 = PL_new_term_refs(2),
-             t1 = t0+1;
+      term_t t0 = PL_new_term_refs(2), t1 = t0 + 1;
       PL_put_atom_chars(t0, "x");
-      if(! PL_put_list_chars(t1, "")){
+      if (!PL_put_list_chars(t1, "")) {
         cerr << "problem with prolog interface" << endl;
         assert(false);
       }
-      predicate_t p = PL_predicate("member",2,"");
-      PL_call_predicate(NULL,PL_Q_NORMAL,p,t0);
-      // end VTA 
-      }   
+      predicate_t p = PL_predicate("member", 2, "");
+      PL_call_predicate(NULL, PL_Q_NORMAL, p, t0);
+      // end VTA
+    }
 
-     /* load the auxiliary and calloptimizer */
-     term_t a0 = PL_new_term_refs(1);
-     static predicate_t p = PL_predicate("consult",1,"");
-     PL_put_atom_chars(a0,"auxiliary");
-     PL_call_predicate(NULL,PL_Q_NORMAL,p,a0);
-     PL_put_atom_chars(a0,"calloptimizer");
-     PL_call_predicate(NULL,PL_Q_NORMAL,p,a0);
-     /* switch to prolog-user-interface */
+    /* load the auxiliary and calloptimizer */
+    term_t a0 = PL_new_term_refs(1);
+    static predicate_t p = PL_predicate("consult", 1, "");
+    PL_put_atom_chars(a0, "auxiliary");
+    PL_call_predicate(NULL, PL_Q_NORMAL, p, a0);
+    PL_put_atom_chars(a0, "calloptimizer");
+    PL_call_predicate(NULL, PL_Q_NORMAL, p, a0);
+    /* switch to prolog-user-interface */
   }
 
 // readline support is only needed on unix systems.
 #ifndef SECONDO_WIN32
-  string histfile=".secondopl_history";
+  string histfile = ".secondopl_history";
 
-#if PLVERSION<70334  
+#if PLVERSION < 70334
   PL_install_readline();
 #endif
-  
+
   // term_t ah = PL_new_term_refs(1);
   // static predicate_t prh = PL_predicate("rl_read_history",1,"");
   // PL_put_atom_chars(ah,histfile.c_str());
@@ -147,5 +135,3 @@ SecondoPLMode(TTYParameter& tp)
 
   return PL_toplevel();
 }
-
-
