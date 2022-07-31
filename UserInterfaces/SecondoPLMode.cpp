@@ -109,6 +109,8 @@ int SecondoPLMode(TTYParameter &tp) {
       // end VTA
     }
 
+
+#if PLVERSION > 80000
     // Restrict autoloading for SWI-Prolog 8.x compatibility
     // set_prolog_flag(autoload, user).
     // See https://github.com/SWI-Prolog/issues/issues/117
@@ -118,6 +120,7 @@ int SecondoPLMode(TTYParameter &tp) {
     PL_put_atom_chars(term_second, "user");
     predicate_t flag_predicate = PL_predicate("set_prolog_flag", 2, "");
     PL_call_predicate(NULL, PL_Q_NORMAL, flag_predicate, term_first);
+#endif
 
     /* load the auxiliary and calloptimizer */
     term_t a0 = PL_new_term_refs(1);
