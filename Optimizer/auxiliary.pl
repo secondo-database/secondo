@@ -43,6 +43,7 @@ the output format used by SecondoTTY.
 1.1.1 Predicates Auxiliary to Predicate ~pretty\_print~
 
 */
+:- use_module(library(sandbox)).
 
 my_concat_atom([A,B],C) :- !,  
        current_predicate(atomic_list_concat/2), 
