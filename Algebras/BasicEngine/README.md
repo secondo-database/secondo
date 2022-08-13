@@ -205,7 +205,7 @@ mysqld --initialize-insecure --user=mysql --datadir=/diskc/user/mysql/worker4
 mysqld --initialize-insecure --user=mysql --datadir=/diskd/user/mysql/worker5
 ```
 
-The MySQL installations can now be started by executing `mysqld_multi start`. The MySQL installations are now running. 
+The MySQL installations can now be started by executing `sudo mysqld_multi start`. The MySQL installations are now running. 
 
 
 ```bash
