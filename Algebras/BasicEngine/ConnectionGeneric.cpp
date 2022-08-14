@@ -205,15 +205,22 @@ void ConnectionGeneric::partitionGrid(const std::string &table,
 
 */
 void ConnectionGeneric::removeColumnFromTable(const std::string &table,
-                                              const std::string &name) {
+                                              const std::string &name,
+                                              const bool fail_on_error) {
 
   string sql = sqlDialect->getRemoveColumnFromTableSQL(table, name);
 
-  bool res = sendCommand(sql.c_str());
+  bool res = sendCommand(sql.c_str(), fail_on_error);
 
-  if (res == false) {
+  if(res == true)
+    return;
+
+  if(fail_on_error) {
     BOOST_LOG_TRIVIAL(error) << "Unable to execute: " << sql;
     throw SecondoException("Unable to remove column to table");
+  } else {
+    BOOST_LOG_TRIVIAL(debug) << "No drop needed: Column " << name
+                             << " not found on table: " << table;
   }
 }
 

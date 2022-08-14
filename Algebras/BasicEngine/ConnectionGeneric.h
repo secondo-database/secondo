@@ -130,7 +130,8 @@ public:
                                 const std::string &name, SQLAttribute type) = 0;
 
   virtual void removeColumnFromTable(const std::string &table,
-                                     const std::string &name);
+                                     const std::string &name,
+                                     const bool fail_on_error = true);
 
   std::string getFilenameForPartition(const std::string &table,
                                       size_t &partitionNumber) {

@@ -534,7 +534,7 @@ ConnectionMySQL::getTypeFromQuery(MYSQL_RES *res) {
       break;
 
     default:
-      BOOST_LOG_TRIVIAL(warning)
+      BOOST_LOG_TRIVIAL(debug)
           << "Unknown column type: " << attributeName << " / " << columnType
           << " will be mapped to text";
       attributeType = FText::BasicType();

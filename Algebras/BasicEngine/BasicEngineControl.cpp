@@ -360,28 +360,17 @@ void BasicEngineControl::exportTableCreateStatementSQL(
 */
 void BasicEngineControl::dropAttributeIfExists(
     const std::string &table, const std::string &attributeToRemove) {
-
-  std::vector<std::tuple<std::string, std::string>> attributes =
-      dbms_connection->getTypeFromSQLQuery("SELECT * FROM " + table);
-
-  for (std::tuple<std::string, std::string> attribute : attributes) {
-    string attributeName = std::get<0>(attribute);
-    if (attributeName == attributeToRemove) {
-
-      BOOST_LOG_TRIVIAL(debug)
-          << "Found partitioning attribute " << attributeToRemove
-          << " on table " << table << ", removing ";
-
-      dbms_connection->removeColumnFromTable(table, attributeToRemove);
-      return;
-    }
-  }
+    
+    // 'DROP ATTRIBUTE IF EXISTS' is not supported by all DBMS
+    // (see https://bugs.mysql.com/bug.php?id=10789)
+    // Try to drop attribute and ignore errors
+    dbms_connection->removeColumnFromTable(table, attributeToRemove, false);
 }
 
 /*
-3.8 ~repartition\_table\_worker~
+3.8 ~partitionTable~
 
-Repartition the given table - worker version
+Partition the given table - worker version
 
 */
 string BasicEngineControl::partitionTable(PartitionData &partitionData,
