@@ -5918,6 +5918,295 @@ Operator mdistRangeOp(
 );
 
 /*
+Operator ~mclosestCenterN~
+
+*/
+ListExpr mclosestCenterNTM(ListExpr args) {
+  string err = "NTREE(T) x MREL x T  expected";
+  if (!nl->HasLength(args, 3)) {
+    return listutils::typeError(err + " (wrong number of args)");
+  }
+  ListExpr a1 = nl->First(args);
+  ListExpr a2 = nl->Second(args);
+  if (MPointer::checkType(a1)) { 
+    a1 = nl->Second(a1);
+  }
+  if (!Mem::checkType(a1)) {
+    return listutils::typeError("first arg is not a memory object");
+  }
+  if (MPointer::checkType(a2)) {
+    a2 = nl->Second(a2);
+  }
+  if (!Mem::checkType(a2)) {
+    return listutils::typeError("2nd arg is not a memory object");
+  }
+  a1 = nl->Second(a1);
+  a2 = nl->Second(a2);
+  if (!Relation::checkType(a2)) {
+    return listutils::typeError("second arg is not a relation");
+  }
+  ListExpr a3 = nl->Third(args);
+  if (!mtreehelper::checkTypeN(a1, a3,7) && !mtreehelper::checkTypeN(a1, a3,8)){
+      return listutils::typeError("first arg is not an ntree 7 or 8 over " +
+                                  nl->ToString(a3));
+  }
+  return nl->TwoElemList(listutils::basicSymbol<Stream<Tuple> >(),
+                         nl->Second(a2)); 
+}
+
+template<class T, class Dist, int variant>
+class closestCenterNInfo {
+ public:
+  closestCenterNInfo(MemoryNtreeObject<T, Dist, variant>* ntreeX,
+                     MemoryRelObject* mrel, T* ref) {
+    rel = mrel->getmmrel();
+    MTreeEntry<T> p(*ref, 0);
+    it = ntreeX->getNtreeX()->closestCenter(p);
+  }
+
+  ~closestCenterNInfo() {
+    delete it;
+  }
+
+  Tuple* next() {
+    while (true) {
+      const TupleId tid = it->next();
+      if ((int)tid == -1) {
+        return 0;
+      }
+      if (tid <= rel->size()) {
+        Tuple* res = (*rel)[tid - 1];
+        if (res) { // ignore deleted tuples
+          res->IncReference();
+          return res;
+        }
+      }
+    }
+    return 0;
+  }
+  
+  size_t getNoDistFunCalls() {
+    return it->getNoDistFunCalls();
+  }
+  
+  NTreeStat getStat() const {
+    return it->getStat();
+  }
+     
+ private:
+  vector<Tuple*>* rel;
+  RangeIteratorN<MTreeEntry<T>, Dist, variant>* it;
+};
+
+template<class K, class T, class R, int variant>
+int mclosestCenterNVMT(Word* args, Word& result, int message, Word& local,
+                       Supplier s) {
+  closestCenterNInfo<K, StdDistComp<K>, variant>* li = 
+                    (closestCenterNInfo<K, StdDistComp<K>, variant>*)local.addr;
+  switch (message) {
+    case OPEN : {
+      if (li) {
+        delete li;
+        local.addr = 0;
+      }
+      R* relN = (R*)args[1].addr;
+      MemoryRelObject* rel = getMemRel(relN, nl->Second(qp->GetType(s)));
+      if (!rel) {
+        return 0;
+      }
+      T* treeN = (T*)args[0].addr;
+      MemoryNtreeObject<K, StdDistComp<K>, variant>* n = 
+                                                getNtreeX<T, K, variant>(treeN);
+      if (!n) {
+        return 0;
+      }
+      K* key = (K*)args[2].addr;
+      local.addr = new closestCenterNInfo<K, StdDistComp<K>, variant>(n, rel,
+                                                                      key);
+      return 0;
+    }
+    case REQUEST: {
+      result.addr = li ? li->next() : 0;
+      return result.addr ? YIELD : CANCEL;
+    }
+    case CLOSE : {
+      if (li) {
+        string prefix = "counterClosestCenterN" + 
+                        (variant > 1 ? to_string(variant) : "");        
+        NTreeStat stat = li->getStat();
+        mtreehelper::increaseCounter(prefix,
+                                     stat.noDCInnerNodes + stat.noDCLeaves);
+//         string counterINName = prefix + "InnerNodes";
+//         mtreehelper::increaseCounter(counterINName, stat.noDCInnerNodes);
+//         string counterLName = prefix + "Leaves";
+//         mtreehelper::increaseCounter(counterLName, stat.noDCLeaves);
+        mtreehelper::increaseCounter("noVisitedInnerNodes", stat.noInnerNodes);
+        mtreehelper::increaseCounter("noVisitedLeaves", stat.noLeaves);
+        delete li;
+        local.addr = 0;
+      }
+      return 0;
+    }
+   }
+   return -1;
+}
+
+ValueMapping mclosestCenterNVM[] = {
+  mclosestCenterNVMT<mtreehelper::t1,Mem,Mem,7>,
+  mclosestCenterNVMT<mtreehelper::t2,Mem,Mem,7>,
+  mclosestCenterNVMT<mtreehelper::t3,Mem,Mem,7>,
+  mclosestCenterNVMT<mtreehelper::t4,Mem,Mem,7>,
+  mclosestCenterNVMT<mtreehelper::t5,Mem,Mem,7>,
+  mclosestCenterNVMT<mtreehelper::t6,Mem,Mem,7>,
+  mclosestCenterNVMT<mtreehelper::t7,Mem,Mem,7>,
+  mclosestCenterNVMT<mtreehelper::t8,Mem,Mem,7>,
+  mclosestCenterNVMT<mtreehelper::t9,Mem,Mem,7>,
+  mclosestCenterNVMT<mtreehelper::t10,Mem,Mem,7>,
+  mclosestCenterNVMT<mtreehelper::t11,Mem,Mem,7>,
+  mclosestCenterNVMT<mtreehelper::t12,Mem,Mem,7>,
+  mclosestCenterNVMT<mtreehelper::t13,Mem,Mem,7>,
+  mclosestCenterNVMT<mtreehelper::t14,Mem,Mem,7>,
+  mclosestCenterNVMT<mtreehelper::t15,Mem,Mem,7>,
+  mclosestCenterNVMT<mtreehelper::t16,Mem,Mem,7>,
+  
+  mclosestCenterNVMT<mtreehelper::t1,Mem,MPointer,7>,
+  mclosestCenterNVMT<mtreehelper::t2,Mem,MPointer,7>,
+  mclosestCenterNVMT<mtreehelper::t3,Mem,MPointer,7>,
+  mclosestCenterNVMT<mtreehelper::t4,Mem,MPointer,7>,
+  mclosestCenterNVMT<mtreehelper::t5,Mem,MPointer,7>,
+  mclosestCenterNVMT<mtreehelper::t6,Mem,MPointer,7>,
+  mclosestCenterNVMT<mtreehelper::t7,Mem,MPointer,7>,
+  mclosestCenterNVMT<mtreehelper::t8,Mem,MPointer,7>,
+  mclosestCenterNVMT<mtreehelper::t9,Mem,MPointer,7>,
+  mclosestCenterNVMT<mtreehelper::t10,Mem,MPointer,7>,
+  mclosestCenterNVMT<mtreehelper::t11,Mem,MPointer,7>,
+  mclosestCenterNVMT<mtreehelper::t12,Mem,MPointer,7>,
+  mclosestCenterNVMT<mtreehelper::t13,Mem,MPointer,7>,
+  mclosestCenterNVMT<mtreehelper::t14,Mem,MPointer,7>,
+  mclosestCenterNVMT<mtreehelper::t15,Mem,MPointer,7>,
+  mclosestCenterNVMT<mtreehelper::t16,Mem,MPointer,7>,
+  
+  mclosestCenterNVMT<mtreehelper::t1,MPointer,Mem,7>,
+  mclosestCenterNVMT<mtreehelper::t2,MPointer,Mem,7>,
+  mclosestCenterNVMT<mtreehelper::t3,MPointer,Mem,7>,
+  mclosestCenterNVMT<mtreehelper::t4,MPointer,Mem,7>,
+  mclosestCenterNVMT<mtreehelper::t5,MPointer,Mem,7>,
+  mclosestCenterNVMT<mtreehelper::t6,MPointer,Mem,7>,
+  mclosestCenterNVMT<mtreehelper::t7,MPointer,Mem,7>,
+  mclosestCenterNVMT<mtreehelper::t8,MPointer,Mem,7>,
+  mclosestCenterNVMT<mtreehelper::t9,MPointer,Mem,7>,
+  mclosestCenterNVMT<mtreehelper::t10,MPointer,Mem,7>,
+  mclosestCenterNVMT<mtreehelper::t11,MPointer,Mem,7>,
+  mclosestCenterNVMT<mtreehelper::t12,MPointer,Mem,7>,
+  mclosestCenterNVMT<mtreehelper::t13,MPointer,Mem,7>,
+  mclosestCenterNVMT<mtreehelper::t14,MPointer,Mem,7>,
+  mclosestCenterNVMT<mtreehelper::t15,MPointer,Mem,7>,
+  mclosestCenterNVMT<mtreehelper::t16,MPointer,Mem,7>,
+  
+  mclosestCenterNVMT<mtreehelper::t1,MPointer,MPointer,7>,
+  mclosestCenterNVMT<mtreehelper::t2,MPointer,MPointer,7>,
+  mclosestCenterNVMT<mtreehelper::t3,MPointer,MPointer,7>,
+  mclosestCenterNVMT<mtreehelper::t4,MPointer,MPointer,7>,
+  mclosestCenterNVMT<mtreehelper::t5,MPointer,MPointer,7>,
+  mclosestCenterNVMT<mtreehelper::t6,MPointer,MPointer,7>,
+  mclosestCenterNVMT<mtreehelper::t7,MPointer,MPointer,7>,
+  mclosestCenterNVMT<mtreehelper::t8,MPointer,MPointer,7>,
+  mclosestCenterNVMT<mtreehelper::t9,MPointer,MPointer,7>,
+  mclosestCenterNVMT<mtreehelper::t10,MPointer,MPointer,7>,
+  mclosestCenterNVMT<mtreehelper::t11,MPointer,MPointer,7>,
+  mclosestCenterNVMT<mtreehelper::t12,MPointer,MPointer,7>,
+  mclosestCenterNVMT<mtreehelper::t13,MPointer,MPointer,7>,
+  mclosestCenterNVMT<mtreehelper::t14,MPointer,MPointer,7>,
+  mclosestCenterNVMT<mtreehelper::t15,MPointer,MPointer,7>,
+  mclosestCenterNVMT<mtreehelper::t16,MPointer,MPointer,7>,
+  
+  mclosestCenterNVMT<mtreehelper::t1,Mem,Mem,8>,
+  mclosestCenterNVMT<mtreehelper::t2,Mem,Mem,8>,
+  mclosestCenterNVMT<mtreehelper::t3,Mem,Mem,8>,
+  mclosestCenterNVMT<mtreehelper::t4,Mem,Mem,8>,
+  mclosestCenterNVMT<mtreehelper::t5,Mem,Mem,8>,
+  mclosestCenterNVMT<mtreehelper::t6,Mem,Mem,8>,
+  mclosestCenterNVMT<mtreehelper::t7,Mem,Mem,8>,
+  mclosestCenterNVMT<mtreehelper::t8,Mem,Mem,8>,
+  mclosestCenterNVMT<mtreehelper::t9,Mem,Mem,8>,
+  mclosestCenterNVMT<mtreehelper::t10,Mem,Mem,8>,
+  mclosestCenterNVMT<mtreehelper::t11,Mem,Mem,8>,
+  mclosestCenterNVMT<mtreehelper::t12,Mem,Mem,8>,
+  mclosestCenterNVMT<mtreehelper::t13,Mem,Mem,8>,
+  mclosestCenterNVMT<mtreehelper::t14,Mem,Mem,8>,
+  mclosestCenterNVMT<mtreehelper::t15,Mem,Mem,8>,
+  mclosestCenterNVMT<mtreehelper::t16,Mem,Mem,8>,
+  
+  mclosestCenterNVMT<mtreehelper::t1,Mem,MPointer,8>,
+  mclosestCenterNVMT<mtreehelper::t2,Mem,MPointer,8>,
+  mclosestCenterNVMT<mtreehelper::t3,Mem,MPointer,8>,
+  mclosestCenterNVMT<mtreehelper::t4,Mem,MPointer,8>,
+  mclosestCenterNVMT<mtreehelper::t5,Mem,MPointer,8>,
+  mclosestCenterNVMT<mtreehelper::t6,Mem,MPointer,8>,
+  mclosestCenterNVMT<mtreehelper::t7,Mem,MPointer,8>,
+  mclosestCenterNVMT<mtreehelper::t8,Mem,MPointer,8>,
+  mclosestCenterNVMT<mtreehelper::t9,Mem,MPointer,8>,
+  mclosestCenterNVMT<mtreehelper::t10,Mem,MPointer,8>,
+  mclosestCenterNVMT<mtreehelper::t11,Mem,MPointer,8>,
+  mclosestCenterNVMT<mtreehelper::t12,Mem,MPointer,8>,
+  mclosestCenterNVMT<mtreehelper::t13,Mem,MPointer,8>,
+  mclosestCenterNVMT<mtreehelper::t14,Mem,MPointer,8>,
+  mclosestCenterNVMT<mtreehelper::t15,Mem,MPointer,8>,
+  mclosestCenterNVMT<mtreehelper::t16,Mem,MPointer,8>,
+  
+  mclosestCenterNVMT<mtreehelper::t1,MPointer,Mem,8>,
+  mclosestCenterNVMT<mtreehelper::t2,MPointer,Mem,8>,
+  mclosestCenterNVMT<mtreehelper::t3,MPointer,Mem,8>,
+  mclosestCenterNVMT<mtreehelper::t4,MPointer,Mem,8>,
+  mclosestCenterNVMT<mtreehelper::t5,MPointer,Mem,8>,
+  mclosestCenterNVMT<mtreehelper::t6,MPointer,Mem,8>,
+  mclosestCenterNVMT<mtreehelper::t7,MPointer,Mem,8>,
+  mclosestCenterNVMT<mtreehelper::t8,MPointer,Mem,8>,
+  mclosestCenterNVMT<mtreehelper::t9,MPointer,Mem,8>,
+  mclosestCenterNVMT<mtreehelper::t10,MPointer,Mem,8>,
+  mclosestCenterNVMT<mtreehelper::t11,MPointer,Mem,8>,
+  mclosestCenterNVMT<mtreehelper::t12,MPointer,Mem,8>,
+  mclosestCenterNVMT<mtreehelper::t13,MPointer,Mem,8>,
+  mclosestCenterNVMT<mtreehelper::t14,MPointer,Mem,8>,
+  mclosestCenterNVMT<mtreehelper::t15,MPointer,Mem,8>,
+  mclosestCenterNVMT<mtreehelper::t16,MPointer,Mem,8>,
+  
+  mclosestCenterNVMT<mtreehelper::t1,MPointer,MPointer,8>,
+  mclosestCenterNVMT<mtreehelper::t2,MPointer,MPointer,8>,
+  mclosestCenterNVMT<mtreehelper::t3,MPointer,MPointer,8>,
+  mclosestCenterNVMT<mtreehelper::t4,MPointer,MPointer,8>,
+  mclosestCenterNVMT<mtreehelper::t5,MPointer,MPointer,8>,
+  mclosestCenterNVMT<mtreehelper::t6,MPointer,MPointer,8>,
+  mclosestCenterNVMT<mtreehelper::t7,MPointer,MPointer,8>,
+  mclosestCenterNVMT<mtreehelper::t8,MPointer,MPointer,8>,
+  mclosestCenterNVMT<mtreehelper::t9,MPointer,MPointer,8>,
+  mclosestCenterNVMT<mtreehelper::t10,MPointer,MPointer,8>,
+  mclosestCenterNVMT<mtreehelper::t11,MPointer,MPointer,8>,
+  mclosestCenterNVMT<mtreehelper::t12,MPointer,MPointer,8>,
+  mclosestCenterNVMT<mtreehelper::t13,MPointer,MPointer,8>,
+  mclosestCenterNVMT<mtreehelper::t14,MPointer,MPointer,8>,
+  mclosestCenterNVMT<mtreehelper::t15,MPointer,MPointer,8>,
+  mclosestCenterNVMT<mtreehelper::t16,MPointer,MPointer,8>
+};
+
+OperatorSpec mclosestCenterNSpec(
+  "NTREE(T) x MREL(X) x T -> stream(tuple(X))",
+  "mem_ntree mem_rel mclosestCenterN[object]",
+  "Retrieves the center from the root node of the ntree which is closest to the"
+  " given object.",
+  "query mkinos_ntree mKinos mclosestCenterN[alexanderplatz] consume"
+);
+
+Operator mclosestCenterNOp(
+   "mclosestCenterN",
+   mclosestCenterNSpec.getStr(),
+   112,
+   mclosestCenterNVM,
+   mdistRangeScanSelect<3>,
+   mclosestCenterNTM
+);
+
+/*
 Operator ~mdistRangeNx~
 
 Type Mapping, used for mdistRangeN, mdistRangeN2, mdistRangeN5, mdistRangeN6,
@@ -23503,6 +23792,7 @@ class MainMemory2Algebra : public Algebra {
 
           AddOperator(&mdistScan2Op);
 
+          AddOperator(&mclosestCenterNOp);
           AddOperator(&mdistRangeOp);
           AddOperator(&mdistRangeNOp);
           AddOperator(&mdistRangeN2Op);

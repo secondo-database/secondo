@@ -360,6 +360,12 @@ Signature : string x T [x int] -> NTREE8(T)
 Example   : let mKinos_GeoData_ntree8_restored = importntree8("kinos", [const point value undef])
 Result    : ()
 
+Operator  : mclosestCenterN
+Number    : 1929
+Signature : NTREE(T) x MREL(X) x T -> stream(tuple(X))
+Example   : query mKinos_GeoData_ntree7 mKinos mclosestCenterN[alexanderplatz] count
+Result    : 1
+
 Operator  : mdistRangeN
 Number    : 1910
 Signature : NTREE(T) x MREL(X) x T (x U) x real -> stream(tuple(X))

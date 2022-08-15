@@ -1913,7 +1913,46 @@ class RangeIteratorN {
   typedef NTreeNode<T, DistComp, variant> node_t;
   typedef NTreeLeafNode<T, DistComp, variant> leafnode_t;
   typedef NTreeInnerNode<T, DistComp, variant> innernode_t;
+  
+  /*
+  The first constructor is used for the mclosestCenterN operator.
+  
+  */
+  RangeIteratorN(node_t* root, const T& q, const DistComp& di) :
+                                pos(0), queryObject(q), range(DBL_MAX), dc(di) {
+    if (!root) {
+      return;
+    }
+    int noDistFunCallsBefore = dc.getNoDistFunCalls();
+    int noCands = (root->isLeaf() ? root->getNoEntries() : root->getDegree());
+    double d_min;
+    int c_q;
+    if (root->isLeaf()) {
+      c_q = ((leafnode_t*)root)->getNearestCenterPos(queryObject, dc,
+                                                         noCands, d_min);
+      addResult(((leafnode_t*)root)->getObject(c_q));
+    }
+    else {
+      c_q = ((innernode_t*)root)->getNearestCenterPos(queryObject, dc,
+                                                          noCands, d_min);
+      addResult(((innernode_t*)root)->getCenter(c_q));
+    }
+    
+    int noDistFunCallsAfter = dc.getNoDistFunCalls();
+    if (root->isLeaf()) {
+      stat.noDCLeaves += noDistFunCallsAfter - noDistFunCallsBefore;
+      stat.noLeaves++;
+    }
+    else {
+      stat.noDCInnerNodes += noDistFunCallsAfter - noDistFunCallsBefore;
+      stat.noInnerNodes++;
+    }
+  }
 
+  /*
+  The second constructor is used for the range search.
+  
+  */
   RangeIteratorN(node_t* root, const T& q, const double r, const DistComp& di) :
                                       pos(0), queryObject(q), range(r), dc(di) {
     results.clear();
@@ -1957,9 +1996,6 @@ class RangeIteratorN {
   
   void addResult(T* o) {
     results.push_back(o);
-    if (o->getTid() == 21 || o->getTid() == 52) {
-      cout << "add tid " << o->getTid() << endl;
-    }
 //     cout << "[" << o->getTid() << ", obj=" << *(o->getKey()) << "] ";
   }
   
@@ -2764,6 +2800,10 @@ class NTree {
       res->root = root->clone();
     }
     return res;
+  }
+  
+  rangeiterator_t* closestCenter(const T& q) const {
+    return new rangeiterator_t(root, q, dc);
   }
   
   rangeiterator_t* rangeSearch(const T& q, const double range) const {
