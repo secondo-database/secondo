@@ -363,8 +363,8 @@ Result    : ()
 Operator  : mclosestCenterN
 Number    : 1929
 Signature : NTREE(T) x MREL(X) x T -> stream(tuple(X))
-Example   : query mKinos_GeoData_ntree7 mKinos mclosestCenterN[alexanderplatz] count
-Result    : 1
+Example   : query mKinos_GeoData_ntree7 mKinos mclosestCenterN[alexanderplatz] extract[Name] contains "UFA"
+Result    : TRUE
 
 Operator  : mdistRangeN
 Number    : 1910

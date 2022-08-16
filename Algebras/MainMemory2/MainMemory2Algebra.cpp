@@ -6192,8 +6192,8 @@ ValueMapping mclosestCenterNVM[] = {
 OperatorSpec mclosestCenterNSpec(
   "NTREE(T) x MREL(X) x T -> stream(tuple(X))",
   "mem_ntree mem_rel mclosestCenterN[object]",
-  "Retrieves the center from the root node of the ntree which is closest to the"
-  " given object.",
+  "Retrieves the center from the root node of the ntree 7 or 8 which is closest"
+  "to the given object.",
   "query mkinos_ntree mKinos mclosestCenterN[alexanderplatz] consume"
 );
 
