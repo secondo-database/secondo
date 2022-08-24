@@ -2456,6 +2456,21 @@ struct TidDist {
 };
 
 /*
+Auxiliary class for a priority queue of objects.
+
+*/
+template<class T, class DistComp, int variant>
+class NodePQComp {
+ public:
+  typedef NTreeNode<T, DistComp, variant> node_t;
+   
+  bool operator() (std::tuple<node_t*, double, bool> p1,
+                   std::tuple<node_t*, double, bool> p2) {
+    return std::get<1>(p1) < std::get<1>(p2);
+  }
+}; 
+
+/*
 3 class NNIteratorN
 
 */
@@ -2468,13 +2483,13 @@ class NNIteratorN {
   typedef NTreeLeafNode<T, DistComp, variant> leafnode_t;
   typedef NTreeInnerNode<T, DistComp, variant> innernode_t;
   
-  NNIteratorN(node_t* root, const T& r, const DistComp& di,
-              const int _k = 10) : ref(r), dc(di), k(_k) {
+  NNIteratorN(node_t* root, const T& r, const DistComp& di, const int _k) : 
+                                                         ref(r), dc(di), k(_k) {
     results.clear();
     if (k == 0) {
-      k = root->getNoEntries();
+      k = INT_MAX;
     }
-    collectNN(root);
+    collectNNold(root);
     //stat.print(cout, dc.getNoDistFunCalls(), true);
   }
   
@@ -2482,6 +2497,8 @@ class NNIteratorN {
     TidDist td(id, d);
     results.insert(td);
   }
+  
+  
   
   rangeiterator_t* find1NN(node_t* node, double& radius) {
     int noDistFunCallsBefore, noDistFunCallsAfter;
@@ -2518,7 +2535,7 @@ class NNIteratorN {
     return new rangeiterator_t(node, ref, d_min, dc);
   }
   
-  void collectNN(node_t* node) {
+  void collectNNold(node_t* node) {
     double radius;
     rangeiterator_t* rit = find1NN(node, radius);
     T* obj = rit->nextObj();
