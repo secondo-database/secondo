@@ -2498,7 +2498,34 @@ class NNIteratorN {
     results.insert(td);
   }
   
-  
+  double getApproxRadius(node_t* node) const { // getApproxRadius2 from paper
+    std::priority_queue<std::tuple<node_t*, double, bool> > pq;
+    pq.push(std::make_tuple(node, 0.0, true));
+    double result = -1.0;
+    int pointsVisited = 0;
+    node_t* tempNode = 0;
+    while (!pq.empty()) {
+      auto pqItem = pq.top();
+      pq.pop();
+      tempNode = std::get<0>(pqItem);
+      bool isInside = std::get<2>(pqItem);
+      if (tempNode->isLeaf()) {
+        result = std::max(result, std::get<1>(pqItem));
+        pointsVisited++;
+        if (pointsVisited == k) {
+          return result;
+        }
+      }
+      else {
+
+      }
+    }
+    return result;
+  }
+
+  void collectNN(node_t* node) {
+//     double approxRadius = getApproxRadius(node);
+  } 
   
   rangeiterator_t* find1NN(node_t* node, double& radius) {
     int noDistFunCallsBefore, noDistFunCallsAfter;
