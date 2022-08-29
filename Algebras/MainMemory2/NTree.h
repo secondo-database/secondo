@@ -2463,12 +2463,20 @@ template<class T, class DistComp, int variant>
 class NodePQComp {
  public:
   typedef NTreeNode<T, DistComp, variant> node_t;
+  typedef std::tuple<node_t*, bool, double, bool> pqType_t;
    
-  bool operator() (std::tuple<node_t*, double, bool> p1,
-                   std::tuple<node_t*, double, bool> p2) {
-    return std::get<1>(p1) < std::get<1>(p2);
+  bool operator() (pqType_t& p1, pqType_t& p2) {
+    return std::get<2>(p1) < std::get<2>(p2);
   }
 }; 
+
+template<class T>
+class ObjectDistPairComp {
+ public:
+  bool operator () (std::pair<T, double>& p1, std::pair<T, double>& p2) {
+    return p1.second < p2.second;
+  }
+};
 
 /*
 3 class NNIteratorN
@@ -2482,9 +2490,10 @@ class NNIteratorN {
   typedef NTreeNode<T, DistComp, variant> node_t;
   typedef NTreeLeafNode<T, DistComp, variant> leafnode_t;
   typedef NTreeInnerNode<T, DistComp, variant> innernode_t;
+  typedef std::tuple<node_t*, bool, double, bool> pqType_t;
   
-  NNIteratorN(node_t* root, const T& r, const DistComp& di, const int _k) : 
-                                                         ref(r), dc(di), k(_k) {
+  NNIteratorN(node_t* root, const T& _q, const DistComp& di, const int _k) : 
+                                                          q(_q), dc(di), k(_k) {
     results.clear();
     if (k == 0) {
       k = INT_MAX;
@@ -2498,8 +2507,73 @@ class NNIteratorN {
     results.insert(td);
   }
   
+  int chooseCenter(node_t* node, const bool isInside, double& d_x) {
+    int result = -1;
+    if (isInside) {
+      if (node->IsLeaf()) {
+        result = ((leafnode_t*)node)->getNearestCenterPos(q, dc, 
+                                      ((leafnode_t*)node)->getNoEntries(), d_x);
+      }
+      else {
+        result = ((innernode_t*)node)->getNearestCenterPos(q, dc, 
+                                        ((innernode_t*)node)->getDegree(), d_x);
+      }
+    }
+    else {
+      std::random_device seeder;
+      std::mt19937 engine(seeder());
+      int maxValue = -1;
+      if (node->IsLeaf()) {
+        maxValue = ((leafnode_t*)node)->getNoEntries() - 1;
+      }
+      else {
+        maxValue = ((innernode_t*)node)->getDegree() - 1;
+      }
+      std::uniform_int_distribution<int> dist(0, maxValue);
+      result = dist(engine);
+      if (node->isLeaf()) {
+        d_x = dc(q, *(((leafnode_t*)node)->getObject(result)));
+      }
+      else {
+        d_x = dc(q, *(((innernode_t*)node)->getCenter(result)));
+      }
+    }
+    return result;
+  }
+  
+  bool hasEmptyChild(node_t* node, const int pos) const { // node(c_i) != empty
+    if (node->isLeaf()) {
+      return true;
+    }
+    node_t* childNode = ((innernode_t*)node)->getChild(pos);
+    if (!childNode->isLeaf()) {
+      return false;
+    }
+    return ((leafnode_t*)childNode)->getNoEntries() == 1;
+  }
+  
+  leafnode_t* makeAuxNode(node_t* node, const int pos) const {
+    std::vector<T> contents;
+    if (node->isLeaf()) {
+      contents.push_back(*(((leafnode_t*)node)->getObject(pos)));
+    }
+    else {
+      contents.push_back(*(((innernode_t*)node)->getCenter(pos)));
+    }
+    return new leafnode_t(node->getDegree(), node->getMaxLeafSize(),
+                          node->getCandOrder(), node->getPruningMethod(), dc,
+                          contents[0].getTid(), contents);
+  }
+  
+/*
+Meaning of a pq entry: The first boolean indicates whether the whole node (true)
+or only an object (false; in this case, the first and only one) is considered.
+The second boolean represents the status variable.
+    
+*/
   double getApproxRadius(node_t* node) const { // getApproxRadius2 from paper
-    std::priority_queue<std::tuple<node_t*, double, bool> > pq;
+    std::priority_queue<pqType_t, std::vector<pqType_t>, 
+                        NodePQComp<T, DistComp, variant> > pq;
     pq.push(std::make_tuple(node, 0.0, true));
     double result = -1.0;
     int pointsVisited = 0;
@@ -2508,23 +2582,57 @@ class NNIteratorN {
       auto pqItem = pq.top();
       pq.pop();
       tempNode = std::get<0>(pqItem);
-      bool isInside = std::get<2>(pqItem);
-      if (tempNode->isLeaf()) {
-        result = std::max(result, std::get<1>(pqItem));
+      bool isInside = std::get<3>(pqItem);
+      if (!std::get<1>(pqItem)) {
+        result = std::max(result, std::get<2>(pqItem));
         pointsVisited++;
         if (pointsVisited == k) {
           return result;
         }
       }
       else {
-
+        double d_x = 0.0;
+        int c_i = chooseCenter(tempNode, isInside, d_x);
+        pq.push(std::make_tuple(makeAuxNode(node, c_i), false, d_x, isInside));
+        if (!hasEmptyChild(node, c_i)) { // node(c_i) != empty
+          double r_i = (node->isLeaf() ? ((leafnode_t*)node)->getMaxDist() :
+                                         ((innernode_t*)node)->getMaxDist(c_i));
+          pq.push(std::make_tuple(((innernode_t*)node)->getChild(c_i), true,
+                                  d_x - r_i, isInside));
+        }
+        int size = (node->isLeaf() ? ((leafnode_t*)node)->getNoEntries() :
+                                     ((innernode_t*)node)->getDegree());
+        for (int j = 0; j < size; j++) {
+          if (j != c_i) {
+            pq.push(std::make_tuple(makeAuxNode(node, j), false, d_x, false));
+            if (!hasEmptyChild(node, j)) { // node(c_j) != empty
+              double d_ij = node->getPrecomputedDist(c_i, j, node->isLeaf());
+              double r_j = (node->isLeaf() ? ((leafnode_t*)node)->getMaxDist() :
+                                           ((innernode_t*)node)->getMaxDist(j));
+              double estDist_j = abs(d_x - d_ij) - r_j; // TODO: enable choice
+              pq.push(std::make_tuple(((innernode_t*)node)->getChild(j), true,
+                                      estDist_j, false));
+            }
+          }
+        }
       }
     }
     return result;
   }
 
   void collectNN(node_t* node) {
-//     double approxRadius = getApproxRadius(node);
+    
+    double approxRadius = getApproxRadius(node);
+    rangeiterator_t* rit = new rangeiterator_t(node, q, approxRadius, dc);
+    T* obj = rit->nextObj();
+    double dist_i = 0.0;
+    std::vector<std::pair<T, double> > Res_2;
+    while (obj != 0) {
+      dist_i = dc(q, *obj);
+      Res_2.push_back(std::make_pair(*obj, dist_i));
+      obj = rit->nextObj();
+      // TODO: sort vector by dist_i, retrieve and return final result
+    }
   } 
   
   rangeiterator_t* find1NN(node_t* node, double& radius) {
@@ -2534,7 +2642,7 @@ class NNIteratorN {
     node_t* node_temp = node;
     while (!node_temp->isLeaf()) {
       noDistFunCallsBefore = dc.getNoDistFunCalls();
-      c_q = ((innernode_t*)node_temp)->getNearestCenterPos(ref, dc, 
+      c_q = ((innernode_t*)node_temp)->getNearestCenterPos(q, dc, 
                                  ((innernode_t*)node_temp)->getDegree(), d_min);
 //       maxDist = ((innernode_t*)node_temp)->getMaxDist(c_q);
       node_temp = node_temp->getChild(c_q);
@@ -2543,7 +2651,7 @@ class NNIteratorN {
       stat.noDCInnerNodes += noDistFunCallsAfter - noDistFunCallsBefore;
     }
     noDistFunCallsBefore = dc.getNoDistFunCalls();
-    c_q = ((leafnode_t*)node_temp)->getNearestCenterPos(ref, dc,
+    c_q = ((leafnode_t*)node_temp)->getNearestCenterPos(q, dc,
                                ((leafnode_t*)node_temp)->getNoEntries(), d_min);
     noDistFunCallsAfter = dc.getNoDistFunCalls();
     stat.noLeaves++;
@@ -2554,12 +2662,12 @@ class NNIteratorN {
     radius = ((leafnode_t*)node_temp)->getMaxDist() + d_min;
     if (d_min == 0.0) {
       cout << "radius 0 ==> range query omitted" << endl;
-      ref.setTid(((leafnode_t*)node_temp)->getObject(c_q)->getTid());
+      q.setTid(((leafnode_t*)node_temp)->getObject(c_q)->getTid());
     }
     else {
       cout << "perform range search with radius " << d_min << endl;
     }
-    return new rangeiterator_t(node, ref, d_min, dc);
+    return new rangeiterator_t(node, q, d_min, dc);
   }
   
   void collectNNold(node_t* node) {
@@ -2567,11 +2675,11 @@ class NNIteratorN {
     rangeiterator_t* rit = find1NN(node, radius);
     T* obj = rit->nextObj();
     assert(obj != 0);
-    double dist = dc(ref, *obj);
+    double dist = dc(q, *obj);
     addResult(obj->getTid(), dist);
     obj = rit->nextObj();
     while (obj != 0) {
-      dist = dc(ref, *obj);
+      dist = dc(q, *obj);
       addResult(obj->getTid(), dist);
       obj = rit->nextObj();
     }
@@ -2583,7 +2691,7 @@ class NNIteratorN {
     }
     obj = rit->nextObj();
     while (obj != 0) {
-      double dist = dc(ref, *obj);
+      double dist = dc(q, *obj);
 //       cout << "found object " << *(obj->getKey()) << " with dist " 
 //            << dist << endl;
 //       if (dist < nnDist) {
@@ -2598,10 +2706,10 @@ class NNIteratorN {
            (int)results.size() != node->getNoEntries()) { // continue search
       delete rit;
       radius = 2.0 * radius;
-      rit = new rangeiterator_t(node, ref, radius, dc);
+      rit = new rangeiterator_t(node, q, radius, dc);
       obj = rit->nextObj();
       while (obj != 0) {
-        double dist = dc(ref, *obj);
+        double dist = dc(q, *obj);
   //       cout << "found object " << *(obj->getKey()) << " with dist " 
   //            << dist << endl;
   //       if (dist < nnDist) {
@@ -2655,7 +2763,7 @@ class NNIteratorN {
   }
   
  private:
-  T ref;
+  T q;
   std::set<TidDist> results;
   typename std::set<TidDist>::iterator it;
   DistComp dc;
