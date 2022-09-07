@@ -405,13 +405,13 @@ Result    : 17
 Operator  : mnearestNeighborN7
 Number    : 1919
 Signature : NTREE7(T) x MREL(X) x T (x int) -> stream(tuple(X))
-Example   : query mKinos_GeoData_ntree7 mKinos mnearestNeighborN7[alexanderplatz, 1] head[1] extract[Strasse] contains "Rosa"
+Example   : query mKinos_GeoData_ntree7 mKinos mnearestNeighborN7[alexanderplatz, 1] extract[Strasse] contains "Rosa"
 Result    : TRUE
 
 Operator  : mnearestNeighborN8
 Number    : 1920
 Signature : NTREE8(T) x MREL(X) x T (x int) -> stream(tuple(X))
-Example   : query mKinos_GeoData_ntree8 mKinos mnearestNeighborN8[alexanderplatz, 1] head[1] extract[Strasse] contains "Rosa"
+Example   : query mKinos_GeoData_ntree8 mKinos mnearestNeighborN8[alexanderplatz, 1] extract[Strasse] contains "Rosa"
 Result    : TRUE
 
 Operator  : mcreateAVLtree

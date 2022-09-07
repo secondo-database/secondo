@@ -2621,17 +2621,19 @@ The second boolean represents the status variable.
   }
 
   void collectNN(node_t* node) {
-    
     double approxRadius = getApproxRadius(node);
     rangeiterator_t* rit = new rangeiterator_t(node, q, approxRadius, dc);
     T* obj = rit->nextObj();
     double dist_i = 0.0;
-    std::vector<std::pair<T, double> > Res_2;
+    std::vector<TidDist> Res_2;
     while (obj != 0) {
       dist_i = dc(q, *obj);
-      Res_2.push_back(std::make_pair(*obj, dist_i));
+      Res_2.push_back(std::make_pair(obj->getTid(), dist_i));
       obj = rit->nextObj();
-      // TODO: sort vector by dist_i, retrieve and return final result
+    }
+    std::sort(Res_2.begin(), Res_2.end());
+    for (int i = 0; i < k; i++) {
+      addResult(Res_2[i].tid, Res_2[i].dist);
     }
   } 
   
