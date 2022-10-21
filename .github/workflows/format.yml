@@ -28,11 +28,18 @@ jobs:
         working-directory: Tools/usingcheck
         run: make
 
+      - uses: nrwl/last-successful-commit-action@v1
+        id: last_successful_commit_push
+        with:
+          branch: ${{ steps.branch-name.outputs.current_branch }} # Get the last successful commit for the current branch.
+          workflow_id: 'format.yml'
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Get changed C/C++ files
         id: changed-files-specific
         uses: tj-actions/changed-files@v33
         with:
-           since_last_remote_commit: "true"
+           base_sha: ${{ steps.last_successful_commit_push.outputs.commit_hash }}
 
       - name: Process all modified source files
         run: |
