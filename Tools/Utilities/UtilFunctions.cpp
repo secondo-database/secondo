@@ -178,14 +178,15 @@ boost::lock_guard<boost::mutex> guard(mtx);;
 string
 StopWatch::minutesAndSeconds(const double seconds) {
 
-  char sbuf[20+1];
+  size_t buf_len = 21;
+  char sbuf[buf_len];
   double sec = 0, min = 0;
 
   modf(seconds/60, &min);
   sec = seconds - (60 * min);
-  sprintf(&sbuf[0], "%.0f:%02.0f", min, sec);
+  snprintf(sbuf, buf_len, "%.0f:%02.0f", min, sec);
 
-  return string((const char*) sbuf);
+  return string(sbuf);
 }
 
 

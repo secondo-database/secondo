@@ -49,13 +49,14 @@ string* yacc_outtext;
 // sprintf(params[1], "%.64s_%d",paramname,paramno);
 // %d prints up to 11 bytes
 // %s prints up to 64 bytes
-typedef char cstring[128];
+#define MAX_CSTRING_LENGTH 128
+typedef char cstring[MAX_CSTRING_LENGTH];
 
 cstring paramname; // temporarly variable
 
-#define maxparams 10
+#define MAX_PARAMS 10
 
-cstring params[maxparams];
+cstring params[MAX_PARAMS];
 
 int paramno;
 stack<pair<int,string> > paramstack;
@@ -63,16 +64,18 @@ stack<pair<int,string> > paramstack;
 extern void yyerror( const char* s );
 
 void cleanVariables(int max){
-  if(maxparams<max) max = maxparams;
-  for(int i=0;i<max;i++){
-     strcpy(params[i],"");
+  if(MAX_PARAMS < max) 
+     max = MAX_PARAMS;
+
+  for(size_t i=0; i<max; i++){
+     memset(params[i], '\0', MAX_CSTRING_LENGTH); 
   }
 }
 
 void emptystack(){
    while(!paramstack.empty())
         paramstack.pop();
-   cleanVariables(maxparams);
+   cleanVariables(MAX_PARAMS);
 }
 
 

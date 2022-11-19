@@ -32,6 +32,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <iostream>
 #include <cstdlib>
 
+#define BUFFER_LEN 32
+
 using namespace dfs;
 using namespace std;
 
@@ -70,29 +72,29 @@ Str::Str(const char *buf, int l) {
 
 Str::Str(int i) {
   length = 0;
-  char tmp[32];
-  int x = sprintf(tmp, "%d", i);
+  char tmp[BUFFER_LEN];
+  int x = snprintf(tmp, BUFFER_LEN, "%d", i);
   fromBuffer(tmp, x);
 }
 
 Str::Str(long l) {
   length = 0;
-  char tmp[32];
-  int x = sprintf(tmp, "%ld", l);
+  char tmp[BUFFER_LEN];
+  int x = snprintf(tmp, BUFFER_LEN, "%ld", l);
   fromBuffer(tmp, x);
 }
 
 Str::Str(unsigned long l) {
   length = 0;
-  char tmp[32];
-  int x = sprintf(tmp, "%ld", l);
+  char tmp[BUFFER_LEN];
+  int x = snprintf(tmp, BUFFER_LEN, "%ld", l);
   fromBuffer(tmp, x);
 }
 
 Str::Str(UI64 l) {
   length = 0;
-  char tmp[32];
-  int x = sprintf(tmp, "%llu", l);
+  char tmp[BUFFER_LEN];
+  int x = snprintf(tmp, BUFFER_LEN, "%llu", l);
   fromBuffer(tmp, x);
 }
 
@@ -398,7 +400,8 @@ void ToStrSerializer::appendDefaultUnsignedShort(unsigned short value) {
 
 void ToStrSerializer::appendUInt64(UI64 value) {
   char tmp[21];
-  sprintf(tmp, "%llu", value);
+  snprintf(tmp, 21, "%llu", value);
+  //FIXME: Consume tmp?
   Str s(value);
   appendRaw(s.prepend(21, '0'));
 }

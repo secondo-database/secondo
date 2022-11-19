@@ -522,12 +522,13 @@ OutDate( ListExpr typeInfo, Word value )
 {
   Date* date;
   string outputStr;
-  char buf[100];
+  size_t buf_len = 100;
+  char buf[buf_len];
 
   date = (Date*)(value.addr);
   if (date->IsDefined())
   {
-    sprintf(buf, "%02d.%02d.%d", date->GetDay(),
+    snprintf(buf, buf_len, "%02d.%02d.%d", date->GetDay(),
             date->GetMonth(), date->GetYear());   //eg. "01.02.1993"
   }
   else
