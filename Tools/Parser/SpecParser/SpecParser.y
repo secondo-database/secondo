@@ -564,7 +564,7 @@ void print_complex_postfix(){
    // write the operatortoken
    (*yaccrules1) << token << " ";
    // write the argumentlist, count the separators
-   bool fun_used = false;
+   //bool fun_used = false;
    bool funlist_used = false;
 
    int separators = 0; 
@@ -582,7 +582,7 @@ void print_complex_postfix(){
       positions[i] = size1 + 3 + 2*i;
       string arg = (*currenttranslation.arguments2)[i];
       if(arg == "fun"){
-         fun_used = true;
+         //fun_used = true;
          arg = funname;
       } else if(arg == "funlist"){
          funlist_used=true;
