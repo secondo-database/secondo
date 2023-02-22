@@ -63,7 +63,7 @@ stack<pair<int,string> > paramstack;
 
 extern void yyerror( const char* s );
 
-void cleanVariables(int max){
+void cleanVariables(size_t max){
   if(MAX_PARAMS < max) 
      max = MAX_PARAMS;
 
