@@ -19,7 +19,7 @@ endif
 all: Config.ini app$(EXEEXT)
 
 
-LDFLAGS+=-L../lib/ -lsecondo -ly -lstdc++ 
+LDFLAGS+=-L../lib/ -lsecondo -lstdc++
 ifeq ($(SECONDO_PLATFORM),win32)
 LDFLAGS+=-lwsock32 -lws2_32
 endif
