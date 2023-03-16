@@ -2493,24 +2493,24 @@ class NNIteratorN {
   typedef std::tuple<node_t*, bool, double, bool> pqType_t;
   
   NNIteratorN(node_t* root, const T& _q, const DistComp& di, const int _k) : 
-                                                          q(_q), dc(di), k(_k) {
+                                                  q(_q), pos(0), dc(di), k(_k) {
     results.clear();
     if (k == 0) {
       k = INT_MAX;
     }
-    collectNNold(root);
+    collectNN(root);
     //stat.print(cout, dc.getNoDistFunCalls(), true);
   }
   
   void addResult(const TupleId id, const double d) {
     TidDist td(id, d);
-    results.insert(td);
+    results.push_back(td);
   }
   
   int chooseCenter(node_t* node, const bool isInside, double& d_x) {
     int result = -1;
     if (isInside) {
-      if (node->IsLeaf()) {
+      if (node->isLeaf()) {
         result = ((leafnode_t*)node)->getNearestCenterPos(q, dc, 
                                       ((leafnode_t*)node)->getNoEntries(), d_x);
       }
@@ -2523,7 +2523,7 @@ class NNIteratorN {
       std::random_device seeder;
       std::mt19937 engine(seeder());
       int maxValue = -1;
-      if (node->IsLeaf()) {
+      if (node->isLeaf()) {
         maxValue = ((leafnode_t*)node)->getNoEntries() - 1;
       }
       else {
@@ -2552,7 +2552,7 @@ class NNIteratorN {
     return ((leafnode_t*)childNode)->getNoEntries() == 1;
   }
   
-  leafnode_t* makeAuxNode(node_t* node, const int pos) const {
+  leafnode_t* makeAuxNode(node_t* node, const int pos) {
     std::vector<T> contents;
     if (node->isLeaf()) {
       contents.push_back(*(((leafnode_t*)node)->getObject(pos)));
@@ -2571,10 +2571,10 @@ or only an object (false; in this case, the first and only one) is considered.
 The second boolean represents the status variable.
     
 */
-  double getApproxRadius(node_t* node) const { // getApproxRadius2 from paper
+  double getApproxRadius(node_t* node) { // getApproxRadius2 from paper
     std::priority_queue<pqType_t, std::vector<pqType_t>, 
                         NodePQComp<T, DistComp, variant> > pq;
-    pq.push(std::make_tuple(node, 0.0, true));
+    pq.push(std::make_tuple(node, true, 0.0, true));
     double result = -1.0;
     int pointsVisited = 0;
     node_t* tempNode = 0;
@@ -2609,7 +2609,7 @@ The second boolean represents the status variable.
               double d_ij = node->getPrecomputedDist(c_i, j, node->isLeaf());
               double r_j = (node->isLeaf() ? ((leafnode_t*)node)->getMaxDist() :
                                            ((innernode_t*)node)->getMaxDist(j));
-              double estDist_j = abs(d_x - d_ij) - r_j; // TODO: enable choice
+              double estDist_j = abs(d_x - d_ij) - r_j; // TODO: add DE0 to DE8
               pq.push(std::make_tuple(((innernode_t*)node)->getChild(j), true,
                                       estDist_j, false));
             }
@@ -2628,7 +2628,8 @@ The second boolean represents the status variable.
     std::vector<TidDist> Res_2;
     while (obj != 0) {
       dist_i = dc(q, *obj);
-      Res_2.push_back(std::make_pair(obj->getTid(), dist_i));
+      TidDist td(obj->getTid(), dist_i);
+      Res_2.push_back(td);
       obj = rit->nextObj();
     }
     std::sort(Res_2.begin(), Res_2.end());
@@ -2637,7 +2638,7 @@ The second boolean represents the status variable.
     }
   } 
   
-  rangeiterator_t* find1NN(node_t* node, double& radius) {
+  rangeiterator_t* find1NN(node_t* node, double& radius) { // deprecated
     int noDistFunCallsBefore, noDistFunCallsAfter;
     int c_q;
     double d_min;
@@ -2672,7 +2673,7 @@ The second boolean represents the status variable.
     return new rangeiterator_t(node, q, d_min, dc);
   }
   
-  void collectNNold(node_t* node) {
+  void collectNNold(node_t* node) { // deprecated
     double radius;
     rangeiterator_t* rit = find1NN(node, radius);
     T* obj = rit->nextObj();
@@ -2685,9 +2686,9 @@ The second boolean represents the status variable.
       addResult(obj->getTid(), dist);
       obj = rit->nextObj();
     }
-    it = results.begin();
+//     it = results.begin();
     if (k == 1) {
-      pruneResults(node);
+//       pruneResults(node);
       delete rit;
       return;
     }
@@ -2722,25 +2723,18 @@ The second boolean represents the status variable.
         obj = rit->nextObj();
       }
     }
-    pruneResults(node);
+//     pruneResults(node);
     delete rit;
-  }
-  
-  void pruneResults(node_t* node) {
-    if ((int)results.size() > k) {
-      advance(it, k);
-      results.erase(it, results.end());
-      it = results.begin();
-    }
   }
   
   const TidDist next() {
     TidDist result(0, -1.0);
-    if (it == results.end()) {
+    assert(pos <= results.size());
+    if (pos == results.size()) {
       return result;
     }
-    result = *it;
-    it++;
+    result = results[pos];
+    pos++;
     return result;
   }
   
@@ -2766,10 +2760,10 @@ The second boolean represents the status variable.
   
  private:
   T q;
-  std::set<TidDist> results;
-  typename std::set<TidDist>::iterator it;
+  std::vector<TidDist> results;
+  unsigned int pos; // pos inside result vector (used for transferring results)
   DistComp dc;
-  int k; // number of computed nearest neighbors
+  int k; // number of nearest neighbors
   NTreeStat stat; // statistics
 };
 

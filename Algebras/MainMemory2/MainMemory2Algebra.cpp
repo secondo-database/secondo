@@ -6640,8 +6640,8 @@ Operator ~mnearestNeighborN7~, ~mnearestNeighborN8~
 */
 template<int variant>
 ListExpr mnearestNeighborNTM(ListExpr args) {
-  string err = "NTREE(T) x MREL x T (x int) expected";
-  if (!nl->HasLength(args, 3) && !nl->HasLength(args, 4)) {
+  string err = "NTREE(T) x MREL x T x int expected";
+  if (!nl->HasLength(args, 4)) {
     return listutils::typeError(err + " (wrong number of args)");
   }
   ListExpr a1 = nl->First(args);
@@ -6669,10 +6669,8 @@ ListExpr mnearestNeighborNTM(ListExpr args) {
     return listutils::typeError("first arg is not an " + treeType + " over " +
                                 nl->ToString(a3));
   }
-  if (nl->HasLength(args, 4)) {
-    if (!CcInt::checkType(nl->Fourth(args))) {
-      return listutils::typeError("fourth arg is not an integer");
-    }
+  if (!CcInt::checkType(nl->Fourth(args))) {
+    return listutils::typeError("fourth arg is not an integer");
   }
   // copy attribute list and append distance attribute
   set<string> attrNames;
@@ -6721,10 +6719,7 @@ class mnearestNeighborNInfo {
     TidDist td(0, -1.0);
     while (true) {
       td = it->next();
-      if (((int)td.tid) == -1) {
-        return 0;
-      }
-      if (td.dist < 0.0) {
+      if (((int)td.tid) == -1 || td.dist < 0.0) {
         return 0;
       }
       if (td.tid <= rel->size()) {
@@ -6791,16 +6786,12 @@ int mnearestNeighborNVMT(Word* args, Word& result, int message, Word& local,
         return 0;
       }
       K* key = (K*)args[2].addr;
-      int k = 0;
-      if (qp->GetNoSons(s) == 4) {
-        CcInt *_k = (CcInt*)args[3].addr;
-        if (!_k->IsDefined()) {
-          return 0;
-        }
-        k = _k->GetValue();
+      CcInt *_k = (CcInt*)args[3].addr;
+      if (!_k->IsDefined()) {
+        return 0;
       }
       local.addr = new mnearestNeighborNInfo<K, StdDistComp<K>, variant>(n,
-                           rel, key, nl->Second(qp->GetSupplierTypeExpr(s)), k);
+              rel, key, nl->Second(qp->GetSupplierTypeExpr(s)), _k->GetValue());
       return 0;
     }
     case REQUEST: {
@@ -6901,24 +6892,24 @@ ValueMapping mnearestNeighborNVM[] = {
 };
 
 OperatorSpec mnearestNeighborN7Spec(
-  "MTREE x MREL x T (x int) -> stream(tuple) , "
+  "MTREE x MREL x T x int -> stream(tuple) , "
   "MTREE, MREL represented as string, mem, or mpointer",
-  "mem_mtree mem_rel mnearestNeighborN7[keyAttr, k] ",
-  "Sorts the relation by its distance to the reference object aided by an "
-  "N-tree7. The original tuples are extended by an attribute containing the "
-  "distance to the reference object. Determining the desired number of "
-  "neighbors, k, is optional.",
+  "mem_mtree mem_rel mnearestNeighborN7[queryObject, k] ",
+  "Retrieves the k tuples with the smallest distance to the query object, aided"
+  " by an N-tree7. The original tuples are sorted by this distance and extended"
+  " by an attribute named QueryObjectDistance which contains the distance to "
+  "the reference object.",
   "query mkinos_mtree mKinos mnearestNeighborN7[alexanderplatz, 1] consume"
 );
 
 OperatorSpec mnearestNeighborN8Spec(
-  "MTREE x MREL x T (x int) -> stream(tuple) , "
+  "MTREE x MREL x T x int -> stream(tuple) , "
   "MTREE, MREL represented as string, mem, or mpointer",
-  "mem_mtree mem_rel mnearestNeighborN8[keyAttr, k] ",
-  "Sorts the relation by its distance to the reference object aided by an "
-  "N-tree8. The original tuples are extended by an attribute containing the "
-  "distance to the reference object. Determining the desired number of "
-  "neighbors, k, is optional.",
+  "mem_mtree mem_rel mnearestNeighborN8[queryObject, k] ",
+  "Retrieves the k tuples with the smallest distance to the query object, aided"
+  " by an N-tree8. The original tuples are sorted by this distance and extended"
+  " by an attribute named QueryObjectDistance which contains the distance to "
+  "the reference object.",
   "query mkinos_mtree mKinos mnearestNeighborN8[alexanderplatz, 1] consume"
 );
 
