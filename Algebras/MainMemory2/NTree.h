@@ -2598,7 +2598,8 @@ The second boolean represents the status variable.
       else { // internal node or whole leaf
         double d_x = 0.0;
         int c_i = chooseCenter(tempNode, isInside, d_x);
-        pq.push(std::make_tuple(makeAuxNode(tempNode, c_i), false, d_x, isInside));
+        pq.push(std::make_tuple(makeAuxNode(tempNode, c_i), false, d_x,
+                                isInside));
         cout << "PUSH1: " << d_x << endl;
         if (!tempNode->isLeaf()) {
           double r_i = ((innernode_t*)tempNode)->getMaxDist(c_i);
@@ -2606,19 +2607,22 @@ The second boolean represents the status variable.
                                   d_x - r_i, isInside));
           cout << "PUSH2: " << d_x - r_i << endl;
         }
-        int size = (tempNode->isLeaf() ? ((leafnode_t*)tempNode)->getNoEntries() :
-                                     ((innernode_t*)tempNode)->getDegree());
+        int size = (tempNode->isLeaf() ?
+                   ((leafnode_t*)tempNode)->getNoEntries() :
+                   ((innernode_t*)tempNode)->getDegree());
         for (int j = 0; j < size; j++) {
           if (j != c_i) {
             double d_ij = (tempNode->isLeaf() ? 
                            tempNode->getPrecomputedDist(c_i, j, true) :
                            tempNode->getPrecomputedDist(c_i, j, false));
-            pq.push(std::make_tuple(makeAuxNode(tempNode, j), false, d_x + d_ij, false));
-            cout << "PUSH3: " << d_x << " + " << d_ij << " = " << d_x + d_ij << endl;
+            pq.push(std::make_tuple(makeAuxNode(tempNode, j), false, d_x + d_ij,
+                                    false));
+            cout << "PUSH3: " << d_x << " + " << d_ij << " = " << d_x + d_ij 
+                 << endl;
             if (!tempNode->isLeaf()) {
               double r_j = ((innernode_t*)tempNode)->getMaxDist(j);
-              pq.push(std::make_tuple(((innernode_t*)tempNode)->getChild(j), true,
-                                      std::max(d_x, d_ij) - r_j, false));
+              pq.push(std::make_tuple(((innernode_t*)tempNode)->getChild(j), 
+                                      true, std::max(d_x, d_ij) - r_j, false));
               cout << "PUSH4: " << std::max(d_x, d_ij) - r_j << endl;
             }
           }
