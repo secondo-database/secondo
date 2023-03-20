@@ -2460,13 +2460,64 @@ Auxiliary class for a priority queue of objects.
 
 */
 template<class T, class DistComp, int variant>
+class NodePQElem {
+ public:
+  typedef NTreeNode<T, DistComp, variant> node_t;
+  
+  NodePQElem(node_t* _node, const bool _isNode, const double _dist, 
+             const bool _isInside) {
+    set(_node, _isNode, _dist, _isInside);
+  }
+    
+  NodePQElem() {
+    node = 0;
+  }
+  
+  ~NodePQElem() { // TODO
+//     if (!isNode && node != 0) {
+//       delete node;
+//     }
+//     node = 0;
+  }
+  
+  void set(node_t* _node, const bool _isNode, const double _dist, 
+           const bool _isInside) {
+    node = _node;
+    isNode = _isNode;
+    dist = _dist;
+    isInside = _isInside;
+  }
+  
+  node_t* getNode() {
+    return node;
+  }
+  
+  bool getIsNode() {
+    return isNode;
+  }
+  
+  double getDist() {
+    return dist;
+  }
+  
+  bool getIsInside() {
+    return isInside;
+  }
+  
+ private:
+  node_t* node;
+  bool isNode, isInside;
+  double dist;
+};
+
+template<class T, class DistComp, int variant>
 class NodePQComp {
  public:
   typedef NTreeNode<T, DistComp, variant> node_t;
-  typedef std::tuple<node_t*, bool, double, bool> pqType_t;
+  typedef NodePQElem<T, DistComp, variant> nodepqelem_t;
    
-  bool operator() (pqType_t& p1, pqType_t& p2) {
-    return std::get<2>(p1) > std::get<2>(p2);
+  bool operator() (nodepqelem_t& p1, nodepqelem_t& p2) {
+    return p1.getDist() > p2.getDist();
   }
 }; 
 
@@ -2490,7 +2541,8 @@ class NNIteratorN {
   typedef NTreeNode<T, DistComp, variant> node_t;
   typedef NTreeLeafNode<T, DistComp, variant> leafnode_t;
   typedef NTreeInnerNode<T, DistComp, variant> innernode_t;
-  typedef std::tuple<node_t*, bool, double, bool> pqType_t;
+  typedef NodePQElem<T, DistComp, variant> nodepqelem_t;
+  typedef NodePQComp<T, DistComp, variant> nodepqcomp_t;
   
   NNIteratorN(node_t* root, const T& _q, const DistComp& di, const int _k) : 
                                                   q(_q), pos(0), dc(di), k(_k) {
@@ -2575,36 +2627,43 @@ The second boolean represents the status variable.
     
 */
   double getApproxRadius(node_t* node) { // getApproxRadius2 from paper
-    std::priority_queue<pqType_t, std::vector<pqType_t>, 
-                        NodePQComp<T, DistComp, variant> > pq;
-    pq.push(std::make_tuple(node, true, 0.0, true));
+    std::priority_queue<nodepqelem_t, std::vector<nodepqelem_t>, nodepqcomp_t> 
+      pq;
+    nodepqelem_t newPQElem(node, true, 0.0, true), pqElem;
+    pq.push(newPQElem);
     double result = -1.0;
     int pointsVisited = 0;
     node_t* tempNode = 0;
     while (!pq.empty()) {
-      auto pqItem = pq.top();
-      cout << "TOP: pqItem = " << (std::get<1>(pqItem) ? "NODE, " : "OBJECT, ") 
-           << std::get<2>(pqItem) << endl;
+      pqElem = pq.top();
+      cout << "TOP: pqElem = " << (pqElem.getIsNode() ? "NODE, " : "OBJECT, ") 
+           << pqElem.getDist() << endl;
       pq.pop();
-      tempNode = std::get<0>(pqItem);
-      bool isInside = std::get<3>(pqItem);
-      if (!std::get<1>(pqItem)) { // tempNode is only a data object
-        result = std::max(result, std::get<2>(pqItem));
+      tempNode = pqElem.getNode();
+      bool isInside = pqElem.getIsInside();
+      if (!pqElem.getIsNode()) { // tempNode is only a data object
+        result = std::max(result, pqElem.getDist());
         pointsVisited++;
         if (pointsVisited == k) {
+          while (!pq.empty()) {
+            pq.pop();
+          }
           return result;
         }
       }
       else { // internal node or whole leaf
         double d_x = 0.0;
         int c_i = chooseCenter(tempNode, isInside, d_x);
-        pq.push(std::make_tuple(makeAuxNode(tempNode, c_i), false, d_x,
-                                isInside));
+        nodepqelem_t *npqelem = new nodepqelem_t(makeAuxNode(tempNode, c_i), 
+                                                 false, d_x, isInside);
+        cout << "PQ is " << (pq.empty() ? "" : "NOT ") << "empty" << endl;
+        pq.push(*npqelem);
         cout << "PUSH1: " << d_x << endl;
         if (!tempNode->isLeaf()) {
           double r_i = ((innernode_t*)tempNode)->getMaxDist(c_i);
-          pq.push(std::make_tuple(((innernode_t*)tempNode)->getChild(c_i), true,
-                                  d_x - r_i, isInside));
+          nodepqelem_t *npqelem = new nodepqelem_t(
+            ((innernode_t*)tempNode)->getChild(c_i), true, d_x - r_i, isInside);
+          pq.push(*npqelem);
           cout << "PUSH2: " << d_x - r_i << endl;
         }
         int size = (tempNode->isLeaf() ?
@@ -2615,19 +2674,28 @@ The second boolean represents the status variable.
             double d_ij = (tempNode->isLeaf() ? 
                            tempNode->getPrecomputedDist(c_i, j, true) :
                            tempNode->getPrecomputedDist(c_i, j, false));
-            pq.push(std::make_tuple(makeAuxNode(tempNode, j), false, d_x + d_ij,
-                                    false));
+            nodepqelem_t *npqelem = new nodepqelem_t(makeAuxNode(tempNode, j), 
+                                                 false, d_x + d_ij, false);
+//            newPQElem.set(makeAuxNode(tempNode, j), false, d_x + d_ij, false);
+            pq.push(*npqelem);
             cout << "PUSH3: " << d_x << " + " << d_ij << " = " << d_x + d_ij 
                  << endl;
             if (!tempNode->isLeaf()) {
               double r_j = ((innernode_t*)tempNode)->getMaxDist(j);
-              pq.push(std::make_tuple(((innernode_t*)tempNode)->getChild(j), 
-                                      true, std::max(d_x, d_ij) - r_j, false));
+              newPQElem.set(((innernode_t*)tempNode)->getChild(j), true,
+                            std::max(d_x, d_ij) - r_j, false);
+              nodepqelem_t *npqelem = new nodepqelem_t(
+                ((innernode_t*)tempNode)->getChild(j), true,
+                std::max(d_x, d_ij) - r_j, false);
+              pq.push(*npqelem);
               cout << "PUSH4: " << std::max(d_x, d_ij) - r_j << endl;
             }
           }
         }
       }
+    }
+    while (!pq.empty()) {
+      pq.pop();
     }
     return result;
   }
@@ -2646,6 +2714,7 @@ The second boolean represents the status variable.
       Res_2.push_back(td);
       obj = rit->nextObj();
     }
+    delete rit;
     std::sort(Res_2.begin(), Res_2.end());
     for (int i = 0; i < k; i++) {
       addResult(Res_2[i].tid, Res_2[i].dist);
