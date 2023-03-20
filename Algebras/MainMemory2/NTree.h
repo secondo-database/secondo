@@ -2466,7 +2466,7 @@ class NodePQComp {
   typedef std::tuple<node_t*, bool, double, bool> pqType_t;
    
   bool operator() (pqType_t& p1, pqType_t& p2) {
-    return std::get<2>(p1) < std::get<2>(p2);
+    return std::get<2>(p1) > std::get<2>(p2);
   }
 }; 
 
@@ -2518,6 +2518,8 @@ class NNIteratorN {
         result = ((innernode_t*)node)->getNearestCenterPos(q, dc, 
                                         ((innernode_t*)node)->getDegree(), d_x);
       }
+      cout << "  isInside, " << (node->isLeaf() ? "LEAF" : "INNERNODE")
+           << ": c_i = " << result << ", d_x = " << d_x << endl;
     }
     else {
       std::random_device seeder;
@@ -2537,6 +2539,7 @@ class NNIteratorN {
       else {
         d_x = dc(q, *(((innernode_t*)node)->getCenter(result)));
       }
+      cout << "chooseCenter: call DC" << endl;
     }
     return result;
   }
@@ -2580,38 +2583,43 @@ The second boolean represents the status variable.
     node_t* tempNode = 0;
     while (!pq.empty()) {
       auto pqItem = pq.top();
+      cout << "TOP: pqItem = " << (std::get<1>(pqItem) ? "NODE, " : "OBJECT, ") 
+           << std::get<2>(pqItem) << endl;
       pq.pop();
       tempNode = std::get<0>(pqItem);
       bool isInside = std::get<3>(pqItem);
-      if (!std::get<1>(pqItem)) {
+      if (!std::get<1>(pqItem)) { // tempNode is only a data object
         result = std::max(result, std::get<2>(pqItem));
         pointsVisited++;
         if (pointsVisited == k) {
           return result;
         }
       }
-      else {
+      else { // internal node or whole leaf
         double d_x = 0.0;
         int c_i = chooseCenter(tempNode, isInside, d_x);
-        pq.push(std::make_tuple(makeAuxNode(node, c_i), false, d_x, isInside));
-        if (!hasEmptyChild(node, c_i)) { // node(c_i) != empty
-          double r_i = (node->isLeaf() ? ((leafnode_t*)node)->getMaxDist() :
-                                         ((innernode_t*)node)->getMaxDist(c_i));
-          pq.push(std::make_tuple(((innernode_t*)node)->getChild(c_i), true,
+        pq.push(std::make_tuple(makeAuxNode(tempNode, c_i), false, d_x, isInside));
+        cout << "PUSH1: " << d_x << endl;
+        if (!tempNode->isLeaf()) {
+          double r_i = ((innernode_t*)tempNode)->getMaxDist(c_i);
+          pq.push(std::make_tuple(((innernode_t*)tempNode)->getChild(c_i), true,
                                   d_x - r_i, isInside));
+          cout << "PUSH2: " << d_x - r_i << endl;
         }
-        int size = (node->isLeaf() ? ((leafnode_t*)node)->getNoEntries() :
-                                     ((innernode_t*)node)->getDegree());
+        int size = (tempNode->isLeaf() ? ((leafnode_t*)tempNode)->getNoEntries() :
+                                     ((innernode_t*)tempNode)->getDegree());
         for (int j = 0; j < size; j++) {
           if (j != c_i) {
-            pq.push(std::make_tuple(makeAuxNode(node, j), false, d_x, false));
-            if (!hasEmptyChild(node, j)) { // node(c_j) != empty
-              double d_ij = node->getPrecomputedDist(c_i, j, node->isLeaf());
-              double r_j = (node->isLeaf() ? ((leafnode_t*)node)->getMaxDist() :
-                                           ((innernode_t*)node)->getMaxDist(j));
-              double estDist_j = abs(d_x - d_ij) - r_j; // TODO: add DE0 to DE8
-              pq.push(std::make_tuple(((innernode_t*)node)->getChild(j), true,
-                                      estDist_j, false));
+            double d_ij = (tempNode->isLeaf() ? 
+                           tempNode->getPrecomputedDist(c_i, j, true) :
+                           tempNode->getPrecomputedDist(c_i, j, false));
+            pq.push(std::make_tuple(makeAuxNode(tempNode, j), false, d_x + d_ij, false));
+            cout << "PUSH3: " << d_x << " + " << d_ij << " = " << d_x + d_ij << endl;
+            if (!tempNode->isLeaf()) {
+              double r_j = ((innernode_t*)tempNode)->getMaxDist(j);
+              pq.push(std::make_tuple(((innernode_t*)tempNode)->getChild(j), true,
+                                      std::max(d_x, d_ij) - r_j, false));
+              cout << "PUSH4: " << std::max(d_x, d_ij) - r_j << endl;
             }
           }
         }
@@ -2622,12 +2630,14 @@ The second boolean represents the status variable.
 
   void collectNN(node_t* node) {
     double approxRadius = getApproxRadius(node);
+    cout << "approxRadius is " << approxRadius << endl;
     rangeiterator_t* rit = new rangeiterator_t(node, q, approxRadius, dc);
     T* obj = rit->nextObj();
     double dist_i = 0.0;
     std::vector<TidDist> Res_2;
     while (obj != 0) {
       dist_i = dc(q, *obj);
+      cout << "collectNN: call dc(q, " << obj->getTid() << ")" << endl;
       TidDist td(obj->getTid(), dist_i);
       Res_2.push_back(td);
       obj = rit->nextObj();
