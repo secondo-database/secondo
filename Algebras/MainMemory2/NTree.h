@@ -2475,7 +2475,7 @@ class NodePQElem {
   }
   
 //   ~NodePQElem() { // TODO
-//     cout << "Destructor. " << isNode << " " << dist << " " << isInside << endl;
+//    cout << "Destructor " << isNode << " " << dist << " " << isInside << endl;
 //     if (!isNode && node != 0) {
 //       delete node;
 //     }
@@ -2664,7 +2664,8 @@ The second boolean represents the status variable.
       else { // internal node or whole leaf
         double d_x = 0.0;
         int c_i = chooseCenter(tempNode, isInside, d_x);
-        nodepqelem_t newPQElem1(makeAuxNode(tempNode, c_i), false, d_x, isInside);
+        nodepqelem_t newPQElem1(makeAuxNode(tempNode, c_i), false, d_x,
+                                isInside);
         pq.push(newPQElem1);
 //         cout << "PUSH1: " << d_x << endl;
         if (!tempNode->isLeaf()) {
