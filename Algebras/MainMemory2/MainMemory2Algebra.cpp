@@ -6717,9 +6717,10 @@ class mnearestNeighborNInfo {
 
   Tuple* next() {
     TidDist td(0, -1.0);
+    bool valid = true;
     while (true) {
-      td = it->next();
-      if (((int)td.tid) == -1 || td.dist < 0.0) {
+      td = it->next(valid);
+      if (!valid) {
         return 0;
       }
       if (td.tid <= rel->size()) {
