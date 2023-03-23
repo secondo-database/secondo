@@ -2708,7 +2708,10 @@ The second boolean represents the status variable.
   }
 
   void collectNN(node_t* node) {
-    double approxRadius = getApproxRadius(node);
+    double approxRadius = getApproxRadius(node) * (1 + getAlmostEqualFactor());
+    if (approxRadius == 0.0) {
+      approxRadius = getAlmostEqualFactor();
+    }
     cout << "approxRadius is " << approxRadius << endl;
     rangeiterator_t* rit = new rangeiterator_t(node, q, approxRadius, dc);
     T* obj = rit->nextObj();
