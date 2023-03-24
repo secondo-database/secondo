@@ -6333,7 +6333,7 @@ int mdistRangeNVMT(Word* args, Word& result, int message, Word& local,
       if (!range->IsDefined()) {
         return 0;
       }
-      double r = range->GetValue();
+      double r = range->GetValue() * (1 + getAlmostEqualFactor());
       if (r < 0.0) {
         return 0;
       }
