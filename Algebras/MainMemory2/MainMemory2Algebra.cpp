@@ -5920,7 +5920,35 @@ Operator mdistRangeOp(
 /*
 Operator ~mclosestCenterN~
 
+Auxiliary function that adds an attribute for the distance of each
+object to the query object.
+
 */
+ListExpr getAttrListWithDist(ListExpr typeExpr, string basicName) {
+  set<string> attrNames;
+  ListExpr attrList = nl->Second(nl->Second(typeExpr));
+  ListExpr result = nl->OneElemList(nl->First(attrList));
+  attrNames.insert(nl->SymbolValue(nl->First(nl->First(attrList))));
+  ListExpr lastList = result;
+  attrList = nl->Rest(attrList);
+  while (!nl->IsEmpty(attrList)) {
+    attrNames.insert(nl->SymbolValue(nl->First(nl->First(attrList))));
+    lastList = nl->Append(lastList, nl->First(attrList));
+    attrList = nl->Rest(attrList);
+  }
+  bool isPresent = (attrNames.find(basicName) != attrNames.end());
+  int suffix = 0;
+  string distAttrName = basicName;
+  while (isPresent) {
+    suffix++;
+    string distAttrName = basicName + to_string(suffix);
+    isPresent = (attrNames.find(distAttrName) != attrNames.end());
+  }
+  lastList = nl->Append(lastList, nl->TwoElemList(nl->SymbolAtom(distAttrName),
+                                        nl->SymbolAtom(CcReal::BasicType())));
+  return result;  
+}
+
 ListExpr mclosestCenterNTM(ListExpr args) {
   string err = "NTREE(T) x MREL x T  expected";
   if (!nl->HasLength(args, 3)) {
@@ -5950,18 +5978,24 @@ ListExpr mclosestCenterNTM(ListExpr args) {
       return listutils::typeError("first arg is not an ntree 7 or 8 over " +
                                   nl->ToString(a3));
   }
+  ListExpr newAttrList = getAttrListWithDist(a2, "ClosestCenterDistance");
   return nl->TwoElemList(listutils::basicSymbol<Stream<Tuple> >(),
-                         nl->Second(a2)); 
+              nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()), newAttrList));
+//   return nl->TwoElemList(listutils::basicSymbol<Stream<Tuple> >(),
+//                          nl->Second(a2)); 
 }
 
 template<class T, class Dist, int variant>
 class closestCenterNInfo {
  public:
   closestCenterNInfo(MemoryNtreeObject<T, Dist, variant>* ntreeX,
-                     MemoryRelObject* mrel, T* ref) {
+                     MemoryRelObject* mrel, T* ref, ListExpr typeList) :
+                                                       tupleTypeList(typeList) {
     rel = mrel->getmmrel();
     MTreeEntry<T> p(*ref, 0);
     it = ntreeX->getNtreeX()->closestCenter(p);
+    sc = SecondoSystem::GetCatalog();
+    numTupleTypeList = sc->NumericType(tupleTypeList);
   }
 
   ~closestCenterNInfo() {
@@ -5970,14 +6004,19 @@ class closestCenterNInfo {
 
   Tuple* next() {
     while (true) {
-      const TupleId tid = it->next();
-      if ((int)tid == -1) {
+      const TidDist td = it->nextTidDist();
+      if ((int)td.tid == -1) {
         return 0;
       }
-      if (tid <= rel->size()) {
-        Tuple* res = (*rel)[tid - 1];
-        if (res) { // ignore deleted tuples
-          res->IncReference();
+      if (td.tid <= rel->size()) {
+        Tuple* src = (*rel)[td.tid - 1];
+        if (src) { // ignore deleted tuples
+          Tuple* res = new Tuple(numTupleTypeList);
+          for (int i = 0; i < src->GetNoAttributes(); i++) {
+            res->CopyAttribute(i, src, i);
+          }
+          res->PutAttribute(res->GetNoAttributes() - 1,
+                            new CcReal(true, td.dist));
           return res;
         }
       }
@@ -5996,6 +6035,8 @@ class closestCenterNInfo {
  private:
   vector<Tuple*>* rel;
   RangeIteratorN<MTreeEntry<T>, Dist, variant>* it;
+  ListExpr tupleTypeList, numTupleTypeList;
+  SecondoCatalog *sc;
 };
 
 template<class K, class T, class R, int variant>
@@ -6022,7 +6063,7 @@ int mclosestCenterNVMT(Word* args, Word& result, int message, Word& local,
       }
       K* key = (K*)args[2].addr;
       local.addr = new closestCenterNInfo<K, StdDistComp<K>, variant>(n, rel,
-                                                                      key);
+                                   key, nl->Second(qp->GetSupplierTypeExpr(s)));
       return 0;
     }
     case REQUEST: {
@@ -6637,6 +6678,8 @@ Operator mdistRangeN8Op(
 /*
 Operator ~mnearestNeighborN7~, ~mnearestNeighborN8~
 
+Type Mapping
+
 */
 template<int variant>
 ListExpr mnearestNeighborNTM(ListExpr args) {
@@ -6672,28 +6715,7 @@ ListExpr mnearestNeighborNTM(ListExpr args) {
   if (!CcInt::checkType(nl->Fourth(args))) {
     return listutils::typeError("fourth arg is not an integer");
   }
-  // copy attribute list and append distance attribute
-  set<string> attrNames;
-  ListExpr attrList = nl->Second(nl->Second(a2));
-  ListExpr newAttrList = nl->OneElemList(nl->First(attrList));
-  attrNames.insert(nl->SymbolValue(nl->First(nl->First(attrList))));
-  ListExpr lastList = newAttrList;
-  attrList = nl->Rest(attrList);
-  while (!nl->IsEmpty(attrList)) {
-    attrNames.insert(nl->SymbolValue(nl->First(nl->First(attrList))));
-    lastList = nl->Append(lastList, nl->First(attrList));
-    attrList = nl->Rest(attrList);
-  }
-  string distAttrName = "QueryObjectDistance";
-  bool isPresent = (attrNames.find(distAttrName) != attrNames.end());
-  int suffix = 0;
-  while (isPresent) {
-    suffix++;
-    distAttrName += to_string(suffix);
-    isPresent = (attrNames.find(distAttrName) != attrNames.end());
-  }
-  lastList = nl->Append(lastList, nl->TwoElemList(nl->SymbolAtom(distAttrName),
-                                        nl->SymbolAtom(CcReal::BasicType())));
+  ListExpr newAttrList = getAttrListWithDist(a2, "QueryObjectDistance");
   return nl->TwoElemList(listutils::basicSymbol<Stream<Tuple> >(),
               nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()), newAttrList));
 }

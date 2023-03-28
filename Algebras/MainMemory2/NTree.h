@@ -1906,6 +1906,31 @@ struct NTreeStat {
   int noDCInnerNodes, noDCLeaves;
 };
 
+struct TidDist {
+  TidDist(const TupleId id, const double d) {
+    set(id, d);
+  }
+  
+  TidDist() {
+    set(-1, -1.0);
+  }
+  
+  void set(const TupleId id, const double d) {
+    tid = id;
+    dist = d;
+  }
+  
+  bool operator<(const TidDist& td) const {
+    if (dist != td.dist) {
+      return dist < td.dist;
+    }
+    return tid < td.tid;
+  }
+  
+  TupleId tid;
+  double dist;
+};
+
 template <class T, class DistComp, int variant>
 class RangeIteratorN {
  public:
@@ -1930,12 +1955,12 @@ class RangeIteratorN {
     if (root->isLeaf()) {
       c_q = ((leafnode_t*)root)->getNearestCenterPos(queryObject, dc,
                                                          noCands, d_min);
-      addResult(((leafnode_t*)root)->getObject(c_q));
+      closestCenter.set(((leafnode_t*)root)->getObject(c_q)->getTid(), d_min);
     }
     else {
       c_q = ((innernode_t*)root)->getNearestCenterPos(queryObject, dc,
                                                           noCands, d_min);
-      addResult(((innernode_t*)root)->getCenter(c_q));
+      closestCenter.set(((innernode_t*)root)->getCenter(c_q)->getTid(), d_min);
     }
     
     int noDistFunCallsAfter = dc.getNoDistFunCalls();
@@ -2410,6 +2435,15 @@ class RangeIteratorN {
     return ((T*)(results[pos - 1]))->getTid();
   }
   
+  const TidDist nextTidDist() {
+    if (pos == 0) {
+      pos++;
+      return closestCenter;
+    }
+    TidDist dummy(-1, -1.0);
+    return dummy;
+  }
+  
   T* nextObj() {
     assert(pos >= 0);
     if (pos >= (int)results.size()) {
@@ -2438,21 +2472,8 @@ class RangeIteratorN {
   T queryObject;
   double range;
   DistComp dc;
+  TidDist closestCenter;
   NTreeStat stat; // statistics
-};
-
-struct TidDist {
-  TidDist(const TupleId id, const double d) : tid(id), dist(d) {}
-  
-  bool operator<(const TidDist& td) const {
-    if (dist != td.dist) {
-      return dist < td.dist;
-    }
-    return tid < td.tid;
-  }
-  
-  TupleId tid;
-  double dist;
 };
 
 /*
