@@ -5978,7 +5978,7 @@ ListExpr mclosestCenterNTM(ListExpr args) {
       return listutils::typeError("first arg is not an ntree 7 or 8 over " +
                                   nl->ToString(a3));
   }
-  ListExpr newAttrList = getAttrListWithDist(a2, "ClosestCenterDistance");
+  ListExpr newAttrList = getAttrListWithDist(a2, "CenterDistance");
   return nl->TwoElemList(listutils::basicSymbol<Stream<Tuple> >(),
               nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()), newAttrList));
 //   return nl->TwoElemList(listutils::basicSymbol<Stream<Tuple> >(),
