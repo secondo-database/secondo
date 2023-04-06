@@ -23675,7 +23675,6 @@ class MainMemory2Algebra : public Algebra {
 
           AddOperator(&mdistScan2Op);
 
-          AddOperator(&mclosestCenterNOp);
           AddOperator(&mdistRangeOp);
           AddOperator(&mdistRangeNOp);
           AddOperator(&mdistRangeN2Op);
@@ -23685,6 +23684,7 @@ class MainMemory2Algebra : public Algebra {
           AddOperator(&mdistRangeN8Op);
           AddOperator(&mnearestNeighborN7Op);
           AddOperator(&mnearestNeighborN8Op);
+          AddOperator(&mclosestCenterNOp);
 
           AddOperator(&mdistScanOp);
 
