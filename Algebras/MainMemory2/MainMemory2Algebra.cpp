@@ -6725,8 +6725,9 @@ class mnearestNeighborNInfo {
  public:
   mnearestNeighborNInfo(MemoryNtreeObject<T, DistComp, variant>* ntreeX,
                         MemoryRelObject* mrel, T* q, ListExpr typeList, 
-                        const int _k = 0) : tupleTypeList(typeList), k(_k) {
+                        const int _k = 0) : tupleTypeList(typeList) {
     rel = mrel->getmmrel();
+    k = min((int)_k, (int)(rel->size()));
     MTreeEntry<T> p(*q, 0);
     it = ntreeX->getNtreeX()->nnSearch(p, k);
     sc = SecondoSystem::GetCatalog();
