@@ -4767,7 +4767,7 @@ Functions required for attribute type
   }
 
   inline virtual size_t HashValue() const {
-    return ((UPoint*)this)->HashValue();
+    return UPoint::HashValue();
   }
 
   inline virtual CUPoint* Clone() const {
