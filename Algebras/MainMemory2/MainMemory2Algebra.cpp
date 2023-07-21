@@ -6814,6 +6814,10 @@ int mnearestNeighborNVMT(Word* args, Word& result, int message, Word& local,
       if (!_k->IsDefined()) {
         return 0;
       }
+      if (_k->GetValue() < 1) {
+        cout << "k must be at least 1" << endl;
+        return 0;
+      }
       local.addr = new mnearestNeighborNInfo<K, StdDistComp<K>, variant>(n,
               rel, key, nl->Second(qp->GetSupplierTypeExpr(s)), _k->GetValue());
       return 0;
