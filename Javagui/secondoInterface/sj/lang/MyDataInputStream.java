@@ -172,14 +172,14 @@ public boolean readBool(OutputStream o) throws IOException{
 /** reads a Line of text from the stream */
 public String readLine(OutputStream o) throws IOException{
   int len = 0;
-  Vector a = new Vector(1000);
+  Vector<Byte> a = new Vector<>(1000);
   int i;
   do{
      i=In.read();
      if(i<0) throw new IOException();
      len ++;
      if(((char)i)!='\n')
-        a.add(new Byte((byte)i));
+        a.add(Byte.valueOf((byte)i));
      } while(((char)i)!='\n');
 
   byte[] b = new byte[a.size()];

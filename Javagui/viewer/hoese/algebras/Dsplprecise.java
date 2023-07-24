@@ -21,7 +21,7 @@ public class Dsplprecise  extends DsplGeneric implements  RenderAttribute, Label
   public static Long getInt(ListExpr e){
 
      if(e.atomType()==ListExpr.INT_ATOM){
-        return new Long(e.intValue());
+        return Long.valueOf(e.intValue());
      }
      if(e.listLength()!=2){
         return null;
@@ -31,7 +31,7 @@ public class Dsplprecise  extends DsplGeneric implements  RenderAttribute, Label
        return null;
      }
      long r = (e.first().intValue() << 32) | e.second().intValue();
-     return new Long(r);
+     return Long.valueOf(r);
   }
 
   public static Double getFrac(ListExpr f){
@@ -87,7 +87,7 @@ public class Dsplprecise  extends DsplGeneric implements  RenderAttribute, Label
          le = le.second();
      }
      if(le.atomType()==ListExpr.INT_ATOM){
-        return new Double(le.intValue());
+        return Double.valueOf(le.intValue());
      }
 
 
@@ -109,7 +109,7 @@ public class Dsplprecise  extends DsplGeneric implements  RenderAttribute, Label
        res += frac.doubleValue();
      }
      res = res/scale;
-     return  new Double(res);
+     return  Double.valueOf(res);
   }
 
 

@@ -56,7 +56,7 @@ protected int max;
   public Double getValueAt(double length){
     int index = IntervalSearch.getTimeIndex(length,Intervals);
     if(index<0) return null;
-    return new Double(((Integer)Ints.get(index)).doubleValue()); 
+    return Double.valueOf(((Integer)Ints.get(index)).doubleValue()); 
   }
 
 
@@ -103,7 +103,7 @@ protected int max;
 				max = i>max?i:max;  
 			}
       Intervals.add(in);
-	  	Ints.add(new Integer(i));
+	  	Ints.add(Integer.valueOf(i));
       v = v.rest();
     }
     defined = true;

@@ -436,7 +436,7 @@ public MainWindow(String Title,String user,String passwd, String configFile){
     }
     else{
        try{
-          int PortInt = (new Integer(TMPServerPort)).intValue();
+          int PortInt = (Integer.valueOf(TMPServerPort)).intValue();
           if(PortInt <0){
             Reporter.writeError("ServerPort in "+ configFile+" less than 0");
           }
@@ -1158,7 +1158,7 @@ private void viewersChanged(){
 private void addViewer(SecondoViewer NewViewer){
    if (AllViewers.indexOf(NewViewer)<0){  // really a new Viewer
       AllViewers.add(NewViewer);
-      SeparatedViewers.add(new Boolean(false));
+      SeparatedViewers.add(Boolean.valueOf(false));
       JMenuItem MI_Viewer = new JMenuItem(NewViewer.getName());
       ViewerMenuItems.add(MI_Viewer);
       Viewers.insert(MI_Viewer,AllViewers.size()-1);
@@ -1203,7 +1203,7 @@ public void closeSeparatedViewer(SecondoViewer sv){
    if(index < 0){
      return;
    }
-   SeparatedViewers.set(index, new Boolean(false));
+   SeparatedViewers.set(index, Boolean.valueOf(false));
    setViewer(sv);
 }
 
@@ -3264,7 +3264,7 @@ private void separateCurrentViewer(){
   SecondoViewer oldViewer = CurrentViewer;
   setViewer(emptyViewer);
   ViewerWindow vw =  new ViewerWindow(oldViewer,this);
-  SeparatedViewers.set(index, new Boolean(true));
+  SeparatedViewers.set(index, Boolean.valueOf(true));
   vw.setVisible(true);
 }
 

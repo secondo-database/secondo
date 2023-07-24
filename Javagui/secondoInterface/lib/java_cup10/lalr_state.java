@@ -83,7 +83,7 @@ public class lalr_state {
   /*-----------------------------------------------------------*/
 
   /** Collection of all states. */
-  protected static Hashtable _all = new Hashtable();
+  protected static Hashtable<lalr_item_set,lalr_state> _all = new Hashtable<lalr_item_set,lalr_state>();
 
   /** Collection of all states. */
   public static Enumeration all() {return _all.elements();}
@@ -99,7 +99,7 @@ public class lalr_state {
    *  unclosed, set of items -- which uniquely define the state).  This table 
    *  stores state objects using (a copy of) their kernel item sets as keys. 
    */
-  protected static Hashtable _all_kernels = new Hashtable();
+  protected static Hashtable<lalr_item_set,lalr_state> _all_kernels = new Hashtable<lalr_item_set,lalr_state>();
 
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
 
@@ -276,7 +276,7 @@ public class lalr_state {
       lalr_item_set new_items;
       lalr_item_set linked_items;
       lalr_item_set kernel;
-      Stack         work_stack = new Stack();
+      Stack<lalr_state>         work_stack = new Stack<lalr_state>();
       lalr_state    st, new_st;
       symbol_set    outgoing;
       lalr_item     itm, new_itm, existing, fix_itm;

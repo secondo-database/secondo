@@ -45,7 +45,7 @@ public class terminal extends symbol {
       _precedence_side = precedence_side;
 
       /* add to by_index set */
-      _all_by_index.put(new Integer(_index), this);
+      _all_by_index.put(Integer.valueOf(_index), this);
     }
 
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
@@ -82,7 +82,7 @@ public class terminal extends symbol {
   /** Table of all terminals.  Elements are stored using name strings as 
    *  the key 
    */
-  protected static Hashtable _all = new Hashtable();
+  protected static Hashtable<String,terminal> _all = new Hashtable<>();
 
   /** Access to all terminals. */
   public static Enumeration all() {return _all.elements();}
@@ -100,14 +100,14 @@ public class terminal extends symbol {
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
 
   /** Table of all terminals indexed by their index number. */
-  protected static Hashtable _all_by_index = new Hashtable();
+  protected static Hashtable<Integer,terminal> _all_by_index = new Hashtable<>();
 
   /** Lookup a terminal by index. */
   public static terminal find(int indx)
     {
-      Integer the_indx = new Integer(indx);
+      Integer the_indx = Integer.valueOf(indx);
 
-      return (terminal)_all_by_index.get(the_indx);
+      return _all_by_index.get(the_indx);
     }
 
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/

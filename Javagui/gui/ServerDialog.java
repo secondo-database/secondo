@@ -135,7 +135,7 @@ public String getHostName(){
 public int getPortAddress(){
   int PA = -1;
   try{
-    Integer I = new Integer(PortAddress.getText());
+    Integer I = Integer.valueOf(PortAddress.getText());
     PA = I.intValue();
   }
   catch(Exception e){}

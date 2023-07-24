@@ -272,7 +272,7 @@ public void setCategory(Category cat){
 			if(tmp.getLabelText(0.0).length()>maxLabelLen) romanNumbers=false;
 			if(tmp.getKey()<1)romanNumbers=false;
 			if(tmp.getKey()>3999)romanNumbers=false;			
-      map.put(new Integer(id),new Integer(verticies.size()-1));
+      map.put(Integer.valueOf(id),Integer.valueOf(verticies.size()-1));
 			rest = rest.rest();
 		}
 		if (!romanNumbers)
@@ -303,8 +303,8 @@ public void setCategory(Category cat){
       int v1 = edgeList.first().intValue();
       int v2 = edgeList.second().intValue();
       double cost = edgeList.third().realValue();
-      Integer V1pos  = (Integer)map.get(new Integer(v1));
-      Integer V2pos = (Integer)map.get(new Integer(v2));
+      Integer V1pos  = (Integer)map.get(Integer.valueOf(v1));
+      Integer V2pos = (Integer)map.get(Integer.valueOf(v2));
       if(V1pos==null || V2pos==null){
         Reporter.writeError("edge with invalid node numbers found ("+v1+", "+v2+")");
         err=true; 

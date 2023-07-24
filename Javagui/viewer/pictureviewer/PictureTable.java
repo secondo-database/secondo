@@ -306,7 +306,7 @@ It returns all column indexes by a vector
 
 	    for (int j = 0; j < histogramPostfixes.length; j++)
 		if (columnName.equals(basename+histogramPostfixes[j])) {
-		    res.add(new Integer(i));
+		    res.add(Integer.valueOf(i));
 		}
 	}
 
@@ -344,7 +344,7 @@ It returns all column indexes by a vector
 
 	if (basename == null) {
 	    Vector res = new Vector();
-	    res.add(new Integer(col));
+	    res.add(Integer.valueOf(col));
 	    return res;
 	}
 

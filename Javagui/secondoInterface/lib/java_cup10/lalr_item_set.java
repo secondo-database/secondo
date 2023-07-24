@@ -36,7 +36,9 @@ public class lalr_item_set {
     throws internal_error
     {
       not_null(other);
-      _all = (Hashtable)other._all.clone();
+      //_all = (Hashtable<lalr_item,lalr_item>)other._all.clone();
+      _all = new Hashtable<lalr_item,lalr_item>();
+      _all.putAll(other._all);
     }
 
   /*-----------------------------------------------------------*/
@@ -46,10 +48,10 @@ public class lalr_item_set {
   /** A hash table to implement the set.  We store the items using themselves
    *  as keys. 
    */
-  protected Hashtable _all = new Hashtable(11);
+  protected Hashtable<lalr_item,lalr_item> _all = new Hashtable<lalr_item,lalr_item>(11);
 
   /** Access to all elements of the set. */
-  public Enumeration all() {return _all.elements();}
+  public Enumeration<lalr_item> all() {return _all.elements();}
 
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
 
@@ -344,7 +346,7 @@ public class lalr_item_set {
           for (e = all(), cnt=0 ; e.hasMoreElements() /*&& cnt<5*/; cnt++)
 	    result ^= ((lalr_item)e.nextElement()).hashCode();
 
-	  hashcode_cache = new Integer(result);
+	  hashcode_cache = Integer.valueOf(result);
 	}
 
       return hashcode_cache.intValue();

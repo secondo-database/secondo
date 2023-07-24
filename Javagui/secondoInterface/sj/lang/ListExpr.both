@@ -1409,7 +1409,7 @@ public static ListExpr boolAtom(boolean value){
    return new ListExpr(BOOL_ATOM,v,0);
 #else
    ListExpr result = new ListExpr();
-   result.value = new Boolean(value);
+   result.value = Boolean.valueOf(value);
    result.type = ListExpr.BOOL_ATOM;
    return  result;
 #endif
@@ -1426,7 +1426,7 @@ public static ListExpr intAtom(int value){
     return new ListExpr(INT_ATOM,value,0);
 #else
     ListExpr result = new ListExpr();
-    result.value = new Integer(value);
+    result.value = Integer.valueOf(value);
     result.type = ListExpr.INT_ATOM;
     return  result;
 #endif
@@ -1444,7 +1444,7 @@ public static ListExpr realAtom(double value){
     return new ListExpr(REAL_ATOM,v,0);
 #else
     ListExpr result = new ListExpr();
-    result.value = new Double(value);
+    result.value = Double.valueOf(value);
     result.type = ListExpr.REAL_ATOM;
     return  result;
 #endif

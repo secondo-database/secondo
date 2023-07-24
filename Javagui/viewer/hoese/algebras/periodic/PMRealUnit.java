@@ -54,9 +54,9 @@ public class PMRealUnit extends LinearMove{
               Reporter.debug("Trying to compute thr square root of a negative number in PMRealUnit::getObjectAt");
               return null;
            }
-           return new Double(Math.sqrt(res1));
+           return Double.valueOf(Math.sqrt(res1));
      }
-     return new Double(res1);
+     return Double.valueOf(res1);
   }
 
   protected boolean readMap(ListExpr map){

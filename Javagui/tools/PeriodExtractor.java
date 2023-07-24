@@ -155,7 +155,7 @@ private static void extractRelation(ListExpr LE,boolean printOuterBrackets){
       if(Tuple.listLength()==2 && Tuple.second().atomType()==LE.SYMBOL_ATOM
          && Tuple.second().symbolValue().equals("pmpoint")){
          System.out.println("  (" + Tuple.first().symbolValue() + " mpoint )");
-         V.add(new Integer(no));
+         V.add(Integer.valueOf(no));
       }
       else
          System.out.println("  "+Tuple.writeListExprToString());
@@ -173,7 +173,7 @@ private static void extractRelation(ListExpr LE,boolean printOuterBrackets){
       while(!Tuple.isEmpty()){
            ListExpr  attr = Tuple.first();
            Tuple=Tuple.rest();
-           if(V.contains(new Integer(no)))
+           if(V.contains(Integer.valueOf(no)))
               extractPoint(attr,false);
            else
               attr.writeListExpr();

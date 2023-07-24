@@ -943,7 +943,7 @@ private boolean processRelList(ListExpr type, ListExpr value){
      if( (attr.listLength()==2) &&
          (attr.second().atomType()==ListExpr.SYMBOL_ATOM) &&
          (attr.second().symbolValue().equals("pmpoint"))){
-          pmpIndexes.add(new Integer(index));
+          pmpIndexes.add(Integer.valueOf(index));
      } 
      index++;
   }
@@ -962,7 +962,7 @@ private boolean processRelList(ListExpr type, ListExpr value){
   while(!attributes.isEmpty()){
     ListExpr attr = attributes.first();
     attributes = attributes.rest();
-    Integer ci = new Integer(index);
+    Integer ci = Integer.valueOf(index);
     ListExpr cl;
     if(pmpIndexes.contains(ci)){
          cl = ListExpr.twoElemList(attr.first(), ListExpr.symbolAtom("mpoint"));
@@ -996,7 +996,7 @@ private boolean processRelList(ListExpr type, ListExpr value){
         while(!tuple.isEmpty()){
            ListExpr attr = tuple.first();
            tuple=tuple.rest();
-           if(pmpIndexes.contains(new Integer(index))){
+           if(pmpIndexes.contains(Integer.valueOf(index))){
               if(! processValueList(attr)){
                 res = false;
               }

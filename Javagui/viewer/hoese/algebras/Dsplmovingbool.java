@@ -40,8 +40,8 @@ public class Dsplmovingbool extends DsplGeneric
   Vector Intervals = new Vector(10, 5);
   Vector Bools = new Vector(10, 5);
   private static final Double VALUE_NOT_DEFINED = null;
-  private static final Double VALUE_TRUE = new Double(1);
-  private static final Double VALUE_FALSE = new Double(0);
+  private static final Double VALUE_TRUE = Double.valueOf(1);
+  private static final Double VALUE_FALSE = Double.valueOf(0);
   private static  FunctionFrame functionframe = new FunctionFrame();
 
 
@@ -141,7 +141,7 @@ public class Dsplmovingbool extends DsplGeneric
       if (value.atomType() != ListExpr.BOOL_ATOM)
         return;
       boolean b = value.boolValue();
-      Bools.add(new Boolean(b));
+      Bools.add(Boolean.valueOf(b));
       v = v.rest();
     }
     defined = true;

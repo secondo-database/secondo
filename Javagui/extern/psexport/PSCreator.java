@@ -487,7 +487,7 @@ public void copyArea(int x, int y, int width, int height, int dx, int dy) {
 }
 
 public void dispose(){
-   finalize();
+   //finalize();
 }
 
 
@@ -1046,9 +1046,9 @@ public void writeHeader(Rectangle2D bounds){
 
 }
 
-public void finalize(){
+/*public void finalize(){
 }
-
+*/
 
 
 private void writePath(Shape s){

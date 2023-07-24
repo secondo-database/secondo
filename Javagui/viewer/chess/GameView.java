@@ -276,18 +276,18 @@ public class GameView extends JComponent implements ActionListener
 	 */
 	private void fillImagesMap()
 	{
-		images.put(new Character(ChessToolKit.WHITE_KING), WKING_IMAGE);
-		images.put(new Character(ChessToolKit.WHITE_QUEEN), WQUEEN_IMAGE);
-		images.put(new Character(ChessToolKit.WHITE_BISHOP), WBISHOP_IMAGE);
-		images.put(new Character(ChessToolKit.WHITE_ROOK), WROOK_IMAGE);
-		images.put(new Character(ChessToolKit.WHITE_KNIGHT), WKNIGHT_IMAGE);
-		images.put(new Character(ChessToolKit.WHITE_PAWN), WPAWN_IMAGE);
-		images.put(new Character(ChessToolKit.BLACK_KING), BKING_IMAGE);
-		images.put(new Character(ChessToolKit.BLACK_QUEEN), BQUEEN_IMAGE);
-		images.put(new Character(ChessToolKit.BLACK_BISHOP), BBISHOP_IMAGE);
-		images.put(new Character(ChessToolKit.BLACK_KNIGHT), BKNIGHT_IMAGE);
-		images.put(new Character(ChessToolKit.BLACK_ROOK), BROOK_IMAGE);
-		images.put(new Character(ChessToolKit.BLACK_PAWN), BPAWN_IMAGE);		
+		images.put(Character.valueOf(ChessToolKit.WHITE_KING), WKING_IMAGE);
+		images.put(Character.valueOf(ChessToolKit.WHITE_QUEEN), WQUEEN_IMAGE);
+		images.put(Character.valueOf(ChessToolKit.WHITE_BISHOP), WBISHOP_IMAGE);
+		images.put(Character.valueOf(ChessToolKit.WHITE_ROOK), WROOK_IMAGE);
+		images.put(Character.valueOf(ChessToolKit.WHITE_KNIGHT), WKNIGHT_IMAGE);
+		images.put(Character.valueOf(ChessToolKit.WHITE_PAWN), WPAWN_IMAGE);
+		images.put(Character.valueOf(ChessToolKit.BLACK_KING), BKING_IMAGE);
+		images.put(Character.valueOf(ChessToolKit.BLACK_QUEEN), BQUEEN_IMAGE);
+		images.put(Character.valueOf(ChessToolKit.BLACK_BISHOP), BBISHOP_IMAGE);
+		images.put(Character.valueOf(ChessToolKit.BLACK_KNIGHT), BKNIGHT_IMAGE);
+		images.put(Character.valueOf(ChessToolKit.BLACK_ROOK), BROOK_IMAGE);
+		images.put(Character.valueOf(ChessToolKit.BLACK_PAWN), BPAWN_IMAGE);		
 	}
 	
 	protected void paintComponent(Graphics g)
@@ -371,7 +371,7 @@ public class GameView extends JComponent implements ActionListener
 						myG.drawRect((j*squareSize) +2,( i*squareSize)+2, squareSize-4, squareSize-4);
 
 					}
-					ImageIcon currentImage = ((ImageIcon)images.get(new Character(currentPosition.getAgentAt(7-(i-1),(j-1))))); //paint the icon
+					ImageIcon currentImage = ((ImageIcon)images.get(Character.valueOf(currentPosition.getAgentAt(7-(i-1),(j-1))))); //paint the icon
 					if (currentImage != null)
 						myG.drawImage(currentImage.getImage(), (j*squareSize)+2,(i*squareSize)+2, squareSize-4, squareSize-4 ,this);	
 				}

@@ -45,7 +45,7 @@ public class lalr_item extends lr_item_core {
     {
       super(prod, pos);
       _lookahead = look;
-      _propagate_items = new Stack();
+      _propagate_items = new Stack<lalr_item>();
       needs_propagation = true;
     }
 
@@ -83,10 +83,10 @@ public class lalr_item extends lr_item_core {
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
 
   /** Links to items that the lookahead needs to be propagated to. */
-  protected Stack _propagate_items; 
+  protected Stack<lalr_item> _propagate_items; 
 
   /** Links to items that the lookahead needs to be propagated to */
-  public Stack propagate_items() {return _propagate_items;}
+  public Stack<lalr_item> propagate_items() {return _propagate_items;}
 
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
 

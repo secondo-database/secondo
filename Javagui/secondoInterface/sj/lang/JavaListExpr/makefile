@@ -60,7 +60,7 @@ Stack.class: Stack.java
 
 NLToken.class NLTokenizer.class: NLJLex.l.java ../ListExpr.java
 # It generates the files NLToken.class and NLTokenizer.class
-	$(JAVAC) -nowarn $(JAVACFLAGS) -classpath $(CLASSPATH)  $+
+	$(JAVAC)  $(JAVACFLAGS) -classpath $(CLASSPATH)  $+
 
 
 #////////// Clean rules

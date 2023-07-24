@@ -321,7 +321,7 @@ public static long[] getDayMillis(String DT){
 public static Double getDateTime(String DT){
   long[] tmp = getDayMillis(DT);
   if(tmp==null) return null;
-  return new Double(getTime((int)tmp[0],(int)tmp[1]));
+  return Double.valueOf(getTime((int)tmp[0],(int)tmp[1]));
 
 }
 

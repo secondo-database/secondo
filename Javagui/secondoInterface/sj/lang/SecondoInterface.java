@@ -119,7 +119,7 @@ not accessible by the user code.
   private MyBufferedOutputStream outSocketStream;
 
   // a vector containing all messageListeners
-  private Vector messageListener = new Vector();
+  private Vector<MessageListener> messageListener = new Vector<>();
 
   public SecondoInterface()
   {

@@ -132,17 +132,17 @@ public class ColorMap
         return null;
       }
       if(c instanceof Integer) {
-        return  new Double((Integer)c);
+        return  Double.valueOf((Integer)c);
       } else if(c instanceof Double) {
-        return new Double((Double)c);
+        return Double.valueOf((Double)c);
       } else if(c instanceof Boolean) {
         if((Boolean)c == Boolean.FALSE) {
-          return new Double(0.0);
+          return Double.valueOf(0.0);
         } else {
-          return new Double(1.0);
+          return Double.valueOf(1.0);
         }
       } else if(c instanceof String) {
-        return  new Double(((String)c).hashCode());
+        return  Double.valueOf(((String)c).hashCode());
       }
       Reporter.writeError("Unsupported type in getDouble " + c.getClass().getName());
       return null;
@@ -420,7 +420,7 @@ public class ColorMap
       final Integer colorValues = 16777215; // 0 <= colorValue <= 2^24 - 1
       final Double interval = maxValue - minValue;
       
-      Double hashValue = new Double(pValue.hashCode());
+      Double hashValue = Double.valueOf(pValue.hashCode());
       Double colorValue = ((hashValue - minValue) / interval) * colorValues;
       stringColor = new Color(colorValue.intValue());
     }

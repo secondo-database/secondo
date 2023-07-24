@@ -326,7 +326,7 @@ public class GraphWindow extends JLayeredPane
     Layer lay = new Layer(grob, this);
     int Laynr = ++highest;
     qr.setResultLayer(lay);
-    add(lay, new Integer(Laynr));
+    add(lay, Integer.valueOf(Laynr));
     mw.updateViewParameter(changeZoom);
     JToggleButton res =  lay.CreateLayerButton(LayerButtonListener, Laynr);
     return res; 
@@ -414,7 +414,7 @@ public class GraphWindow extends JLayeredPane
     //    add (lay,new Integer(highestLayer()+1));
     Layer lay = new Layer(l.getGeoObjects(), this);
     int Laynr = highest++;
-    add(lay, new Integer(Laynr));
+    add(lay, Integer.valueOf(Laynr));
     mw.updateViewParameter(changeZoom);
     return  lay.CreateLayerButton(LayerButtonListener, Laynr);
   }

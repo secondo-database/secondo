@@ -206,7 +206,7 @@ public class Category
        && attrRenderMethod==RENDER_RANDOM_COLOR
        && isLine){
            double value = renderAttribute.isDefined(time)?renderAttribute.getRenderValue(time):minValue;
-           Double d = new Double(value);
+           Double d = Double.valueOf(value);
            Color c = colorMap.get(d);
            if(c!=null){
               return c;
@@ -313,7 +313,7 @@ public class Category
              value = maxValue;
         }
         if(attrRenderMethod==RENDER_RANDOM_COLOR){
-           Double d = new Double(value);
+           Double d = Double.valueOf(value);
            Color c = colorMap.get(d);
            if(c!=null){
               return c;

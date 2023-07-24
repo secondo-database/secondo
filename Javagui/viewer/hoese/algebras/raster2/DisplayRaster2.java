@@ -541,12 +541,12 @@ public abstract class DisplayRaster2 extends DisplayGraph
 
           Double dx = (getGrid().getOriginX() + getGrid().getCellLength() * index.x) * at.getScaleX()  + at.getTranslateX();
           Double dy = (getGrid().getOriginY() + getGrid().getCellLength() * index.y) * at.getScaleY()  + at.getTranslateY();
-          Double dfloorx = new Double(Math.floor(dx));
-          Double dceilx = new Double(Math.ceil(dx));
-          Double droundx = new Double(Math.round(dx));
-          Double dfloory = new Double(Math.floor(dy));
-          Double dceily = new Double(Math.ceil(dy));
-          Double droundy = new Double(Math.round(dy));
+          Double dfloorx = Double.valueOf(Math.floor(dx));
+          Double dceilx = Double.valueOf(Math.ceil(dx));
+          Double droundx = Double.valueOf(Math.round(dx));
+          Double dfloory = Double.valueOf(Math.floor(dy));
+          Double dceily = Double.valueOf(Math.ceil(dy));
+          Double droundy = Double.valueOf(Math.round(dy));
           Integer nx = null;
           Integer ny = null;
 
@@ -795,7 +795,7 @@ public abstract class DisplayRaster2 extends DisplayGraph
         {
           Point2D.Double origin = new Point2D.Double(getGrid().getOriginX(),
                                                     getGrid().getOriginY());
-          Double cellLength = new Double(getGrid().getCellLength());
+          Double cellLength = Double.valueOf(getGrid().getCellLength());
           Point tileSize = new Point(getGrid().getTileSizeX(),
                                      getGrid().getTileSizeY());
 

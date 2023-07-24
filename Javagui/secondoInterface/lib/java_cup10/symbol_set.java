@@ -26,7 +26,10 @@ public class symbol_set {
   public symbol_set(symbol_set other) throws internal_error
     {
       not_null(other);
-      _all = (Hashtable)other._all.clone();
+      _all = new Hashtable<>();
+      _all.putAll(other._all);
+	      
+	   //   (Hashtable)other._all.clone();
     }
 
   /*-----------------------------------------------------------*/
@@ -35,7 +38,7 @@ public class symbol_set {
 
   /** A hash table to hold the set. Symbols are keyed using their name string. 
    */
-  protected Hashtable _all = new Hashtable(11);
+  protected Hashtable<String,symbol> _all = new Hashtable<>(11);
 
   /** Access to all elements of the set. */
   public Enumeration all() {return _all.elements();}

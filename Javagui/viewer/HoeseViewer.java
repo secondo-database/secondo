@@ -1085,7 +1085,7 @@ public class HoeseViewer extends SecondoViewer {
 				}
 				g.dispose();
 				System.gc();
-				System.runFinalization();
+				//System.runFinalization();
 			}
 		});
 		JMenuItem exportGraph = new JMenuItem("Export Graphic as PS");
@@ -1425,7 +1425,7 @@ public class HoeseViewer extends SecondoViewer {
 					Reporter.showError("An error occured while capturing the background.");
 				}
 				System.gc();
-				System.runFinalization();
+				//System.runFinalization();
 			}
 		};
 
@@ -1484,7 +1484,7 @@ public class HoeseViewer extends SecondoViewer {
 					Reporter.showError("An error occured while capturing the background.");
 				}
 				System.gc();
-				System.runFinalization();
+				//System.runFinalization();
 			}
 		};
 		JMenu SelectBorder = new JMenu("Select Bordersize");

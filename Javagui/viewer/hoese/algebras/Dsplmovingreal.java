@@ -174,14 +174,14 @@ public class Dsplmovingreal extends DsplGeneric implements
        time -= start;
        double polyvalue = CurrentMap.a*time*time + CurrentMap.b*time + CurrentMap.c;
        if(!CurrentMap.f){
-         return new Double(polyvalue);
+         return Double.valueOf(polyvalue);
        }else{
          if(polyvalue<0){
             Reporter.writeError("Wrong MRealMap detected !!!"+
                                 "attempt to compute the sqareroot of a negative number");
             return null;
          }else{
-            return new Double(Math.sqrt(polyvalue));
+            return Double.valueOf(Math.sqrt(polyvalue));
          }
        }
   }

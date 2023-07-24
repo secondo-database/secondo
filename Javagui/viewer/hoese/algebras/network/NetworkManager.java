@@ -74,7 +74,7 @@ public class NetworkManager
   void addNetwork(Network in_xNetwork)
   {
     // Old network with same id will be replaced
-    m_xNetworks.put(new Long(in_xNetwork.getId()), 
+    m_xNetworks.put(Long.valueOf(in_xNetwork.getId()), 
                     in_xNetwork);
   }
   
@@ -87,11 +87,11 @@ public class NetworkManager
   public Network getNetwork(long in_lId) 
   throws NetworkNotAvailableException
   {
-    if(!m_xNetworks.containsKey(new Long(in_lId)))
+    if(!m_xNetworks.containsKey(Long.valueOf(in_lId)))
     {
       throw new NetworkNotAvailableException(in_lId);
     }
-    return (Network)m_xNetworks.get(new Long(in_lId));
+    return (Network)m_xNetworks.get(Long.valueOf(in_lId));
   }
 } 
 

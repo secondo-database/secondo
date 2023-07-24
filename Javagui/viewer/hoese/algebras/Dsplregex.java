@@ -304,7 +304,7 @@ private boolean  insertTransition(ListExpr trans, TreeSet<Integer>[][] transitio
   if(transitions[src][dest]==null){
      transitions[src][dest] = new TreeSet<Integer>();
   }
-  transitions[src][dest].add(new Integer(d));
+  transitions[src][dest].add(Integer.valueOf(d));
   return true;
 }
 
@@ -382,7 +382,7 @@ public void init(String name, int nameWidth, int indent, ListExpr type,ListExpr 
       setTo("error 7",nameWidth,indent,qr);
       return;
     }
-    finalStates.add(new Integer(f));
+    finalStates.add(Integer.valueOf(f));
   }
   buildGraph(transitions, finalStates);
   this.name = extendString(name, nameWidth,indent);

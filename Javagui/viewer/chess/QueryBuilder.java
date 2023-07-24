@@ -939,8 +939,8 @@ public class QueryBuilder extends JPanel implements ChangeListener
 		int toVal = -1;
 		if(from != null && to != null)
 		{
-			fromVal = (new Integer(from)).intValue();
-			toVal = (new Integer(to)).intValue();
+			fromVal = (Integer.valueOf(from)).intValue();
+			toVal = (Integer.valueOf(to)).intValue();
 		}
 		String position = createConstPosition(); //get the position as a list expression
 		query.append("extendstream[tempPos: .");

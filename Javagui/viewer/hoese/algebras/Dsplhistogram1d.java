@@ -806,7 +806,7 @@ public class Dsplhistogram1d extends DsplGeneric implements  DisplayComplex, Ext
 			int i = 0;
 			int p = 1;
 			double sum = 0.0;
-			rangesOut.add(new Double(rangesVec[0])); //smallest range section to paint
+			rangesOut.add(Double.valueOf(rangesVec[0])); //smallest range section to paint
 			while( myStep*p < stepSum){
 				if ( (i+1) == rangesVec.length)
 				{
@@ -844,12 +844,12 @@ public class Dsplhistogram1d extends DsplGeneric implements  DisplayComplex, Ext
 						i++;
 					}
 				}
-				rangesOut.add(new Double(rangesVec[i]));
+				rangesOut.add(Double.valueOf(rangesVec[i]));
 				//	System.out.println("rangesOut["+i+"]"+rangesVec[i]);
 				p++;
 
 			}
-			rangesOut.add(new Double(rangesVec[rangesVec.length-1]));
+			rangesOut.add(Double.valueOf(rangesVec[rangesVec.length-1]));
 			return rangesOut;
 		}
 
@@ -913,10 +913,10 @@ public class Dsplhistogram1d extends DsplGeneric implements  DisplayComplex, Ext
 			int countNegativ = (int)(Math.abs(min)/step);
 
 			for (int i = 0; i <= countPositiv; i++){
-				numbers.add(new Double(i*step));
+				numbers.add(Double.valueOf(i*step));
 			}
 			for (int i = 1; i <= countNegativ; i++){
-				numbers.add(new Double(-i*step));
+				numbers.add(Double.valueOf(-i*step));
 			}
 //			   System.out.println("ich bin im paintSteps end!");
 			return numbers;

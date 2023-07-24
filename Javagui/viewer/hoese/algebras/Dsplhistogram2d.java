@@ -1300,10 +1300,10 @@ public class Dsplhistogram2d extends DsplGeneric implements ExternDisplay
         int countNegativ = (int)(Math.abs(min)/step);
 
         for (int i = 0; i <= countPositiv; i++){
-          numbers.add(new Double(i*step));
+          numbers.add(Double.valueOf(i*step));
         }
         for (int i = 1; i <= countNegativ; i++){
-          numbers.add(new Double(-i*step));
+          numbers.add(Double.valueOf(-i*step));
         }
         return numbers;
           }

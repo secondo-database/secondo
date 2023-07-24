@@ -695,7 +695,7 @@ prepares this cell to be marked differently with the next 'repaint'.
 		int[] lastChanged = {row, column};
 		updatesOrdered.add(lastChanged);
 		changedCells[row][column] = true;
-		changedRows.add(new Integer(row));
+		changedRows.add(Integer.valueOf(row));
 		this.repaint();
 		this.validate();
 	}
@@ -907,7 +907,7 @@ been changed inside this tuple.
 		Vector changedAttrs = new Vector();
 		for (int i = 0; i < changedCells[index].length; i++) {
 			if (changedCells[index][i]) {
-				changedAttrs.add(new Integer(i));
+				changedAttrs.add(Integer.valueOf(i));
 			}
 		}
 		int[] result = new int[changedAttrs.size()];

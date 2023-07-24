@@ -577,7 +577,7 @@ static class RemoveEnv implements Runnable {
    }
 
     private File directory;
-    private Vector openFiles=new Vector();
+    private Vector<RandomAccessFile> openFiles=new Vector<>();
 }
 
 }

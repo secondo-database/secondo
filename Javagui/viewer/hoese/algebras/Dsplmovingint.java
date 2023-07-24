@@ -53,7 +53,7 @@ public class Dsplmovingint extends DsplGeneric implements LabelAttribute, Timed,
   public    Double getValueAt(double time){
     int index = IntervalSearch.getTimeIndex(time,Intervals);
     if(index<0) return null;
-    return new Double(((Integer)Ints.get(index)).doubleValue()); 
+    return Double.valueOf(((Integer)Ints.get(index)).doubleValue()); 
   }
 
 
@@ -233,7 +233,7 @@ public String getLabel(double time){
 				max = i>max?i:max;  
 			}
       Intervals.add(in);
-	  	Ints.add(new Integer(i));
+	  	Ints.add(Integer.valueOf(i));
       v = v.rest();
     }
     defined = true;

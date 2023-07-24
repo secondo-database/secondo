@@ -59,17 +59,17 @@ public class LEUtils {
          if(daymillis==null)
 	    return null;
 	 else
-	    return  new Double((double)daymillis[0]+(double)daymillis[1]/86400000.0);
+	    return  Double.valueOf((double)daymillis[0]+(double)daymillis[1]/86400000.0);
       }
 
       // real representation
       if(value.atomType()==ListExpr.REAL_ATOM){
-          return new Double (value.realValue());
+          return Double.valueOf(value.realValue());
       }
 
       // integer representation
       if(value.atomType()==ListExpr.INT_ATOM){
-          return new Double (value.intValue());
+          return Double.valueOf(value.intValue());
       }
 
       // all other representation are based on proper lists
@@ -84,7 +84,7 @@ public class LEUtils {
             value.second().atomType()==ListExpr.INT_ATOM){
              double day = (double) value.first().intValue();
              double ms  = (double) value.second().intValue();
-             return new Double(day + ms /86400000.0);
+             return Double.valueOf(day + ms /86400000.0);
           } else
              return null;
       }
@@ -104,7 +104,7 @@ public class LEUtils {
             value.second().atomType()!=ListExpr.INT_ATOM ||
             value.third().atomType()!=ListExpr.INT_ATOM)
            return null;
-         return new Double(convertDateTime2Double(value.first().intValue(),
+         return Double.valueOf(convertDateTime2Double(value.first().intValue(),
                                                   value.second().intValue(),
                                                   value.third().intValue(),0,0,0,0)); 
       }
@@ -160,7 +160,7 @@ public class LEUtils {
        if(second<0 || second>59) return null;
        if(milli<0 || milli>999) return null;
        // compute the result
-       return new Double(convertDateTime2Double(day,month,year,hour,minute,second,milli));
+       return Double.valueOf(convertDateTime2Double(day,month,year,hour,minute,second,milli));
   }
 
   /**
@@ -223,7 +223,7 @@ public class LEUtils {
       if(daymillis==null){
           return null;
 	    } else {
-         return  new Double((double)daymillis[0]+(double)daymillis[1]/86400000.0);
+         return  Double.valueOf((double)daymillis[0]+(double)daymillis[1]/86400000.0);
       }
    }
 
@@ -320,9 +320,9 @@ public class LEUtils {
         return  null;
       }
       if (le.atomType()==ListExpr.INT_ATOM)
-         return  new Double(le.intValue());
+         return  Double.valueOf(le.intValue());
       else
-         return new Double(le.realValue());
+         return Double.valueOf(le.realValue());
     }
     else {
       int length = le.listLength();
@@ -345,7 +345,7 @@ public class LEUtils {
               return  null;
           }
           double g = (double)le.second().intValue();
-          return  new Double((Math.abs(g) + (double)le.third().intValue()/(double)le.fifth().intValue()));
+          return  Double.valueOf((Math.abs(g) + (double)le.third().intValue()/(double)le.fifth().intValue()));
       }else {
          if ((le.first().atomType() != ListExpr.SYMBOL_ATOM) || (le.second().atomType() != ListExpr.SYMBOL_ATOM)
               ||(le.third().atomType()!= ListExpr.INT_ATOM) || (le.fourth().atomType() != ListExpr.INT_ATOM)
@@ -366,7 +366,7 @@ public class LEUtils {
           double g = (double)le.third().intValue();
           double v=1;
           if (le.second().symbolValue().equals("-")) v=-1;
-          return  new Double(v*(Math.abs(g) + (double)le.fourth().intValue()/(double)le.sixth().intValue()));
+          return  Double.valueOf(v*(Math.abs(g) + (double)le.fourth().intValue()/(double)le.sixth().intValue()));
     	}
     }
   }
@@ -389,7 +389,7 @@ public class LEUtils {
           return null;
        }
        if(!st.hasMoreTokens()){
-          return new Double(nom);
+          return Double.valueOf(nom);
        } 
        double denom;
        try{
@@ -397,7 +397,7 @@ public class LEUtils {
        } catch(NumberFormatException e){
           return null;
        }
-       return new Double(nom/denom);
+       return Double.valueOf(nom/denom);
   }
 
 }

@@ -445,10 +445,10 @@ class CUP$parser$actions {
     }
 
   /** table of declared symbols -- contains production parts indexed by name */
-  protected Hashtable symbols = new Hashtable();
+  protected Hashtable<String,symbol_part> symbols = new Hashtable<>();
 
   /** table of just non terminals -- contains non_terminals indexed by name */
-  protected Hashtable non_terms = new Hashtable();
+  protected Hashtable<String,non_terminal> non_terms = new Hashtable<>();
 
   /** declared start non_terminal */
   protected non_terminal start_nt = null;

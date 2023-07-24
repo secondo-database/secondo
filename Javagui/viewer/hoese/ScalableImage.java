@@ -83,7 +83,7 @@ public class ScalableImage extends Component {
                    this.scaledImage = null;
             }
             System.gc();
-            System.runFinalization();
+            //System.runFinalization();
         }
         super.setBounds(x,y,w,h);
         ClipRect=null;

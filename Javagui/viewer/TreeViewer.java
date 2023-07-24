@@ -695,7 +695,7 @@ class BTreeNode implements PNode{
      int x1 = x;
      for(int i=0;i<sons.length;i++){
        int sw =  sons[i].paintRec(g,x1, y + nodeHeight + vDist, entryWidth);
-       v.add(new Integer(x1 + sw/2));
+       v.add(Integer.valueOf(x1 + sw/2));
        x1 += hDist + sw;
      }
 
@@ -788,7 +788,7 @@ class OpTreeNode implements  PNode{
      // draw Subtrees
      for(int i=0; i < sons.size();i++){
          int k = sons.get(i).paint(g, sw + x , y + nodeHeight + vSep);
-         sws.add(new Integer(k));
+         sws.add(Integer.valueOf(k));
          sw  = sw + k + nodeSep;
      }
      sw-=nodeSep;

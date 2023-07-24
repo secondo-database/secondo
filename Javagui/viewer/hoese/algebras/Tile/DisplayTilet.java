@@ -42,36 +42,36 @@ public class DisplayTilet extends DisplayRaster2s
    */
   public Double GetMinimumValue()
   {
-    Double minimumValue = new Double(0.0);
+    Double minimumValue = Double.valueOf(0.0);
     
     if(minValue != null)
     {
       if(minValue instanceof Integer)
       {
-        minimumValue = new Double((Integer)minValue);
+        minimumValue = Double.valueOf((Integer)minValue);
       }
 
       else if(minValue instanceof Double)
       {
-        minimumValue = new Double((Double)minValue);
+        minimumValue = Double.valueOf((Double)minValue);
       }
 
       else if(minValue instanceof Boolean)
       {
         if((Boolean)minValue == Boolean.FALSE)
         {
-          minimumValue = new Double(0.0);
+          minimumValue = Double.valueOf(0.0);
         }
 
         else
         {
-          minimumValue = new Double(1.0);
+          minimumValue = Double.valueOf(1.0);
         }
       }
 
       else if(minValue instanceof String)
       {
-        minimumValue = new Double(((String)minValue).hashCode());
+        minimumValue = Double.valueOf(((String)minValue).hashCode());
       }     
     }
     
@@ -85,36 +85,36 @@ public class DisplayTilet extends DisplayRaster2s
    */
   public Double GetMaximumValue()
   {
-    Double maximumValue = new Double(0.0);
+    Double maximumValue = Double.valueOf(0.0);
       
     if(maxValue != null)
     {
       if(maxValue instanceof Integer)
       {
-        maximumValue = new Double((Integer)maxValue);
+        maximumValue = Double.valueOf((Integer)maxValue);
       }
 
       else if(maxValue instanceof Double)
       {
-        maximumValue = new Double((Double)maxValue);
+        maximumValue = Double.valueOf((Double)maxValue);
       }
 
       else if(maxValue instanceof Boolean)
       {
         if((Boolean)minValue == Boolean.FALSE)
         {
-          maximumValue = new Double(0.0);
+          maximumValue = Double.valueOf(0.0);
         }
 
         else
         {
-          maximumValue = new Double(1.0);
+          maximumValue = Double.valueOf(1.0);
         }
       }
 
       else if(maxValue instanceof String)
       {
-        maximumValue = new Double(((String)maxValue).hashCode());
+        maximumValue = Double.valueOf(((String)maxValue).hashCode());
       }     
     }
     
