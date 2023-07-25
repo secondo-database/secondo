@@ -175,3 +175,5 @@ operator slotSizes alias SLOTSIZES pattern _ op
 
 operator loadBalance alias LOADBALANCE pattern _ op[_,_]
 
+operator getWorkersForHost alias getWorkersForHost pattern _ op[_]
+

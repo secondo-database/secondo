@@ -21862,7 +21862,8 @@ int fileSizesVMT(Word *args, Word &result, int message, Word &local,
 }
 
 OperatorSpec fileSizesSpec(
-    "stream({string,text}) x bool -> stream(int) ", "_ fileSizes[_]",
+    "stream({string,text}) x bool -> stream(int) ", 
+    "_ fileSizes[_]",
     "Determines the size of the files contained in a stream."
     "If the second argument is true, the size is the number of tuples "
     "in each file, the fileSize otherwise. If there are problems in "
@@ -21877,6 +21878,159 @@ int fileSizesSelect(ListExpr args) {
 
 Operator fileSizesOp("fileSizes", fileSizesSpec.getStr(), 2, fileSizesVM,
                      fileSizesSelect, fileSizesTM);
+
+
+/* Operator getWorkersForHost
+ 
+   Returns the number of workers that are connected with a host.
+
+ 
+typemapping:
+	{darray,dfarray,dfmatrix,pdarray,pdfarray,sdarray} 
+                 x {string,text} -> stream(int)
+
+*/
+ListExpr getWorkersForHostTM(ListExpr args) {
+  if(!nl->HasLength(args,2)){
+     return listutils::typeError("two arguments expected");
+  }
+  ListExpr first = nl->First(args);
+  if(!DArray::checkType(first)
+		  && !DFArray::checkType(first)
+		  && !DFMatrix::checkType(first)
+		  && !PDArray::checkType(first)
+		  && !PDFArray::checkType(first)
+		  && !SDArray::checkType(first)){
+	  return listutils::typeError("first argument must be in {"
+			   "darray,dfarray,dfmatrix,pdarray,pdfarray,sdarray}");
+  }
+  ListExpr sec= nl->Second(args);
+  if( !CcString::checkType(sec)
+		  && !FText::checkType(sec)){
+	  return listutils::typeError("second arg must be string or text");
+  }
+  return Stream<CcInt>::wrap(listutils::basicSymbol<CcInt>());
+}
+
+template<class A, class H>
+class getWorkersForHostInfo{
+   public:
+	   getWorkersForHostInfo(A* array, H* host):pos(0),elements(0){
+                if(array->IsDefined() && host->IsDefined()){
+			this->host = host->GetValue();
+			workers = array->getWorkers();
+			elements = workers.size();
+		}	
+	   }
+
+	   CcInt* next(){
+	       CcInt* res = 0;	   
+               while(pos < elements && res==0){
+                 if(workers[pos].getHost()==host){
+		     res = new CcInt(true,pos);	 
+		 }
+		 pos++;
+	       }
+	       return res;
+	   }
+   private:
+         unsigned int pos;
+	 unsigned int elements;
+         std::string host;	 
+         vector<DArrayElement> workers;
+};
+
+
+template <class A, class H>
+int getWorkersForHostVMT(Word *args, Word &result, int message, Word &local,
+                 Supplier s) {
+
+   getWorkersForHostInfo<A,H>* li = (getWorkersForHostInfo<A,H>*) local.addr;	
+   switch(message){
+     case OPEN: {
+	if(li){
+	  delete li;
+	}
+        local.addr = new getWorkersForHostInfo<A,H>((A*) args[0].addr, 
+		                            (H*) args[1].addr);
+	return 0;
+	}
+     case REQUEST : {
+        result.addr = li ? li->next() : 0;
+        return result.addr ? YIELD : CANCEL;
+       }
+
+  case CLOSE:
+    if (li) {
+      delete li;
+      local.addr = 0;
+    }
+    return 0;
+  }
+  return -1;
+}
+
+OperatorSpec getWorkersForHostSpec(
+    "{darray,dfarray,dfmatrix,pdarray,pdfarray,sdarray} x {string,text} "
+    "-> stream(int)",
+    " _ getWorkersForHost[_] ",
+    "returns the worker number that are connected to a given host.",
+    "query mydarray getWorkersForHost['localhost'] consume");
+
+ValueMapping getWorkersForHostVM[] = {
+    getWorkersForHostVMT<DArray,CcString>,
+    getWorkersForHostVMT<DFArray,CcString>,
+    getWorkersForHostVMT<DFMatrix,CcString>,
+    getWorkersForHostVMT<PDArray,CcString>,
+    getWorkersForHostVMT<PDFArray,CcString>,
+    getWorkersForHostVMT<SDArray,CcString>,
+    getWorkersForHostVMT<DArray,FText>,
+    getWorkersForHostVMT<DFArray,FText>,
+    getWorkersForHostVMT<DFMatrix,FText>,
+    getWorkersForHostVMT<PDArray,FText>,
+    getWorkersForHostVMT<PDFArray,FText>,
+    getWorkersForHostVMT<SDArray,FText>
+};
+
+int getWorkersForHostSelect(ListExpr args){
+   if(!nl->HasLength(args,2)){
+	   return -1;
+   }
+   int n1 = -1;
+   int n2 = -2;
+   ListExpr first = nl->First(args);
+   ListExpr second = nl->Second(args);
+   if(DArray::checkType(first)){
+	   n1=0;
+   }
+   if(DFArray::checkType(first)){
+	   n1=1;
+   }
+   if(DFMatrix::checkType(first)){
+	   n1=2;
+   }
+   if(PDArray::checkType(first)){
+	   n1=3;
+   }
+   if(PDFArray::checkType(first)){
+	   n1=4;
+   }
+   if(SDArray::checkType(first)){
+	   n1=5;
+   }
+   if(CcString::checkType(second)){
+	   n2 = 0;
+   }
+   if(FText::checkType(second)){
+	   n2 = 6;
+   }
+   return  n1 + n2;
+}
+
+Operator getWorkersForHostOp("getWorkersForHost", getWorkersForHostSpec.getStr(), 
+		             12, getWorkersForHostVM,
+                             getWorkersForHostSelect, getWorkersForHostTM);
+
 
 /*
 3 Implementation of the Algebra
@@ -22145,6 +22299,9 @@ Distributed2Algebra::Distributed2Algebra() {
 
   AddOperator(&createSDArrayOp);
   createSDArrayOp.SetUsesArgsInTypeMapping();
+
+  AddOperator(&getWorkersForHostOp);
+
 
   pprogView = new PProgressView();
   MessageCenter::GetInstance()->AddHandler(pprogView);

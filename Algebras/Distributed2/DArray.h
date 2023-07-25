@@ -144,7 +144,11 @@ standard map.
      keepRemoteObjects = enable;
   }
 
+  inline void changeHost(int workerNum, std::string& newHost){
+      worker[workerNum].setHost(newHost);
+  }
 
+  
  protected:
     std::vector<DArrayElement> worker; // connection information
     std::string name;  // the basic name used on workers

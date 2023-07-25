@@ -92,6 +92,10 @@ class DArrayElement{
      inline std::string getConfig() const{ return config; }
      inline int getNum() const{ return num; }
 
+     void setHost(const std::string& newHost){
+	     this->server = newHost;
+     }
+
 
      template<class H, class C>
      static DArrayElement* createFromTuple(Tuple* tuple, int num, 

@@ -973,4 +973,9 @@ Signature : stream({string,text}) x bool -> stream(int)
 Example   : query "ten.bin" feed  fileSizes[FALSE] count
 Result    : 1 
 
-
+Operator  : getWorkersForHost
+Number    : 1 
+Signature : {darray,dfarray,dfmatrix,pdarray,pdfarray,sdarray} x {string,text} -> stream(int)
+Example   : query myarray getWorkersForHost['localhost'] consume
+Result    : unpredictable
+Remark    : requires a distributed secondo setup 
