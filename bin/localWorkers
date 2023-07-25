@@ -1,0 +1,12 @@
+(OBJECT Workers
+   ()
+   (rel 
+      (tuple
+         (
+                (Host string) 
+                (Port int)  
+                (Config string)))) 
+    (
+("localhost" 1024 "SecondoConfig.ini")
+("localhost" 1025 "SecondoConfig.ini")
+   ))
