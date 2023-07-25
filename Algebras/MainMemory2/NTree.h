@@ -363,52 +363,58 @@ class DistStorage {
 template<class T>
 class StdDistComp{
   public:
-    StdDistComp(Geoid* _geoid){
-      geoid = _geoid?(Geoid*)_geoid->Clone():0; 
+    StdDistComp(Geoid* _geoid) {
+      geoid = _geoid ? (Geoid*)_geoid->Clone() : 0;
+      useStorage = false;
     }
 
-    StdDistComp(const StdDistComp& src){
-       geoid = src.geoid?(Geoid*)src.geoid->Copy():0;
+    StdDistComp(const StdDistComp& src) {
+      geoid = src.geoid ? (Geoid*)src.geoid->Copy() : 0;
+      useStorage = src.useStorage;
     }
 
-    StdDistComp& operator=(const StdDistComp&src){
-       if(geoid) geoid->DeleteIfAllowed();
-       geoid = src.geoid?(Geoid*)src.geoid->Copy():0;
+    StdDistComp& operator=(const StdDistComp& src) {
+      if (geoid) {
+        geoid->DeleteIfAllowed();
+      }
+      geoid = src.geoid ? (Geoid*)src.geoid->Copy() : 0;
+      useStorage = src.useStorage; 
     }
 
-    ~StdDistComp(){
-       if(geoid){
-         geoid->DeleteIfAllowed();
-       }
+    ~StdDistComp() {
+      if(geoid) {
+        geoid->DeleteIfAllowed();
+      }
     }
-
 
     double operator()(const MTreeEntry<T>& o1, const MTreeEntry<T>& o2) {
-      TupleId tid1 = std::min(o1.getTid(), o2.getTid());
-      TupleId tid2 = std::max(o1.getTid(), o2.getTid());
-      double dist = distStorage.retrieveDist(tid1, tid2);
-      if (dist < 0.0) {
-        const T* t1 = o1.getKey();
-        const T* t2 = o2.getKey();
-        dist = mtreehelper::distance(t1, t2, geoid);
-        distStorage.increment();
-        if (getNoDistFunCalls() % 10000 == 0) {
-          cout << "|";
-          std::cout.flush();
-        }
-        else if (getNoDistFunCalls() % 1000 == 0) {
-          std::cerr << ".";
-          std::cout.flush();
-        }
-        distStorage.storeDist(tid1, tid2, dist);
+      distStorage.increment();
+      if (getNoDistFunCalls() % 100000 == 0) {
+        cout << "|";
+        std::cout.flush();
       }
-      return dist;
+      else if (getNoDistFunCalls() % 10000 == 0) {
+        std::cerr << ".";
+        std::cout.flush();
+      }
+      if (useStorage) {
+        TupleId tid1 = std::min(o1.getTid(), o2.getTid());
+        TupleId tid2 = std::max(o1.getTid(), o2.getTid());
+        double dist = distStorage.retrieveDist(tid1, tid2);
+        if (dist < 0.0) {
+          dist = mtreehelper::distance(o1.getKey(), o2.getKey(), geoid);
+          distStorage.increment();
+          distStorage.storeDist(tid1, tid2, dist);
+        }
+        return dist;
+      }
+      return mtreehelper::distance(o1.getKey(), o2.getKey(), geoid);
     }
-//     double  operator()(const pair<T,TupleId>& o1, 
-//                        const pair<T,TupleId>& o2){
-//        return mtreehelper::distance(&o1.first,&o2.first, geoid);
-//     }
-
+    
+    void switchStorage(const bool toBeActivated) {
+      useStorage = toBeActivated;
+    }
+    
     std::ostream& print( const MTreeEntry<T>& e, std::ostream& o){
        o << "("; e.getKey()->Print(o); o << ", " << e.getTid() << ")";
        return o;
@@ -440,6 +446,7 @@ class StdDistComp{
   protected:
     Geoid* geoid;
     DistStorage distStorage;
+    bool useStorage;
 };
 
 /*
@@ -1945,6 +1952,7 @@ class RangeIteratorN {
   */
   RangeIteratorN(node_t* root, const T& q, const DistComp& di) :
                                 pos(0), queryObject(q), range(DBL_MAX), dc(di) {
+    dc.switchStorage(true);
     if (!root) {
       return;
     }
@@ -1980,6 +1988,7 @@ class RangeIteratorN {
   */
   RangeIteratorN(node_t* root, const T& q, const double r, const DistComp& di) :
                                       pos(0), queryObject(q), range(r), dc(di) {
+    dc.switchStorage(true);
     results.clear();
     if (!root) {
       return;
@@ -2586,6 +2595,7 @@ class NNIteratorN {
     if (k == 0) {
       k = INT_MAX;
     }
+    dc.switchStorage(true);
     collectNN(root);
     //stat.print(cout, dc.getNoDistFunCalls(), true);
   }
