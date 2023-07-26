@@ -20,7 +20,7 @@ if [ -z "$2" ]; then
   echo "will listen on port <FirstPort> + 1 and so on"
   echo "The database directories will be:"
   echo '  $HOME/workerDB/worker-<i>'
-  echo 'where <i> is the number of the worker (conunting starts with 1)'
+  echo 'where <i> is the number of the worker (counting starts with 1)'
   exit
 fi
 
