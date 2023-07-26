@@ -22028,6 +22028,123 @@ Operator getWorkersForHostOp("getWorkersForHost",
                  getWorkersForHostSelect, getWorkersForHostTM);
 
 
+/* 
+   Operator setHostForWorker 
+   changes the host for a worker within an xyzarray or dfmatrix
+
+   typemapping: array x int x string,text -> bool
+
+*/
+ListExpr setHostForWorkerTM(ListExpr args) {
+  if(!nl->HasLength(args,3)){
+     return listutils::typeError("three arguments expected");
+  }
+  ListExpr first = nl->First(args);
+  if(!DArray::checkType(first)
+      && !DFArray::checkType(first)
+      && !DFMatrix::checkType(first)
+      && !PDArray::checkType(first)
+      && !PDFArray::checkType(first)
+      && !SDArray::checkType(first)){
+    return listutils::typeError("first argument must be in {"
+         "darray,dfarray,dfmatrix,pdarray,pdfarray,sdarray}");
+  }
+  if(!CcInt::checkType(nl->Second(args))){
+    return listutils::typeError("second arg must be an int");
+  }
+  ListExpr th= nl->Third(args);
+  if( !CcString::checkType(th)
+      && !FText::checkType(th)){
+    return listutils::typeError("third arg must be string or text");
+  }
+  return listutils::basicSymbol<CcBool>();
+}
+
+
+template <class A, class H>
+int setHostForWorkerVMT(Word *args, Word &result, int message, Word &local,
+                 Supplier s) {
+     A* array = (A*) args[0].addr;
+     CcInt* number = (CcInt*) args[1].addr;
+     H* host = (H*) args[2].addr;
+     result = qp->ResultStorage(s);
+     if(!array->IsDefined() || !number->IsDefined()
+        | !host->IsDefined()){
+           ((CcBool*)result.addr)->Set(true,false);
+           return 0;
+     }  
+     bool r = array->changeHost(number->GetValue(),host->GetValue());
+     if(r){
+         qp->SetModified(qp->GetSon(s, 0));
+     }
+     ((CcBool*)result.addr)->Set(true,r);
+     return 0;
+}
+
+OperatorSpec setHostForWorkerSpec(
+    "{darray,dfarray,dfmatrix,pdarray,pdfarray,sdarray} x int {string,text} "
+    "-> bool",
+    " _ setHostForWorker[_,_] ",
+    "Changes the host that belongs to a worker",
+    "query mydarray setHostForWorker[0,'127.0.0.1']");
+
+ValueMapping setHostForWorkerVM[] = {
+    setHostForWorkerVMT<DArray,CcString>,
+    setHostForWorkerVMT<DFArray,CcString>,
+    setHostForWorkerVMT<DFMatrix,CcString>,
+    setHostForWorkerVMT<PDArray,CcString>,
+    setHostForWorkerVMT<PDFArray,CcString>,
+    setHostForWorkerVMT<SDArray,CcString>,
+    setHostForWorkerVMT<DArray,FText>,
+    setHostForWorkerVMT<DFArray,FText>,
+    setHostForWorkerVMT<DFMatrix,FText>,
+    setHostForWorkerVMT<PDArray,FText>,
+    setHostForWorkerVMT<PDFArray,FText>,
+    setHostForWorkerVMT<SDArray,FText>
+};
+
+int setHostForWorkerSelect(ListExpr args){
+   if(!nl->HasLength(args,3)){
+     return -1;
+   }
+   int n1 = -1;
+   int n2 = -8;
+   ListExpr first = nl->First(args);
+   ListExpr third = nl->Third(args);
+   if(DArray::checkType(first)){
+     n1=0;
+   }
+   if(DFArray::checkType(first)){
+     n1=1;
+   }
+   if(DFMatrix::checkType(first)){
+     n1=2;
+   }
+   if(PDArray::checkType(first)){
+     n1=3;
+   }
+   if(PDFArray::checkType(first)){
+     n1=4;
+   }
+   if(SDArray::checkType(first)){
+     n1=5;
+   }
+   if(CcString::checkType(third)){
+     n2 = 0;
+   }
+   if(FText::checkType(third)){
+     n2 = 6;
+   }
+   int res =  n1 + n2;
+   return res;
+}
+
+Operator setHostForWorkerOp("setHostForWorker", 
+                 setHostForWorkerSpec.getStr(), 
+                 12, setHostForWorkerVM,
+                 setHostForWorkerSelect, setHostForWorkerTM);
+
+
 /*
 3 Implementation of the Algebra
 
@@ -22297,6 +22414,7 @@ Distributed2Algebra::Distributed2Algebra() {
   createSDArrayOp.SetUsesArgsInTypeMapping();
 
   AddOperator(&getWorkersForHostOp);
+  AddOperator(&setHostForWorkerOp);
 
 
   pprogView = new PProgressView();

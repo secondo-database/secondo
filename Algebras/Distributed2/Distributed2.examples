@@ -979,3 +979,11 @@ Signature : {darray,dfarray,dfmatrix,pdarray,pdfarray,sdarray} x {string,text} -
 Example   : query myarray getWorkersForHost['localhost'] consume
 Result    : unpredictable
 Remark    : requires a distributed secondo setup 
+
+Operator  : setHostForWorker 
+Number    : 1 
+Signature : {darray,dfarray,dfmatrix,pdarray,pdfarray,sdarray} x int x {string,text} -> bool
+Example   : query myarray setHostForWorker[0,'localhost'] 
+Result    : unpredictable
+Remark    : requires a distributed secondo setup 
+

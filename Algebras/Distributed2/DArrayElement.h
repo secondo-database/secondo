@@ -93,7 +93,7 @@ class DArrayElement{
      inline int getNum() const{ return num; }
 
      void setHost(const std::string& newHost){
-	     this->server = newHost;
+         this->server = newHost;
      }
 
 

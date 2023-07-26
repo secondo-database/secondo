@@ -144,8 +144,12 @@ standard map.
      keepRemoteObjects = enable;
   }
 
-  inline void changeHost(int workerNum, std::string& newHost){
-      worker[workerNum].setHost(newHost);
+  bool changeHost(const int workerNum, const std::string& newHost){
+      if(workerNum>=0 && workerNum < (int) worker.size()){        
+         worker[workerNum].setHost(newHost);
+         return true;
+      }
+      return false;
   }
 
   
