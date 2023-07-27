@@ -178,4 +178,5 @@ operator loadBalance alias LOADBALANCE pattern _ op[_,_]
 operator getWorkersForHost alias getWorkersForHost pattern _ op[_]
 
 operator setHostForWorker alias setHostForWorker pattern _ op[_,_]
+operator changeHosts alias chnageHosts pattern _ op[_,_,_]
 

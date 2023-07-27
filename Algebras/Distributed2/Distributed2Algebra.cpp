@@ -22146,6 +22146,211 @@ Operator setHostForWorkerOp("setHostForWorker",
 
 
 /*
+  Operator changeHosts
+
+  stream(tuple(..({text,string} .. {text,string}..) 
+   x Symbol x Symbol x array) -> int
+
+  changes the hosts within a darray-type according to 
+  the oldhost and newhost definitions within a stream.
+
+*/
+ListExpr changeHostsTM(ListExpr args){
+   if(!nl->HasLength(args,4)){
+      return listutils::typeError("4 arguments expected");
+   }
+   if(!Stream<Tuple>::checkType(nl->First(args))){
+      return listutils::typeError("First arg is not a tuple stream");
+   }
+   string fromHost;
+   string toHost;
+   if(    !listutils::isSymbol(nl->Second(args)) 
+      ||  !listutils::isSymbol(nl->Third(args))){
+     return listutils::typeError("args 2,3 must be an attribute name");
+   }
+   fromHost = nl->SymbolValue(nl->Second(args));
+   toHost = nl->SymbolValue(nl->Third(args));
+
+   ListExpr fourth=nl->Fourth(args);
+   if(!DArray::checkType(fourth)
+      && !DFArray::checkType(fourth)
+      && !DFMatrix::checkType(fourth)
+      && !PDArray::checkType(fourth)
+      && !PDFArray::checkType(fourth)
+      && !SDArray::checkType(fourth)){
+       return listutils::typeError("fourth argument must be in {"
+            "darray,dfarray,dfmatrix,pdarray,pdfarray,sdarray}");
+  }
+  // extract attributes for from and to
+
+  ListExpr attrList = nl->Second(nl->Second(nl->First(args)));
+
+  ListExpr fromAttrType;
+  ListExpr toAttrType;
+  int fromPos =listutils::findAttribute(attrList,fromHost,fromAttrType);
+  if(!fromPos){
+    return listutils::typeError("cound not find attribute "+fromHost);
+  } 
+  int toPos=listutils::findAttribute(attrList,toHost,toAttrType);
+  if(!toPos){
+    return listutils::typeError("cound not find attribute "+toHost);
+  }
+  if(!CcString::checkType(fromAttrType) && !FText::checkType(fromAttrType)){
+    return listutils::typeError("Attr " + fromHost + " not of type text "
+                                "or string"); 
+  }
+  if(!CcString::checkType(toAttrType) && !FText::checkType(toAttrType)){
+    return listutils::typeError("Attr " + toHost + " not of type text "
+                                "or string"); 
+  }
+  ListExpr resType = listutils::basicSymbol<CcInt>();
+  return nl->ThreeElemList(nl->SymbolAtom(Symbols::APPEND()),
+                           nl->TwoElemList(nl->IntAtom(fromPos-1),
+                                           nl->IntAtom(toPos-1)),
+                           resType);
+}
+
+template <class F, class T, class A>
+int changeHostsVMT(Word *args, Word &result, int message, Word &local,
+                 Supplier s) {
+
+   // stream , from, to , array, fromPos, toPos
+   Stream<Tuple> stream(args[0]);
+   int from = ((CcInt*) args[4].addr)->GetValue();
+   int to = ((CcInt*) args[5].addr)->GetValue();
+   A* array = (A*) args[3].addr; 
+   stream.open();
+   Tuple* tuple=0;
+   map<int,string> map;
+   vector<DArrayElement> workers = array->getWorkers();
+
+   while( (tuple=stream.request())){
+     F* f = (F*) tuple->GetAttribute(from);
+     T* t = (T*) tuple->GetAttribute(to);
+     if(f->IsDefined() && t->IsDefined()){
+        string fs = f->GetValue();
+        string ts = t->GetValue();
+        for(unsigned int i=0;i<workers.size();i++){
+           string h = workers[i].getHost();
+           if(h == fs){
+             map[i] = ts;
+           } 
+        }
+     }
+     tuple->DeleteIfAllowed();
+   }
+   stream.close();
+   int c=0;
+   for(unsigned int i=0;i<workers.size();i++){
+     if(map.count(i)){
+        array->changeHost(i,map[i]);
+        c++;
+     }
+   }
+   result = qp->ResultStorage(s);
+   ((CcInt*) result.addr)->Set(true,c);
+   if(c){
+         qp->SetModified(qp->GetSon(s, 3));
+   }
+   return 0;
+}
+
+ValueMapping changeHostsVM[] = {
+    changeHostsVMT<CcString,CcString,DArray>,
+    changeHostsVMT<CcString,CcString,DFArray>,
+    changeHostsVMT<CcString,CcString,DFMatrix>,
+    changeHostsVMT<CcString,CcString,PDArray>,
+    changeHostsVMT<CcString,CcString,PDFArray>,
+    changeHostsVMT<CcString,CcString,SDArray>,
+    changeHostsVMT<CcString,FText,DArray>,
+    changeHostsVMT<CcString,FText,DFArray>,
+    changeHostsVMT<CcString,FText,DFMatrix>,
+    changeHostsVMT<CcString,FText,PDArray>,
+    changeHostsVMT<CcString,FText,PDFArray>,
+    changeHostsVMT<CcString,FText,SDArray>,
+    changeHostsVMT<FText,CcString,DArray>,
+    changeHostsVMT<FText,CcString,DFArray>,
+    changeHostsVMT<FText,CcString,DFMatrix>,
+    changeHostsVMT<FText,CcString,PDArray>,
+    changeHostsVMT<FText,CcString,PDFArray>,
+    changeHostsVMT<FText,CcString,SDArray>,
+    changeHostsVMT<FText,FText,DArray>,
+    changeHostsVMT<FText,FText,DFArray>,
+    changeHostsVMT<FText,FText,DFMatrix>,
+    changeHostsVMT<FText,FText,PDArray>,
+    changeHostsVMT<FText,FText,PDFArray>,
+    changeHostsVMT<FText,FText,SDArray>
+};
+
+int changeHostsSelect(ListExpr args){
+   if(!nl->HasLength(args,4)){
+     return -1;
+   }
+   int n1 = -1;
+   int n2 = -8;
+   int n3 = -24;
+
+   ListExpr al = nl->Second(nl->Second(nl->First(args)));
+
+   ListExpr ft;
+   listutils::findAttribute(al, nl->SymbolValue(nl->Second(args)),ft);
+   ListExpr tt;
+   listutils::findAttribute(al, nl->SymbolValue(nl->Third(args)),tt);
+
+   ListExpr array = nl->Fourth(args);
+   if(DArray::checkType(array)){
+     n1=0;
+   }
+   if(DFArray::checkType(array)){
+     n1=1;
+   }
+   if(DFMatrix::checkType(array)){
+     n1=2;
+   }
+   if(PDArray::checkType(array)){
+     n1=3;
+   }
+   if(PDFArray::checkType(array)){
+     n1=4;
+   }
+   if(SDArray::checkType(array)){
+     n1=5;
+   }
+   if(CcString::checkType(ft)){
+     n2 = 0;
+   }
+   if(FText::checkType(ft)){
+     n2 = 12;
+   }
+   if(CcString::checkType(tt)){
+     n3 = 0;
+   }
+   if(FText::checkType(tt)){
+     n3 = 6;
+   }
+
+   int res =  n1 + n2 + n3;
+   return res;
+}
+
+OperatorSpec changeHostsSpec(
+    " stream(tuple) x ident x ident x "
+    "{darray,dfarray,dfmatrix,pdarray,pdfarray,sdarray} "
+    "-> int",
+    " _ changeHosts[_,_,_] ",
+    "Changes the hosts within an darray type. "
+    "The first arg is a stream of typle. The second and third "
+    " argument are the names of the attributes that specify "
+    " the old host and the new one. The fourth arguemnt is the "
+    " array to change.",
+    "query mychanges feed changeHosts[oldHost, newHost, mydarray]");
+
+
+Operator changeHostsOp("changeHosts", 
+                 changeHostsSpec.getStr(), 
+                 24, changeHostsVM,
+                 changeHostsSelect, changeHostsTM);
+/*
 3 Implementation of the Algebra
 
 */
@@ -22415,6 +22620,7 @@ Distributed2Algebra::Distributed2Algebra() {
 
   AddOperator(&getWorkersForHostOp);
   AddOperator(&setHostForWorkerOp);
+  AddOperator(&changeHostsOp);
 
 
   pprogView = new PProgressView();

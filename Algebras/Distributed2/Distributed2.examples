@@ -987,3 +987,9 @@ Example   : query myarray setHostForWorker[0,'localhost']
 Result    : unpredictable
 Remark    : requires a distributed secondo setup 
 
+Operator  : changeHosts 
+Number    : 1 
+Signature : istream(tuple) x ident x ident x {darray,dfarray,dfmatrix,pdarray,pdfarray,sdarray} -> int
+Example   : query myChanges feed changeHosts[OldHost, NewHost, mydarray]  
+Result    : unpredictable
+Remark    : requires a distributed secondo setup 
