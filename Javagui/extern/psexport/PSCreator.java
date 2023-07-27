@@ -1,3 +1,8 @@
+/*
+Provides writing of a Component into a postscript-file 
+
+*/
+
 package extern.psexport;
 
 
@@ -37,13 +42,15 @@ private static String extend(String hn){
 }
 
 
-private static void writeBigImage(BufferedImage img, PrintStream out,int x, int y){
+private static void writeBigImage(BufferedImage img, 
+                           PrintStream out,int x, int y){
     int w = img.getWidth();
     int h = img.getHeight();
     out.println("gsave");
     out.println(x+" "+ y+" translate");
     out.println(w+" "+h+"  scale");
-    out.println("" + w + "  " + h + "  8 [" + w  + " 0 0 " + (-h) + " 0 " + h+"]");
+    out.println("" + w + "  " + h + "  8 [" + w  
+                   + " 0 0 " + (-h) + " 0 " + h+"]");
     int rowData = 3 * w;
     out.println("{currentfile " + rowData + " string readhexstring pop} bind ");
     out.println("false 3 colorimage");
@@ -76,7 +83,8 @@ public static boolean export(Component c, File outFile){
   try{ 
      PrintStream out = new PrintStream(new FileOutputStream(outFile));
      Rectangle  r = c.getBounds(); 
-     PSGraphics psc = new PSGraphics(out,(Graphics2D)c.getGraphics(),r.getHeight());
+     PSGraphics psc = new PSGraphics(out,(Graphics2D)c.getGraphics(),
+                                     r.getHeight());
      PSGraphics.lastUsedContext = new PSGraphics.PaintContext();
      psc.writeHeader(r); 
      c.printAll(psc);
@@ -301,7 +309,8 @@ private void writeComposite(Composite comp){
 /** Write the DeviceConfiguration to out.
   * Not implemented 
   **/
-private void writeDeviceConfiguration(GraphicsConfiguration deviceConfiguration){
+private void writeDeviceConfiguration(
+      GraphicsConfiguration deviceConfiguration){
     Reporter.writeWarning("PSCreator: deviceConfiguration not supported. ");
 }
 
@@ -342,7 +351,8 @@ private void writeStroke(Stroke s){
       case BasicStroke.CAP_BUTT: pscap = 0;break;
       case BasicStroke.CAP_ROUND: pscap = 1; break;
       case BasicStroke.CAP_SQUARE: pscap = 2; break;
-      default: Reporter.writeError("unknown cap style found in PSCreator.setStroke");
+      default: Reporter.writeError("unknown cap style found "+
+                                   "in PSCreator.setStroke");
    }
    out.println(pscap +" setlinecap");
    // set line join
@@ -352,7 +362,8 @@ private void writeStroke(Stroke s){
       case BasicStroke.JOIN_MITER: psjoin=0; break;
       case BasicStroke.JOIN_ROUND: psjoin=1; break;
       case BasicStroke.JOIN_BEVEL: psjoin=2; break;
-      default: Reporter.writeError("unknown join style found in PSCreator.setStroke");
+      default: Reporter.writeError("unknown join style "+
+                                  "found in PSCreator.setStroke");
    }
    out.println(psjoin+" setlinejoin");
    
@@ -384,9 +395,11 @@ private void writeAffineTransform(AffineTransform a1,boolean writeClip){
      if(lastUsedContext.affineTransform==null){
       double[] m = new double[6];
       a.getMatrix(m);
-      out.println(" [ "+ nf.format(m[0]) +" " + nf.format(-m[1]) + " " + nf.format(m[2]) + 
+      out.println(" [ "+ nf.format(m[0]) +" " + nf.format(-m[1]) 
+                       + " " + nf.format(m[2]) + 
                       " " +  nf.format(-m[3]) + " " +
-                                   nf.format(m[4]) + " " + nf.format((maxy-m[5])) + " ] concat ");
+                                   nf.format(m[4]) + " " 
+                          + nf.format((maxy-m[5])) + " ] concat ");
    //   if(writeClip){
           // adapt the clipping path to the new matrix
   //        writeClip(lastUsedContext.clip);
@@ -399,8 +412,10 @@ private void writeAffineTransform(AffineTransform a1,boolean writeClip){
 
        double[] m = new double[6];
        a2.getMatrix(m);
-       out.println(" [ "+ nf.format(m[0]) +" " + nf.format(m[1]) + " " + nf.format(m[2]) + " " +  nf.format(m[3]) + " " +
-                                   nf.format(m[4]) + " " + nf.format(m[5]) + " ] concat ");
+       out.println(" [ "+ nf.format(m[0]) +" " + nf.format(m[1]) 
+                        + " " + nf.format(m[2]) + " " +  nf.format(m[3]) + " " +
+                                   nf.format(m[4]) 
+                        + " " + nf.format(m[5]) + " ] concat ");
   //     if(writeClip){
           // adapt the cliuppling path to the new matrix
   //        writeClip(lastUsedContext.clip);
@@ -433,7 +448,6 @@ private void writeClip(Shape s){
 private void writeFont(Font f){
   //out.println("/Helvetica "+ f.getSize2D()+ " selectfont");
   out.println("/"+f.getName()+" " + f.getSize2D()+ " selectfont");
-  //Reporter.writeWarning(" PSCreator : fonts are not supported completely, set font to "+f.getName());  
 }
 
 
@@ -493,7 +507,7 @@ public void dispose(){
 
 
 
-public void 	clearRect(int x, int y, int width, int height){
+public void   clearRect(int x, int y, int width, int height){
    updateContext();
    Color bg = original.getBackground();
    if(bg==null) return;
@@ -583,7 +597,6 @@ private Dimension getImageSize(Image img){
 }
 
 public void  drawImage(BufferedImage img, BufferedImageOp op, int x, int y){
-  System.out.println("drawImage/1 called width image of size " + getImageSize(img));
   // Rectangle2D r = op.getBounds2D();
    BufferedImage i2 = img;
    writeImage(i2,x,y);
@@ -600,7 +613,6 @@ private BufferedImage convertImage(Image img){
 
 
 public boolean drawImage(Image img, AffineTransform xform, ImageObserver obs){
-   //System.out.println("drawImage/2 called with image of size " + getImageSize(img));
    out.println("gsave");
    double sx = xform.getScaleX();
    double sy = xform.getScaleY();
@@ -625,21 +637,19 @@ public boolean drawImage(Image img, AffineTransform xform, ImageObserver obs){
 
 public boolean drawImage(Image img, int x, int y, Color bgcolor, 
                       ImageObserver observer) {
-   System.out.println("drawImage/3 called with image of size " + getImageSize(img));
    writeImage(convertImage(img),x,y);
    return false;
 }
 
 public boolean drawImage(Image img, int x, int y, ImageObserver observer) {
-   //System.out.println("drawImage/4 called with image of size " + getImageSize(img));
    writeImage(convertImage(img),x,y);
    return  false;
 }
 
 public boolean drawImage(Image img, int x, int y, int width, int height,
                          Color bgcolor, ImageObserver observer) {
-   System.out.println("drawImage/5 called with image of size " + getImageSize(img));
-   BufferedImage img1 = new BufferedImage(width,height,BufferedImage.TYPE_INT_RGB);
+   BufferedImage img1 = new BufferedImage(width,height,
+                              BufferedImage.TYPE_INT_RGB);
    Graphics g = img1.getGraphics();
    boolean res = g.drawImage(img1,0,0,width,height,bgcolor,null);
    writeImage(img1,x,y);
@@ -648,7 +658,6 @@ public boolean drawImage(Image img, int x, int y, int width, int height,
 
 public boolean drawImage(Image img, int x, int y, int width, int height, 
                ImageObserver observer){
-   System.out.println("drawImage/6 called with image of size " + getImageSize(img));
    Image img2 = img.getScaledInstance(width,height,Image.SCALE_DEFAULT);
    writeImage(convertImage(img2),x,y);
    return false;
@@ -666,10 +675,9 @@ public boolean drawImage(Image img, int dx1, int dy1, int dx2,
    return res;
 }
 
-public boolean 	drawImage(Image img, int dx1, int dy1, int dx2, int dy2, 
-                          int sx1, int sy1, int sx2, int sy2, ImageObserver observer) {
-
-   //System.out.println("drawImage/8 called with image of size " + getImageSize(img));
+public boolean   drawImage(Image img, int dx1, int dy1, int dx2, int dy2, 
+                          int sx1, int sy1, int sx2, int sy2, 
+                          ImageObserver observer) {
 
    int w = dx2-dx1;
    int h = dy2-dy1;
@@ -765,7 +773,7 @@ public void drawString(String s, float x, float y){
 
   updateContext(); // switch to the currently used context
 
-  AffineTransform af = lastUsedContext.affineTransform; // get the transformation
+  AffineTransform af = lastUsedContext.affineTransform; 
   double[] m = new double[6];
   af.getMatrix(m);
   
@@ -1024,9 +1032,11 @@ public void writeHeader(Rectangle2D bounds){
 //  out.println("%%BoundingBox: "+ bounds.getX()+ " " + bounds.getY()+ " "+
 //                                (bounds.getWidth()+bounds.getX())+ " " +
 //                                (bounds.getHeight()+bounds.getY()));
-  out.println("%%BoundingBox: 0 0 "+ ((int)bounds.getWidth()) + " " + ((int)bounds.getHeight()));
+  out.println("%%BoundingBox: 0 0 "+ ((int)bounds.getWidth()) + " " 
+              + ((int)bounds.getHeight()));
   out.println("%%EndComments");
-  out.println("% replace the standard Helvetica font by the ISO Latin 1 encoding ");
+  out.println("% replace the standard Helvetica font "
+      +"by the ISO Latin 1 encoding ");
   out.println("/Helvetica findfont");
   out.println("dup length dict begin");
   out.println(" { 1 index /FID ne");
@@ -1046,10 +1056,6 @@ public void writeHeader(Rectangle2D bounds){
 
 }
 
-/*public void finalize(){
-}
-*/
-
 
 private void writePath(Shape s){
   try{
@@ -1063,19 +1069,24 @@ private void writePath(Shape s){
       int c = it.currentSegment(points);
       switch(c){
         case PathIterator.SEG_MOVETO:
-                out.println(nf.format((points[0])) + " " + nf.format((points[1])) + " moveto");
+                out.println(nf.format((points[0])) + " " 
+                            + nf.format((points[1])) + " moveto");
                 break;
         case  PathIterator.SEG_LINETO:
-                 out.println((nf.format(points[0])) + " " + nf.format((points[1])) + " lineto");
+                 out.println((nf.format(points[0])) + " " 
+                              + nf.format((points[1])) + " lineto");
                  break;
         case PathIterator.SEG_QUADTO:
                  Reporter.writeWarning("PSCreator SEG_QUADTO not supported");
-                 out.println(nf.format(points[2]) + " " + nf.format(points[3]) + " lineto");
+                 out.println(nf.format(points[2]) + " " 
+                             + nf.format(points[3]) + " lineto");
                  break;
         case PathIterator.SEG_CUBICTO:
                  out.println(nf.format(points[0]) +" " +  nf.format(points[1])
-                             +" " + nf.format(points[2])+" "+ nf.format(points[3])+" "+ 
-                             nf.format(points[4]) + " " + nf.format(points[5]) + " curveto");
+                             +" " + nf.format(points[2])+" "
+                             + nf.format(points[3])+" "+ 
+                             nf.format(points[4]) + " " + nf.format(points[5])
+                             + " curveto");
                  break;
         case PathIterator.SEG_CLOSE:
                  out.println("closepath");
