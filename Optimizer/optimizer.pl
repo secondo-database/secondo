@@ -1954,8 +1954,17 @@ plan_to_atom(projectextend(Stream,ProjectFields,ExtendFields), Result) :-
   plan_to_atom(Stream,SAtom),
   plan_to_atom(ProjectFields,PAtom),
   plan_to_atom(ExtendFields,EAtom),
-  my_concat_atom([SAtom,' projectextend[',PAtom,' ; ',EAtom,']'], '', Result),
+  my_concat_atom([SAtom,' projectextend[',PAtom,'; ',EAtom,']'], '', Result),
+  !. 
+  
+plan_to_atom(projectextendstream(Stream, ProjectFields, ExtendFields), 
+    Result) :-
+  plan_to_atom(Stream, SAtom),
+  plan_to_atom(ProjectFields, PAtom),
+  plan_to_atom(ExtendFields, EAtom),
+  my_concat_atom([SAtom,' projectextendstream[', PAtom, '; ', EAtom,']'], '', Result),
   !.
+  
 
 /*
 Sort orders and attribute names.
@@ -10106,52 +10115,54 @@ apply the final tranformations (extend, project, duplicate removal, sorting) to 
 */
 
 finish(Stream, Select, Sort, Stream2) :-
-  selectClause(Select, Extend, Project, Rdup),
-  finish2(Stream, Extend, Project, Rdup, Sort, Stream2).
+  selectClause(Select, Extend, Project, ProjectStream, ExtendStream, Rdup),
+  finish2(Stream, Extend, Project, ProjectStream, ExtendStream, Rdup, Sort, 
+    Stream2).
 
 /*
----- selectClause(+Select, -Extend, -Project, -Rdup) :-
+---- selectClause(+Select, -Extend, -Project, -ProjectStream, -ExtendStream, 
+	-Rdup) :-
 ----
 
-The ~Select~ clause contains attribute lists ~Extend~ for extension, ~Project~ for projection, and possibly a ~distinct~ keyword indicating duplicate removal returned in ~Rdup~.
+The ~Select~ clause contains attribute lists ~Extend~ for extension, ~Project~ for projection, and possibly a ~distinct~ keyword indicating duplicate removal returned in ~Rdup~. ~ProjectStream~ and ~ExtendStream~ support the use of one expression with a stream operator in the select clause.
 
 */
 
 % count queries
-selectClause(select count(all Attr), Ext, Pro, duplicates ) :-
-  selectClause(select count(Attr), Ext, Pro, _ ), !.
-selectClause(select count(distinct Attr), Ext, Pro, distinct ) :-
-  selectClause(select count(Attr), Ext, Pro, _ ), !.
+selectClause(select count(all Attr), Ext, Pro, ProS, ExtS, duplicates ) :-
+  selectClause(select count(Attr), Ext, Pro, ProS, ExtS, _ ), !.
+selectClause(select count(distinct Attr), Ext, Pro,ProS, ExtS, distinct ) :-
+  selectClause(select count(Attr), Ext, Pro, ProS, ExtS, _ ), !.
 
-selectClause(select count(*), [], count(*), duplicates).
-selectClause(select count(Attr), Extend, Project, duplicates) :-
+selectClause(select count(*), [], count(*), [], [], duplicates).
+selectClause(select count(Attr), Extend, Project, ProS, ExtS, duplicates) :-
   makeList(Attr, Attrs2),
-  extendProject(Attrs2, Extend, Project), !.
+  extendProject(Attrs2, Extend, Project, ProS, ExtS), !.
 
 % single predefined aggregation function query
-selectClause(select T, Extend, Project, distinct) :-
+selectClause(select T, Extend, Project, ProS, ExtS, distinct) :-
   compound(T),
   T =.. [Op, (distinct Attr)],
   isAggregationOP(Op),
   makeList(Attr, Attrs2),
-  extendProject(Attrs2, Extend, Project), !.
+  extendProject(Attrs2, Extend, Project, ProS, ExtS), !.
 
-selectClause(select T, Extend, Project, duplicates) :-
+selectClause(select T, Extend, Project, ProS, ExtS, duplicates) :-
   compound(T),
   ( T =.. [Op, (all Attr)] ; T =.. [Op, Attr] ),
   isAggregationOP(Op),
   makeList(Attr, Attrs2),
-  extendProject(Attrs2, Extend, Project), !.
+  extendProject(Attrs2, Extend, Project, ProS, ExtS), !.
 
-% single userdefined aggregation function query
-selectClause(select T, Extend, Project, distinct) :-
+% single user defined aggregation function query
+selectClause(select T, Extend, Project, ProS, ExtS, distinct) :-
   compound(T),
   T =.. [Op, (distinct Attr), _Fun, _Type, _Default],
   member(Op,[aggregate]),
   makeList(Attr, Attrs2),
-  extendProject(Attrs2, Extend, Project), !.
+  extendProject(Attrs2, Extend, Project, ProS, ExtS), !.
 
-selectClause(select T, Extend, Project, duplicates) :-
+selectClause(select T, Extend, Project, ProS, ExtS, duplicates) :-
   compound(T),
   (   T =.. [Op, (all Attr), _Fun1, _Type1, _Default1]
     ; T =.. [Op, Attr, _Fun2, _Type2, _Default2]
@@ -10159,21 +10170,23 @@ selectClause(select T, Extend, Project, duplicates) :-
   Attr = attr(_,_,_),
   member(Op,[aggregate]),
   makeList(Attr, Attrs2),
-  extendProject(Attrs2, Extend, Project), !.
+  extendProject(Attrs2, Extend, Project, ProS, ExtS), !.
 
 % generic cases - using recursion
-selectClause(select distinct T, Ext, Pro, distinct) :-
-  selectClause(select T, Ext, Pro, _), !.
-selectClause(select all T, Ext, Pro, Rdup) :-
-  selectClause(select T, Ext, Pro, Rdup), !.
+selectClause(select distinct T, Ext, Pro, ProS, ExtS, distinct) :-
+  selectClause(select T, Ext, Pro, ProS, ExtS, _), !.
+selectClause(select all T, Ext, Pro, ProS, ExtS, Rdup) :-
+  selectClause(select T, Ext, Pro, ProS, ExtS, Rdup), !.
 
-selectClause(select *, [], *, duplicates).
-selectClause(select Attrs, Extend, Project, duplicates) :-
+selectClause(select *, [], *, [], [], duplicates).
+selectClause(select Attrs, Extend, Project, ProjectStream, ExtendStream, 
+    duplicates) :-
   makeList(Attrs, Attrs2),
-  extendProject(Attrs2, Extend, Project), !.
+  extendProject(Attrs2, Extend, Project, ProjectStream, ExtendStream), !.
 
 /*
----- finish2(+Stream, +Extend, +Project, +Rdup, +Sort, -Stream5) :-
+---- finish2(+Stream, +Extend, +Project, +ProjectStream, +ExtendStream, 
+	+Rdup, +Sort, -Stream5) :-
 ----
 
 Apply extension, projection, duplicate removal and sorting as specified to ~Stream~ to obtain ~Stream5~.
@@ -10181,13 +10194,21 @@ If option ~rewriteCSE~ is active, also remove auxiliary attributes extended to t
 
 */
 
-
-finish2(Stream, Extend, Project, Rdup, Sort, Stream6) :-
+% one stream operator supported; use projectextendstream
+finish2(Stream, Extend, Project, ProjectStream, ExtendStream, Rdup, 
+    Sort, Stream7) :-
+    nl,
+    write('============ finish2: ============'), nl,
+    write('Extend: '), write(Extend), nl,
+    write('Project: '), write(Project), nl,
+    write('ProjectStream: '), write(ProjectStream), nl,
+    write('ExtendStream: '), write(ExtendStream), nl,
   fExtend(Stream, Extend, Stream2),
   fRemoveExtendedVirtualAttributes(Stream2,Stream3),
-  fProject(Stream3, Project, Stream4),
-  fRdup(Stream4, Rdup, Stream5),
-  fSort(Stream5, Sort, Stream6).
+  fProjectExtendStream(Stream3, ProjectStream, ExtendStream, Stream4),
+  fProject(Stream4, Project, Stream5),
+  fRdup(Stream5, Rdup, Stream6),
+  fSort(Stream6, Sort, Stream7).
 
 
 
@@ -10195,6 +10216,22 @@ fExtend(Stream, [], Stream) :- !.
 
 fExtend(Stream, Extend, extend(Stream, Extend)).
 
+
+fProjectExtendStream(Stream, _, [], Stream) :- !.
+
+fProjectExtendStream(Stream, ProjectS, ExtendS, projectextendstream(Stream, 
+  AttrNames, ExtendS)) :-
+  length(ExtendS, 1),
+  !,
+  attrnames(ProjectS, AttrNames).
+
+fProjectExtendStream(_, _, ExtendS, _) :-
+  length(ExtendS, N), N > 1,
+  my_concat_atom(['Only one stream operator allowed in select clause. '], '', ErrMsg), 
+  nl,
+  write_list(['ERROR: ',ErrMsg]), 
+  throw(error_SQL(optimizer_fProjectExtendStream(_, _, ExtendS, _)::malformedExpression::ErrMsg)),
+  !.
 
 
 fProject(Stream, *, Stream) :- !.
@@ -10231,24 +10268,35 @@ fSort(Stream, SortAttrs, StreamOut) :-
 
 
 /*
----- extendProject(+Attrs, -ExtendAttrs, -ProjectAttrs) :-
+---- extendProject(+Attrs, -ExtendAttrs, -ProjectAttrs, -ProjectStreamAttrs,
+	-ExtendStreamAttrs) :-
 ----
 
-Construct the extension and projection attribute lists from ~Attrs~.
+Construct the extension and projection attribute lists from ~Attrs~. ~ProjectStreamAttrs~ and ~ExtendStreamAttrs~ are for the ~projectextendstream~ operator.
 
 */
 
 
-extendProject([], [], []).
+extendProject([], [], [], [], []).
 
+
+% extendStream: only one field with stream operator admitted
+extendProject([Expr as Name | Attrs], Extend, [Name | Project], 
+  ProjectStream, [field(Name, Expr) | ExtendStream] ) :-
+  (Expr = units(_); Expr = components(_)),   
+  !,     
+  extendProject(Attrs, Extend, Project, ProjectStream, ExtendStream).
+  
 extendProject([Expr as Name | Attrs], [field(Name, Expr) | Extend],
-        [Name | Project]) :-
+        [Name | Project], [Name | Project1], ExtendStream) :-
   !,
-  extendProject(Attrs, Extend, Project).
+  extendProject(Attrs, Extend, Project, Project1, ExtendStream).
 
 extendProject([attr(Name, Var, Case) | Attrs], Extend,
-        [attr(Name, Var, Case) | Project]) :-
-  extendProject(Attrs, Extend, Project).
+        [attr(Name, Var, Case) | Project], [attr(Name, Var, Case) | Project1], 
+        ExtendStream) :-
+  extendProject(Attrs, Extend, Project, Project1, ExtendStream).
+ 
 
 /*
 
@@ -10820,8 +10868,7 @@ example106 :- example(106).
 
 12.1 Exception Handling
 
-If an error is encountered during the optimization process, an exception should be
-thrown using the built-in Prolog predicate
+If an error is encountered during the optimization process, an exception should be thrown using the built-in Prolog predicate
 
 ----
         throw(error_SQL(X)),      for errors in the SQL-query
