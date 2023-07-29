@@ -1619,6 +1619,7 @@ opSignature(echo,stream,[[stream,T],string],[stream,T],[sidefx]):-isData(T),!.
 opSignature(echo,stream,[[stream,T],bool,string],[stream,T],[sidefx])
           :-isData(T),!.
 opSignature(realstream, stream, [real,real,real],[stream,real],[]).
+opSignature(intstream, stream, [int,int],[stream,int],[]).
 opSignature(streamelem, stream, [[stream,T]|_],T,[typemapop]) :- !.
 opSignature(streamelem, stream, [T|_],T,[typemapop]).
 opSignature(streamelem2, stream, [_,[stream,T]|_],T,[typemapop]) :- !.

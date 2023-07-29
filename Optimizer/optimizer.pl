@@ -1962,7 +1962,8 @@ plan_to_atom(projectextendstream(Stream, ProjectFields, ExtendFields),
   plan_to_atom(Stream, SAtom),
   plan_to_atom(ProjectFields, PAtom),
   plan_to_atom(ExtendFields, EAtom),
-  my_concat_atom([SAtom,' projectextendstream[', PAtom, '; ', EAtom,']'], '', Result),
+  my_concat_atom([SAtom,' projectextendstream[', PAtom, '; ', EAtom,']'], '', 
+    Result),
   !.
   
 
@@ -8072,8 +8073,8 @@ lookupAttr(RealAtom, value_expr(real,RealAtom)) :-
   retractall(onlyAttribute),
   !.
 
-%% Primitive: text-atom
-%lookupAttr(Term, value_expr(text,Term)) :-
+% Primitive: text-atom
+% lookupAttr(Term, value_expr(text,Term)) :-
 %  atom(Term), !.
 
 lookupAttr(Term, Term) :-
@@ -10197,12 +10198,12 @@ If option ~rewriteCSE~ is active, also remove auxiliary attributes extended to t
 % one stream operator supported; use projectextendstream
 finish2(Stream, Extend, Project, ProjectStream, ExtendStream, Rdup, 
     Sort, Stream7) :-
-    nl,
-    write('============ finish2: ============'), nl,
-    write('Extend: '), write(Extend), nl,
-    write('Project: '), write(Project), nl,
-    write('ProjectStream: '), write(ProjectStream), nl,
-    write('ExtendStream: '), write(ExtendStream), nl,
+    % nl,
+    % write('============ finish2: ============'), nl,
+    % write('Extend: '), write(Extend), nl,
+    % write('Project: '), write(Project), nl,
+    % write('ProjectStream: '), write(ProjectStream), nl,
+    % write('ExtendStream: '), write(ExtendStream), nl,
   fExtend(Stream, Extend, Stream2),
   fRemoveExtendedVirtualAttributes(Stream2,Stream3),
   fProjectExtendStream(Stream3, ProjectStream, ExtendStream, Stream4),
@@ -10227,10 +10228,11 @@ fProjectExtendStream(Stream, ProjectS, ExtendS, projectextendstream(Stream,
 
 fProjectExtendStream(_, _, ExtendS, _) :-
   length(ExtendS, N), N > 1,
-  my_concat_atom(['Only one stream operator allowed in select clause. '], '', ErrMsg), 
-  nl,
+  my_concat_atom(['Only one stream operator allowed in select clause. '], '', 
+    ErrMsg), nl,
   write_list(['ERROR: ',ErrMsg]), 
-  throw(error_SQL(optimizer_fProjectExtendStream(_, _, ExtendS, _)::malformedExpression::ErrMsg)),
+  throw(error_SQL(optimizer_fProjectExtendStream(_, _, ExtendS, 
+    _)::malformedExpression::ErrMsg)),
   !.
 
 
@@ -10283,7 +10285,8 @@ extendProject([], [], [], [], []).
 % extendStream: only one field with stream operator admitted
 extendProject([Expr as Name | Attrs], Extend, [Name | Project], 
   ProjectStream, [field(Name, Expr) | ExtendStream] ) :-
-  (Expr = units(_); Expr = components(_)),   
+  Expr =.. [Op | _],
+  opSignature(Op, _, _, [stream, X], _), isData(X),   
   !,     
   extendProject(Attrs, Extend, Project, ProjectStream, ExtendStream).
   
