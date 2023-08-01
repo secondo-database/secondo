@@ -93,6 +93,7 @@ clean:
 	$(MAKE) -C 10 clean
 	$(MAKE) -C 30 clean
 	$(MAKE) -C 70 clean
+	$(MAKE) -C 82 clean
 	rm -f regSecondo.o
 	rm -f $(REG_SEC_DLL)
 	rm -f $(BASIC_REG_SEC_DLL)

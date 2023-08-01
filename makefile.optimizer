@@ -104,10 +104,10 @@ endif
 ifeq ($(shell test $(PL_VERSION) -lt 70000; echo $$?),0)
    JPLVER=30
 endif
-ifeq ($(shell test $(PL_VERSION) -lt 82000; echo $$?),0)
+ifeq ($(shell test $(PL_VERSION) -lt 80200; echo $$?),0)
    JPLVER=70
 endif
-ifeq ($(shell test $(PL_VERSION) -ge 82000; echo $$?),0)
+ifeq ($(shell test $(PL_VERSION) -ge 80200; echo $$?),0)
    JPLVER=82
 endif
 
