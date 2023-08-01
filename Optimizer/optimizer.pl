@@ -10210,6 +10210,7 @@ finish2(Stream, Extend, Project, ProjectStream, ExtendStream, Rdup,
   fProject(Stream4, Project, Stream5),
   fRdup(Stream5, Rdup, Stream6),
   fSort(Stream6, Sort, Stream7).
+  
 
 
 
@@ -10286,8 +10287,8 @@ extendProject([], [], [], [], []).
 extendProject([Expr as Name | Attrs], Extend, [Name | Project], 
   ProjectStream, [field(Name, Expr) | ExtendStream] ) :-
   Expr =.. [Op | _],
-  opSignature(Op, _, _, [stream, X], _), isData(X),   
-  !,     
+  opSignature(Op, _, _, [stream, X], _), atom(X), isData(X), 
+  !,
   extendProject(Attrs, Extend, Project, ProjectStream, ExtendStream).
   
 extendProject([Expr as Name | Attrs], [field(Name, Expr) | Extend],
