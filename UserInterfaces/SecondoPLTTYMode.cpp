@@ -1719,6 +1719,8 @@ std::string rewriteLet(std::string& cmd){
         cout << errMsg << endl; 
         return cmd;
      }
+
+     ident[0] = tolower(ident[0]);
      string res = "let(" + ident+"," + conv+")";
      if(plttydebug){
         cout << "rewite let command to " << res << endl;
