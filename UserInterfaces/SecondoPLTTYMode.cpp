@@ -1720,7 +1720,7 @@ std::string rewriteLet(std::string& cmd){
         return cmd;
      }
 
-     ident[0] = tolower(ident[0]);
+     ident = "'"+ident+"'";
      string res = "let(" + ident+"," + conv+")";
      if(plttydebug){
         cout << "rewite let command to " << res << endl;
