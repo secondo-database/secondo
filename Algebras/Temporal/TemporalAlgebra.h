@@ -7614,7 +7614,8 @@ bool Mapping<Unit, Alpha>::IsValid() const
     }
     if(lastunit.timeInterval.end > unit.timeInterval.start){
        std::cerr << std::endl;
-       std::cerr << "Units are not ordered by time, will be sorted." << std::endl;
+       std::cerr << "Units are not ordered by time, will be sorted." 
+         << std::endl;
        std::cerr << "lastUnit.timeInterval =  "; 
        lastunit.timeInterval.Print(std::cerr);
        std::cerr << std::endl;
