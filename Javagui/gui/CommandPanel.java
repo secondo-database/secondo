@@ -465,19 +465,34 @@ public class CommandPanel extends JScrollPane {
   }
 
 
-  private  String rewriteForOptimizer(String str){
+  private  String[] rewriteForOptimizer(String str){
+
+    String prefix ="query ";
+    String suffix="";
+    if(str.matches("let +[a-z,A-Z][a-z,A-Z,0-9,_]*\\s*=.*")){
+       int ass = str.indexOf('=');
+       prefix = str.substring(0,ass); // without =
+       str = str.substring(ass+1,str.length());
+       String[] cmdVar = prefix.split("\\s+");
+       prefix = "let "+cmdVar[1]+" = ";
+    }
 
     String res = varToLowerCase(str);
 
     res = replacePoint(res);
 
+    res = res ;
+
     if(showRewrittenOptimizerQuery){
       appendText("\nrewritten query: \n"+ res + "\n\n");
     }
-    return res;
+    String[] r = {prefix,res,suffix};
+    return r;
   }
 
 
+  /** Replaces variables having format a.b by a:b.
+   **/
   private String replacePoint( String str){
 
     // states
@@ -661,13 +676,16 @@ public class CommandPanel extends JScrollPane {
    }
    String start = st.nextToken();
    // check for kernel command
-   String[] keywords = {"query","let","derive","type","kill","if","while","open","close","begin","commit", "abort",
+   String[] keywords = {"query","derive","type","kill","if","while","open","close","begin","commit", "abort",
                         "save", "restore","list"};
    // note "update", "create", and "delete"  can be both, part of the kernel and part of the optimizer
    for(int i=0;i<keywords.length;i++){
      if(keywords[i].equals(start)){
          return command;
      }
+   }
+   if(start.equals("let") && !command.matches("let +[a-z,A-Z][a-z,A-Z,0-9,_]* *= *select.*")){
+     return command;
    }
    if(start.equals("update") && !command.matches("update +[a-z][a-z,A-Z,0-9,_]* *set.*")){
      return command;
@@ -701,8 +719,9 @@ public class CommandPanel extends JScrollPane {
    } 
 
    
-   command = rewriteForOptimizer(command);
+   String[] pre_command_suf = rewriteForOptimizer(command);
    StringBuffer buf = new StringBuffer();
+   command = pre_command_suf[1];
 
    if(!checkBrackets(command,buf)){
       appendText("\n\n"+buf.toString());
@@ -737,7 +756,7 @@ public class CommandPanel extends JScrollPane {
         showPrompt();
         return "";
    } else {
-       return "query " + opt;
+       return pre_command_suf[0] + opt + pre_command_suf[2];
    }
  }
 
