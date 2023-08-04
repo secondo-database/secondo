@@ -469,13 +469,13 @@ public class CommandPanel extends JScrollPane {
 
     String prefix ="query ";
     String suffix="";
-    if(str.matches("let +[a-z,A-Z][a-z,A-Z,0-9,_]*\\s*=.*")){
+    if(str.matches("let\\s+[a-z,A-Z][a-z,A-Z,0-9,_]*\\s*=\\s*select.*")){ 
        int ass = str.indexOf('=');
-       prefix = str.substring(0,ass); // without =
-       str = str.substring(ass+1,str.length());
+       prefix = str.substring(0,ass).trim(); // without =
+       str = str.substring(ass+1,str.length()).trim();
        String[] cmdVar = prefix.split("\\s+");
        prefix = "let "+cmdVar[1]+" = ";
-    }
+    } 
 
     String res = varToLowerCase(str);
 
@@ -684,7 +684,7 @@ public class CommandPanel extends JScrollPane {
          return command;
      }
    }
-   if(start.equals("let") && !command.matches("let +[a-z,A-Z][a-z,A-Z,0-9,_]* *= *select.*")){
+   if(start.equals("let") && !command.matches("let\\s+[a-z,A-Z][a-z,A-Z,0-9,_]*\\s*=\\s*select.*")){
      return command;
    }
    if(start.equals("update") && !command.matches("update +[a-z][a-z,A-Z,0-9,_]* *set.*")){
