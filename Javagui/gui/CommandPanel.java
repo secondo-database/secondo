@@ -469,7 +469,7 @@ public class CommandPanel extends JScrollPane {
 
     String prefix ="query ";
     String suffix="";
-    if(str.matches("let\\s+[a-z,A-Z][a-z,A-Z,0-9,_]*\\s*=\\s*select.*")){ 
+    if(str.matches("let\\s+[a-z,A-Z][a-z,A-Z,0-9,_]*\\s*=\\s*select(.|\n)*")){ 
        int ass = str.indexOf('=');
        prefix = str.substring(0,ass).trim(); // without =
        str = str.substring(ass+1,str.length()).trim();
@@ -684,16 +684,16 @@ public class CommandPanel extends JScrollPane {
          return command;
      }
    }
-   if(start.equals("let") && !command.matches("let\\s+[a-z,A-Z][a-z,A-Z,0-9,_]*\\s*=\\s*select.*")){
+   if(start.equals("let") && !command.matches("let\\s+[a-z,A-Z][a-z,A-Z,0-9,_]*\\s*=\\s*select(.|\n)*")){
      return command;
    }
-   if(start.equals("update") && !command.matches("update +[a-z][a-z,A-Z,0-9,_]* *set.*")){
+   if(start.equals("update") && !command.matches("update\\s+[a-z][a-z,A-Z,0-9,_]*\\s*set(.|\n)*")){
      return command;
    }
-   if(start.equals("create") && !command.matches("create +table .*") && !command.matches("create +index .*")) {
+   if(start.equals("create") && !command.matches("create\\s+table\\s(.|\n)*") && !command.matches("create\\s+index\\s(.|\n)*")) {
      return command;
    }
-   if(start.equals("delete") && !command.matches("delete +from.*")){
+   if(start.equals("delete") && !command.matches("delete\\s+from(.|\n)*")){
      return command;
    }
 
@@ -710,9 +710,9 @@ public class CommandPanel extends JScrollPane {
    boolean catChanged = false;
 
    // check whether the catalog is changed -> requires reopen of database (hotfix)
-   if(command.matches("create +table .*")){
+   if(command.matches("create\\s+table\\s(.|\n)*")){
       catChanged = true;
-   } else if(command.matches("create +index .*")){
+   } else if(command.matches("create\\s+index\\s(.|\n)*")){
       catChanged = true;
    } else if(command.startsWith("drop ")){
       catChanged = true;
