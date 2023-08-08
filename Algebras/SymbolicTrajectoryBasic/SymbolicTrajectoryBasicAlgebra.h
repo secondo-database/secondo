@@ -71,10 +71,6 @@ class NewPair {
     second = s;
   }
   
-  void operator=(const NewPair& np) {
-    set(np.first, np.second);
-  }
-  
   friend std::ostream& operator<<(std::ostream& os, const NewPair& np) {
     os << "(" << np.first << ", " << np.second << ")";
     return os;
