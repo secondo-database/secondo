@@ -26,6 +26,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 
+#ifndef REGION_T_IMPL_H
+#define REGION_T_IMPL_H
 
 #include "RegionT.h"
 #include "SimpleLineT.h"
@@ -3972,4 +3974,4 @@ double RegionT<Array>::Distance( const LineType &l,
   return result;
 }
 
-
+#endif

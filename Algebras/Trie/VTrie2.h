@@ -22,7 +22,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
 */
-
+#ifndef VTRIE_H
+#define VTRIE_H
 
 #include "SecondoSMI.h"
 #include "LRU.h"
@@ -35,9 +36,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 
 
-
-#ifndef VTRIE_H
-#define VTRIE_H
 
 namespace vtrie{
 
@@ -897,5 +895,4 @@ cannot be used within a transactional environment.
 } // end of namespace Vtrie
 
 #endif
-
 

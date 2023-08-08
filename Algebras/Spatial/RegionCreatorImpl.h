@@ -1,5 +1,3 @@
-
-
 /*
 ----
 This file is part of SECONDO.
@@ -25,6 +23,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 
+#ifndef REGION_CREATOR_IMPL_H
+#define REGION_CREATOR_IMPL_H
 
 #include "RegionCreator.h"
 
@@ -964,3 +964,4 @@ template<template<typename T> class Array>
 // template class RegionCreator<DbArray>;
 // template class RegionCreator<MMDbArray>;
 
+#endif

@@ -27,6 +27,9 @@ split from the SymbolicTrajectoryAlgebra in April 2020.
 
 */
 
+#ifndef SYMBOLIC_TRAJECTORY_BASIC_ALGEBRA_H
+#define SYMBOLIC_TRAJECTORY_BASIC_ALGEBRA_H
+
 #include "Algebras/TemporalUnit/TemporalUnitAlgebra.h"
 #include "StandardTypes.h"
 #include "Stream.h"
@@ -4065,3 +4068,6 @@ double jaccardSimilarity(collection::Collection& v1,
 double jaccardSimilarity(std::set<std::string>& s1, std::set<std::string>& s2);
 
 }
+
+#endif
+

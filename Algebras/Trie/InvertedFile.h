@@ -1,4 +1,3 @@
-
 /*
 ----
 This file is part of SECONDO.
@@ -24,6 +23,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 
+#ifndef INVERTED_FILE_H
+#define INVERTED_FILE_H
 
 #include "SecondoSMI.h"
 #include <string>
@@ -1258,4 +1259,5 @@ bool OpenInvfile(SmiRecord& valueRecord, size_t& offset,
 }
   
 }
+#endif
 

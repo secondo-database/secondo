@@ -24,6 +24,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 
+#ifndef POINTSTIMPL_H
+#define POINTSTIMPL_H
 
 #include "PointsT.h"
 #include "RegionT.h"
@@ -1461,4 +1463,5 @@ void SelectNext_pp( const PointsT<Array1>& P1,
   }
 }
 
+#endif
 

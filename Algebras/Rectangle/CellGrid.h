@@ -36,6 +36,9 @@ is open in y direction.
 
 */
 
+#ifndef CELLGRID_H
+#define CELLGRID_H
+
 #include <limits>
 #include "Attribute.h"
 #include "NestedList.h"
@@ -899,3 +902,4 @@ bool CellGrid<dim>::ReadFrom(const ListExpr value,const ListExpr typeInfo){
   return true;
 }
 
+#endif

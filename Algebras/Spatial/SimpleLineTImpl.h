@@ -26,7 +26,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 
-
+#ifndef SIMPLE_LINE_T_IMPL_H
+#define SIMPLE_LINE_T_IMPL_H
 
 #include "SimpleLineT.h"
 #include "LineT.h"
@@ -1362,4 +1363,5 @@ std::ostream& operator<<(std::ostream& o, const SimpleLineT<Array>& cl){
    return o;
 }
 
+#endif
 
