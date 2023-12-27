@@ -315,7 +315,7 @@ typedef struct
   m_ulHeight  = bmp.height;
   colordepth  = (unsigned char)bmp.bpp;
 
-  // wird nicht unterstützt
+  // wird nicht unterstuetzt
   if (bmp.bpp<8)
   {
     return false;
@@ -401,7 +401,7 @@ typedef struct
     return false;
   }
 
-  delete dest_buffer;
+  delete[] dest_buffer;
 
   return true;
 }
@@ -603,7 +603,7 @@ bool CImageConverter::LoadTGA(unsigned char *PictureBuffer,
     ConvertToTrueColor(BPP_24, dest_buffer, size, 0);
   }
 
-  delete dest_buffer;
+  delete[] dest_buffer;
 
   return true;
 }
@@ -726,7 +726,7 @@ bool CImageConverter::LoadPCX(unsigned char *PictureBuffer,
     ConvertToTrueColor(BPP_24, dest_buffer, size, 0);
   }
 
-  delete dest_buffer;
+  delete[] dest_buffer;
 
   return true;
 }

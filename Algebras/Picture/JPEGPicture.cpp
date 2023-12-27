@@ -79,8 +79,8 @@ JPEGPicture::JPEGPicture(char *filename)
 
             JPEGBuffer = new unsigned char[size];
             if(fread(JPEGBuffer, size, 1, fp) != 1) {
-		    std::cerr << "Error in reading file" << std::endl;
-	    }
+                std::cerr << "Error in reading file" << std::endl;
+            }
             fclose(fp);
 
             ReadJPEGHeader(JPEGBuffer, size, &m_ulWidth, &m_ulHeight,
@@ -88,7 +88,7 @@ JPEGPicture::JPEGPicture(char *filename)
 
             CreateRGBBuffer(JPEGBuffer, size);
 
-            delete JPEGBuffer;
+            delete[] JPEGBuffer;
       }
 }
 
@@ -172,7 +172,7 @@ void JPEGPicture::CreateRGBBuffer(unsigned char *JPEGBuffer,
       {
             jpeg_read_scanlines(&cinfo, line, 1);
 
-            // die einzelnen Blöcke speichern
+            // die einzelnen Bloecke speichern
             memcpy((unsigned char*)((void*)(m_pucImageBuffer + 
                                      buffer_pos)), line[0], row_stride);
             buffer_pos += row_stride;
@@ -237,7 +237,7 @@ JPEGPicture* JPEGPicture::scale(unsigned long w, unsigned long h)
       if (w<=0 || h<=0)
       {
             aspect = (float)m_ulWidth/(float)m_ulHeight;
-            if (w>0)      // Da wurde eine X-Größe angegeben
+            if (w>0)      // Da wurde eine X-Groesse angegeben
             {
                   new_x = w;
                   new_y = (unsigned long)((float)w/aspect);
