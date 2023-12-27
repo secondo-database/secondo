@@ -530,7 +530,7 @@ void SelectNext_lr( const Line& L, const Region& R,
 */
 
 // Generic print-function object for printing with STL::for_each
-template<class T> struct print : public unary_function<T, void>
+template<class T> struct print
 {
   print(ostream& out) : os(out) {}
   void operator() (T x) { os << "\t" << x << "\n"; }

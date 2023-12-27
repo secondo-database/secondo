@@ -6250,8 +6250,7 @@ LogDebug("finish" << endl);
     */
     typedef std::pair<double, int> QueuePairType;
 
-    struct CompareQueueEntry :
-     public std::binary_function<QueuePairType, QueuePairType, bool>
+    struct CompareQueueEntry
     {
         bool operator()
          (const QueuePairType firstQueuePair,
@@ -6273,8 +6272,7 @@ LogDebug("finish" << endl);
     */
     typedef std::pair<double, std::pair<int, int>> QueuePairTypeForwardSearch;
 
-    struct CompareQueueEntryForwardSearch :
-     public std::binary_function<QueuePairTypeForwardSearch,
+    struct CompareQueueEntryForwardSearch
       QueuePairTypeForwardSearch, bool>
     {
         bool operator()

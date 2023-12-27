@@ -890,7 +890,7 @@ void GPatternHelper::FindLargeDynamicComponents(CompressedInMemMSet& Accumlator,
 }
 
 struct
-checkShortDelete: binary_function< CompressedMSet* , int64_t, bool>
+checkShortDelete
 {
 public:
   bool operator() (CompressedMSet* _mset, int64_t dMS) const

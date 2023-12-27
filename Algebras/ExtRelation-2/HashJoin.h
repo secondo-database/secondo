@@ -1007,8 +1007,7 @@ their partition intervals.
 
 */
 
-class PartitionProgressInfoCompareLesser :
-  std::binary_function<PartitionProgressInfo, PartitionProgressInfo, bool>
+class PartitionProgressInfoCompareLesser
 {
   public:
 
@@ -1312,8 +1311,7 @@ their partition intervals.
 
 */
 
-class PartitionCompareLesser :
-  std::binary_function<Partition*, Partition*, bool>
+class PartitionCompareLesser
 {
   public:
 

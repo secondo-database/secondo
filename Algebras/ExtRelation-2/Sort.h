@@ -760,8 +760,7 @@ Derived functional STL class for lesser comparison of two ~SortedRun~
 instances according to their run number.
 
 */
-class SortedRunCompareNumber :
-  public std::binary_function<SortedRun*, SortedRun*, bool >
+class SortedRunCompareNumber 
 {
   public:
 
@@ -778,8 +777,7 @@ Derived functional STL class for lesser comparison of two ~SortedRun~
 instances according to their tuple count.
 
 */
-class SortedRunCompareLengthLesser :
-  public std::binary_function<SortedRun*, SortedRun*, bool >
+class SortedRunCompareLengthLesser
 {
   public:
 
@@ -796,8 +794,7 @@ Derived functional STL class for greater comparison of two ~SortedRun~
 instances according to their tuple count.
 
 */
-class SortedRunCompareLengthGreater :
-  public std::binary_function<SortedRun*, SortedRun*, bool >
+class SortedRunCompareLengthGreater
 {
   public:
 

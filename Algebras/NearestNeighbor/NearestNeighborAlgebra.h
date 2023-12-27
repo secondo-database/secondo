@@ -29,8 +29,7 @@ class DistanceElement
     long NodeId() const { return nodeId; }
     int Level() const { return level; }
 
-    struct Near : public binary_function< DistanceElement<LeafInfo>,
-                        DistanceElement<LeafInfo>, bool >
+    struct Near 
     {
         bool operator()(const DistanceElement<LeafInfo> e1,
                               const DistanceElement<LeafInfo> e2) const
