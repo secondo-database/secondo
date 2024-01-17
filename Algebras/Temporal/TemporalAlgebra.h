@@ -4571,6 +4571,91 @@ void ForceToDuration(const M& src, const datetime::DateTime& duration,
   res.ConvertToMapping(result);
 }
 
+/*
+3.10.9 ~StretchOrCompressToDuration~
+
+Force duration of src to the given value (by specifying either a duration or a
+strech/compression factor). This means, longer instances are temporally
+compressed and shorter ones are stretched without changing the objects'
+geometries. Temporal gaps are filled by constant units if parameter is true.
+
+For efficiency reasons, the result is stored in an object without flobs.
+
+*/
+template<class M, class U>
+void StretchOrCompressToDuration(const M& src,
+                                 const double factor,
+                                 const bool startAtBeginOfTime,
+                                 const bool fillGaps,
+                                 M& result, const Geoid* geoid = 0) {
+  assert(factor > 0.0);
+  if (!src.IsDefined()) {
+    result.SetDefined(false);
+    return;
+  }
+  result.SetDefined(true);
+  if (src.IsEmpty()) {
+    return;
+  }
+  Instant firstInstant(0.0), beginOfTime(0.0);
+  src.InitialInstant(firstInstant);
+  datetime::DateTime diffToBOT = firstInstant - beginOfTime;
+  datetime::DateTime newDuration(0, 0, datetime::durationtype);
+  int i = 0;
+  U unit(true), lastUnit(true), newUnit(true);
+  Interval<Instant> iv, lastIv;
+  // while (i < src.GetNoComponents()) {
+  //   src.Get(i, unit);
+  //   iv = unit.timeInterval;
+  //   if (i == 0) {
+  //     newUnit = unit;
+  //     newUnit.timeInterval = Interval<Instant>(iv.start - diffToBOT,
+  //                                              (iv.end - diffToBOT) * factor,
+  //                                              iv.lc, iv.rc);
+  //     result.Add(newUnit);
+  //   }
+  //   else {
+  //
+  //     // TODO: change this part
+  //     if (iv.end != unit.timeInterval.start) { // fill temporal gap
+  //       unit2.timeInterval = Interval<Instant>(iv.end,
+  //                                              unit.timeInterval.start,
+  //                                              !iv.rc,
+  //                                              !unit.timeInterval.lc);
+  //       unit2.SetToConstantUnit(unit2.p1, 0.0);
+  //       durTemp += (unit2.timeInterval.end - unit2.timeInterval.start);
+  //       if (startAtBeginOfTime) {
+  //         unit2.timeInterval.start -= diffToBeginOfTime;
+  //         unit2.timeInterval.end -= diffToBeginOfTime;
+  //       }
+  //       result.Add(unit2);
+  //     }
+  //
+  //   }
+  // }
+}
+
+template<class M, class U>
+void StretchOrCompressToDuration(const M& src,
+                                 const datetime::DateTime& duration,
+                                 const bool startAtBeginOfTime,
+                                 const bool fillGaps,
+                                 M& result, const Geoid* geoid = 0) {
+  assert(duration.GetType() == datetime::durationtype);
+  if (!src.IsDefined()) {
+    result.SetDefined(false);
+    return;
+  }
+  result.SetDefined(true);
+  if (src.IsEmpty()) {
+    return;
+  }
+  double factor = duration / src.GetDuration();
+  StretchOrCompressToDuration(src, factor, startAtBeginOfTime, fillGaps, result,
+                              geoid);
+}
+
+
 class CMPoint;
 
 /*
@@ -8142,7 +8227,6 @@ void Mapping<Unit,Alpha>::moveTo(const datetime::DateTime& instant,
   datetime::DateTime dur = instant - unit.timeInterval.start;
   timeMove(dur, result);
 }
-
 
 /*
 5 Type Constructor template functions
