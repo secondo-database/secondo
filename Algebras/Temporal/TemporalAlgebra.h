@@ -4583,11 +4583,8 @@ For efficiency reasons, the result is stored in an object without flobs.
 
 */
 template<class M, class U>
-void StretchOrCompressToDuration(const M& src,
-                                 const double factor,
-                                 const bool startAtBeginOfTime,
-                                 const bool fillGaps,
-                                 M& result, const Geoid* geoid = 0) {
+void StretchOrCompressToFactor(const M& src, const double factor,
+                               const bool startAtBeginOfTime,                                 const bool fillGaps, M& result) {
   assert(factor > 0.0);
   if (!src.IsDefined()) {
     result.SetDefined(false);
@@ -4599,48 +4596,53 @@ void StretchOrCompressToDuration(const M& src,
   }
   Instant firstInstant(0.0), beginOfTime(0.0);
   src.InitialInstant(firstInstant);
-  datetime::DateTime diffToBOT = firstInstant - beginOfTime;
+  datetime::DateTime diffToBOT(0, 0, datetime::durationtype);
+  if (startAtBeginOfTime) {
+    diffToBOT = firstInstant - beginOfTime;
+  }
   datetime::DateTime newDuration(0, 0, datetime::durationtype);
   int i = 0;
-  U unit(true), lastUnit(true), newUnit(true);
+  U unit(true), lastUnit(true), newUnit(true), constantUnit(true);
   Interval<Instant> iv, lastIv;
-  // while (i < src.GetNoComponents()) {
-  //   src.Get(i, unit);
-  //   iv = unit.timeInterval;
-  //   if (i == 0) {
-  //     newUnit = unit;
-  //     newUnit.timeInterval = Interval<Instant>(iv.start - diffToBOT,
-  //                                              (iv.end - diffToBOT) * factor,
-  //                                              iv.lc, iv.rc);
-  //     result.Add(newUnit);
-  //   }
-  //   else {
-  //
-  //     // TODO: change this part
-  //     if (iv.end != unit.timeInterval.start) { // fill temporal gap
-  //       unit2.timeInterval = Interval<Instant>(iv.end,
-  //                                              unit.timeInterval.start,
-  //                                              !iv.rc,
-  //                                              !unit.timeInterval.lc);
-  //       unit2.SetToConstantUnit(unit2.p1, 0.0);
-  //       durTemp += (unit2.timeInterval.end - unit2.timeInterval.start);
-  //       if (startAtBeginOfTime) {
-  //         unit2.timeInterval.start -= diffToBeginOfTime;
-  //         unit2.timeInterval.end -= diffToBeginOfTime;
-  //       }
-  //       result.Add(unit2);
-  //     }
-  //
-  //   }
-  // }
+  while (i < src.GetNoComponents()) {
+    src.Get(i, unit);
+    iv = unit.timeInterval;
+    newUnit = unit;
+    if (i == 0) {
+      newUnit.timeInterval = Interval<Instant>(iv.start - diffToBOT,
+                            iv.start - diffToBOT + (iv.end - iv.start) * factor,
+                            iv.lc, iv.rc);
+    }
+    else {
+      if (iv.start > lastIv.end) { // temporal gap between units
+        Instant startOfNextUnit(lastIv.end + (iv.start - lastIv.end) * factor);
+        if (fillGaps) { // insert constant unit
+          constantUnit.SetToConstantUnit(lastUnit.p1, 0.0);
+          constantUnit.timeInterval = Interval<Instant>(lastIv.end,
+                                           startOfNextUnit, !lastIv.rc, !iv.lc);
+          result.Add(constantUnit);
+        }
+        newUnit.timeInterval = Interval<Instant>(startOfNextUnit,
+                                 startOfNextUnit + (iv.end - iv.start) * factor,
+                                 iv.lc, iv.rc);
+      }
+      else { // regular case
+        newUnit.timeInterval = Interval<Instant>(lastIv.end,
+                                      lastIv.end + (iv.end - iv.start) * factor,
+                                      iv.lc, iv.rc);
+      }
+      lastUnit = unit;
+      lastIv = iv;
+    }
+    result.Add(newUnit);
+  }
 }
 
 template<class M, class U>
 void StretchOrCompressToDuration(const M& src,
                                  const datetime::DateTime& duration,
                                  const bool startAtBeginOfTime,
-                                 const bool fillGaps,
-                                 M& result, const Geoid* geoid = 0) {
+                                 const bool fillGaps, M& result) {
   assert(duration.GetType() == datetime::durationtype);
   if (!src.IsDefined()) {
     result.SetDefined(false);
@@ -4650,9 +4652,11 @@ void StretchOrCompressToDuration(const M& src,
   if (src.IsEmpty()) {
     return;
   }
-  double factor = duration / src.GetDuration();
-  StretchOrCompressToDuration(src, factor, startAtBeginOfTime, fillGaps, result,
-                              geoid);
+  datetime::DateTime srcDuration(0, 0, datetime::durationtype);
+  src.GetDuration(srcDuration);
+  double factor = duration / srcDuration;
+  StretchOrCompressToDuration<M, U>(src, factor, startAtBeginOfTime,
+                                    fillGaps, result);
 }
 
 

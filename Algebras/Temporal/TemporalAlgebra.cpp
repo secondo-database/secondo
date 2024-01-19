@@ -12964,6 +12964,33 @@ ListExpr SpeedUpTypeMap(ListExpr args){
 }
 
 /*
+~StretchTypeMap~
+
+signature
+  mT x duration -> mT
+
+*/
+ListExpr StretchTypeMap(ListExpr args) {
+  std::string err = "mT x duration expected";
+  int len = nl->ListLength(args);
+  if (len != 2) {
+    ErrorReporter::ReportError(err);
+    return nl->TypeError();
+  }
+  if (nl->IsEqual(nl->First(args), MPoint::BasicType()) ||
+      nl->IsEqual(nl->First(args), MInt::BasicType()) ||
+      nl->IsEqual(nl->First(args), MReal::BasicType()) ||
+      nl->IsEqual(nl->First(args), CMPoint::BasicType()) ||
+      nl->IsEqual(nl->First(args), MBool::BasicType())) {
+    if (nl->IsEqual(nl->Second(args), Duration::BasicType())) {
+      return nl->First(args);
+    }
+  }
+  ErrorReporter::ReportError(err);
+  return nl->TypeError();
+}
+
+/*
 ~SubMoveTypeMap~
 
 signatures:
@@ -14103,6 +14130,31 @@ int GridCellEventsSelect(ListExpr args){
   if(nl->IsEqual(nl->First(args),MPoint::BasicType())){return 1;}
   return -1;
 }
+
+/*
+16.2.33 Selection function for ~stretch~
+
+*/
+int StretchSelect(ListExpr args) {
+  ListExpr arg = nl->First(args);
+  if (nl->IsEqual(arg, MBool::BasicType())) {
+    return 0;
+  }
+  if (nl->IsEqual(arg, MInt::BasicType())) {
+    return 1;
+  }
+  if (nl->IsEqual(arg, MReal::BasicType())) {
+    return 2;
+  }
+  if (nl->IsEqual(arg, MPoint::BasicType())) {
+    return 3;
+  }
+  if (nl->IsEqual(arg, CMPoint::BasicType())) {
+    return 4;
+  }
+  return -1; // should never occur
+}
+
 /*
 16.3 Value mapping functions
 
@@ -16496,6 +16548,19 @@ int SpeedUpVM( Word* args, Word& result, int message,
    return 0;
 }
 
+template<class M, class U>
+int StretchVM(Word* args, Word& result, int message, Word& local, Supplier s) {
+  result = qp->ResultStorage(s);
+  M* res = static_cast<M*>(result.addr);
+  // M* arg = static_cast<M*>(args[0].addr);
+  datetime::DateTime dur = *(static_cast<datetime::DateTime*>(args[1].addr));
+  dur.SetType(datetime::durationtype);
+  cout << dur << endl;
+  // StretchOrCompressToDuration<M, U>(*arg, dur, false, true, *res);
+  res->SetDefined(false);
+  return 0;
+}
+
 /*
 ValueMapping for operator ~avg\_speed~
 
@@ -17696,6 +17761,14 @@ ValueMapping GridCellEventsValueMapping[] = {
     GridCellEventsVM<MPoint>
 };
 
+ValueMapping StretchVMs[] = {
+  StretchVM<MBool, UBool>, // 0
+  StretchVM<MInt, UInt>,
+  StretchVM<MReal, UReal>,
+  StretchVM<MPoint, UPoint>,
+  StretchVM<CMPoint, CUPoint> // 4
+};
+
 /*
 16.4.2 Specification strings
 
@@ -18498,6 +18571,16 @@ const std::string speedupSpec =
     "<text>query train1 speedup[2.0]</text--->"
     ") )";
 
+const std::string stretchSpec =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text>mT x duration -> mT </text---> "
+    "<text> M stretch [ D ] </text--->"
+    "<text>Force duration of M to the given value. This means, longer instances"
+    " are temporally compressed and shorter ones are stretched without changing"
+    " the objects' geometries.</text--->"
+    "<text>query train1 stretch[create_duration(0, 3600000)]</text--->"
+    ") )";
+
 /*
 Spec for ~avg\_speed~
 
@@ -19134,6 +19217,13 @@ Operator speedup( "speedup",
                     SpeedUpVM,
                     Operator::SimpleSelect,
                     SpeedUpTypeMap);
+
+Operator stretch( "stretch",
+                    stretchSpec,
+                    5,
+                    StretchVMs,
+                    StretchSelect,
+                    StretchTypeMap);
 
 Operator avg_speed( "avg_speed",
                     avg_speedSpec,
@@ -22403,6 +22493,7 @@ class TemporalAlgebra : public Algebra
     AddOperator(&hat);
     AddOperator(&restrict);
     AddOperator(&speedup);
+    AddOperator(&stretch);
     AddOperator(&avg_speed);
     AddOperator(&submove);
     AddOperator(&temporaluval);

@@ -76,6 +76,7 @@ operator equalizeU alias EQUALIZEU pattern _ op [_]
 operator vertices alias VERTICES pattern op( _ )
 operator hat alias HAT pattern op ( _ )
 operator speedup alias SPEEDUP pattern _ op [_]
+operator stretch alias STRETCH pattern _ op [_]
 operator avg_speed alias AVG_SPEED pattern op(_)
 operator submove alias SUBMOVE pattern _ op[_]
 operator uval alias UVAL pattern op ( _ )
