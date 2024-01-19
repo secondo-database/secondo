@@ -4665,8 +4665,8 @@ class CMPoint;
 /*
 3.8 CUPoint
 
-This class will be used in the ~cupoint~ type constructor, i.e., the type constructor
-for the temporal unit of point values together with a radius.
+This class will be used in the ~cupoint~ type constructor, i.e., the type
+constructor for the temporal unit of point values together with a radius.
 
 */
 class CUPoint : public UPoint {
