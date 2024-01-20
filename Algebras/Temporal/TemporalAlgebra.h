@@ -4584,7 +4584,8 @@ For efficiency reasons, the result is stored in an object without flobs.
 */
 template<class M, class U>
 void StretchOrCompressToFactor(const M& src, const double factor,
-                               const bool startAtBeginOfTime,                                 const bool fillGaps, M& result) {
+                               const bool startAtBeginOfTime, 
+                               const bool fillGaps, M& result) {
   assert(factor > 0.0);
   if (!src.IsDefined()) {
     result.SetDefined(false);
