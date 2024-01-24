@@ -537,7 +537,7 @@ Result    : (periods (("2003-11-20-06:03" "2003-11-20-06:23:00.020" TRUE FALSE))
 Operator  : stretch
 Number    : 1
 Signature : mT x duration -> mT
-Example   : query isdefined([const mint value ((("2024-01-01-00:00" "2024-01-01-09:09" TRUE FALSE) 9))] stretch[create_duration(0, 3600000)])
+Example   : query isdefined([const mpoint value ((("2024-01-01-00:00" "2024-01-01-09:09" TRUE FALSE) (0.0 0.0 1.0 1.0)))] stretch[create_duration(0, 3600000)])
 Result    : FALSE
 
 Operator  : avg_speed

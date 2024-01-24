@@ -4635,6 +4635,7 @@ void StretchOrCompressToFactor(const M& src, const double factor,
       lastIv = iv;
     }
     result.Add(newUnit);
+    i++;
   }
 }
 
@@ -4643,6 +4644,7 @@ void StretchOrCompressToDuration(const M& src,
                                  const datetime::DateTime& duration,
                                  const bool startAtBeginOfTime,
                                  const bool fillGaps, M& result) {
+  cout << duration << endl;
   assert(duration.GetType() == datetime::durationtype);
   if (!src.IsDefined()) {
     result.SetDefined(false);
@@ -4655,8 +4657,8 @@ void StretchOrCompressToDuration(const M& src,
   datetime::DateTime srcDuration(0, 0, datetime::durationtype);
   src.GetDuration(srcDuration);
   double factor = duration / srcDuration;
-  StretchOrCompressToDuration<M, U>(src, factor, startAtBeginOfTime,
-                                    fillGaps, result);
+  StretchOrCompressToFactor<M, U>(src, factor, startAtBeginOfTime, fillGaps,
+                                  result);
 }
 
 

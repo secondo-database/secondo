@@ -12977,12 +12977,9 @@ ListExpr StretchTypeMap(ListExpr args) {
     ErrorReporter::ReportError(err);
     return nl->TypeError();
   }
-  if (nl->IsEqual(nl->First(args), MPoint::BasicType()) ||
-      nl->IsEqual(nl->First(args), MInt::BasicType()) ||
-      nl->IsEqual(nl->First(args), MReal::BasicType()) ||
-      nl->IsEqual(nl->First(args), CMPoint::BasicType()) ||
-      nl->IsEqual(nl->First(args), MBool::BasicType())) {
-    if (nl->IsEqual(nl->Second(args), Duration::BasicType())) {
+  if (MPoint::checkType(nl->First(args)) ||
+      CMPoint::checkType(nl->Second(args))) {
+    if (Duration::checkType(nl->Second(args))) {
       return nl->First(args);
     }
   }
@@ -14129,30 +14126,6 @@ int GridCellEventsSelect(ListExpr args){
   if(nl->IsEqual(nl->First(args),UPoint::BasicType())){return 0;}
   if(nl->IsEqual(nl->First(args),MPoint::BasicType())){return 1;}
   return -1;
-}
-
-/*
-16.2.33 Selection function for ~stretch~
-
-*/
-int StretchSelect(ListExpr args) {
-  ListExpr arg = nl->First(args);
-  if (nl->IsEqual(arg, MBool::BasicType())) {
-    return 0;
-  }
-  if (nl->IsEqual(arg, MInt::BasicType())) {
-    return 1;
-  }
-  if (nl->IsEqual(arg, MReal::BasicType())) {
-    return 2;
-  }
-  if (nl->IsEqual(arg, MPoint::BasicType())) {
-    return 3;
-  }
-  if (nl->IsEqual(arg, CMPoint::BasicType())) {
-    return 4;
-  }
-  return -1; // should never occur
 }
 
 /*
@@ -16553,10 +16526,8 @@ int StretchVM(Word* args, Word& result, int message, Word& local, Supplier s) {
   result = qp->ResultStorage(s);
   M* res = static_cast<M*>(result.addr);
   // M* arg = static_cast<M*>(args[0].addr);
-  datetime::DateTime dur = *(static_cast<datetime::DateTime*>(args[1].addr));
-  dur.SetType(datetime::durationtype);
-  cout << dur << endl;
-  // StretchOrCompressToDuration<M, U>(*arg, dur, false, true, *res);
+  // datetime::DateTime* dur = static_cast<datetime::DateTime*>(args[1].addr);
+  // StretchOrCompressToDuration<M, U>(*arg, *dur, false, true, *res);
   res->SetDefined(false);
   return 0;
 }
@@ -17762,11 +17733,8 @@ ValueMapping GridCellEventsValueMapping[] = {
 };
 
 ValueMapping StretchVMs[] = {
-  StretchVM<MBool, UBool>, // 0
-  StretchVM<MInt, UInt>,
-  StretchVM<MReal, UReal>,
   StretchVM<MPoint, UPoint>,
-  StretchVM<CMPoint, CUPoint> // 4
+  StretchVM<CMPoint, CUPoint>
 };
 
 /*
@@ -19217,13 +19185,6 @@ Operator speedup( "speedup",
                     SpeedUpVM,
                     Operator::SimpleSelect,
                     SpeedUpTypeMap);
-
-Operator stretch( "stretch",
-                    stretchSpec,
-                    5,
-                    StretchVMs,
-                    StretchSelect,
-                    StretchTypeMap);
 
 Operator avg_speed( "avg_speed",
                     avg_speedSpec,
@@ -22322,6 +22283,13 @@ Operator traversed(
   traversedSelect,
   traversedTM
 );
+
+Operator stretch( "stretch",
+                    stretchSpec,
+                    2,
+                    StretchVMs,
+                    forceToDurationSelect,
+                    StretchTypeMap);
 
 /*
 6 Creating the Algebra
