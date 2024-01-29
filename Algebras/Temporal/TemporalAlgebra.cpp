@@ -16525,10 +16525,9 @@ template<class M, class U>
 int StretchVM(Word* args, Word& result, int message, Word& local, Supplier s) {
   result = qp->ResultStorage(s);
   M* res = static_cast<M*>(result.addr);
-  // M* arg = static_cast<M*>(args[0].addr);
-  // datetime::DateTime* dur = static_cast<datetime::DateTime*>(args[1].addr);
-  // StretchOrCompressToDuration<M, U>(*arg, *dur, false, true, *res);
-  res->SetDefined(false);
+  M* arg = static_cast<M*>(args[0].addr);
+  datetime::DateTime* dur = static_cast<datetime::DateTime*>(args[1].addr);
+  StretchOrCompressToDuration<M, U>(*arg, *dur, false, true, *res);
   return 0;
 }
 

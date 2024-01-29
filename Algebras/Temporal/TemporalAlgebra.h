@@ -4604,7 +4604,7 @@ void StretchOrCompressToFactor(const M& src, const double factor,
   datetime::DateTime newDuration(0, 0, datetime::durationtype);
   int i = 0;
   U unit(true), lastUnit(true), newUnit(true), constantUnit(true);
-  Interval<Instant> iv, lastIv;
+  Interval<Instant> iv, lastNewIv, lastOldIv;
   while (i < src.GetNoComponents()) {
     src.Get(i, unit);
     iv = unit.timeInterval;
@@ -4615,26 +4615,27 @@ void StretchOrCompressToFactor(const M& src, const double factor,
                             iv.lc, iv.rc);
     }
     else {
-      if (iv.start > lastIv.end) { // temporal gap between units
-        Instant startOfNextUnit(lastIv.end + (iv.start - lastIv.end) * factor);
+      Instant nextStart(lastNewIv.end + (iv.start - lastOldIv.end) * factor);
+      if (nextStart > lastNewIv.end) { // temporal gap between units
         if (fillGaps) { // insert constant unit
           constantUnit.SetToConstantUnit(lastUnit.p1, 0.0);
-          constantUnit.timeInterval = Interval<Instant>(lastIv.end,
-                                           startOfNextUnit, !lastIv.rc, !iv.lc);
+          constantUnit.timeInterval = Interval<Instant>(lastNewIv.end,nextStart,
+                                                        !lastNewIv.rc, !iv.lc);
           result.Add(constantUnit);
         }
-        newUnit.timeInterval = Interval<Instant>(startOfNextUnit,
-                                 startOfNextUnit + (iv.end - iv.start) * factor,
-                                 iv.lc, iv.rc);
+        newUnit.timeInterval = Interval<Instant>(nextStart,
+                                       nextStart + (iv.end - iv.start) * factor,
+                                       iv.lc, iv.rc);
       }
       else { // regular case
-        newUnit.timeInterval = Interval<Instant>(lastIv.end,
-                                      lastIv.end + (iv.end - iv.start) * factor,
-                                      iv.lc, iv.rc);
+        newUnit.timeInterval = Interval<Instant>(lastNewIv.end,
+                                   lastNewIv.end + (iv.end - iv.start) * factor,
+                                   iv.lc, iv.rc);
       }
-      lastUnit = unit;
-      lastIv = iv;
     }
+    lastUnit = newUnit;
+    lastNewIv = newUnit.timeInterval;
+    lastOldIv = unit.timeInterval;
     result.Add(newUnit);
     i++;
   }
@@ -4645,7 +4646,6 @@ void StretchOrCompressToDuration(const M& src,
                                  const datetime::DateTime& duration,
                                  const bool startAtBeginOfTime,
                                  const bool fillGaps, M& result) {
-  cout << duration << endl;
   assert(duration.GetType() == datetime::durationtype);
   if (!src.IsDefined()) {
     result.SetDefined(false);
@@ -4656,7 +4656,15 @@ void StretchOrCompressToDuration(const M& src,
     return;
   }
   datetime::DateTime srcDuration(0, 0, datetime::durationtype);
-  src.GetDuration(srcDuration);
+  if (fillGaps) { // compute srcDuration with gaps
+    U firstUnit(true), lastUnit(true);
+    src.Get(0, firstUnit);
+    src.Get(src.GetNoComponents() - 1, lastUnit);
+    srcDuration = lastUnit.timeInterval.end - firstUnit.timeInterval.start;
+  }
+  else {
+    src.GetDuration(srcDuration);
+  }
   double factor = duration / srcDuration;
   StretchOrCompressToFactor<M, U>(src, factor, startAtBeginOfTime, fillGaps,
                                   result);
