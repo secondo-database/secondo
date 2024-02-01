@@ -4601,7 +4601,9 @@ void StretchOrCompressToFactor(const M& src, const double factor,
   if (startAtBeginOfTime) {
     diffToBOT = firstInstant - beginOfTime;
   }
-  datetime::DateTime newDuration(0, 0, datetime::durationtype);
+  datetime::DateTime oldDuration(0, 0, datetime::durationtype),
+                     newDuration(0, 0, datetime::durationtype),
+                     durationDiff(0, 0, datetime::durationtype);
   int i = 0;
   U unit(true), lastUnit(true), newUnit(true), constantUnit(true);
   Interval<Instant> iv, lastNewIv, lastOldIv;
@@ -4636,6 +4638,19 @@ void StretchOrCompressToFactor(const M& src, const double factor,
     lastUnit = newUnit;
     lastNewIv = newUnit.timeInterval;
     lastOldIv = unit.timeInterval;
+    oldDuration += (lastOldIv.end - lastOldIv.start);
+    newDuration += (lastNewIv.end - lastNewIv.start);
+    durationDiff = oldDuration * factor - newDuration;
+    if (!durationDiff.IsZero()) { // cumulative rounding error
+      // cout << "after unit #" << i << ": oldDuration = " << oldDuration
+      //      << " | newDuration = " << newDuration << ", should be "
+      //      << oldDuration * factor;
+      newUnit.timeInterval.end += durationDiff;
+      lastNewIv = newUnit.timeInterval;
+      newDuration += durationDiff;
+      // cout << "   ..... corrected by " << durationDiff << "  to  "
+           // << newDuration << endl;
+    }
     result.Add(newUnit);
     i++;
   }
@@ -4652,6 +4667,7 @@ void StretchOrCompressToDuration(const M& src,
     return;
   }
   result.SetDefined(true);
+  result.Clear();
   if (src.IsEmpty()) {
     return;
   }
