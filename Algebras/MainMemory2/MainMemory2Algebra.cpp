@@ -22443,6 +22443,46 @@ ListExpr mcreatentreeTM(ListExpr args) {
 }
 
 /*
+Auxiliary functions applied for N-tree creation and querying.
+
+*/
+void StretchOrCompress(const Point& src, Point& res) {}
+void StretchOrCompress(const CcString& src, CcString& res) {}
+void StretchOrCompress(const CcInt& src, CcInt& res) {}
+void StretchOrCompress(const CcReal& src, CcReal& res) {}
+void StretchOrCompress(const Rectangle<1>& src, Rectangle<1>& res) {}
+void StretchOrCompress(const Rectangle<2>& src, Rectangle<2>& res) {}
+void StretchOrCompress(const Rectangle<3>& src, Rectangle<3>& res) {}
+void StretchOrCompress(const Rectangle<4>& src, Rectangle<4>& res) {}
+void StretchOrCompress(const Rectangle<8>& src, Rectangle<8>& res) {}
+void StretchOrCompress(const hist_hsv<64, false>& src,
+                       hist_hsv<64, false>& res) {}
+void StretchOrCompress(const hist_hsv<128, false>& src,
+                       hist_hsv<128, false>& res) {}
+void StretchOrCompress(const hist_hsv<256, false>& src,
+                       hist_hsv<256, false>& res) {}
+void StretchOrCompress(const hist_hsv<256, true>& src,
+                       hist_hsv<256, true>& res) {}
+
+void StretchOrCompress(const temporalalgebra::MPoint& src,
+                       temporalalgebra::MPoint& res) {
+  datetime::DateTime duration(0, 3600000, datetime::durationtype);
+  StretchOrCompressToDuration<MPoint, UPoint>(src, duration, true, true, res);
+}
+
+void StretchOrCompress(const temporalalgebra::CUPoint& src,
+                       temporalalgebra::CUPoint& res) {
+  datetime::DateTime duration(0, 3600000, datetime::durationtype);
+  StretchOrCompressUnitToDuration<CUPoint>(src, duration, true, res);
+}
+
+void StretchOrCompress(const temporalalgebra::CMPoint& src,
+                       temporalalgebra::CMPoint& res) {
+  datetime::DateTime duration(0, 3600000, datetime::durationtype);
+  StretchOrCompressToDuration<CMPoint, CUPoint>(src, duration, true, true, res);
+}
+
+/*
 6.2 Value Mapping template
 
 */
@@ -22476,10 +22516,12 @@ int mcreatentreeVMT(Word* args, Word& result, int message, Word& local,
   vector<Tuple*>* v = mrel->getmmrel();
   vector<MTreeEntry<T> > contents;
   bool flobused = false;
-  T* attr = 0;
+  T *attr(0);
+  T *stretched = new T(true);
   for (size_t i = 0; i < v->size(); i++) {
     attr = (T*)(v->at(i)->GetAttribute(index));
-    MTreeEntry<T> entry(*attr, i + 1);
+    StretchOrCompress(*attr, *stretched);
+    MTreeEntry<T> entry(*stretched, i + 1);
     contents.push_back(entry);
     flobused = flobused || (attr->NumOfFLOBs() > 0);
   }
