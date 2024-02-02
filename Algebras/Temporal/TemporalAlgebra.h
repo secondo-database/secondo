@@ -4686,6 +4686,20 @@ void StretchOrCompressToDuration(const M& src,
                                   result);
 }
 
+template<class U>
+void StretchOrCompressUnitToDuration(const U& src,
+                                     const datetime::DateTime& duration,
+                                     const bool startAtBeginOfTime, U& result) {
+  assert(duration.GetType() == datetime::durationtype);
+  if (!src.IsDefined()) {
+    result.SetDefined(false);
+    return;
+  }
+  result.SetDefined(true);
+  result = src;
+  result.timeInterval.end = result.timeInterval.start + duration;
+}
+
 
 class CMPoint;
 
