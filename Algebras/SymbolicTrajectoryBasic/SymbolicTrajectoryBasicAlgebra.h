@@ -724,6 +724,7 @@ class MBasics : public Attribute {
   void GetValues(const int i, std::set<typename B::base>& result) const;
   void GetInterval(const int i, temporalalgebra::SecInterval& result) const;
   void GetInterval(temporalalgebra::SecInterval& result) const;
+  void GetDuration(datetime::DateTime& result) const;
   int GetNoComponents() const {return units.Size();}
   int GetNoValues() const {return pos.Size();}
   void Clear();
@@ -3260,6 +3261,19 @@ void MBasics<B>::GetInterval(temporalalgebra::SecInterval& result) const {
   }
   else {
     result.SetDefined(false);
+  }
+}
+
+/*
+\subsection{Function ~GetDuration~}
+
+*/
+template<class B>
+void MBasics<B>::GetDuration(datetime::DateTime& result) const {
+  temporalalgebra::SecInterval iv(true);
+  for (int i = 0; i < GetNoComponents(); i++) {
+    GetInterval(i, iv);
+    result += (iv.end - iv.start);
   }
 }
 
