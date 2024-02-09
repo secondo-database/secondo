@@ -4136,6 +4136,99 @@ Operator matchbelowSOp(
   matchbelowSTM<true>
 );
 
+/*
+Auxiliary functions applied for M-tree2 and N-tree creation and querying.
+
+*/
+void StretchOrCompress(const Point& src, Point& res) {
+  res = src;
+}
+
+void StretchOrCompress(const CcString& src, CcString& res) {
+  res = src;
+}
+
+void StretchOrCompress(const CcInt& src, CcInt& res) {
+  res = src;
+}
+
+void StretchOrCompress(const CcReal& src, CcReal& res) {
+  res = src;
+}
+
+void StretchOrCompress(const Rectangle<1>& src, Rectangle<1>& res) {
+  res = src;
+}
+
+void StretchOrCompress(const Rectangle<2>& src, Rectangle<2>& res) {
+  res = src;
+}
+
+void StretchOrCompress(const Rectangle<3>& src, Rectangle<3>& res) {
+  res = src;
+}
+
+void StretchOrCompress(const Rectangle<4>& src, Rectangle<4>& res) {
+  res = src;
+}
+
+void StretchOrCompress(const Rectangle<8>& src, Rectangle<8>& res) {
+  res = src;
+}
+
+void StretchOrCompress(const hist_hsv<64, false>& src,
+                       hist_hsv<64, false>& res) {
+  res.CopyFrom(&src);
+}
+
+void StretchOrCompress(const hist_hsv<128, false>& src,
+                       hist_hsv<128, false>& res) {
+  res.CopyFrom(&src);
+}
+
+void StretchOrCompress(const hist_hsv<256, false>& src,
+                       hist_hsv<256, false>& res) {
+  res.CopyFrom(&src);
+}
+
+void StretchOrCompress(const hist_hsv<256, true>& src,
+                       hist_hsv<256, true>& res) {
+  res.CopyFrom(&src);
+}
+
+void StretchOrCompress(const temporalalgebra::MPoint& src,
+                       temporalalgebra::MPoint& res) {
+  datetime::DateTime duration(0, 3600000, datetime::durationtype);
+  StretchOrCompressToDuration<MPoint, UPoint>(src, duration, true, true, res);
+}
+
+void StretchOrCompress(const temporalalgebra::CUPoint& src,
+                       temporalalgebra::CUPoint& res) {
+  datetime::DateTime duration(0, 3600000, datetime::durationtype);
+  StretchOrCompressUnitToDuration<CUPoint>(src, duration, true, res);
+}
+
+void StretchOrCompress(const temporalalgebra::CMPoint& src,
+                       temporalalgebra::CMPoint& res) {
+  datetime::DateTime duration(0, 3600000, datetime::durationtype);
+  StretchOrCompressToDuration<CMPoint, CUPoint>(src, duration, true, true, res);
+}
+
+void StretchOrCompress(const stj::MLabel& src, stj::MLabel& res) {
+  res = src;
+}
+
+void StretchOrCompress(const stj::MLabels& src, stj::MLabels& res) {
+  res = src;
+}
+
+void StretchOrCompress(const stj::MPlace& src, stj::MPlace& res) {
+  res = src;
+}
+
+void StretchOrCompress(const stj::MPlaces& src, stj::MPlaces& res) {
+  res = src;
+}
 
 /*
 6 M-tree support
@@ -4694,11 +4787,13 @@ int mcreatemtree2StreamVM(Word* args, Word& result, int message, Word& local,
     sym = (Sym*)(tuple->GetAttribute(indexSym));
     TupleIdentifier* tid = (TupleIdentifier*)(tuple->GetAttribute(indexTID));
     if (tid->IsDefined()) {
-      Spa copySpa = *spa;
-      Sym copySym = *sym;
-      flobused = flobused || copySpa.NumOfFLOBs() > 0 ||
-        copySym.NumOfFLOBs() > 0;
-      pair<Spa, Sym> spasym(copySpa, copySym);
+      Spa spaStretched(true);
+      StretchOrCompress(*spa, spaStretched);
+      Sym symStretched(true);
+      StretchOrCompress(*sym, symStretched);
+      flobused = flobused || spaStretched.NumOfFLOBs() > 0 ||
+        symStretched.NumOfFLOBs() > 0;
+      pair<Spa, Sym> spasym(spaStretched, symStretched);
       MTreeEntry<pair<Spa, Sym> > entry(spasym, tid->GetTid());
 //       pair<pair<Spa, Sym>, TupleId> p(spasym, tid->GetTid());
       tree->insert(entry);
@@ -5985,84 +6080,6 @@ ListExpr mclosestCenterNTM(ListExpr args) {
 //                          nl->Second(a2)); 
 }
 
-/*
-Auxiliary functions applied for N-tree creation and querying.
-
-*/
-void StretchOrCompress(const Point& src, Point& res) {
-  res = src;
-}
-
-void StretchOrCompress(const CcString& src, CcString& res) {
-  res = src;
-}
-
-void StretchOrCompress(const CcInt& src, CcInt& res) {
-  res = src;
-}
-
-void StretchOrCompress(const CcReal& src, CcReal& res) {
-  res = src;
-}
-
-void StretchOrCompress(const Rectangle<1>& src, Rectangle<1>& res) {
-  res = src;
-}
-
-void StretchOrCompress(const Rectangle<2>& src, Rectangle<2>& res) {
-  res = src;
-}
-
-void StretchOrCompress(const Rectangle<3>& src, Rectangle<3>& res) {
-  res = src;
-}
-
-void StretchOrCompress(const Rectangle<4>& src, Rectangle<4>& res) {
-  res = src;
-}
-
-void StretchOrCompress(const Rectangle<8>& src, Rectangle<8>& res) {
-  res = src;
-}
-
-void StretchOrCompress(const hist_hsv<64, false>& src,
-                       hist_hsv<64, false>& res) {
-  res.CopyFrom(&src);
-}
-
-void StretchOrCompress(const hist_hsv<128, false>& src,
-                       hist_hsv<128, false>& res) {
-  res.CopyFrom(&src);
-}
-
-void StretchOrCompress(const hist_hsv<256, false>& src,
-                       hist_hsv<256, false>& res) {
-  res.CopyFrom(&src);
-}
-
-void StretchOrCompress(const hist_hsv<256, true>& src,
-                       hist_hsv<256, true>& res) {
-  res.CopyFrom(&src);
-}
-
-void StretchOrCompress(const temporalalgebra::MPoint& src,
-                       temporalalgebra::MPoint& res) {
-  datetime::DateTime duration(0, 3600000, datetime::durationtype);
-  StretchOrCompressToDuration<MPoint, UPoint>(src, duration, true, true, res);
-}
-
-void StretchOrCompress(const temporalalgebra::CUPoint& src,
-                       temporalalgebra::CUPoint& res) {
-  datetime::DateTime duration(0, 3600000, datetime::durationtype);
-  StretchOrCompressUnitToDuration<CUPoint>(src, duration, true, res);
-}
-
-void StretchOrCompress(const temporalalgebra::CMPoint& src,
-                       temporalalgebra::CMPoint& res) {
-  datetime::DateTime duration(0, 3600000, datetime::durationtype);
-  StretchOrCompressToDuration<CMPoint, CUPoint>(src, duration, true, true, res);
-}
-
 template<class T, class Dist, int variant>
 class closestCenterNInfo {
  public:
@@ -6399,7 +6416,7 @@ class distRangeNInfo {
     rel = mrel->getmmrel();
     T* stretched = new T(true);
     StretchOrCompress(*ref, *stretched);
-    MTreeEntry<T> p(*ref, 0);
+    MTreeEntry<T> p(*stretched, 0);
     stretched->DeleteIfAllowed();
     it = ntreeX->getNtreeX()->rangeSearch(p, range);
   }
@@ -6814,7 +6831,7 @@ class mnearestNeighborNInfo {
     k = min((int)_k, (int)(rel->size()));
     T* stretched = new T(true);
     StretchOrCompress(*q, *stretched);
-    MTreeEntry<T> p(*q, 0);
+    MTreeEntry<T> p(*stretched, 0);
     stretched->DeleteIfAllowed();
     it = ntreeX->getNtreeX()->nnSearch(p, k);
     sc = SecondoSystem::GetCatalog();

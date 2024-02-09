@@ -4417,7 +4417,7 @@ MappingNoFlob<M, U> MappingNoFlob<M, U>::operator=(const M& src) {
   if (isdefined) {
     units.clear();
     units.reserve(src.GetNoComponents());
-    UPoint unit(true);
+    U unit(true);
     for (int i = 0; i < src.GetNoComponents(); i++) {
       src.Get(i, unit);
       Add(unit);
@@ -4623,6 +4623,14 @@ void StretchOrCompressToFactor(const M& src, const double factor,
           constantUnit.SetToConstantUnit(lastUnit.p1, 0.0);
           constantUnit.timeInterval = Interval<Instant>(lastNewIv.end,nextStart,
                                                         !lastNewIv.rc, !iv.lc);
+          oldDuration += (iv.start - lastOldIv.end);
+          newDuration += (nextStart - lastNewIv.end);
+          durationDiff = oldDuration * factor - newDuration;
+          if (!durationDiff.IsZero()) {
+            constantUnit.timeInterval.end += durationDiff;
+            nextStart += durationDiff;
+            newDuration += durationDiff;
+          }
           result.Add(constantUnit);
         }
         newUnit.timeInterval = Interval<Instant>(nextStart,
@@ -4654,6 +4662,7 @@ void StretchOrCompressToFactor(const M& src, const double factor,
     result.Add(newUnit);
     i++;
   }
+  result.GetDuration(oldDuration);
 }
 
 template<class M, class U>
@@ -4695,8 +4704,11 @@ void StretchOrCompressUnitToDuration(const U& src,
     result.SetDefined(false);
     return;
   }
-  result.SetDefined(true);
   result = src;
+  if (startAtBeginOfTime) {
+    Instant beginOfTime(0.0);
+    result.timeInterval.start = beginOfTime;
+  }
   result.timeInterval.end = result.timeInterval.start + duration;
 }
 
@@ -10018,12 +10030,29 @@ static double DistanceAvg(const M& mp1, const M& mp2,
     return DBL_MAX;
   }
 //   cout << "original: " << mp1 << endl << mp2 << endl << endl;
-  MappingNoFlob<M, U> m1(mp1.GetNoComponents()), m2(mp2.GetNoComponents());
-  ForceToDuration<M, U>(mp1, duration, true, m1, geoid);
-  ForceToDuration<M, U>(mp2, duration, true, m2, geoid);
-  if (mp1.Compare(&mp2) == -1) {
-    std::swap(m1, m2);
+  MappingNoFlob<M, U> m1(mp1), m2(mp2);
+  datetime::DateTime durationTest(0, 0, datetime::durationtype);
+  mp1.GetDuration(durationTest);
+  if (!(durationTest == duration)) {
+    cout << duration << " != " << durationTest << endl;
   }
+  assert(durationTest == duration);
+  // if (!(durationTest == duration)) {
+  //   cout << "EXECUTE ForceToDuration for mp1 " << durationTest << endl;
+  //   ForceToDuration<M, U>(mp1, duration, true, m1, geoid);
+  // }
+  mp2.GetDuration(durationTest);
+  if (!(durationTest == duration)) {
+    cout << duration << " # " << durationTest << endl;
+  }
+  assert(durationTest == duration);
+  // if (!(durationTest == duration)) {
+  //   cout << "EXECUTE ForceToDuration for mp2 " << durationTest << endl;
+  //   ForceToDuration<M, U>(mp2, duration, true, m2, geoid);
+  // }
+  // if (mp1.Compare(&mp2) == -1) {
+  //   std::swap(m1, m2);
+  // }
   double durTemp(0.0), sum(0.0);
   U u1(true), u2(true), u1cut(true), u2cut(true), up1(true), up2(true);
   RefinementPartition<MappingNoFlob<M, U>, MappingNoFlob<M, U>, U, U> rp(m1,m2);

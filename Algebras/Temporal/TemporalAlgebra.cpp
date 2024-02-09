@@ -3346,6 +3346,8 @@ double CUPoint::DistanceAvg(const CUPoint& cup, const DateTime& duration,
   CMPoint cm1(true), cm2(true);
   cm1.Add(*this);
   cm2.Add(cup);
+  cout << *this << endl << cup;
+  cout << endl << endl << cm1 << endl << cm2 << endl;
   return DistanceComputation<CMPoint, CUPoint>::DistanceAvg(cm1, cm2, duration, 
                                                             upperBound, geoid);
 }
@@ -12978,7 +12980,7 @@ ListExpr StretchTypeMap(ListExpr args) {
     return nl->TypeError();
   }
   if (MPoint::checkType(nl->First(args)) ||
-      CMPoint::checkType(nl->Second(args))) {
+      CMPoint::checkType(nl->First(args))) {
     if (Duration::checkType(nl->Second(args))) {
       return nl->First(args);
     }
@@ -14638,8 +14640,16 @@ int DistanceAvgMap(Word* args, Word& result, int message, Word& local,
   else if (qp->GetNoSons(s) == 3) {
     geoid = (Geoid*)args[2].addr;
   }
-  DistanceComputation<MPoint, UPoint>::DistanceAvg(*((MPoint*)args[0].addr),
-     *((MPoint*)args[1].addr), *duration, true, *((CcReal*)result.addr), geoid);
+  MPoint *stretched1 = new MPoint(true);
+  StretchOrCompressToDuration<MPoint, UPoint>(*((MPoint*)args[0].addr),
+                                            *duration, true, true, *stretched1);
+  MPoint *stretched2 = new MPoint(true);
+  StretchOrCompressToDuration<MPoint, UPoint>(*((MPoint*)args[1].addr),
+                                            *duration, true, true, *stretched2);
+  DistanceComputation<MPoint, UPoint>::DistanceAvg(*stretched1, *stretched2,
+                               *duration, true, *((CcReal*)result.addr), geoid);
+  stretched1->DeleteIfAllowed();
+  stretched2->DeleteIfAllowed();
   return 0;
 }
 
@@ -14660,9 +14670,16 @@ int DistanceAvgCMMap(Word* args, Word& result, int message, Word& local,
   else if (qp->GetNoSons(s) == 3) {
     geoid = (Geoid*)args[2].addr;
   }
-  DistanceComputation<CMPoint, CUPoint>::DistanceAvg(*((CMPoint*)args[0].addr),
-                                           *((CMPoint*)args[1].addr), *duration,
-                                    upperBound, *((CcReal*)result.addr), geoid);
+  CMPoint *stretched1 = new CMPoint(true);
+  StretchOrCompressToDuration<CMPoint, CUPoint>(*((CMPoint*)args[0].addr),
+                                            *duration, true, true, *stretched1);
+  CMPoint *stretched2 = new CMPoint(true);
+  StretchOrCompressToDuration<CMPoint, CUPoint>(*((CMPoint*)args[1].addr),
+                                            *duration, true, true, *stretched2);
+  DistanceComputation<CMPoint, CUPoint>::DistanceAvg(*stretched1, *stretched2,
+                         *duration, upperBound, *((CcReal*)result.addr), geoid);
+  stretched1->DeleteIfAllowed();
+  stretched2->DeleteIfAllowed();
   return 0;
 }
 
@@ -14682,9 +14699,17 @@ int DistanceAvgCUMap(Word* args, Word& result, int message, Word& local,
   }
   else if (qp->GetNoSons(s) == 3) {
     geoid = (Geoid*)args[2].addr;
-  }  
-  ((CUPoint*)args[0].addr)->DistanceAvg(*((CUPoint*)args[1].addr), *duration,
-                                    upperBound, *((CcReal*)result.addr), geoid);
+  }
+  CUPoint *stretched1 = new CUPoint(true);
+  StretchOrCompressUnitToDuration<CUPoint>(*((CUPoint*)args[0].addr), *duration,
+                                           true, *stretched1);
+  CUPoint *stretched2 = new CUPoint(true);
+  StretchOrCompressUnitToDuration<CUPoint>(*((CUPoint*)args[1].addr), *duration,
+                                           true, *stretched2);
+  stretched1->DistanceAvg(*stretched2, *duration, upperBound,
+                          *((CcReal*)result.addr), geoid);
+  stretched1->DeleteIfAllowed();
+  stretched2->DeleteIfAllowed();
   return 0;
 }
 
