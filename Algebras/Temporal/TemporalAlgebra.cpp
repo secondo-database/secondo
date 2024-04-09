@@ -3069,7 +3069,7 @@ void CUPoint::ConvertFrom(const MPoint& mp, const Geoid* geoid /* = 0 */) {
   approx.Add(up);
   bool correct = true;
   if (!geoid) {
-    MReal dist(true);
+    MReal dist(true), distScaled(true);
     mp.SquaredDistance(approx, dist);
     radius = sqrt(dist.Max(correct));
   }
@@ -3365,11 +3365,6 @@ void CUPoint::DistanceAvg(const CUPoint& cup, const DateTime& duration,
 void CUPoint::SetToConstantUnit(const Point& p, const double r) {
   ((UPoint*)this)->SetToConstantUnit(p);
   SetRadius(r);
-}
-
-void CUPoint::Translate(const double x, const double y,
-                        const DateTime& duration) {
-  ((UPoint*)this)->Translate(x, y, duration);
 }
 
 /*
@@ -8331,7 +8326,7 @@ void CMPoint::GetUPoint(const int pos, UPoint& result) const {
 }
 
 void CMPoint::ConvertFrom(const MPoint& src, const DateTime dur, 
-                     const bool isRecursiveCall, const Geoid *geoid /* = 0 */) {
+                          const Geoid *geoid /* = 0 */) {
   if (!src.IsDefined() || dur.GetType() != durationtype) {
     SetDefined(false);
     return;
@@ -8428,26 +8423,13 @@ void CMPoint::ConvertFrom(const MPoint& src, const DateTime dur,
   RestoreBoundingBox(true, geoid);
 }
 
-void CMPoint::ConvertFrom(const MPoint& src, const CcReal& threshold, 
+void CMPoint::ConvertFrom(const MPoint& src, const double threshold,
                      const bool isRecursiveCall, const Geoid *geoid /* = 0 */) {
-  if (!src.IsDefined() || !threshold.IsDefined()) {
-    SetDefined(false);
-    return;
-  }
-  SetDefined(true);
-  Clear();
-  if (src.IsEmpty()) {
-    return;
-  }
-  DateTime beginOfTime(instanttype), diffToBeginOfTime(durationtype), 
-           firstInst(instanttype);
-  beginOfTime.SetToZero();
-  src.InitialInstant(firstInst);
-  diffToBeginOfTime = firstInst - beginOfTime;
-  double thresh = threshold.GetValue();
-  MPoint mpSimplified(true), mpSimplePart(true), srcPart(true), 
+  DateTime totalDuration(durationtype);
+  totalDuration.SetToZero();
+  MPoint mpSimplified(true), mpSimplePart(true), srcPart(true),
          srcFinalPart(true), simpleFinalPart(true);
-  src.Simplify(thresh, mpSimplified, false, DateTime(0.0), geoid);
+  src.Simplify(threshold, mpSimplified, false, DateTime(0.0), geoid);
   UPoint upSimplified(true);
   CUPoint cup(true);
   MReal dist(true);
@@ -8460,37 +8442,17 @@ void CMPoint::ConvertFrom(const MPoint& src, const CcReal& threshold,
     mpSimplePart.Add(upSimplified);
     srcPart.SquaredDistance(mpSimplePart, dist);
     if (!geoid) {
-      cup.Set(upSimplified, std::min(thresh, sqrt(dist.Max(correct))));
+      cup.Set(upSimplified, std::min(threshold, sqrt(dist.Max(correct))));
     }
     else {
       dist.Recompute(srcPart, mpSimplePart, geoid);
-      cup.Set(upSimplified, std::min(thresh, dist.Max(correct)));
+      cup.Set(upSimplified, std::min(threshold, dist.Max(correct)));
     }
-    if (!isRecursiveCall && cup.GetRadius() > 0.5 * thresh) {
-      // cout << "radius = " << cup.GetRadius() << " > 0.5 * " << thresh << endl
-           // << srcPart;
-      CMPoint patched(true);
-      CcReal halfThreshold(true, 0.5 * thresh);
-      patched.ConvertFrom(srcPart, halfThreshold, true, geoid);
-      if (i > 0) {
-        patched.Translate(0.0, 0.0, cup.timeInterval.start - firstInst);
-        // cout << "Patched and translated by "
-             // << cup.timeInterval.start - firstInst
-             // << "  : " << patched << endl;
-      }
-      // else {
-        // cout << "Patched and NOT translated : " << patched << endl;
-      // }
-      correct = Append(patched);
-      assert(correct);
-    }
-    else {
-      cup.timeInterval.start -= diffToBeginOfTime;
-      cup.timeInterval.end -= diffToBeginOfTime;
-      Add(cup);
-    }
+    assert(correct);
+    Add(cup);
     per.Clear();
     mpSimplePart.Clear();
+    totalDuration += (cup.timeInterval.end - cup.timeInterval.start);
   }
   if (!mpSimplified.IsEmpty()) { // radius of final (or only) cyl may be smaller
     mpSimplified.Get(mpSimplified.GetNoComponents() - 1, upSimplified);
@@ -8499,39 +8461,46 @@ void CMPoint::ConvertFrom(const MPoint& src, const CcReal& threshold,
     mpSimplified.AtPeriods(per, simpleFinalPart);
     srcFinalPart.SquaredDistance(simpleFinalPart, dist);
     if (!geoid) {
-      cup.Set(upSimplified, std::min(thresh, sqrt(dist.Max(correct))));
+      cup.Set(upSimplified, std::min(threshold, sqrt(dist.Max(correct))));
     }
     else {
       dist.Recompute(srcFinalPart, simpleFinalPart, geoid);
-      cup.Set(upSimplified, std::min(thresh, dist.Max(correct)));
+      cup.Set(upSimplified, std::min(threshold, dist.Max(correct)));
     }
     cup.SetRadius(cup.GetRadius());
     assert(correct);
-    if (!isRecursiveCall && cup.GetRadius() > 0.5 * thresh) {
-      // cout << "last unit: radius = " << cup.GetRadius() << " > 0.5 * "
-           // << thresh << endl << srcFinalPart;
-      CMPoint patched(true);
-      CcReal halfThreshold(true, 0.5 * thresh);
-      patched.ConvertFrom(srcFinalPart, halfThreshold, true, geoid);
-      if (mpSimplified.GetNoComponents() > 1) {
-        patched.Translate(0.0, 0.0, cup.timeInterval.start - firstInst);
-        // cout << "Last unit Patched and translated by "
-             // << cup.timeInterval.start - firstInst << "  : " << patched
-             // << endl;
-      }
-      // else {
-        // cout << "Last unit Patched and NOT translated : " << patched << endl;
-      // }
-      correct = Append(patched);
-      assert(correct);
-    }
-    else {
-      cup.timeInterval.start -= diffToBeginOfTime;
-      cup.timeInterval.end -= diffToBeginOfTime;
-      Add(cup);
+    Add(cup);
+    totalDuration += (cup.timeInterval.end - cup.timeInterval.start);
+  }
+  if (!isRecursiveCall) { // ensure that avg dist is below 0.5 * threshold
+    MPoint kernel(true);
+    GetMPoint(kernel);
+    double avgDist = DistanceComputation<MPoint, UPoint>::DistanceAvg(src,
+                                           kernel, totalDuration, false, geoid);
+    if (avgDist > 0.5 * threshold) {
+      Clear();
+      ConvertFrom(src, 0.5 * threshold, true, geoid);
+      // GetMPoint(kernel);
+      // double avgDist2 = DistanceComputation<MPoint, UPoint>::DistanceAvg(src,
+                                        // kernel, totalDuration, false, geoid);
+      // cout << "avg dist reduced: " << avgDist << " -> " << avgDist2 << endl;
     }
   }
   RestoreBoundingBox(true, geoid);
+}
+
+void CMPoint::ConvertFrom(const MPoint& src, const CcReal& threshold,
+                          const Geoid *geoid /* = 0 */) {
+  if (!src.IsDefined() || !threshold.IsDefined()) {
+    SetDefined(false);
+    return;
+  }
+  SetDefined(true);
+  Clear();
+  if (src.IsEmpty() || threshold.GetValue() < 0.0) {
+    return;
+  }
+  ConvertFrom(src, threshold.GetValue(), false, geoid);
 }
 
 void CMPoint::Clear() {
@@ -9029,24 +8998,6 @@ double CMPoint::Length(const Geoid& g, bool& valid) const {
     res += unit.p0.DistanceOrthodrome(unit.p1, g, valid);
   }
   return res;
-}
-
-void CMPoint::Translate(const double x, const double y,
-                        const datetime::DateTime& duration) {
-  if (!IsDefined()) {
-    return;
-  }
-  CMPoint src(*this);
-  Clear();
-  SetDefined(true);
-  StartBulkLoad();
-  CUPoint cup(true);
-  for (int i = 0; i < src.GetNoComponents(); i++) {
-    src.Get(i, cup);
-    cup.Translate(x, y, duration);
-    Add(cup);
-  }
-  EndBulkLoad(true);
 }
 
 void CMPoint::AtRegion(const Region *r, CMPoint &result) const {
@@ -22284,7 +22235,7 @@ int mpoint2cmpointVM(Word* args, Word& result, int message, Word& local,
   if (qp->GetNoSons(s) == 3) {
     geoid = (Geoid*)args[2].addr;
   }
-  res->ConvertFrom(*src, *param, false, geoid);
+  res->ConvertFrom(*src, *param, geoid);
   return 0;
 }
 

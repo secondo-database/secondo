@@ -2878,7 +2878,7 @@ not modify this unit and return ~false~.
   void Translate(const double x, const double y,
                  const datetime::DateTime& duration);
 /*
-Translates a upoint spatially and temporally.
+Translates a moving point spatially and temporally.
 
 */
 
@@ -4983,13 +4983,6 @@ Computes the distance to another CUPoint ~cup~.
   
   void SetToConstantUnit(const Point& p, const double r);
 
-/*
-Translates a cupoint spatially and/or temporally.
-
-*/
-  void Translate(const double x, const double y,
-                 const datetime::DateTime& duration);
-
 private:
   double radius;
 };
@@ -5092,22 +5085,24 @@ Extracts the ~upoint~ information at a given position.
   void GetUPoint(const int pos, UPoint& result) const;
 
 /*
-Converts an ~mpoint~ into a ~cmpoint~ having a constant cylinder length
-(duration). Here, the boolean is a dummy parameter.
+Converts an ~mpoint~ into a ~cmpoint~ with a constant cylinder length (duration)
 
 */
   void ConvertFrom(const MPoint& src, const datetime::DateTime dur, 
-                   const bool isRecursiveCall, const Geoid *geoid = 0);
+                   const Geoid *geoid = 0);
 
 /*
 Converts an ~mpoint~ into a ~cmpoint~; a new unit starts as soon as the 
-specified threshold is exceeded. In order to ensure an upper bound distance
-overhead of no more than 2 * threshold, cylinder units with a radius greater
-than half the threshold are converted recursively with 0.5 * threshold.
+specified threshold is exceeded. Iff the average distance between src and the
+cylinder kernel is larger than half the threshold, the result is recomputed
+with half the threshold. (Auxiliary function needed for recursive invocation.)
 
 */
-  void ConvertFrom(const MPoint& src, const CcReal& threshold, 
+  void ConvertFrom(const MPoint& src, const double threshold,
                    const bool isRecursiveCall, const Geoid *geoid = 0);
+
+  void ConvertFrom(const MPoint& src, const CcReal& threshold, 
+                   const Geoid *geoid = 0);
 
 /*
 3.12.2 Modifications of Inherited Functions
@@ -5231,13 +5226,6 @@ false, the return value will be negative.
 
 */
   double Length(const Geoid& g, bool& valid) const;
-
-/*
-Translates a cmpoint spatially and/or temporally.
-
-*/
-  void Translate(const double x, const double y,
-                 const datetime::DateTime& duration);
 
 /*
 3.10.5.11 ~BoundingBox~
