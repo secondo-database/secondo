@@ -23503,13 +23503,11 @@ int exportntreeVMT(Word* args, Word& result, int message, Word& local,
       return 0;
     }
   }
-  Supplier s0 = qp->GetSon(s, 1);
-  ListExpr relTypeList = nl->Second(qp->GetType(s0));
   MemoryNtreeObject<T, StdDistComp<T>, variant>* treeObj = 
                                        getNtreeX<MPointer, T, variant>(treeMem);
   NTree<MTreeEntry<T>, StdDistComp<T>, variant> *ntree = treeObj->getNtreeX();  
-  PersistentNTree<T, StdDistComp<T>, variant> pntree(ntree, relVector, 
-                        relTypeList, prefix, ccFirstNodeId->GetValue(), suffix);
+  PersistentNTree<T, StdDistComp<T>, variant> pntree(ntree, relVector, prefix,
+                                             ccFirstNodeId->GetValue(), suffix);
   res->Set(true, pntree.getStatus());  
   return 0;
 }
