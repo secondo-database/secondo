@@ -6089,7 +6089,7 @@ class closestCenterNInfo {
     rel = mrel->getmmrel();
     T* stretched = new T(true);
     StretchOrCompress(*ref, *stretched);
-    MTreeEntry<T> p(*ref, 0);
+    MTreeEntry<T> p(*stretched, 0);
     it = ntreeX->getNtreeX()->closestCenter(p);
     sc = SecondoSystem::GetCatalog();
     numTupleTypeList = sc->NumericType(tupleTypeList);
