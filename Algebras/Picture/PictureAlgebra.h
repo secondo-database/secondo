@@ -567,5 +567,17 @@ this method does not compare any other attributes of the ~Picture~ class.
     }
 };
 
+class Picture1024 : public Picture {
+ public:
+  Picture1024(std::string imgdataB64, std::string fn, std::string cat, bool isp,
+              std::string dt, bool autoPortrait = false);
+  Picture1024(char* imgdata, unsigned long size, std::string fn,
+              std::string cat, bool isp, std::string dt);
+
+  Picture1024(bool def) : Picture(def) {}
+  Picture1024() : Picture() {}
+
+  ~Picture1024();
+};
 
 #endif // __PICTURE_ALGEBRA_H__
