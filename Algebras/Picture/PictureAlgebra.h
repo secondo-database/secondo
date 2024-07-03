@@ -496,6 +496,13 @@ horizontally otherwise.
 
 /*
 
+Returns the L1 norm of two RGB vectors (given as Picture objects).
+
+*/
+    double DistanceRGB(const Picture& pic) const;
+
+/*
+
 4.8 ~Histogram~ and comparison operations
 
 As the comparison operations are based on histograms, they go into the same

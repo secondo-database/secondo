@@ -37,6 +37,7 @@ SECONDO types ~picture~ and ~histogram~ are located in other modules.
 #include "StringUtils.h"
 #include "hist_hsv.h"
 #include "JPEGPicture.h"
+#include "../FText/FTextAlgebra.h"
 
 using namespace std;
 
@@ -721,6 +722,55 @@ Operator distanceOp(
 
 
 
+ListExpr distanceRGBTM(ListExpr args) {
+  if (PA_DEBUG) {
+    cerr << "distanceRGBTM() called" << endl;
+  }
+  if (!nl->HasLength(args, 2)) {
+    return listutils::typeError(" (wrong number of args)");
+  }
+  if ((!nl->IsEqual(nl->First(args), FText::BasicType()) ||
+       !nl->IsEqual(nl->Second(args), FText::BasicType())) &&
+      (!nl->IsEqual(nl->First(args), Picture::BasicType()) ||
+       !nl->IsEqual(nl->Second(args), Picture::BasicType()))) {
+    return listutils::typeError(" expected either 'text x text' or 'picture x "
+                                "picture' as arguments");
+  }
+  return nl->SymbolAtom(CcReal::BasicType());
+}
+
+int distanceRGBVM(Word* args, Word& result, int message, Word& local,
+                  Supplier s) {
+  Picture* p1 = (Picture*)args[0].addr;
+  Picture* p2 = (Picture*)args[1].addr;
+  result = qp->ResultStorage(s);
+  CcReal* res = (CcReal*)result.addr;
+  if (!p1->IsDefined() || !p2->IsDefined()) {
+    res->SetDefined(false);
+  }
+  else {
+    res->Set(true, p1->DistanceRGB(*p2));
+  }
+  return 0;
+}
+
+OperatorSpec distanceRGBSpec(
+   "picture x picture -> real",
+   "distanceRGB(_,_)",
+   "computes the L1 norm of the two RGB vectors in the two png files",
+   "query distanceRGB(theater, theater)"
+);
+
+Operator distanceRGBOp(
+  "distanceRGB",
+  distanceRGBSpec.getStr(),
+  distanceRGBVM,
+  SimpleSelect,
+  distanceRGBTM
+);
+
+
+
 template<unsigned int dim, bool lab>
 ListExpr getHistHsvTM(ListExpr args){
   string err = "picture expected";
@@ -1138,6 +1188,7 @@ public:
         AddOperator(&exportop);
 
         AddOperator(&distanceOp);
+        // AddOperator(&distanceRGBOp);
         AddOperator(&getHistHsv8Op);
         AddOperator(&getHistHsv16Op);
         AddOperator(&getHistHsv32Op);

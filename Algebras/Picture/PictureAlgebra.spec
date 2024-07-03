@@ -18,6 +18,7 @@ operator display alias DISPLAY pattern _ op
 operator export alias EXPORT pattern _ op [ _ ]
 
 operator distance alias DISTANCE pattern op(_,_)
+operator distanceRGB alias DISTANCERGB pattern op(_,_)
 operator getHistHsv8 alias GETHISTHSV8 pattern op(_)
 operator getHistHsv16 alias GETHISTHSV16 pattern op(_)
 operator getHistHsv32 alias GETHISTHSV32 pattern op(_)
