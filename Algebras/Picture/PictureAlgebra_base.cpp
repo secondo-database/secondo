@@ -347,6 +347,11 @@ int PictureImportpictureValueMap(Word* args,
 extern TypeConstructor* picture;
 extern void initPicture();
 
+
+
+extern TypeConstructor* picture1024;
+extern void initPicture1024();
+
 /*
 
 5.2 Implemented in ~PictureAlgebra\_attrops.cpp~
@@ -620,7 +625,51 @@ static Operator importpictureop(
 );
 
 
+/*
+Conversion to Picture1024
 
+*/
+ListExpr makePicture1024TM(ListExpr args) {
+  if (PA_DEBUG) {
+    cerr << "makePicture1024TM() called" << endl;
+  }
+  if (!nl->HasLength(args, 1)) {
+    return listutils::typeError(" (wrong number of args)");
+  }
+  if (!nl->IsEqual(nl->First(args), Picture::BasicType())) {
+    return listutils::typeError(" expected 'picture' as argument");
+  }
+  return nl->SymbolAtom(Picture1024::BasicType());
+}
+
+int makePicture1024VM(Word* args, Word& result, int message, Word& local,
+                      Supplier s) {
+  Picture* src = (Picture*)args[0].addr;
+  result = qp->ResultStorage(s);
+  Picture1024* res = (Picture1024*)result.addr;
+  if (!src->IsDefined()) {
+    res->SetDefined(false);
+  }
+  else {
+    src->Scale(res, 32, 32);
+  }
+  return 0;
+}
+
+OperatorSpec makePicture1024Spec(
+   "picture -> picture1024",
+   "makePicture1024(_)",
+   "converts a picture into a picture1024 by scaling it to 32 x 32 pixels",
+   "query makePicture1024(theater) getWidth´"
+);
+
+Operator makePicture1024Op(
+  "makePicture1024",
+  makePicture1024Spec.getStr(),
+  makePicture1024VM,
+  SimpleSelect,
+  makePicture1024TM
+);
 
 
 
@@ -729,20 +778,18 @@ ListExpr distanceRGBTM(ListExpr args) {
   if (!nl->HasLength(args, 2)) {
     return listutils::typeError(" (wrong number of args)");
   }
-  if ((!nl->IsEqual(nl->First(args), FText::BasicType()) ||
-       !nl->IsEqual(nl->Second(args), FText::BasicType())) &&
-      (!nl->IsEqual(nl->First(args), Picture::BasicType()) ||
-       !nl->IsEqual(nl->Second(args), Picture::BasicType()))) {
-    return listutils::typeError(" expected either 'text x text' or 'picture x "
-                                "picture' as arguments");
+  if (!nl->IsEqual(nl->First(args), Picture1024::BasicType()) ||
+      !nl->IsEqual(nl->Second(args), Picture1024::BasicType())) {
+    return listutils::typeError(" expected 'picture1024 x picture1024' as "
+                                "arguments");
   }
   return nl->SymbolAtom(CcReal::BasicType());
 }
 
 int distanceRGBVM(Word* args, Word& result, int message, Word& local,
                   Supplier s) {
-  Picture* p1 = (Picture*)args[0].addr;
-  Picture* p2 = (Picture*)args[1].addr;
+  Picture1024* p1 = (Picture1024*)args[0].addr;
+  Picture1024* p2 = (Picture1024*)args[1].addr;
   result = qp->ResultStorage(s);
   CcReal* res = (CcReal*)result.addr;
   if (!p1->IsDefined() || !p2->IsDefined()) {
@@ -755,10 +802,10 @@ int distanceRGBVM(Word* args, Word& result, int message, Word& local,
 }
 
 OperatorSpec distanceRGBSpec(
-   "picture x picture -> real",
+   "picture1024 x picture1024 -> real",
    "distanceRGB(_,_)",
-   "computes the L1 norm of the two RGB vectors in the two png files",
-   "query distanceRGB(theater, theater)"
+   "computes the L1 norm of the two RGB vectors in the two objects",
+   "query distanceRGB(makePicture1024(theater), makePicture1024(theater))"
 );
 
 Operator distanceRGBOp(
@@ -1146,10 +1193,13 @@ public:
         if (PA_DEBUG) cerr << "initializing PictureAlgebra" << endl;
         initPicture();
         AddTypeConstructor(picture);
+        initPicture1024();
+        AddTypeConstructor(picture1024);
         initHistogram();
         AddTypeConstructor(histogram);
 
         picture->AssociateKind(Kind::DATA());
+        picture1024->AssociateKind(Kind::DATA());
         histogram->AssociateKind(Kind::DATA());
 
         AddTypeConstructor(&hist_hsv8);
@@ -1186,9 +1236,10 @@ public:
         AddOperator(&mirror);
         AddOperator(&display);
         AddOperator(&exportop);
+        AddOperator(&makePicture1024Op);
 
         AddOperator(&distanceOp);
-        // AddOperator(&distanceRGBOp);
+        AddOperator(&distanceRGBOp);
         AddOperator(&getHistHsv8Op);
         AddOperator(&getHistHsv16Op);
         AddOperator(&getHistHsv32Op);

@@ -252,6 +252,8 @@ Guide for details.
     }
 };
 
+class Picture1024;
+
 /*
 
 4 Class ~Picture~
@@ -565,6 +567,17 @@ this method does not compare any other attributes of the ~Picture~ class.
     static const bool checkType(const ListExpr type){
       return listutils::isSymbol(type, BasicType());
     }
+
+/*
+
+4.11 Conversion to Picture1024
+
+Scales the picture to 32 x 32 pixels.
+
+*/
+
+    Picture1024* ConvertToPicture1024();
+
 };
 
 class Picture1024 : public Picture {
@@ -577,7 +590,13 @@ class Picture1024 : public Picture {
   Picture1024(bool def) : Picture(def) {}
   Picture1024() : Picture() {}
 
-  ~Picture1024();
+  ~Picture1024() {}
+
+  void ConvertFromPicture(Picture& pic);
+  void Scale(Picture1024 *pic, int w, int h);
+  double DistanceRGB(const Picture1024& pic) const;
+
+  static const std::string BasicType() {return "picture1024";}
 };
 
 #endif // __PICTURE_ALGEBRA_H__

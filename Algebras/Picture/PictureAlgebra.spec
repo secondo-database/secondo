@@ -16,6 +16,7 @@ operator flipleft alias FLIPLEFT pattern _ op [ _ ]
 operator mirror alias MIRROR pattern _ op [ _ ]
 operator display alias DISPLAY pattern _ op
 operator export alias EXPORT pattern _ op [ _ ]
+operator makePicture1024 alias MAKEPICTURE1024 pattern op(_)
 
 operator distance alias DISTANCE pattern op(_,_)
 operator distanceRGB alias DISTANCERGB pattern op(_,_)

@@ -1254,17 +1254,6 @@ int PictureImportpictureValueMap(Word* args,
     return 0;
 }
 
-
-
-
-
-
-
-
-
-
-
-
 int PictureSimpleEqualsValueMap(Word* args,
                                 Word& result,
                                 int message,
@@ -1286,3 +1275,103 @@ int PictureSimpleEqualsValueMap(Word* args,
     return 0;
 }
 
+
+Picture1024* Picture::ConvertToPicture1024() {
+  Picture1024 *result = 0;
+  Scale(result, 32, 32);
+  return result;
+}
+
+/*
+9 Implementation of class ~Picture1024~
+
+*/
+Picture1024::Picture1024(std::string imgdataB64, std::string fn,
+                         std::string cat, bool isp, std::string dt,
+                         bool autoPortrait /* = false */) :
+  Picture(imgdataB64, fn, cat, isp, dt, autoPortrait) {
+  Scale(this, 32, 32);
+}
+
+Picture1024::Picture1024(char* imgdata, unsigned long size, std::string fn,
+                         std::string cat, bool isp, std::string dt) :
+  Picture(imgdata, size, fn, cat, isp, dt) {
+  Scale(this, 32, 32);
+}
+
+void Picture1024::Scale(Picture1024 *pic, int w, int h) {
+  cout << "size remains 32 x 32 for this data type" << endl;
+  pic = (Picture1024*)(this->Clone());
+}
+
+double Picture1024::DistanceRGB(const Picture1024& pic) const {
+  unsigned long size1;
+  char* jpegData1 = ((Picture*)this)->GetJPEGData(size1);
+  JPEGPicture rgb1((unsigned char*)jpegData1, size1);
+  unsigned long int rgbSize1;
+  unsigned char *rgbData1 = rgb1.GetImageData(rgbSize1);
+  assert(rgbSize1 == 3072);
+
+  unsigned long size2;
+  char* jpegData2 = ((Picture*)(&pic))->GetJPEGData(size2);
+  JPEGPicture rgb2((unsigned char*)jpegData2, size2);
+  unsigned long int rgbSize2;
+  unsigned char *rgbData2 = rgb2.GetImageData(rgbSize2);
+  assert(rgbSize2 == 3072);
+  double result = 0.0;
+  for (unsigned int i = 0; i < rgbSize1; i++) {
+    // cout << "[" << (int)rgbData1[i] << " " << (int)rgbData2[i] << "] ";
+    result += abs((int)rgbData1[i] - (int)rgbData2[i]);
+  }
+  // delete jpegData1;
+  // delete jpegData2;
+  // delete rgbData1;
+  // delete rgbData2;
+  return result;
+}
+
+static ListExpr Picture1024Property(void) {
+  return nl->TwoElemList(
+           nl->FiveElemList(
+             nl->StringAtom("Signature"),
+             nl->StringAtom("Example Type List"),
+             nl->StringAtom("List Rep"),
+             nl->StringAtom("Example List"),
+             nl->StringAtom("Remarks")),
+           nl->FiveElemList(
+             nl->StringAtom("-> DATA"),
+             nl->StringAtom(Picture1024::BasicType()),
+             nl->StringAtom("(<file> <date> <category> <isportrait> <data> )"),
+             nl->StringAtom("n/a"),
+             nl->StringAtom("<date> is in instant format.")));
+}
+
+static bool CheckPicture1024(ListExpr type, ListExpr& errorInfo) {
+  if (PA_DEBUG) {
+    cerr << "CheckPicture1024() called" << endl;
+  }
+  return nl->IsEqual(type, Picture1024::BasicType());
+}
+
+/*
+
+9 Type constructor of ~Picture1024~
+
+*/
+
+TypeConstructor* picture1024 = 0;
+
+void initPicture1024() {
+  picture1024 = new TypeConstructor (
+    Picture1024::BasicType(),         //name
+    Picture1024Property,              //property function describing signature
+    OutPicture, InPicture,            //Out and In functions
+    0, 0,                             //SaveToList and RestoreFromList functions
+    CreatePicture, DeletePicture,     //object creation and deletion
+    OpenPicture, SavePicture,         //object open and save
+    ClosePicture, ClonePicture,       //object close and clone
+    CastPicture,                      //cast function
+    SizeOfPicture,                    //sizeof function
+    CheckPicture1024                  //kind checking function
+  );
+}

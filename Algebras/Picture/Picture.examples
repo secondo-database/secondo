@@ -152,6 +152,19 @@ Example  : query theater contains (theater cut [100,100,200,200])
 Result   : bug
 Remark   : Due to the JPEG compression this operator does not work properly.
 
+Operator  : makePicture1024
+Number    : 1
+Signature : picture -> picture1024
+Example   : query isdefined(makePicture1024(theater))
+Result    : TRUE
+
+Operator  : distanceRGB
+Number    : 1
+Signature : picture1024 x picture1024 -> real
+Example   : query distanceRGB(makePicture1024(theater), makePicture1024(theater))
+Result    : (real 0.0)
+
+
 Operator  : distance
 Number    : 1
 Signature : hist_hsvD x hist_hsvD -> real

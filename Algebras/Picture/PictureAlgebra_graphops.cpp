@@ -202,24 +202,6 @@ void Picture::Mirror(Picture *pic, bool dir) {
     delete[] buf;
 }
 
-double Picture::DistanceRGB(const Picture& pic) const {
-  Picture pic1 = *this;
-  Picture pic2 = pic;
-  Picture *p1 = new Picture(true);
-  Picture *p2 = new Picture(true);
-  pic1.Scale(p1, 32, 32);
-  pic2.Scale(p2, 32, 32);
-  unsigned long size1, size2;
-  char* p1data = p1->GetJPEGData(size1);
-  char* p2data = p2->GetJPEGData(size2);
-  cout << "files " << p1->GetFilename() << " and " << p2->GetFilename() << endl;
-  cout << "sizes " << size1 << " and " << size2 << endl;
-  for (int i = 0; i < 1000; i++) {
-    cout << "[" << p1data[i] << " " << p2data[i] << "] ";
-  }
-  return 0.09;
-}
-
 /*
 
 4 Type mapping functions
