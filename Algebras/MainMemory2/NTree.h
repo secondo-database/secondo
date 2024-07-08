@@ -31,6 +31,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Mem.h"
 #include "MainMemoryExt.h"
 #include "../Picture/hist_hsv.h"
+#include "../Picture/PictureAlgebra.h"
 
 namespace mtreehelper{
 
@@ -139,6 +140,16 @@ namespace mtreehelper{
     h1->distance(*h2, def, result);
     return result;
   }
+
+   double distance(const Picture1024* p1, const Picture1024* p2, Geoid* geoid) {
+    if (!p1->IsDefined() && !p2->IsDefined()) {
+      return 0.0;
+    }
+    if (!p1->IsDefined() || !p2->IsDefined()) {
+      return std::numeric_limits<double>::max();
+    }
+    return p1->DistanceRGB(p2);
+  }
   
   template<class T>
   double distance(const T* o1, const T* o2, double alpha, Geoid* geoid) {
@@ -194,14 +205,15 @@ namespace mtreehelper{
   typedef hist_hsv<128, false> t14;
   typedef hist_hsv<256, false> t15;
   typedef hist_hsv<256, true> t16;
+  typedef Picture1024 t17;
 
   int getTypeNo(ListExpr type, int expectedNumbers){
-     assert(expectedNumbers==16);
+     assert(expectedNumbers==17);
      if(nl->ToString(type) == Tuple::BasicType()){return 16;}
      if( t1::checkType(type)){ return 0;}
      if( t2::checkType(type)){ return 1;}
-     if( t3::checkType(type) ){ return 2;}
-     if( t4::checkType(type)){ return 3; }
+     if( t3::checkType(type)){ return 2;}
+     if( t4::checkType(type)){ return 3;}
      if( t5::checkType(type)){ return 4;}
      if( t6::checkType(type)){ return 5;}
      if( t7::checkType(type)){ return 6;}
@@ -214,6 +226,7 @@ namespace mtreehelper{
      if(t14::checkType(type)){ return 13;}
      if(t15::checkType(type)){ return 14;}
      if(t16::checkType(type)){ return 15;}
+     if(t17::checkType(type)){ return 16;}
      return -1;
   }
 
@@ -228,7 +241,7 @@ namespace mtreehelper{
     if (!listutils::isSymbol(nl->First(type), basicType)) {
       return false;
     }
-    if(getTypeNo(subtype, 16) < 0) {
+    if(getTypeNo(subtype, 17) < 0) {
       return false;
     }
     return nl->Equal(nl->Second(type), subtype);
