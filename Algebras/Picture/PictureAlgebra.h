@@ -417,7 +417,7 @@ The following five methods return the value of the respective private
 attribute.
 
 */
-    std::string GetFilename(void) { return filename; }
+    std::string GetFilename(void) const { return filename; }
     std::string GetCategory(void) { return category; }
     std::string GetDate(void) { return date; };
     bool IsPortrait(void) { return isPortrait; }
@@ -597,6 +597,7 @@ class Picture1024 : public Picture {
   double DistanceRGB(const Picture1024& pic) const;
 
   static const std::string BasicType() {return "picture1024";}
+  static const bool checkType(const ListExpr type);
 };
 
 #endif // __PICTURE_ALGEBRA_H__

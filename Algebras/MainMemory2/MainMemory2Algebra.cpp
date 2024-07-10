@@ -22622,8 +22622,9 @@ int mcreatentreeVMT(Word* args, Word& result, int message, Word& local,
   NTree<MTreeEntry<T>, StdDistComp<T>, variant>* tree =
      new NTree<MTreeEntry<T>, StdDistComp<T>, variant>(degree, maxLeafSize, dc,
                                                        partMethod, index);
+  cout << "ntree created" << endl;
   tree->build(contents);
-//   tree->print(cout);
+  tree->print(cout);
   size_t usedMem = tree->memSize();
   ListExpr typeList = nl->Second(qp->GetType(s));
   MemoryNtreeObject<T, StdDistComp<T>, variant>* ntree = 

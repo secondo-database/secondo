@@ -148,6 +148,7 @@ namespace mtreehelper{
     if (!p1->IsDefined() || !p2->IsDefined()) {
       return std::numeric_limits<double>::max();
     }
+    cout << "call DistanceRGB for " << p2->GetFilename() << endl;
     return p1->DistanceRGB(p2);
   }
   
@@ -209,7 +210,7 @@ namespace mtreehelper{
 
   int getTypeNo(ListExpr type, int expectedNumbers){
      assert(expectedNumbers==17);
-     if(nl->ToString(type) == Tuple::BasicType()){return 16;}
+     if(nl->ToString(type) == Tuple::BasicType()){return 17;}
      if( t1::checkType(type)){ return 0;}
      if( t2::checkType(type)){ return 1;}
      if( t3::checkType(type)){ return 2;}

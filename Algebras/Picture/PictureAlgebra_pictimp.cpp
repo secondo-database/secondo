@@ -1305,18 +1305,23 @@ void Picture1024::Scale(Picture1024 *pic, int w, int h) {
 }
 
 double Picture1024::DistanceRGB(const Picture1024& pic) const {
+  cout << "start DistanceRGB" << endl;
   unsigned long size1;
-  char* jpegData1 = ((Picture*)this)->GetJPEGData(size1);
+  char* jpegData1 = GetJPEGData(size1);
   JPEGPicture *rgb1 = new JPEGPicture((unsigned char*)jpegData1, size1);
   unsigned long int rgbSize1;
   unsigned char *rgbData1 = rgb1->GetImageData(rgbSize1);
+  cout << "  getImageData ok for 1" << endl;
   assert(rgbSize1 == 3072);
 
   unsigned long size2;
-  char* jpegData2 = ((Picture*)(&pic))->GetJPEGData(size2);
+  char* jpegData2 = pic.GetJPEGData(size2);
+  cout << "GetJPEGData successful for 2" << endl;
   JPEGPicture *rgb2 = new JPEGPicture((unsigned char*)jpegData2, size2);
+  cout << "  JPEGPicture created for 2" << endl;
   unsigned long int rgbSize2;
   unsigned char *rgbData2 = rgb2->GetImageData(rgbSize2);
+  cout << "  getImageData ok for 2" << endl;
   assert(rgbSize2 == 3072);
   double result = 0.0;
   for (unsigned int i = 0; i < rgbSize1; i++) {
@@ -1328,7 +1333,12 @@ double Picture1024::DistanceRGB(const Picture1024& pic) const {
   delete[] jpegData1;
   delete rgb2;
   delete[] jpegData2;
+  cout << " ... return result" << endl;
   return result;
+}
+
+const bool Picture1024::checkType(const ListExpr type) {
+  return listutils::isSymbol(type, BasicType());
 }
 
 static ListExpr Picture1024Property(void) {
