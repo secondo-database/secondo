@@ -516,6 +516,20 @@ class UBasic : public temporalalgebra::ConstTemporalUnit<B> {
   ~UBasic() {}
 
   bool operator==(const UBasic<B>& rhs) const;
+  bool operator==(const temporalalgebra::ConstTemporalUnit<B>& i) const{
+     return temporalalgebra::ConstTemporalUnit<B>::operator==(i);
+  } 
+  virtual bool operator==(const temporalalgebra::TemporalUnit<B>& i) const{
+     return temporalalgebra::TemporalUnit<B>::operator==(i);
+  }
+
+  virtual temporalalgebra::ConstTemporalUnit<B>&
+  operator=( const temporalalgebra::ConstTemporalUnit<B>& i )
+  { return temporalalgebra::ConstTemporalUnit<B>::operator=(i); }
+  virtual temporalalgebra::TemporalUnit<B>& operator=(
+		  const temporalalgebra::TemporalUnit<B>& i){
+	  return temporalalgebra::TemporalUnit<B>::operator=(i);
+  }
 
   static ListExpr Property();
   static int SizeOfObj() {return sizeof(UBasic<B>);}
@@ -545,6 +559,15 @@ class UBasics : public temporalalgebra::ConstTemporalUnit<B> {
   UBasics(const UBasics& rhs) : temporalalgebra::ConstTemporalUnit<B>(rhs) {}
   explicit UBasics(const bool def) : 
               temporalalgebra::ConstTemporalUnit<B>(def) {}
+
+
+  virtual temporalalgebra::TemporalUnit<B>& operator=(
+		  const temporalalgebra::TemporalUnit<B>& i){
+     return temporalalgebra::TemporalUnit<B>::operator=(i);
+  }
+  virtual temporalalgebra::ConstTemporalUnit<B>&
+      operator=( const temporalalgebra::ConstTemporalUnit<B>& i )
+        { return temporalalgebra::ConstTemporalUnit<B>::operator=(i); }
 
   static ListExpr Property();
   static int SizeOfObj() {return sizeof(UBasics<B>);}

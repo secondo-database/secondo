@@ -299,6 +299,10 @@ Redefinition of the copy operator ~=~.
 
 */
 
+  virtual TemporalUnit<network::GPoint>& operator=( 
+		  const TemporalUnit<network::GPoint>& i ){
+	  return TemporalUnit<network::GPoint>::operator=(i);
+  }
   virtual UGPoint& operator=( const UGPoint& i )
   {
     *((TemporalUnit<network::GPoint>*)this) = 
@@ -314,6 +318,10 @@ Returns ~true~ if this temporal unit is equal to the temporal unit ~i~ and
 ~false~ if they are different.
 
 */
+   bool operator==( 
+		   const TemporalUnit<network::GPoint>& i ) const{
+	   return TemporalUnit<network::GPoint>::operator==(i);
+   }
 
    virtual bool operator==( const UGPoint& i ) const
   {
@@ -327,6 +335,9 @@ Returns ~true~ if this temporal unit is different to the temporal unit ~i~
 and ~false~ if they are equal.
 
 */
+    virtual bool operator!=(const TemporalUnit<network::GPoint>& i) const{
+        return TemporalUnit<network::GPoint>::operator!=(i);
+    }
 
     virtual bool operator!=( const UGPoint& i ) const
   {

@@ -1031,7 +1031,9 @@ Print method, primarly used for debugging purposes
 The assignment operator
 
 */
-
+    TemporalUnit<Region>& operator=(const TemporalUnit<Region>& U){
+	    return TemporalUnit<Region>::operator=(U);
+    } 
     URegion& operator= ( const URegion& U);
 
 

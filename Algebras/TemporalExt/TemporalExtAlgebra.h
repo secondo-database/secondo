@@ -179,6 +179,19 @@ public:
     void SetUnitMin( double min ) { unit_min = min; }
 
     void SetUnitMax( double max) { unit_max = max; }
+  
+    virtual TemporalUnit<CcReal>& operator=( const TemporalUnit<CcReal>& i ){
+      return TemporalUnit<CcReal>::operator=(i);
+    }
+    virtual UReal& operator=( const UReal& i )
+    { return UReal::operator=(i);
+    }
+    virtual URealExt& operator=(const URealExt& i){
+       UReal::operator=(i);
+       unit_min = i.unit_min;
+       unit_max = i.unit_max;
+       return *this; 
+    }
 
 private:
     double unit_min, unit_max;

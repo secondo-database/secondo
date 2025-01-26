@@ -1399,6 +1399,10 @@ The simple constructor. This constructor should not be used.
     StandardTemporalUnit( bool is_defined):Attribute(is_defined),
                                            TemporalUnit<Alpha>(is_defined)
      {}
+  
+    TemporalUnit<Alpha>& operator=( const TemporalUnit<Alpha>& i ){
+         return TemporalUnit<Alpha>::operator=(i);
+    }
 
 /*
 Use this constructor when declaring temporal object variables etc.
@@ -1530,6 +1534,10 @@ Use this constructor when declaring temporal object variables etc.
 This constructor sets the time interval of the temporal unit.
 
 */
+
+    virtual TemporalUnit<Alpha>& operator=( const TemporalUnit<Alpha>& i ){
+        return TemporalUnit<Alpha>::operator=(i);
+    }
 
     virtual ~SpatialTemporalUnit() {}
 /*
@@ -1727,6 +1735,9 @@ class ConstTemporalUnit : public StandardTemporalUnit<Alpha>
 3.6.2 Operator redefinitions
 
 */
+  virtual TemporalUnit<Alpha>& operator=(const TemporalUnit<Alpha>& i){
+     return TemporalUnit<Alpha>::operator=(i);
+  }
 
   virtual ConstTemporalUnit<Alpha>&
   operator=( const ConstTemporalUnit<Alpha>& i )
@@ -1746,7 +1757,9 @@ Two ConstTemporalUnits are equal, if both are either undefined, or both are
 defined and represent the same temporal function
 
 */
-
+  virtual bool operator==(const TemporalUnit<Alpha>& i) const{
+     return TemporalUnit<Alpha>::operator==(i);
+  }
   virtual bool operator==( const ConstTemporalUnit<Alpha>& i ) const
   {
     if( !this->IsDefined() && !i.IsDefined() ){
@@ -1760,7 +1773,9 @@ defined and represent the same temporal function
 Returns ~true~ if this temporal unit is equal to the temporal unit ~i~ and ~false~ if they are different.
 
 */
-
+  virtual bool operator!=(const TemporalUnit<Alpha>& i) const{
+	  return TemporalUnit<Alpha>::operator!=(i);
+  }
   virtual bool operator!=( const ConstTemporalUnit<Alpha>& i ) const
   {
     return !( *this == i );
@@ -2113,6 +2128,10 @@ Symbol for use in typemappings
 
 */
 
+  virtual TemporalUnit<CcReal>& operator=( const TemporalUnit<CcReal>& i ){
+      return TemporalUnit<CcReal>::operator=(i);
+  }
+
   virtual UReal& operator=( const UReal& i )
   {
     del.isDefined = i.del.isDefined;
@@ -2130,7 +2149,9 @@ Symbol for use in typemappings
 Redefinition of the copy operator ~=~.
 
 */
-
+  virtual bool operator==(const TemporalUnit<CcReal>& i) const{
+	  return TemporalUnit<CcReal>::operator==(i);
+  }
   virtual bool operator==( const UReal& i ) const
   {
     if( !this->IsDefined() && !i.IsDefined() ) {
@@ -2149,6 +2170,9 @@ Two undefined units are always equal.
 
 */
 
+  virtual bool operator!=( const TemporalUnit<CcReal>& i ) const{
+      return TemporalUnit<CcReal>::operator!=(i);
+  }
   virtual bool operator!=( const UReal& i ) const
   {
     return !( *this == i );
@@ -2605,6 +2629,9 @@ class UPoint : public SpatialTemporalUnit<Point, 3>
 3.6.2 Operator redefinitions
 
 */
+  virtual TemporalUnit<Point>& operator=(const TemporalUnit<Point>& i){
+	  return TemporalUnit<Point>::operator=(i);
+  }
 
   virtual UPoint& operator=( const UPoint& i )
   {
@@ -2647,7 +2674,9 @@ templates using UPoint and MPoint.
 Redefinition of the copy operator ~=~.
 
 */
-
+  virtual bool operator==(const TemporalUnit<Point>& i) const{
+     return TemporalUnit<Point>::operator==(i);
+  }
   virtual bool operator==( const UPoint& i ) const
   {
     if( !this->IsDefined() && !i.IsDefined() ){
@@ -2663,6 +2692,9 @@ Returns ~true~ if both units are undefined, or if both are defined and this temp
 
 */
 
+  virtual bool operator!=( const TemporalUnit<Point>& i ) const{
+     return TemporalUnit<Point>::operator!=(i);
+  }
   virtual bool operator!=( const UPoint& i ) const
   {
     return !( *this == i );
@@ -4758,6 +4790,12 @@ public:
 3.6.2 Operator redefinitions
 
 */
+  virtual TemporalUnit<Point>& operator=(const TemporalUnit<Point>& src){
+    return TemporalUnit<Point>::operator=(src);
+  }
+  virtual UPoint& operator=(const UPoint& src){
+    return UPoint::operator=(src);
+  } 
   virtual CUPoint& operator=(const CUPoint& src) {
     UPoint::operator=(src);
     radius = src.radius;
@@ -4821,6 +4859,13 @@ templates using UPoint and MPoint.
 Redefinition of the copy operator ~=~.
 
 */
+  virtual bool operator==(const TemporalUnit<Point>& src) const{
+     return TemporalUnit<Point>::operator==(src);
+  }
+  virtual bool operator==(const UPoint& src) const{
+	  return UPoint::operator==(src);
+  }
+
   virtual bool operator==(const CUPoint& src) const {
     if (!this->IsDefined() && !src.IsDefined()) {
       return true;
@@ -4835,6 +4880,12 @@ Redefinition of the copy operator ~=~.
 Returns ~true~ if both units are undefined, or if both are defined and this temporal unit is equal to the temporal unit ~i~ and ~false~ if they are different.
 
 */
+  virtual bool operator!=(const TemporalUnit<Point>& src) const{
+	  return TemporalUnit<Point>::operator!=(src);
+  }
+  virtual bool operator!=(const UPoint& src) const {
+	  return UPoint::operator!=(src);
+  }
   virtual bool operator!=(const CUPoint& src) const {
     return !(*this == src);
   }
