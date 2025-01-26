@@ -673,7 +673,7 @@ struct Search_LI
     if (iter != results->end())
     {
       TupleId tid = *iter;
-      *iter++;
+      iter++;
       return tid;
     }
     else
