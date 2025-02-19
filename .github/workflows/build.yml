@@ -7,7 +7,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: ['ubuntu-20.04', 'ubuntu-22.04']
+        os: ['ubuntu-22.04', 'ubuntu-24.04']
     runs-on: ${{ matrix.os }}
     steps:
       - name: Set env vars general
@@ -23,12 +23,6 @@ jobs:
           echo "JPL_JAR=/usr/lib/swi-prolog/lib/jpl.jar" >> $GITHUB_ENV
           echo "PL_LIB=swipl" >> $GITHUB_ENV
 
-      - name: Set env vars for ubuntu 18.04
-        if: matrix.os == 'ubuntu-18.04'
-        run: |
-          echo "PL_LIB_DIR=/usr/lib/swi-prolog/lib/amd64/" >> $GITHUB_ENV
-          echo "JPL_DLL=/usr/lib/swi-prolog/lib/amd64/libjpl.so" >> $GITHUB_ENV
-
       - name: Set env vars for ubuntu 20.04
         if: matrix.os == 'ubuntu-20.04'
         run: |
@@ -37,6 +31,12 @@ jobs:
 
       - name: Set env vars for ubuntu 22.04
         if: matrix.os == 'ubuntu-22.04'
+        run: |
+          echo "PL_LIB_DIR=/usr/lib/swi-prolog/lib/x86_64-linux/" >> $GITHUB_ENV
+          echo "JPL_DLL=/usr/lib/swi-prolog/lib/x86_64-linux/libjpl.so" >> $GITHUB_ENV
+
+      - name: Set env vars for ubuntu 24.04
+        if: matrix.os == 'ubuntu-24.04'
         run: |
           echo "PL_LIB_DIR=/usr/lib/swi-prolog/lib/x86_64-linux/" >> $GITHUB_ENV
           echo "JPL_DLL=/usr/lib/swi-prolog/lib/x86_64-linux/libjpl.so" >> $GITHUB_ENV
