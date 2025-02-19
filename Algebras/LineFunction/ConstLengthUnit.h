@@ -58,6 +58,10 @@ template <typename Alpha>
 class ConstLengthUnit : public StandardLengthUnit<Alpha>
 {
 public:
+    using StandardLengthUnit<Alpha>::operator=;
+    using StandardLengthUnit<Alpha>::operator==;
+    using StandardLengthUnit<Alpha>::operator!=;
+
 /*
 3.1.1 Constructors and Destructor
 

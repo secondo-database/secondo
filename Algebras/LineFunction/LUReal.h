@@ -55,6 +55,10 @@ Inherits a denined flag.
 class LUReal : public StandardLengthUnit<CcReal>
 {
 public:
+   using StandardLengthUnit<CcReal>::operator=;
+   using StandardLengthUnit<CcReal>::operator==;
+   using StandardLengthUnit<CcReal>::operator!=;
+
 /*
 3.1.1 Constructors and Destructor
 

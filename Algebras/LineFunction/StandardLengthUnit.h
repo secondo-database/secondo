@@ -58,6 +58,9 @@ class StandardLengthUnit :
     public LengthUnit<Alpha>
 {
 public:
+   using LengthUnit<Alpha>::operator=;
+   using LengthUnit<Alpha>::operator==;
+   using LengthUnit<Alpha>::operator!=;
 
 /*
 3.1.1 Constructors and Destructor
