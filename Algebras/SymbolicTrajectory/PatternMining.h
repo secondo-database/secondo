@@ -538,7 +538,8 @@ struct SplPlace {
   ~SplPlace() {}
   
   bool operator==(const SplPlace& p) const {
-    return AlmostEqual(x, p.x) && AlmostEqual(y, p.y) && cat == p.cat;
+    return AlmostEqual(x, p.x) && AlmostEqual(y, p.y)
+        && (strcmp(cat, p.cat) == 0);
   }
   
   bool almostEqual(SplPlace& p, const double eps, const Geoid* geoid = 0) const{
