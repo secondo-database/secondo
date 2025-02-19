@@ -3134,7 +3134,7 @@ int SplSemTraj::find(const SplPlace& sp, const double tolerance,
   Point p1(true), p2(true, sp.x, sp.y);
   for (int i = 0; i < size(); i++) {
     SplTSPlace tsp = get(i);
-    if (tsp.cat == sp.cat) {
+    if (strcmp(tsp.cat, sp.cat) == 0) {
       p1.Set(tsp.x, tsp.y);
       if (p1.Distance(p2, geoid) <= tolerance) {
         return i;
@@ -3188,7 +3188,7 @@ bool SplSemTraj::contains(const SplPlace& sp, const double deltaT,
   for (int i = 0; i < size(); i++) {
     SplTSPlace tsp = get(i);
     p1.Set(tsp.x, tsp.y);
-    if (tsp.cat == sp.cat && p1.Distance(p2, geoid) <= tolerance &&
+    if ((strcmp(tsp.cat, sp.cat) == 0) && p1.Distance(p2, geoid) <= tolerance &&
         tsp.instDbl < deltaT) {
       return true;
     }
