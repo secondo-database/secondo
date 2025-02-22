@@ -3136,7 +3136,7 @@ Translate a list of values into kernel syntax for lists.
 */
 
 secondo_list_to_atom(CommaList, Result) :-
-  CommaList =.. [(,), X, Xs],
+  CommaList =.. [',', X, Xs],
   plan_to_atom(X, XAtom),
   secondo_list_to_atom((Xs), XsAtom),
   my_concat_atom([XAtom, ' ', XsAtom], '', Result),
@@ -3156,7 +3156,7 @@ subquery_plan_to_atom(Data, Result) :-
 % in expression with constant list
 subquery_plan_to_atom(X, Result) :-
   X =.. [in, Attr, ValueList],
-  ValueList =.. [(,) | _],
+  ValueList =.. [',' | _],
   constantType(Attr, Type),
   plan_to_atom(Attr, AttrAtom),
   secondo_list_to_atom(ValueList, VLAtom),
