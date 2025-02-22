@@ -525,7 +525,7 @@ opSignature(setoption, standard, [string,int],bool,[sidefx]).
 opSignature(abs, standard, [int],int,[]).
 opSignature(abs, standard, [real],real,[]).
 
-opSignature((,), standard, [T,T],[T,[set,T]],[]). % op provided by Poneleit
+opSignature(',', standard, [T,T],[T,[set,T]],[]). % op provided by Poneleit
 
 
 

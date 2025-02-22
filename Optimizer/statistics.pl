@@ -2815,11 +2815,11 @@ Auxiliary predicate
 
 (1) transforms a type expression ~Type~ using square brackets and commas as
 delimiters into an atom with the equivalent nested list representation using
-round parantheses.
+round parentheses.
 
 (2) transforms a type expression ~Type~ using round brackets and commas as
 delimiters into an atom with the equivalent nested list representation using
-round parantheses.
+round parentheses.
 
 */
 
@@ -2851,7 +2851,7 @@ nestedTypeExpr2valueTypeExprAtom_list([A|B],Result) :-
 
 valueTypeExpr2valueTypeExprAtom(Term,Result) :-
   term_to_atom(Term,TermAtom),
-  ( (compound(Term), functor(Term,(,),_))
+  ( (compound(Term), functor(Term,',', _))
     -> my_concat_atom(['(',TermAtom,')'],'',Result)
     ;  Result = TermAtom
   ),
