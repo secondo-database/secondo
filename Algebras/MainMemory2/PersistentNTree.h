@@ -270,22 +270,22 @@ class PersistentNTree {
 //     cout << "process " << (isLeaf ? "LEAF node #" : "INNER node #") << nodeId
 //          << endl;
     while (currentNodeId == nodeId) {
-      tid = ((CcInt*)nodeInfoTuple->GetAttribute(1))->GetValue();
-      entry = ((CcInt*)nodeInfoTuple->GetAttribute(3))->GetValue();
+      tid = ((CcInt*)nodeInfoTuple->GetAttribute(2))->GetValue();
+      entry = ((CcInt*)nodeInfoTuple->GetAttribute(4))->GetValue();
 //       cout << "begin iteration, entry = " << entry;
       entries.push_back(entry);
       if (isLeaf) {
         if (entry == 0) {
           maxDist.push_back( 
-                 ((CcReal*)nodeInfoTuple->GetAttribute(5))->GetValue());
+                 ((CcReal*)nodeInfoTuple->GetAttribute(6))->GetValue());
         }
       }
       else { // inner node
-        subnodeId = ((CcInt*)nodeInfoTuple->GetAttribute(4))->GetValue();
+        subnodeId = ((CcInt*)nodeInfoTuple->GetAttribute(5))->GetValue();
 //         cout << ", subnodeId = " << subnodeId;
         subnodeIds.push(std::make_pair(entry, subnodeId));
         maxDist.push_back(
-                         ((CcReal*)nodeInfoTuple->GetAttribute(5))->GetValue());
+                         ((CcReal*)nodeInfoTuple->GetAttribute(6))->GetValue());
       }
       T *obj = (T*)((T*)(nodeInfoTuple->GetAttribute(0))->Clone());
 //       cout << ", tid = " << tid << endl;
@@ -294,7 +294,7 @@ class PersistentNTree {
       nodeInfoPos++;
       if (nodeInfoPos < (int)(nodeInfoTuples->size())) {
         nodeInfoTuple = (*nodeInfoTuples)[nodeInfoPos];
-        currentNodeId = ((CcInt*)(nodeInfoTuple->GetAttribute(2)))->GetValue();
+        currentNodeId = ((CcInt*)(nodeInfoTuple->GetAttribute(3)))->GetValue();
       }
       else {
 //         cout << "end of nodeInfo" << endl;
@@ -432,21 +432,25 @@ class PersistentNTree {
                                       nl->SymbolAtom(Geoid::BasicType()))));
     ListExpr numTreeInfoTypeList = sc->NumericType(treeInfoTypeList);
     treeInfoType = new TupleType(numTreeInfoTypeList);
-    ListExpr nodeInfoAttrTypeList = nl->SixElemList(
+    ListExpr nodeInfoAttrTypeList = nl->Cons(
       nl->TwoElemList(nl->SymbolAtom("Object"),
                       nl->SymbolAtom(ntree->getEntryType())),
-      nl->TwoElemList(nl->SymbolAtom("TupleId"),
-                      nl->SymbolAtom(CcInt::BasicType())),
-      nl->TwoElemList(nl->SymbolAtom("NodeId"),
-                      nl->SymbolAtom(CcInt::BasicType())),
-      nl->TwoElemList(nl->SymbolAtom("Entry"),
-                      nl->SymbolAtom(CcInt::BasicType())),
-      nl->TwoElemList(nl->SymbolAtom("Subtree"),
-                      nl->SymbolAtom(CcInt::BasicType())),
-      nl->TwoElemList(nl->SymbolAtom("MaxDist"),
-                      nl->SymbolAtom(CcReal::BasicType())));
+      nl->SixElemList(
+        nl->TwoElemList(nl->SymbolAtom("TID"),
+                        nl->SymbolAtom(TupleIdentifier::BasicType())),
+        nl->TwoElemList(nl->SymbolAtom("TupleId"),
+                        nl->SymbolAtom(CcInt::BasicType())),
+        nl->TwoElemList(nl->SymbolAtom("NodeId"),
+                        nl->SymbolAtom(CcInt::BasicType())),
+        nl->TwoElemList(nl->SymbolAtom("Entry"),
+                        nl->SymbolAtom(CcInt::BasicType())),
+        nl->TwoElemList(nl->SymbolAtom("Subtree"),
+                        nl->SymbolAtom(CcInt::BasicType())),
+        nl->TwoElemList(nl->SymbolAtom("MaxDist"),
+                        nl->SymbolAtom(CcReal::BasicType()))));
     nodeInfoTypeList = nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()),
                                        nodeInfoAttrTypeList);
+    cout << nl->ToString(nodeInfoTypeList) << endl;
     ListExpr numNodeInfoTypeList = sc->NumericType(nodeInfoTypeList);
     nodeInfoType = new TupleType(numNodeInfoTypeList);
     nodeDistTypeList = nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()),
@@ -546,11 +550,12 @@ class PersistentNTree {
                                          ((innernode_t*)node)->getMaxDist(i));
       nodeInfoTuple = new Tuple(nodeInfoType);
       nodeInfoTuple->PutAttribute(0, object);
-      nodeInfoTuple->PutAttribute(1, new CcInt(true, tid));
-      nodeInfoTuple->PutAttribute(2, new CcInt(true, nodeId));
-      nodeInfoTuple->PutAttribute(3, new CcInt(true, i));
-      nodeInfoTuple->PutAttribute(4, new CcInt(true, subtreeNodeId));
-      nodeInfoTuple->PutAttribute(5, new CcReal(true, maxDist));
+      nodeInfoTuple->PutAttribute(1, new TupleIdentifier(true, tid));
+      nodeInfoTuple->PutAttribute(2, new CcInt(true, tid));
+      nodeInfoTuple->PutAttribute(3, new CcInt(true, nodeId));
+      nodeInfoTuple->PutAttribute(4, new CcInt(true, i));
+      nodeInfoTuple->PutAttribute(5, new CcInt(true, subtreeNodeId));
+      nodeInfoTuple->PutAttribute(6, new CcReal(true, maxDist));
       nodeInfoRel->AppendTuple(nodeInfoTuple); 
       delete nodeInfoTuple;
       for (int j = 0; j < i; j++) {
