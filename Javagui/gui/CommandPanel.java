@@ -1142,8 +1142,10 @@ public class CommandPanel extends JScrollPane {
     * returns true if successful false otherwise
     */
   public boolean enableOptimizer(){
-    if(!useOptimizer())
+    if(!useOptimizer()){
+      Reporter.debug("Connet to Optimiter at " + OptInt.getHost()+":"+OptInt.getPort());
       return OptInt.connect();
+    }
     return true;
   }
 
