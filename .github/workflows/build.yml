@@ -19,7 +19,7 @@ jobs:
           echo "J2SDK_ROOT=/usr/lib/jvm/java-8-openjdk-amd64" >> $GITHUB_ENV
           echo "SWI_HOME_DIR=/usr/lib/swi-prolog/" >> $GITHUB_ENV
           echo "PL_INCLUDE_DIR=/usr/lib/swi-prolog/include" >> $GITHUB_ENV
-          echo "PL_VERSION=70203" >> $GITHUB_ENV
+          echo "PL_VERSION=82705" >> $GITHUB_ENV
           echo "JPL_JAR=/usr/lib/swi-prolog/lib/jpl.jar" >> $GITHUB_ENV
           echo "PL_LIB=swipl" >> $GITHUB_ENV
 
