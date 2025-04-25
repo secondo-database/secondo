@@ -47,6 +47,7 @@ class PersistentNTree {
         pivotInfoTuples(0), ntree(n) {
     sc = SecondoSystem::GetCatalog();
     std::vector<std::string> relNames = getRelNames(prefix, suffix);
+    tidAttrPos = findTidAttrPos();
     if (tuples->empty()) {
       return;
     }
@@ -417,6 +418,23 @@ class PersistentNTree {
     }    
     return true;
   }
+
+  int findTidAttrPos() {
+    if (srcTuples->empty()) {
+      return -1;
+    }
+    Tuple *tuple = (*srcTuples)[0];
+    TupleType *ttype = tuple->GetTupleType();
+    AttributeType atype();
+    for (int i = 0; i < ttype->GetNoAttributes(); i++) {
+      AttributeType atype = ttype->GetAttributeType(i);
+      std::string atypeName = sc->GetTypeName(atype.algId, atype.typeId);
+      if (atypeName == TupleIdentifier::BasicType()) {
+        return i;
+      }
+    }
+    return -1;
+  }
   
   bool createTypeLists() {
     treeInfoTypeList = nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()),
@@ -550,7 +568,11 @@ class PersistentNTree {
                                          ((innernode_t*)node)->getMaxDist(i));
       nodeInfoTuple = new Tuple(nodeInfoType);
       nodeInfoTuple->PutAttribute(0, object);
-      nodeInfoTuple->PutAttribute(1, new TupleIdentifier(true, tid));
+      TupleIdentifier *tupleIdentifier = new TupleIdentifier(false);
+      if (tidAttrPos > -1) {
+        tupleIdentifier->Set(true, tid);
+      }
+      nodeInfoTuple->PutAttribute(1, tupleIdentifier);
       nodeInfoTuple->PutAttribute(2, new CcInt(true, tid));
       nodeInfoTuple->PutAttribute(3, new CcInt(true, nodeId));
       nodeInfoTuple->PutAttribute(4, new CcInt(true, i));
@@ -611,7 +633,7 @@ class PersistentNTree {
            pivotInfoTypeList;
   TupleType *treeInfoType, *nodeInfoType, *nodeDistType, *pivotInfoType;
   Relation *treeInfoRel, *nodeInfoRel, *nodeDistRel, *pivotInfoRel;
-  int attrNo, firstNodeId, nodeInfoPos, nodeDistPos, pivotInfoPos;
+  int attrNo, tidAttrPos, firstNodeId, nodeInfoPos, nodeDistPos, pivotInfoPos;
   std::vector<Tuple*> *srcTuples, *nodeInfoTuples, *nodeDistTuples, 
                       *pivotInfoTuples;
   ntree_t* ntree;
