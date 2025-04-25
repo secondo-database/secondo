@@ -425,7 +425,7 @@ class PersistentNTree {
     }
     Tuple *tuple = (*srcTuples)[0];
     TupleType *ttype = tuple->GetTupleType();
-    AttributeType atype();
+    AttributeType atype;
     for (int i = 0; i < ttype->GetNoAttributes(); i++) {
       AttributeType atype = ttype->GetAttributeType(i);
       std::string atypeName = sc->GetTypeName(atype.algId, atype.typeId);
