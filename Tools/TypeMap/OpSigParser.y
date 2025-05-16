@@ -831,6 +831,9 @@ bool parseSigs(const char* infile, const string& outfile) {
 
   FILE* ifile;
   ifile = fopen(infile, "r");
+  if(ifile==NULL){
+     return false;
+  }
   opsigin = ifile;
 
   ofile.open(outfile.c_str(), ios_base::out);
