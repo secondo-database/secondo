@@ -4965,7 +4965,7 @@ const string sizespec  =
     "</text---><text> query size( reg22 )</text--->"
     ") )";
 
-static Operator size ( "size",
+static Operator sizeOp ( "size",
                 sizespec,
                 areaValueMap,
                 simpleSelect,
@@ -5004,7 +5004,7 @@ class Region2Algebra : public Algebra
     AddOperator( &regiontoregionp );
     AddOperator( &rect2regionp );
     AddOperator( &recttoregionp );
-    AddOperator( &size );
+    AddOperator( &sizeOp );
     AddOperator( &area );
 
   }
