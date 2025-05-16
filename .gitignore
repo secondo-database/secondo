@@ -20,6 +20,21 @@ makefile.algebras
 /bin/temp_nested_list*
 /bin/vgcore.*
 /bin/temp/
+/bin/TMP_NESTED_LIST*
+/bin/kinos*shp
+/bin/kirchsub_*
+/bin/kirch2sub_*
+/bin/kirchditmold.osm_7
+/bin/output.xml
+/bin/seven.obj
+/bin/ten.csv
+/bin/ten.file
+/bin/ten2.csv
+/bin/ten_4_8.shp
+/bin/test.stl
+/bin/Staedte.txt
+/bin/hello.txt
+
 
 # Algebras
 /Algebras/specs
@@ -63,6 +78,10 @@ makefile.algebras
 /Algebras/PropertyGraph2/location.hh
 /Algebras/PropertyGraph2/position.hh
 /Algebras/PropertyGraph2/stack.hh
+/Algebras/MTopRel/RegExParser.y.c
+/Algebras/MTopRel/RegExParser.y.h
+/Algebras/MTopRel/Scanner.c
+
 
 # Javagui
 /Javagui/GBS.cfg
@@ -76,6 +95,8 @@ makefile.algebras
 /Javagui/secondoInterface/sj/lang/JavaListExpr/NLSymbol.java
 /Javagui/secondoInterface/sj/lang/ListExpr.java
 /Javagui/viewer/makefile.viewers
+/Javagui/osmDowloads
+
 
 # Optimizer
 /OptParser/parser.c
@@ -197,6 +218,9 @@ makefile.algebras
 /Tests/Testspecs/temp_nested_list
 /Tests/Testspecs/*/temp_nested_list
 
+# Selftest
+/Selftest/result*_err
+
 # Tools
 /Tools/pd/PDLex.c
 /Tools/pd/docu
@@ -281,6 +305,7 @@ makefile.algebras
 /Tools/DFS/qunitrunner/qunitrunner
 /Tools/usingcheck/usingcheck
 /Tools/usingcheck/usingcheck.c
+/Tools/TypeMap/*.tmp
 
 # WebGUI2
 /WebGui2/bin
