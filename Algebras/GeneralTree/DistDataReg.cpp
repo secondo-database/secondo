@@ -40,11 +40,7 @@ January-May 2008, Mirko Dibbert
 #include "Algebras/SymbolicTrajectory/Algorithms.h"
 #include "PictureFuns.h"
 
-#ifndef NO_MP3
-//---------cru--------
-#include "Algebras/MP3b/FVector.h"
-//--------------------
-#endif
+#include "Algebras/FVector/FVector.h"
 
 #ifndef NO_IMAGESIMILARITY
 #include "Algebras/ImageSimilarity/JPEGImage.h"
@@ -474,7 +470,7 @@ DistData* DistDataReg::getDataFVector(const void* attr){
 
   //special treatment for undefined values
   if(!fv->IsDefined()){
-    return new DistData(0,0);
+    return new DistData(false);
   }
 
   //serialize the vector

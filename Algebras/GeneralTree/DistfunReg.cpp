@@ -41,11 +41,7 @@ January-May 2008, Mirko Dibbert
 #include "Algebras/SymbolicTrajectory/Algorithms.h"
 #include "PictureFuns.h"
 
-#ifndef NO_MP3
-//---------------cru----------------
-#include "Algebras/MP3b/FVector.h"
-//----------------------------------
-#endif
+#include "Algebras/FVector/FVector.h"
 
 #ifndef NO_IMAGESIMILARITY
 #include "../ImageSimilarity/JPEGImage.h"

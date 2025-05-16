@@ -31,6 +31,7 @@ ALGEBRA_DEPENDENCIES := StandardAlgebra
 ALGEBRA_DEPENDENCIES += RelationAlgebra
 ALGEBRA_DEPENDENCIES += SpatialAlgebra
 ALGEBRA_DEPENDENCIES += SymbolicTrajectoryBasicAlgebra
+ALGEBRA_DEPENDENCIES += FVectorAlgebra
 
 
 DOCU_FILES = GeneralTreeAlgebra.pd \
