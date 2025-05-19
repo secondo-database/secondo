@@ -443,6 +443,10 @@ ALGEBRAS      += MTreeAlgebra
 ALGEBRA_DIRS  += GeneralTree
 ALGEBRAS      += GeneralTreeAlgebra
 
+ALGEBRA_DIRS  += FVector
+ALGEBRAS      += FVectorAlgebra
+
+
 ALGEBRA_DIRS  += XTree
 ALGEBRAS      += XTreeAlgebra
 
