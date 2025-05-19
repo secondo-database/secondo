@@ -60,13 +60,12 @@ using namespace std;
 namespace fvector{
 
 /*
-   Type Constructor ~fvector~
 
-1 class ~fvector~
+1 Type Constructor ~fvector~
 
 
-// create a TypeConstructor instance
-//
+create a TypeConstructor instance
+
 */
 
 GenTC<FVector> FVectorTC;
