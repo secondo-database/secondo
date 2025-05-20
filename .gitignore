@@ -81,6 +81,7 @@ makefile.algebras
 /Algebras/MTopRel/RegExParser.y.c
 /Algebras/MTopRel/RegExParser.y.h
 /Algebras/MTopRel/Scanner.c
+/Algebras/Web/WebFlex.cc
 
 
 # Javagui
