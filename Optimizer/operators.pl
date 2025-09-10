@@ -51,8 +51,18 @@ leftrangeTC(10).
 loopjoinTC(7.48). 	% loopjoinTC(1.0).
 exactmatchTC(77.52).	% exactmatchTC(10.0).
 hashjoinTC(1.5, 0.65).
-sortmergejoinTC(9.7, 2.7).	% sortmergejoinTC(0.3, 0.73). 
+sortmergejoinTC(31.6, 18.3). 	% sortmergejoinTC(0.3, 0.73). 
+				% sortmergejoinTC(9.7, 2.7).
 			% first also used for sort(), second for mergejoin()
+			
+loopjoinMemTC(1.4, 0.7).	% loopjoin with arbitrary predicate on mem relation
+  				% first cost per input pair, second cost per result
+loopjoinMemAVLTC(12.4, 7.0, 22.9, 0.7).  % (A, B, C, D)
+  				% loopjoin with temporary AVL index on mem relation
+  				% A per tuple create mrel, B per tuple create index
+  				% C cost per stream argument in loopjoin, D per result
+  						
+			
 symmjoinTC(1.4, 0.7).
 extendTC(1.5).
 removeTC(0.6).
@@ -61,6 +71,18 @@ renameTC(0.1).
 windowintersectsTC(0.1).
 spatialjoinTC(20.0, 0.7).
 distancescanTC(0.25).
+% cost for distancescan2 and distancescan3 determined by R-tree index
+% on relation Roads in database niedersachsen with about 1.4 million tuples
+distancescan2TC(280).	% corresponds to 0.0336 ms
+distancescan3TC(460).	% 460 [microseconds] * 0.001 * 0.12 = 0.055 ms
+% distancescan3TC(56000). % 56000 [mus] * 0.001 * 0.12 = 6.72 ms
+			% assumes FLOB is not in OS cache
+			
+mnearestNeighborN7TC(83333). 
+% query Trips1000_Trip_ntree Trips1000_m mnearestNeighborN7[trip8, 10000] count
+% needs about 10 seconds (Trips1000 with cardinality 1000)
+% X [mcs] * 0.001 * 0.12 = 10 ms
+% X = 83333
 ksmallestTC(0.05, 0.23).
 createbtreeTC(0.12).
 

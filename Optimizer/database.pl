@@ -254,7 +254,7 @@ dcName2externalName(DC, External) :-
   !.
 
 dcName2externalName(DC,External) :-
-  write('ERROR:\tdcName2externalName('),write(DC),write(','),write(External),
+  write('ERROR:\tdcName2externalName('), write(DC), write(', '), write(External),
   write(') failed!'), nl,
   ( ground(DC)
     -> ( write('--->\tProbably missing storedSpell/3 or secondoCatalogInfo/4 '),

@@ -820,12 +820,12 @@ Special handling for distance-queries:
 If a distancescan query is used, only joins keeping the order are
 allowed, so ~sortedjoin~ is used instead of ~join~. The additional
 parameters for ~sortedjoin~ are the sorted argument and the maximum
-number of tuples, the other argument can contain
+number of tuples, the other argument can contain.
 
 */
 
 newEdge(pr(P, R1, R2), PNo, Node, Edge) :-
-  distanceRel(R3, _, _, _),
+  distanceRel(R3, _, _, _, _),
   findRels(R1, R2, Node, Source, Arg1, Arg2),
   findRel(R3, Node, Source, Arg1), !,
   Target is Source + PNo,
@@ -838,7 +838,7 @@ newEdge(pr(P, R1, R2), PNo, Node, Edge) :-
        Result, Node, PNo).
 
 newEdge(pr(P, R1, R2), PNo, Node, Edge) :-
-  distanceRel(R3, _, _, _),
+  distanceRel(R3, _, _, _, _),
   findRels(R1, R2, Node, Source, Arg1, Arg2),
   findRel(R3, Node, Source, Arg2), !,
   Target is Source + PNo,
@@ -987,7 +987,8 @@ Write the currently stored nodes and edges, respectively.
 writeNode :-
   node(No, Preds, Partition),
   write('Node: '), write(No), nl,
-  write('Preds: '), write(Preds), nl,
+  plan_to_atom(Preds, PredAtoms),
+  write('Preds: '), write(PredAtoms), nl,
   write('Partition: '), write(Partition), nl, nl,
   fail.
 writeNodes :- not(writeNode).
@@ -1489,6 +1490,13 @@ plan_to_atom(DBObject, Access) :-
   atom_concat(ExtName, ' drel2darray ', Access),
   !.
 
+plan_to_atom(dbindexobject(tmpindex(rel(RelName, _), Attr)), Result) :-
+  dcName2externalName(RelName, Rel2),
+  ( Attr = attr(_:Name, _, _); Attr = attr(Name, _, _) ),
+  plan_to_atom(attrname(attr(Name, _, _)), Attr2), 
+  my_concat_atom(['tmpindex(', Rel2, ', ', Attr2, ')'], Result),
+  !.
+  
 plan_to_atom(DBObject, ExtName) :-
   ( DBObject = dbotherobject(Name, _) ; DBObject = dbindexobject(Name) ;
     DBObject = dbdistindexobject(Name) ),
@@ -1502,6 +1510,7 @@ plan_to_atom(DBObject, ExtName) :-
       )
   ),
   !.
+  
 
 
 plan_to_atom(Rel, Result) :-
@@ -1940,7 +1949,6 @@ plan_to_atom(attribute(X, Y), Result) :-
   my_concat_atom(['attr(', XAtom, ', ', YAtom, ')'], '', Result),
   !.
 
-
 plan_to_atom(date(X), Result) :-
   plan_to_atom(X, XAtom),
   my_concat_atom(['[const instant value ', XAtom, ']'], '', Result),
@@ -2002,7 +2010,11 @@ plan_to_atom(attrname(attr(Name, Arg, Case)), Result) :-
   plan_to_atom(a(Name, Arg, Case), Result),
   !.
 
-
+plan_to_atom(attrnameI(Attr), Result) :-
+  ( Attr = attr(_:Name, _, _); Attr = attr(Name, _, _) ),
+  plan_to_atom(a(Name, _, _), Result),
+  !.
+  
 
 plan_to_atom(dot, Result) :-
   atom_concat('.', ' ', Result),
@@ -2323,17 +2335,35 @@ plan_to_atom(distancescan(DCIndex, Rel, X, HeadCount), Result) :-
   rel_to_atom(Rel, Rel2),
   my_concat_atom([DCIndex, ' ', Rel2, ' distancescan[', X2, ', ',
          HeadCount,']' ], Result), !.
+        
+% RHG 23.4.2025 
+plan_to_atom(mnearestNeighborN7(DCIndex, Rel, X, HeadCount), Result) :-
+  plan_to_atom(X, X2),
+  rel_to_atom(Rel, Rel2),
+  my_concat_atom([DCIndex, ' ', Rel2, '_m mnearestNeighborN7[', X2, ', ',
+         HeadCount,']' ], Result), !.
 
-plan_to_atom(varfuncquery(Stream, Var, Expr), Result) :-
+plan_to_atom(distancescan3(DCIndex, Rel, X, HeadCount), Result) :-
+  plan_to_atom(X, X2),
+  rel_to_atom(Rel, Rel2),
+  my_concat_atom([DCIndex, ' ', Rel2, ' distancescan3[', X2, ', ',
+         HeadCount,']' ], Result), !.
+         
+plan_to_atom(distancescan2(DCIndex, Rel, X, HeadCount), Result) :-
+  plan_to_atom(X, X2),
+  rel_to_atom(Rel, Rel2),
+  my_concat_atom([DCIndex, ' ', Rel2, ' distancescan2[', X2, ', ',
+         HeadCount,']' ], Result), !.
+
+       
+plan_to_atom(within(Expr, Var, Stream), Result) :-
   plan_to_atom(Stream, Stream2),
   plan_to_atom(Expr, Expr2),
   my_concat_atom([Expr2, ' within[fun(', Var, ':ANY) ', Stream2, ']'],
-       Result).
-
-plan_to_atom(createtmpbtree(Rel, Attr), Result) :-
-  rel_to_atom(Rel, Rel2),
-  plan_to_atom(attrname(Attr), Attr2),
-  my_concat_atom([Rel2, ' createbtree[', Attr2, ']'], Result).
+       Result),
+  !.
+       
+       
 
 % Section:Start:plan_to_atom_2_m
 % Section:End:plan_to_atom_2_m
@@ -2747,30 +2777,81 @@ translates(res(N), [res(N), [none]]).
 % Section:End:translationRule_2_b
 
 
+% RHG 23.4.2025
 % special handling for distancescan queries
-arg(N) => [distancescan(IndexName, rel(Name, *), Attr, 0), []]:-
+
+% distanceAvg on mpoint with ntree
+% Parameter 10000000 is preliminary, should be replaced by 0 when implementation 
+% has been corrected.
+arg(N) => [mnearestNeighborN7(IndexName, rel(Name, *), Attr, 10000000), []]:-
   isStarQuery,
   argument(N, rel(Name, *)),
-  distanceRel(rel(Name, *), IndexName, Attr, _), !.
+  distanceRel(rel(Name, *), IndexName, Attr, _, distanceAvg), !.
 
-% special handling for distancescan queries
-arg(N) => [rename(distancescan(IndexName, rel(Name, Var), Attr, 0), Var), []] :-
+arg(N) => [rename(mnearestNeighborN7(IndexName, rel(Name, Var), Attr, 10000000), 
+	Var), []] :-
   isStarQuery,
   argument(N, rel(Name, Var)),
-  distanceRel(rel(Name, Var), IndexName, Attr, _), !.
+  distanceRel(rel(Name, Var), IndexName, Attr, _, distanceAvg), !.
 
-% special handling for distancescan queries
-arg(N) => [project(distancescan(IndexName, rel(Name, *), Attr, 0), AttrNames), 
-	[]] :-
+arg(N) => [project(mnearestNeighborN7(IndexName, rel(Name, *), Attr, 10000000), 
+	AttrNames),  []] :-
   argument(N, rel(Name, *)),
-  distanceRel(rel(Name, *), IndexName, Attr, _), !,
+  distanceRel(rel(Name, *), IndexName, Attr, _, distanceAvg), !,
   usedAttrList(rel(Name, *), AttrNames).
 
-% special handling for distancescan queries
-arg(N) => [rename(project(distancescan(IndexName, rel(Name, Var), Attr, 0),
+arg(N) => [rename(project(mnearestNeighborN7(IndexName, rel(Name, Var), Attr, 
+	10000000), AttrNames), Var), []] :-
+  argument(N, rel(Name, Var)),
+  distanceRel(rel(Name, Var), IndexName, Attr, _, distanceAvg), !,
+  usedAttrList(rel(Name, Var), AttrNames).
+
+
+
+% spatial search, bbox distance, 4 cases
+arg(N) => [distancescan2(IndexName, rel(Name, *), Attr, -1), []]:-
+  isStarQuery,
+  argument(N, rel(Name, *)),
+  distanceRel(rel(Name, *), IndexName, Attr, _, bbox), !.
+
+arg(N) => [rename(distancescan2(IndexName, rel(Name, Var), Attr, -1), Var), []] :-
+  isStarQuery,
+  argument(N, rel(Name, Var)),
+  distanceRel(rel(Name, Var), IndexName, Attr, _, bbox), !.
+
+arg(N) => [project(distancescan2(IndexName, rel(Name, *), Attr, -1), AttrNames), 
+	[]] :-
+  argument(N, rel(Name, *)),
+  distanceRel(rel(Name, *), IndexName, Attr, _, bbox), !,
+  usedAttrList(rel(Name, *), AttrNames).
+
+arg(N) => [rename(project(distancescan2(IndexName, rel(Name, Var), Attr, -1),
     AttrNames), Var), []] :-
   argument(N, rel(Name, Var)),
-  distanceRel(rel(Name, Var), IndexName, Attr, _), !,
+  distanceRel(rel(Name, Var), IndexName, Attr, _, bbox), !,
+  usedAttrList(rel(Name, Var), AttrNames).
+
+% spatial search, precise distance, 4 cases
+arg(N) => [distancescan3(IndexName, rel(Name, *), Attr, -1), []]:-
+  isStarQuery,
+  argument(N, rel(Name, *)),
+  distanceRel(rel(Name, *), IndexName, Attr, _, _), !.
+
+arg(N) => [rename(distancescan3(IndexName, rel(Name, Var), Attr, -1), Var), []] :-
+  isStarQuery,
+  argument(N, rel(Name, Var)),
+  distanceRel(rel(Name, Var), IndexName, Attr, _, _), !.
+
+arg(N) => [project(distancescan3(IndexName, rel(Name, *), Attr, -1), AttrNames), 
+	[]] :-
+  argument(N, rel(Name, *)),
+  distanceRel(rel(Name, *), IndexName, Attr, _, _), !,
+  usedAttrList(rel(Name, *), AttrNames).
+
+arg(N) => [rename(project(distancescan3(IndexName, rel(Name, Var), Attr, -1),
+    AttrNames), Var), []] :-
+  argument(N, rel(Name, Var)),
+  distanceRel(rel(Name, Var), IndexName, Attr, _, _), !,
   usedAttrList(rel(Name, Var), AttrNames).
 
 
@@ -3773,6 +3854,8 @@ A join can always be translated to a ~symmjoin~ because a ~symmjoin~ evaluates a
 
 Option ~noSymmjoin~ is only used in experiments. Has to be off for the optimizer to work properly.
 
+Any join can also be translated to a nestedloop join over a main memory relation containing the other argument. This translation maintains the order of the argument outside the loopjoin and therefore can be used also for sortedjoin implementation.
+
 
 */
 
@@ -3809,7 +3892,7 @@ join(Arg1, Arg2, pr(Pred, _, _)) => [symmjoin(Arg1S, Arg2S, Pred), [none]] :-
         \+ Pred = outerjoin(_), % special case treated next
   Arg1 => [Arg1S, _],
   Arg2 => [Arg2S, _].
-
+ 
 
 /*
 8.1.2 Outer Join for Arbitrary Predicate
@@ -3821,6 +3904,33 @@ join(Arg1, Arg2, pr(outerjoin(Pred), _, _)) =>
         \+ Pred = outerjoin(_), % special case treated next
   Arg1 => [Arg1S, _],
   Arg2 => [Arg2S, _].
+
+
+
+
+/*
+8.1.3 Sorted Join for Arbitrary Predicate
+
+*/
+
+sortedjoin(Arg1, Arg2, pr(Pred, _, _), Arg1, _) => [
+  within(mconsume(Arg2S), VarMRel, 
+    loopjoin(Arg1S, fun([param(VarTuple, tuple)], filter(mfeed(VarMRel), Pred2)) )), [none]] :-
+  Arg1 => [Arg1S, _],
+  Arg2 => [Arg2S, _],
+  newVariable(VarMRel),
+  newVariable(VarTuple),
+  rewritePred(Pred, 1, VarTuple, Pred2).
+  
+sortedjoin(Arg1, Arg2, pr(Pred, _, _), Arg2, _) => [
+  within(mconsume(Arg1S), VarMRel, 
+    loopjoin(Arg2S, fun([param(VarTuple, tuple)], filter(mfeed(VarMRel), Pred2)) )), [none]] :-
+  Arg1 => [Arg1S, _],
+  Arg2 => [Arg2S, _],
+  newVariable(VarMRel),
+  newVariable(VarTuple),
+  rewritePred(Pred, 2, VarTuple, Pred2).
+  
 
 
 /*
@@ -3947,7 +4057,6 @@ join00(Arg1S, Arg2S, pr(X = Y, _, _)) => hashjoin(Arg2S, Arg1S,
   isOfSecond(Attr2, X, Y).
 
 
-
 /*
 8.2.2 Support for Distance Scan: Translation of sortedjoin Edges
 
@@ -3956,16 +4065,17 @@ for sortedjoin
 
 */
 
-sortedjoin(Arg1, Arg2, pr(X=Y, R1, R2), Arg1, UpperBound) => JoinPlan :-
+% RHG May 2025
+sortedjoin(Arg1, Arg2, pr(X=Y, R1, R2), Arg1, UpperBound) => [JoinPlan, [none]] :-
   X = attr(_, _, _),
-  Y = attr(_, _, _), !,   
+  Y = attr(_, _, _),    
   Arg1 => [Arg1S, _],
   Arg2 => [Arg2S, _],
   sortedjoin00(Arg1S, Arg2S, pr(X=Y, R1, R2), Arg1S, UpperBound) => JoinPlan.
 
-sortedjoin(Arg1, Arg2, pr(X=Y, R1, R2), Arg2, UpperBound) => JoinPlan :-
+sortedjoin(Arg1, Arg2, pr(X=Y, R1, R2), Arg2, UpperBound) => [JoinPlan, [none]] :-
   X = attr(_, _, _),
-  Y = attr(_, _, _), !,
+  Y = attr(_, _, _), 
   Arg1 => [Arg1S, _],
   Arg2 => [Arg2S, _],
   sortedjoin00(Arg1S, Arg2S, pr(X=Y, R1, R2), Arg2S, UpperBound) => JoinPlan.
@@ -4069,6 +4179,7 @@ sortedjoin00(Arg1S, Arg2S, pr(X = Y, _, _), Arg2S, UpperBound) =>
   isOfSecond(Attr2, X, Y).
 
 
+
 /*
 8.2.3 Further Translations: gracehashjoin, hybridhashjoin, itHashJoin
 
@@ -4082,7 +4193,7 @@ These are currently only active with optimizer option ~memoryAllocation~.
 
 join00(Arg1S, Arg2S, pr(X = Y, _, _)) => gracehashjoin(Arg1S, Arg2S,
 		attrname(Attr1), attrname(Attr2), 999997) :-
-  % optimizerOption(memoryAllocation),
+  optimizerOption(memoryAllocation),
   %	maUseNewTranslationRules(true),
   % \+ optimizerOption(noHashjoin),
   isOfFirst(Attr1, X, Y),
@@ -4090,7 +4201,7 @@ join00(Arg1S, Arg2S, pr(X = Y, _, _)) => gracehashjoin(Arg1S, Arg2S,
 
 join00(Arg1S, Arg2S, pr(X = Y, _, _)) => gracehashjoin(Arg2S, Arg1S,
 		attrname(Attr2), attrname(Attr1), 999997) :-
-  % optimizerOption(memoryAllocation),
+  optimizerOption(memoryAllocation),
   %	maUseNewTranslationRules(true),
   % \+ optimizerOption(noHashjoin),
   isOfFirst(Attr1, X, Y),
@@ -4098,7 +4209,7 @@ join00(Arg1S, Arg2S, pr(X = Y, _, _)) => gracehashjoin(Arg2S, Arg1S,
 
 join00(Arg1S, Arg2S, pr(X = Y, _, _)) => hybridhashjoin(Arg1S, Arg2S,
     attrname(Attr1), attrname(Attr2), 999997) :-
-  % optimizerOption(memoryAllocation),
+  optimizerOption(memoryAllocation),
   %	maUseNewTranslationRules(true),
   %  \+ optimizerOption(noHashjoin),
   isOfFirst(Attr1, X, Y),
@@ -4264,6 +4375,7 @@ exactmatch(IndexName, arg(N), Expr) =>
   Rel = rel(_, Var), % with renaming
   usedAttrList(Rel, AttrNames),
   !.
+  
 
 /*
 One could easily add rules for ~loopjoin~ with ~rightrange~ and ~leftrange~
@@ -4278,8 +4390,11 @@ A loopjoin keeps the order of the outer relation, so it can also be
 used for sortedjoin
 
 */
-sortedjoin(Arg1, arg(N), pr(X=Y, _, _), Arg1, _) => loopjoin(Arg1S,
-            MatchExpr) :-
+
+% Use B-tree index if available
+% RHG May 2025
+sortedjoin(Arg1, arg(N), pr(X=Y, _, _), Arg1, _) => [loopjoin(Arg1S,
+  MatchExpr), [none]] :-
   isOfSecond(Attr2, X, Y),    % get the attrib from the 2nd relation in Attr2
   isNotOfSecond(Expr1, X, Y), % get the other argument in Expr1
   argument(N, RelDescription),
@@ -4288,8 +4403,8 @@ sortedjoin(Arg1, arg(N), pr(X=Y, _, _), Arg1, _) => loopjoin(Arg1S,
   Arg1 => [Arg1S, _],
   exactmatch(IndexName, arg(N), Expr1) => MatchExpr.
 
-sortedjoin(arg(N), Arg2, pr(X=Y, _, _), Arg2, _) => loopjoin(Arg2S,
-            MatchExpr) :-
+sortedjoin(arg(N), Arg2, pr(X=Y, _, _), Arg2, _) => [loopjoin(Arg2S,
+  MatchExpr), [none]] :-
   isOfFirst(Attr1, X, Y),
   isNotOfFirst(Expr2, X, Y),
   argument(N, RelDescription),
@@ -4297,6 +4412,8 @@ sortedjoin(arg(N), Arg2, pr(X=Y, _, _), Arg2, _) => loopjoin(Arg2S,
   dcName2externalName(DCindex,IndexName),
   Arg2 => [Arg2S, _],
   exactmatch(IndexName, arg(N), Expr2) => MatchExpr.
+  
+  
 
 /*
 If the Inner Relation doesn't have an index on the join attribute,
@@ -4304,34 +4421,56 @@ try to create a temporary one
 
 */
 
-sortedjoin(Arg1, arg(N), pr(X=Y, _, _), Arg1, UpperBound) =>
- loopjoin(Arg1S, MatchExpr) :-
-  isOfSecond(Attr2, X, Y),    % get the attrib from the 2nd relation in Attr2
-  isNotOfSecond(Expr1, X, Y), % get the other argument in Expr1
+% temporary B-tree index
+    
+sortedjoin(Arg1, arg(N), pr(X=Y, _, _), Arg1, _) => [
+    within(createbtree(RelDescription, attrname(Attr2)), VarBtree,
+      loopjoin(Arg1S, exactmatch(VarBtree, RelDescription, Expr1))
+      ), [none]] :-
   argument(N, RelDescription),
-  not(hasIndex(RelDescription, Attr2, _, btree)),
-  UpperBound >= 99997,
-  convertToLfName(Attr2, LfAttr),
-  convertToLfName(RelDescription, LfRel),
-  keyAttributeTypeMatchesIndexType(LfRel, LfAttr, btree),
+  isOfSecond(Attr2, X, Y),    
+  isNotOfSecond(Expr1, X, Y), 
   Arg1 => [Arg1S, _],
-  exactmatch(tmpindex(RelDescription, Attr2), arg(N), Expr1) => MatchExpr.
-
-sortedjoin(arg(N), Arg2, pr(X=Y, _, _), Arg2, UpperBound) =>
- loopjoin(Arg2S, MatchExpr) :-
-  isOfFirst(Attr1, X, Y),
-  isNotOfFirst(Expr2, X, Y),
+  newVariable(VarBtree).  
+  
+sortedjoin(arg(N), Arg2, pr(X=Y, _, _), Arg2, _) => [
+    within(createbtree(RelDescription, attrname(Attr1)), VarBtree,
+      loopjoin(Arg2S, exactmatch(VarBtree, RelDescription, Expr2))
+      ), [none]] :-
   argument(N, RelDescription),
-  not(hasIndex(RelDescription, Attr1, _, btree)),
-  UpperBound >= 99997,
-  convertToLfName(Attr1, LfAttr),
-  convertToLfName(RelDescription, LfRel),
-  keyAttributeTypeMatchesIndexType(LfRel, LfAttr, btree),
+  isOfFirst(Attr1, X, Y),    
+  isNotOfFirst(Expr2, X, Y), 
   Arg2 => [Arg2S, _],
-  exactmatch(tmpindex(RelDescription, Attr1), arg(N), Expr2) => MatchExpr.
+  newVariable(VarBtree).  
+  
+ 
 
+% main memory table with AVL-tree index
 
+sortedjoin(Arg1, Arg2, pr(X=Y, _, _), Arg1, _) => [
+  within(mconsume(Arg2S), VarMRel, 
+    within(mcreateAVLtree(VarMRel, attrname(Attr2)), VarMRelAVLtree,
+      loopjoin(Arg1S, mexactmatch(VarMRelAVLtree, VarMRel, Attr1))
+      )), [none]] :-
+  isOfSecond(Attr2, X, Y),    
+  isNotOfSecond(Attr1, X, Y), 
+  Arg1 => [Arg1S, _],
+  Arg2 => [Arg2S, _],
+  newVariable(VarMRel),
+  newVariable(VarMRelAVLtree).
 
+sortedjoin(Arg1, Arg2, pr(X=Y, _, _), Arg2, _) => [
+  within(mconsume(Arg1S), VarMRel, 
+    within(mcreateAVLtree(VarMRel, attrname(Attr1)), VarMRelAVLtree,
+      loopjoin(Arg2S, mexactmatch(VarMRelAVLtree, VarMRel, Attr2))
+      )), [none]] :-
+  isOfFirst(Attr1, X, Y),    
+  isNotOfFirst(Attr2, X, Y), 
+  Arg1 => [Arg1S, _],
+  Arg2 => [Arg2S, _],
+  newVariable(VarMRel),
+  newVariable(VarMRelAVLtree).
+   
 
 /*
 8.4 Spatial Join
@@ -4708,6 +4847,28 @@ End of Goehr's extension
 
 */
 
+rewritePred(attr(Name, Arg, Case), Arg, VarTuple, 
+  attribute(VarTuple, attrname(attr(Name, Arg, Case)))).
+ 
+rewritePred([], _, _, []) :-
+  !.
+
+rewritePred([E | R], Arg, VarTuple, [E2 | R2]) :-
+  rewritePred(E, Arg, VarTuple, E2),
+  rewritePred(R, Arg, VarTuple, R2),
+  !.
+  
+rewritePred(Expr, Arg, VarTuple, Expr2) :-
+  Expr =.. [Op | Params],
+  rewritePred(Params, Arg, VarTuple, Params2),
+  Expr2 =.. [Op | Params2],
+  !.
+  
+
+
+
+
+
 
 /*
 6 Creating Query Plan Edges
@@ -4732,7 +4893,7 @@ planEdge(Source, Target,  PropertiesIn, Plan, [[Result, P2] | PRest], Result) :-
   getProperties(PlanExpr, Plan, P2).
 
 % Join Edges
-
+% RHG May 2015
 planEdge(Source, Target,  PropertiesIn, Plan, [[Result, P2] | PRest], Result) :-
   edge(Source, Target, join(arg(N), res(M), Pred), Result, _, _),
   select([M, P], PropertiesIn, PRest),
@@ -4745,13 +4906,15 @@ planEdge(Source, Target,  PropertiesIn, Plan, [[Result, P2] | PRest], Result) :-
   join([res(M), P], arg(N), Pred) => PlanExpr,
   getProperties(PlanExpr, Plan, P2).
 
-
 planEdge(Source, Target,  PropertiesIn, Plan, [[Result, P3] | PRest], Result) :-
   edge(Source, Target, join(res(N), res(M), Pred), Result, _, _),
   select([N, P], PropertiesIn, PIn2),
   select([M, P2], PIn2, PRest),
   join([res(N), P], [res(M), P2], Pred) => PlanExpr,
   getProperties(PlanExpr, Plan, P3).
+  
+% sortedjoin
+  
 
 % Remaining edges without intermediate results
 
@@ -4769,7 +4932,33 @@ planEdge(Source, Target, PropertiesIn, Plan, [[Result, P] | PropertiesIn],
   Term => PlanExpr,
   getProperties(PlanExpr, Plan, P).
 
-
+planEdge(Source, Target, PropertiesIn, Plan, [[Result, P] | PropertiesIn], 
+	Result) :-
+  edge(Source, Target, Term, Result, _, _),
+  Term = sortedjoin(arg(_), arg(_), _, _, _),
+  Term => PlanExpr,
+  getProperties(PlanExpr, Plan, P).
+   
+ 
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
 getProperties([Plan, P], Plan, P) :- !.
 
 getProperties(Plan, Plan,[none]).
@@ -4914,6 +5103,7 @@ assignSize(Source, Target, select(Arg, Pred), Result) :-
   resSize(Arg, Card),
   resTupleSize(Arg, TupleSize),
   resNAttrs(Arg, NAttrs),
+  	nl, nl, write('selectivity predicate: '), write(Pred), nl, nl,
   selectivity(Pred, Sel, BBoxSel, _, ExpPET),
   Size is Card * Sel,
   !,
@@ -5467,6 +5657,11 @@ getMemory(M) :-
 
 
 
+:- dynamic preCost/2.	% Used to store the cost of a temporary index.
+
+:- dynamic distanceScanCostFun/1.	% Remember the name of a cost function
+					% for a distancescan
+
 /*
 8 Computing Edge Costs for Plan Edges
 
@@ -5847,6 +6042,10 @@ cost(sortby(X, Y), Sel, P, S, C) :-
 cost(mergejoin(X, Y, _, _), Sel, P, S, C) :-
   cost(X, 1, P, SizeX, CostX),
   cost(Y, 1, P, SizeY, CostY),
+%  	CostXreal is CostX * 0.001 * 0.12,
+%  	CostYreal is CostY * 0.001 * 0.12,
+%  	write('CostX = '), write(CostXreal), nl,
+%  	write('CostY = '), write(CostYreal), nl,
   sortmergejoinTC(_, B),
   S is SizeX * SizeY * Sel,
   C is CostX + CostY +			% producing the arguments
@@ -5892,6 +6091,60 @@ Simple cost estimation for ~symmjoin~
 %     (A + ExpPET) * (SizeX * SizeY) +    % cost to handle buffers, collisions
 %                                         %         and evaluate the predicate
 %     B * S.                              % cost to produce result tuples
+
+
+% Cost for nested loop join with temporary Btree index
+cost(
+  within(createbtree(Arg1, Attr), _, 
+  loopjoin(Arg2S, exactmatch(_, Arg1, _)) ), 
+  Sel, P, Size, Cost) :-
+  cost(Arg1, 1, _, Size1, _),
+  costCreateBtree(Size1, Cost3),
+  assert(preCost(within(createbtree(Arg1, Attr), _, 
+    loopjoin(Arg2S, exactmatch(_, Arg1, _))), Cost3)),
+  cost(loopjoin(Arg2S, exactmatch(_, Arg1, _) ), Sel, P, Size, Cost).
+  
+
+% Cost for nested loop join with main memory relation 
+cost(within(mconsume(Arg1), Var, 
+  loopjoin(Arg2, fun(_, filter(mfeed(Var), _)))), Sel, P, Size, Cost) :-
+  cost(Arg1, 1, _, Size1, Cost1),
+  cost(Arg2, 1, _, Size2, _),
+  getPET(P, _, ExpPET),
+%     nl, write('ExpPET = '), write(ExpPET), nl,
+  loopjoinMemTC(A, B),                     % fetch relative costs
+  Size is Size1 * Size2 * Sel,
+  Cost is Cost1 + 
+    (A + ExpPET) * Size1 * Size2 +
+    B * Size.
+
+% Cost for nested loop join with main memory relation and temporary AVL index
+cost(Term, Sel, _, Size, Cost) :-
+  Term = within(mconsume(Arg2S), VarMRel, 
+  within(mcreateAVLtree(VarMRel, attrname(_)), VarMRelAVLtree,
+    loopjoin(Arg1S, mexactmatch(VarMRelAVLtree, VarMRel, _)) )),
+  cost(Arg1S, 1, _, Size1, Cost1),
+  cost(Arg2S, 1, _, Size2, Cost2),
+%  write('Cost nested loop join with temporary AVL index in memory [ms].'), nl,
+%  write('Arg1S = '), write(Arg1S), nl,
+%  write('Cost(Arg1S) = '), Cost1b is Cost1 / 8000, write(Cost1b), nl,
+%  write('Cost(Arg2S)  = '), Cost2b is Cost2 / 8000, write(Cost2b), nl,
+  loopjoinMemAVLTC(A, B, C, D),	% loopjoinMemAVLTC(12.4, 7.0, 22.9, 0.7)
+  Cost3 is Size2 * A,		% 2.1 seconds for mrel 
+  Cost4	is Size2 * B,		% 1.2 seconds for creating AVL tree
+  				% 4.0 seconds for loopjoin
+  				% size of both arguments is 1413255
+  				% old cost -> machine [ms] factor 
+  				%   is 0.001 * 0.125
+%  write('Cost mrel = '), Cost3b is Cost3 / 8000, write(Cost3b), nl,
+%  write('Cost createAVLtree = '), Cost4b is Cost4 / 8000, write(Cost4b), nl,
+  CostPre is (Cost2 + Cost3 + Cost4) * 0.001 * 0.125,				
+  assert(preCost(Term, CostPre)),		
+  Size is Size1 * Size2 * Sel,
+  Cost is Cost1 + 
+    C * Size1 + 		% 3.88 seconds for loopjoin 
+    D * Size.			% 0.118 seconds for result tuples
+
 
 /*
 Simple cost estimation for ~itSpatialJoin~
@@ -5994,6 +6247,9 @@ cost(gettuples(X, _), Sel, P, Size, Cost) :-
 
 cost(gettuples2(X, Rel, _IdAttrName), Sel, P, Size, Cost) :-
   cost(gettuples(X, Rel), Sel, P, Size, Cost).
+  
+ 
+
 
 /*
 For distance-queries
@@ -6009,6 +6265,31 @@ cost(distancescan(_, Rel, _, _), Sel, P, Size, Cost) :-
   cost(Rel, Sel, P, Size, C1),
   distancescanTC(C),
   Cost is C1 + C * Size * log(Size + 1).
+  
+% RHG 1.8.2025 
+cost(mnearestNeighborN7(_, Rel, _, _), Sel, P, Size, Cost) :-
+  cost(Rel, Sel, P, Size, _),
+  costDistanceScan(mnearestNeighborN7, Size, CostMS),
+  Cost is CostMS * 8000,
+  retractall(distanceScanCostFun(_)),
+  assert(distanceScanCostFun(mnearestNeighborN7)).	
+
+cost(distancescan3(_, Rel, _, _), Sel, P, Size, Cost) :-
+  cost(Rel, Sel, P, Size, _),
+  costDistanceScan(distancescan3, Size, CostMS),
+  Cost is CostMS * 8000,
+  retractall(distanceScanCostFun(_)),
+  assert(distanceScanCostFun(distancescan3)).	
+ 
+cost(distancescan2(_, Rel, _, _), Sel, P, Size, Cost) :-
+  cost(Rel, Sel, P, Size, _),
+  costDistanceScan(distancescan2, Size, CostMS),
+  Cost is CostMS * 8000,
+  retractall(distanceScanCostFun(_)),
+  assert(distanceScanCostFun(distancescan2)).	
+  
+
+  
 
 cost(ksmallest(X, K), Sel, P, S, C) :-
   cost(X, Sel, P, SizeX, CostX),
@@ -6018,17 +6299,7 @@ cost(ksmallest(X, K), Sel, P, S, C) :-
     A * SizeX +
     B * S * log(S + 1).
 
-/*
-special handling for distance-queries which have to create an
-temporary index
-
-*/
-cost(createtmpbtree(rel(Rel, _), _), _, _, RelSize,
-     Cost) :-
-  createbtreeTC(C),
-  card(Rel, RelSize),
-  Cost is C * RelSize * log(RelSize + 1).
-
+ 
 /*
 For matching a collection of symbolic trajectories (mlabel or mstring)
 
@@ -6068,6 +6339,25 @@ isPrefilter(X) :-
 % Section:Start:isPrefilter_1_e
 % Section:End:isPrefilter_1_e
 
+/*
+Cost functions for distancescan. Cost in milliseconds on a current machine (1.8.2025)
+
+*/
+costDistanceScan(mnearestNeighborN7, N, Cost) :-
+  ( N < 300 -> Cost is log(N) * 1000 ;
+  	Cost is 5774 + (N - 300) * 7.2 ).
+
+costDistanceScan(distancescan3, N, Cost) :-
+  Cost is 170 + N * 0.055.
+  
+costDistanceScan(distancescan2, N, Cost) :-
+  Cost is 170 + N * 0.033.  
+  
+costCreateBtree(N, Cost) :-
+  (N < 10000 -> Cost is 316 + 0.0068 * N ;
+  N < 300000 -> Cost is log(N) * 400 - 3300 ;
+  Cost is 1000 + 0.00265 * N).
+  
 
 
 
@@ -6125,6 +6415,32 @@ costEdge(Source, Target, PropertiesIn, Plan, PropertiesOut, Result,
 
 :- dynamic nslots/2.
 
+/*
+
+In the following, old costs are mapped by a factor to the running time of a current 
+machine. The factor is determined by an example query on database niedersachsen, 
+dapting the estimated cost for hashjoin to the observed running time.
+
+----	select count(*) from [RoadsGeo as g, RoadsOther as o]
+	where g.Osm_id = o.Osm_id
+----
+
+The Plan is:
+
+----	query RoadsGeo  feedproject[Osm_id]{g} RoadsOther  feedproject[Osm_id]{o} 
+	hashjoin[Osm_id_g, Osm_id_o, 99997] count
+----
+
+Estimated cost: 5683 ms using factor 0.12
+
+Observed cost: 5.76, 5.66, 5.65 seconds
+
+The costs for cost functions from ~costs2014.pl~ are assumed to be correct.
+
+*/
+
+
+
 determineCost(Term, Sel, Pred, Result, Size, Cost) :-
   getMemory(Memory),
 %	write('Cost function 2014 called for term '), write(Term), nl,
@@ -6136,12 +6452,15 @@ determineCost(Term, Sel, Pred, Result, Size, Cost) :-
   isDistributedQuery, !,
   costD(Term, Sel, Pred, Size, NSlots, Cost1),
   assertOnce(nslots(Result, NSlots)),
-  Cost is Cost1 / 1000.	
+  Cost2 is Cost1 / 1000,	% old costs in microseconds go to milliseconds
+  Cost is Cost2 * 0.12.		% experiment on a given machine
 
 determineCost(Term, Sel, Pred, _, Size, Cost) :-
   cost(Term, Sel, Pred, Size, Cost1), 
-  Cost is Cost1 / 1000.		% old estimation in microseconds
+  Cost2 is Cost1 / 1000,	% old estimation in microseconds
 				% now changed to milliseconds
+  Cost is Cost2 * 0.12.		% experiment on a given machine
+				
 
 
 
@@ -6428,7 +6747,7 @@ of the distance and path of the successor.
 %   Distance2 is Distance + Cost,
 %   append(Path, [costEdge(Source, Target, Term, Result, Size, Cost)], Path2).
 
-% Version with properties
+% Version with properties 
 
   successor(node(n(Source, Version), Distance, [Path, PropertiesIn]), 
   	simplenode(Target, Distance2, [Path2, PropertiesOut])) :-
@@ -7557,6 +7876,20 @@ lookup(drop index Rel,
   lookupIndex(Rel, Rel2),
   makeList(Rel2, Rel2List),
   !.
+  
+% RHG 23.4.2025
+lookup(Query orderby distance(Attr1, Attr2), Query2 orderby [distance(Attr1A, Attr2A)]) :-
+  lookup(Query, Query2),
+  lookupAttr(Attr1, Attr1A),
+  lookupAttr(Attr2, Attr2A),
+  !.
+  
+lookup(Query orderby distance(Attr1, Attr2, Param), Query2 orderby [distance(Attr1A, Attr2A, Param)]) :-
+  lookup(Query, Query2),
+  lookupAttr(Attr1, Attr1A),
+  lookupAttr(Attr2, Attr2A),
+  !.
+
 
 lookup(Query orderby Attrs, Query2 orderby Attrs3) :-
   lookup(Query, Query2),
@@ -7648,7 +7981,7 @@ Translate and store a single relation definition.
   queryAttr/1,
   isStarQuery/0,
   usedAttr/2,
-  distanceRel/4,
+  distanceRel/5,
   planvariable/2.
 
 
@@ -7783,7 +8116,6 @@ lookupAttrs(distributed X, Y) :-
   lookupAttrs(X, Y),
   assert(distributedResult).
 
-
 lookupAttrs(distinct X, distinct Y) :-
   lookupAttrs(X, Y).
 
@@ -7831,6 +8163,11 @@ lookupAttr2(Term, Term2) :-
   onlyAttribute,
   !.
 
+% RHG April 2014
+% lookupAttr2(distance(Term1, Term2), distance(Term1A, Term2A)) :-
+%   lookupAttr(Term1, Term1A),
+%   lookupAttr(Term2, Term2A),
+%   !.
 
 
 lookupAttr2(Term, _) :-
@@ -8958,15 +9295,38 @@ translate(Select from [Rel | Rels],
   newVariable(T2),
   !.
 
+% RHG 23.4.2015
 % special handling for distance-queries
-makeStream(Rel, distancescan(IndexName, Rel, Attr, HeadCount)) :-
-  Rel = rel(_, *),
-  distanceRel(Rel, IndexName, Attr, HeadCount), !.
 
-% special handling for distance-queries
-makeStream(Rel, rename(distancescan(IndexName, Rel, Attr, HeadCount), Var)) :-
+% distanceAvg on mpoint with ntree
+makeStream(Rel, mnearestNeighborN7(IndexName, Rel, Attr, HeadCount)) :-
+  Rel = rel(_, *),
+  distanceRel(Rel, IndexName, Attr, HeadCount, distanceAvg), !.
+
+makeStream(Rel, rename(mnearestNeighborN7(IndexName, Rel, Attr, HeadCount), 
+    Var)) :-
   Rel = rel(_, Var),
-  distanceRel(Rel, IndexName, Attr, HeadCount), !.
+  distanceRel(Rel, IndexName, Attr, HeadCount, distanceAvg), !.
+
+% bbox spatial distance on R-tree
+makeStream(Rel, distancescan2(IndexName, Rel, Attr, HeadCount)) :-
+  Rel = rel(_, *),
+  distanceRel(Rel, IndexName, Attr, HeadCount, bbox), !.
+
+makeStream(Rel, rename(distancescan2(IndexName, Rel, Attr, HeadCount), Var)) :-
+  Rel = rel(_, Var),
+  distanceRel(Rel, IndexName, Attr, HeadCount, bbox), !.
+  
+% precise spatial distance on R-tree
+makeStream(Rel, distancescan3(IndexName, Rel, Attr, HeadCount)) :-
+  Rel = rel(_, *),
+  distanceRel(Rel, IndexName, Attr, HeadCount, _), !.
+
+makeStream(Rel, rename(distancescan3(IndexName, Rel, Attr, HeadCount), Var)) :-
+  Rel = rel(_, Var),
+  distanceRel(Rel, IndexName, Attr, HeadCount, _), !.
+  
+
 
 makeStream(Rel, feed(Rel)) :- 
   \+ optimizerOption(nestedRelations), % NVK ADDED
@@ -9610,7 +9970,7 @@ translateType(Type, Type) :- !.
 14.4.5 Distance Queries
 
 ----    translateDistanceQuery(+Query, +DistAttr1, +DistAttr2,
-          +HeadCount, -Stream, -Select, -Update, -Cost)
+          +HeadCount, +Param, -Stream, -Select, -Update, -Cost)
 ----
 
 Translates a query which is ordered by the distance between ~DistAttr1~
@@ -9618,14 +9978,16 @@ and ~DistAttr2~. ~HeadCount~ is the number of objects to look for in the
 distance query. ~assertDistanceRel~ is used to check for an
 R-Tree-Index.
 
+~Param~ allows one to specify a parameter such as using bounding box distances or other kinds of distance functions or indexes.
+
 */
 
-translateDistanceQuery(Select from Rel, X, Y, HeadCount,
+translateDistanceQuery(Select from [Rel], X, Y, HeadCount, Param,
          StreamOut, SelectOut, Update, Cost) :-
   Rel = rel(_, _),
-  assertDistanceRel([Rel], X, Y, HeadCount), !,
+  assertDistanceRel([Rel], X, Y, HeadCount, Param), !,
   translate1(Select from [Rel], StreamOut, SelectOut, Update, Cost),
-  retractall(distanceRel(Rel, _, _, HeadCount)).
+  retractall(distanceRel(Rel, _, _, HeadCount, Param)).
 
 /*
 
@@ -9634,25 +9996,47 @@ is calculated twice: One version using the index and one version not
 using the index. The costs of these two solutions are compared in
 ~chooseFasterSolution~ and the faster one is returned.
 
-
 */
 
+:- dynamic(testDistanceQuery/0).
+
 translateDistanceQuery(Select from Rels where Condition, X, Y,
-         HeadCount, StreamOut, SelectOut, Update, Cost) :-
-  assertDistanceRel(Rels, X, Y, 0),
+         HeadCount, Param, StreamOut1, SelectOut1, Update1, Cost1) :-
+         testDistanceQuery,
+  assertDistanceRel(Rels, X, Y, 0, Param),
+  retractall(preCost(_, _)),
   translate1(Select from Rels where Condition, StreamRTree, SelectOut1,
       Update1, CostRTree),
+%      nl, write('StreamRTree = '), write(StreamRTree), nl, nl, nl,
+  finishDistanceSortRTree(StreamRTree, CostRTree, HeadCount, StreamOut1,
+     Cost1).
+     
+
+translateDistanceQuery(Select from Rels where Condition, X, Y, 
+         HeadCount, Param, StreamOut, SelectOut, Update, Cost) :-
+         \+ testDistanceQuery,
+  assertDistanceRel(Rels, X, Y, 0, Param),
+  retractall(preCost(_, _)),
+  translate1(Select from Rels where Condition, StreamRTree, SelectOut1,
+      Update1, CostRTree),
+%     nl, write('StreamRTree = '), write(StreamRTree), nl, nl, nl,
   finishDistanceSortRTree(StreamRTree, CostRTree, HeadCount, StreamOut1,
      Cost1), !,
-  retractall(distanceRel(_, _, _, _)),
+     StreamOut1B = consume(StreamOut1),
+%     addTmpVariables(consume(StreamOut1), StreamOut1B),
+     nl, write('StreamOut1 = '), write(StreamOut1B), nl, nl, nl,
+  retractall(distanceRel(_, _, _, _, _)),
   translate1(Select from Rels where Condition, StreamTmp, SelectOut2,
       Update2, CostTmp),
-  finishDistanceSort(StreamTmp, CostTmp, X, Y, HeadCount, StreamOut2, Cost2),
+  finishDistanceSort(StreamTmp, CostTmp, X, Y, HeadCount, Param, StreamOut2, Cost2),
+  nl,
   write('Best Solution using distancescan: '), nl,
-  write(StreamOut1),nl,
+  plan_to_atom_string(StreamOut1B, Query1),
+  write(Query1),nl,
   write('cost: '), write(Cost1), nl, nl,
   write('Best Solution without distancescan: '), nl,
-  write(StreamOut2),nl,
+  plan_to_atom_string(StreamOut2, Query2),
+  write(Query2),nl,
   write('cost: '), write(Cost2), nl, nl,
   chooseFasterSolution(StreamOut1, SelectOut1, Update1, Cost1, StreamOut2,
          SelectOut2, Update2, Cost2, StreamOut, SelectOut,
@@ -9666,26 +10050,40 @@ If the query can't use an R-Tree-Index, use ~sortby~ or ~ksmallest~
 
 */
 
-translateDistanceQuery(Query, X, Y, 0, StreamOut,
+translateDistanceQuery(Query, X, Y, 0, Param, StreamOut, 
          Select, Update, Cost) :-
-  retractall(distanceRel(_, _, _, _)),
+  retractall(distanceRel(_, _, _, _, _)),
   translate1(Query, Stream, Select, Update, Cost),
   newVariable(ExprAttrName),
   ExprAttr = attr(ExprAttrName, *, l),
-  StreamOut = remove(sortby(extend(Stream, [field(ExprAttr, distance(X, Y))]),
-       attrname(ExprAttr)),
-       attrname(ExprAttr)).
+  ( Param = distanceAvg -> 
+  	StreamOut = remove(sortby(extend(Stream, [field(ExprAttr, 
+  	  distanceAvg(X, Y))]),
+        attrname(ExprAttr)), attrname(ExprAttr));
+  	
+  	StreamOut = remove(sortby(extend(Stream, [field(ExprAttr, distance(X, Y))]),
+        attrname(ExprAttr)), attrname(ExprAttr))	
+  ).
+  
 
-translateDistanceQuery(Query, X, Y, HeadCount, StreamOut,
+
+translateDistanceQuery(Query, X, Y, HeadCount, Param, StreamOut,
          Select, Update, Cost) :-
-  retractall(distanceRel(_, _, _, _)),
+  retractall(distanceRel(_, _, _, _, _)),
   translate1(Query, Stream, Select, Update, Cost),
   newVariable(ExprAttrName),
   ExprAttr = attr(ExprAttrName, *, l),
-  StreamOut = remove(ksmallest(extend(Stream,
-          [field(ExprAttr, distance(X, Y))]),
-          HeadCount, attrname(ExprAttr)),
-       attrname(ExprAttr)).
+  ( Param = distanceAvg -> 
+  	StreamOut = remove(ksmallest(extend(Stream, 
+  	[field(ExprAttr, distanceAvg(X, Y))]), HeadCount, attrname(ExprAttr)), 
+  	attrname(ExprAttr));
+  	
+  	StreamOut = remove(ksmallest(extend(Stream, 
+  	[field(ExprAttr, distance(X, Y))]), HeadCount, attrname(ExprAttr)), 
+  	attrname(ExprAttr))	
+  ).
+  	
+  	
 
 
 /*
@@ -10019,15 +10417,28 @@ Same as ~queryToPlan~, but returns a stream plan, if possible.
 
 % special handling for distance-queries
 queryToStream(Query orderby [distance(X, Y)] first N, StreamOut, Cost) :-
-  !, translateDistanceQuery(Query, X, Y, N, Stream, Select, Update, Cost),
+  !, translateDistanceQuery(Query, X, Y, N, none, Stream, Select, Update, Cost),
   finish(Stream, Select, [], Stream2),
   finishUpdate(Update, Stream2, StreamOut).
 
-% special handling for distance-queries
 queryToStream(Query orderby [distance(X, Y)], StreamOut, Cost) :-
-  !, translateDistanceQuery(Query, X, Y, 0, Stream, Select, Update, Cost),
+  !, translateDistanceQuery(Query, X, Y, 0, none, Stream, Select, Update, Cost),
   finish(Stream, Select, [], Stream2),
   finishUpdate(Update, Stream2, StreamOut).
+
+queryToStream(Query orderby [distance(X, Y, Param)] first N, StreamOut, Cost) :-
+  !, translateDistanceQuery(Query, X, Y, N, Param, Stream, Select, Update, Cost),
+  finish(Stream, Select, [], Stream2),
+  finishUpdate(Update, Stream2, StreamOut).
+
+queryToStream(Query orderby [distance(X, Y, Param)], StreamOut, Cost) :-
+  !, translateDistanceQuery(Query, X, Y, 0, Param, Stream, Select, Update, Cost),
+  finish(Stream, Select, [], Stream2),
+  finishUpdate(Update, Stream2, StreamOut).
+
+
+
+
 
 queryToStream(Query first N, head(Stream, N), Cost) :-
   queryToStream(Query, Stream, Cost),
@@ -10408,10 +10819,12 @@ optimize(Query, QueryOut, CostOut) :-
 	nl, write('After Lookup: '), nl, write(Query2), nl, nl,
   queryToPlan(Query2, PrePlan, CostOut), !,
 	nl, write('After queryToPlan: '), nl, write(PrePlan), nl, nl,
-  ( isDistributedQuery -> transformDPlan(PrePlan, Plan) ; Plan = PrePlan ),
-	nl, write('After queryToPlan: '), nl, write(Plan), nl, nl,
+  ( isDistributedQuery -> (transformDPlan(PrePlan, Plan),        
+  	nl, write('After queryToPlan 2: '), nl, write(Plan), nl, nl) 
+    ; Plan = PrePlan ),
   plan_to_atom_string(Plan, QueryOut),		% fapra 2015/16
-	nl, write('After plan_to_atom: '), nl, write(QueryOut), nl, nl.
+	nl, write('After plan_to_atom: '), nl, write(QueryOut), nl, nl,
+  write('Estimated cost is: '), write(CostOut), nl, nl.
 
 /*
 ----    sqlToPlan(QueryText, Plan)
@@ -10813,16 +11226,13 @@ sqlExample( 402,
 sqlExample( 403,
   select *
   from strassen
-  where typ starts "Hauptstra"
+  where typ starts "Haupt"
   orderby distance(geodata, alexanderplatz) first 5
   ).
 
 % Example: distance query, rtree, join predicate (database berlintest)
 sqlExample( 404,
-  select *
-  from [strassen as s, sbahnhof as b]
-  where s:name = b:name
-  orderby distance(s:geodata, mehringdamm) first 5
+  select * from [strassen as s, sbahnhof as b] where s:name = b:name orderby distance(s:geodata, mehringdamm) first 5
   ).
 
 % Section:Start:sqlExample_1_e
@@ -11812,6 +12222,9 @@ Converts ~Name~ to the form which is needed by keyAttributeTypeMatchesIndexType
 
 convertToLfName([], []) :- !.
 
+convertToLfName(attr(_:DcName, _, _), LfName) :-
+  downcase_atom(DcName, LfName), !.
+
 convertToLfName(attr(DcName, _, _), LfName) :-
   downcase_atom(DcName, LfName), !.
 
@@ -11858,7 +12271,6 @@ upperBound([rel(Rel, _)|Rels], UpperBound) :-
   card(Rel, Card),
   UpperBound is UpperBound1 * Card.
 
-
 /*
 ----    addPlanVariables(+Plan, +Variables, -Plan2)
 ----
@@ -11876,47 +12288,99 @@ addPlanVariables(ResultIn, [[Var, Expr]|Rest],
 
 
 /*
-----    assertDistanceRel(+Rels, +DistAttr1, +DistAttr2, +HeadCount)
+----    assertDistanceRel(+Rels, +DistAttr1, +DistAttr2, +HeadCount, +Param)
 ----
 
-Checks whether an rtree-index on ~DistAttr1~ or ~DistAttr2~ exists in ~Rels~
+Checks whether a suitable index on ~DistAttr1~ or ~DistAttr2~ exists in ~Rels~. Also, determines the cost of evaluating a distance predicate.
+
+A suitable index is one that supports distance scan for some distance measure. Index types supported currently are ~R-tree~ for spatial distance and ~N-Tree~ for similarity of trajectories.
+
+~N-tree~ is a main memory index; so together with it the indexed relation must be present in memory.
+
+~Param~ allows one to specify a parameter such as bounding box distance or other distance functions or indexes.
 
 */
 
-assertDistanceRel([Rel|_], X, Y, HeadCount) :-
+hasMemoryRel(Rel) :-
+  Rel = rel(RelName, _),
+  atom_concat(RelName, '_m', MemRel),
+  secondoCatalogInfo(MemRel, _, _, _).
+  
+hasMemoryIndex(Rel, X, DCindex, IndexType) :-
+  Rel = rel(RelName, _),
+  X = attr(AttrName, _, _),
+  my_concat_atom([RelName, '_', AttrName, '_', IndexType], '', DCindex),
+  secondoCatalogInfo(DCindex, _, _, _).
+
+
+:- dynamic distanceCost/4.
+
+% N-tree
+assertDistanceRel([Rel|_], X, Y, HeadCount, distanceAvg) :-
+  Rel = rel(_,_),
+  X = attr(_, _, _),
+  Y = dbobject(_),
+  hasMemoryRel(Rel),
+  hasMemoryIndex(Rel, X, DCindex, ntree),
+  dcName2externalName(DCindex,IndexName), !,
+  assert(distanceRel(Rel, IndexName, Y, HeadCount, distanceAvg)),
+  selectivity(pr(distanceAvg(X, Y) > value_expr(int, 1), Rel), _, _, ExpPET),
+  retractall(distanceCost(_, _, _, _)),
+  assert(distanceCost(Rel, X, Y, ExpPET)).
+
+
+
+
+
+
+
+
+% R-tree
+assertDistanceRel([Rel|_], X, Y, HeadCount, Param) :-
   Rel = rel(_,_),
   X = attr(_, _, _),
   Y = dbobject(_),
   hasIndex(Rel, X ,DCindex, rtree),
   dcName2externalName(DCindex,IndexName), !,
-  assert(distanceRel(Rel, IndexName, Y, HeadCount)).
+  assert(distanceRel(Rel, IndexName, Y, HeadCount, Param)),
+  selectivity(pr(distance(X, Y) > value_expr(int, 1), Rel), _, _, ExpPET),
+  retractall(distanceCost(_, _, _, _)),
+  assert(distanceCost(Rel, X, Y, ExpPET)).
 
-assertDistanceRel([Rel|_], X, Y, HeadCount) :-
+assertDistanceRel([Rel|_], X, Y, HeadCount, Param) :-
   Rel = rel(_,_),
   Y = attr(_, _, _),
   X = dbobject(_),
   hasIndex(Rel, Y ,DCindex, rtree),
   dcName2externalName(DCindex,IndexName), !,
-  assert(distanceRel(Rel, IndexName, X, HeadCount)).
+  assert(distanceRel(Rel, IndexName, X, HeadCount, Param)),
+  selectivity(pr(distance(X, Y) > value_expr(int, 1), Rel), _, _, ExpPET),
+  retractall(distanceCost(_, _, _, _)),
+  assert(distanceCost(Rel, X, Y, ExpPET)).
 
-assertDistanceRel([_|Rels], X, Y, HeadCount) :-
-  assertDistanceRel(Rels, X, Y, HeadCount).
+assertDistanceRel([_|Rels], X, Y, HeadCount, Param) :-
+  assertDistanceRel(Rels, X, Y, HeadCount, Param).
 
 
 /*
 ----    finishDistanceSort(+Stream, +Cost, +DistAttr1, +DistAttr2,
-                           +HeadCount, -Stream2, -Cost2)
+                           +HeadCount, +Param, -Stream2, -Cost2)
 ----
 
 Adds the commands to sort ~Stream~ by the distance between ~DistAttr1~ and
-~DistAttr2~ and calculates the additional costs
+~DistAttr2~ and calculates the additional costs.
+
+The additional costs depend not only on the estimated result size of the POG, but may vary a lot depending on the cost of evaluating the distance function. Since these costs may be critical in the decision to use a distance scan or this evaluation (sorting by distances), we determine beforehand the cost for evaluating the distance predicate in a selectivity query. This is done in the predicate ~assertDistanceRel~.
 
 */
 
-finishDistanceSort(Stream, Cost, X, Y, 0, StreamOut, Cost2) :-
+finishDistanceSort(Stream, Cost, X, Y, 0, Param, StreamOut, Cost2) :-
   !, newVariable(ExprAttrName),
   ExprAttr = attr(ExprAttrName, *, l),
-  StreamOut = remove(sortby(extend(Stream, [field(ExprAttr, distance(X, Y))]),
+  ( Param = distanceAvg -> DistanceTerm = distanceAvg(X, Y);
+  	DistanceTerm = distance(X, Y) 
+  ),
+  StreamOut = remove(sortby(extend(Stream, [field(ExprAttr, DistanceTerm)]),
        attrname(ExprAttr)),
        attrname(ExprAttr)),
   ( (optimizerOption(nawracost) ; optimizerOption(improvedcosts) )
@@ -11925,17 +12389,23 @@ finishDistanceSort(Stream, Cost, X, Y, 0, StreamOut, Cost2) :-
           Result = res(Target),
           Pred = pr(fakePred(1,1,0,0)),
           costterm(remove(sort(extend(pogstream, none)), none), Source, Target,
-                   Result, 1, Pred, _Card, CostTmp)
+                   Result, 1, Pred, _Card, CostFinish)
        )
-    ;  cost(remove(sort(extend(pogstream, _)), _), 1, _, _, CostTmp)
+    ;      % cost(remove(sort(extend(pogstream, _)), _), 1, _, _, CostFinish)
+    cost(pogstream, _, _, Size, _),
+    distanceCost(_, X, Y, Cost1),
+    CostFinish is Size * Cost1 
   ),
-  Cost2 is Cost + CostTmp.
+  Cost2 is Cost + CostFinish.
 
-finishDistanceSort(Stream, Cost, X, Y, HeadCount, StreamOut, Cost2) :-
+finishDistanceSort(Stream, Cost, X, Y, HeadCount, Param, StreamOut, Cost2) :-
   !, newVariable(ExprAttrName),
   ExprAttr = attr(ExprAttrName, *, l),
+  ( Param = distanceAvg -> DistanceTerm = distanceAvg(X, Y);
+  	DistanceTerm = distance(X, Y) 
+  ),
   StreamOut = remove(ksmallest(extend(Stream,
-          [field(ExprAttr, distance(X, Y))]),
+          [field(ExprAttr, DistanceTerm)]),
           HeadCount, attrname(ExprAttr)),
        attrname(ExprAttr)),
   ( (optimizerOption(nawracost) ; optimizerOption(improvedcosts) )
@@ -11944,35 +12414,135 @@ finishDistanceSort(Stream, Cost, X, Y, HeadCount, StreamOut, Cost2) :-
           Result = res(Target),
           Pred = pr(fakePred(1,1,0,0)),
           costterm(remove(sort(extend(pogstream, none)), none), Source, Target,
-                   Result, 1, Pred, _Card, CostTmp)
+                   Result, 1, Pred, _Card, CostFinish)
        )
-    ; cost(remove(ksmallest(extend(pogstream, _), HeadCount), _), 1, _, _,
-       CostTmp)
+    ; % cost(remove(ksmallest(extend(pogstream, _), HeadCount), _), 1, _, _, CostFinish)
+    cost(pogstream, _, _, Size, _),
+    distanceCost(_, X, Y, Cost1),
+    CostFinish is Size * Cost1
   ),
-  Cost2 is Cost + CostTmp.
+    Cost2 is Cost + CostFinish,
+  
+    nl, nl,
+    write('FinishDistanceSort: '), nl,nl,
+    
+    write('CostIn = '), write(Cost), nl,
+    write('Size = '), write(Size), nl,
+    write('distanceCost = '), write(Cost1), nl,
+    write('CostFinish  = '), write(CostFinish), nl,
+    write('CostOut  = '), write(Cost2), nl.
+
 
 /*
 ----    finishDistanceSortRTree(+Stream, +Cost, +HeadCount, -Stream2, -Cost2)
 ----
 
 Adds the commands for a distancescanquery which are not set by the POG and
-corrects the cost estimation according to ~HeadCount~ and the costs for
-temporary indices
+corrects the cost estimation according to ~HeadCount~ and the costs for   
+temporary indices.
+
+When the query is a real ~knn~-query, i.e., the ~HeadCount~ is greater than 0, the cost for the distance scan is estimated as the cost for computing the result of the POG reduced by a factor corresponding to ~headCount~ / ~Size~, where ~Size~ is the result size of the POG. It is assumed that only this fraction of the input relation and index need to be scanned to produce a result of size ~headCount~.
+
+However, the function creating the distancescan on an R-tree or other index need not be linear. Therefore a linear reduction of the cost of producing the POG result would not be correct. Instead, we need to separately reduce the cost for the distancescan function and the remaining nested loop joins and selections, respectively, to the expected number of tuples read. For the latter part we can apply a linear reduction by the fraction computed; for the former we need to evaluate the cost function of the distancescan.
+
+Further, we need to make sure that the selectivity of the query is not very small, in which case it may be erroneously overestimated. In this case, we may apply a factor for reduction even though in fact the entire input relation needs to be scanned which may be expensive.
+
+Namely, when a selectivity query on a sample relation does not return any result, it still reports a minimum result size of 1, to make sure to have a selectivity greater than 0. Hence a minimal result size for the POG of ~relation size~ * (1 / ~sample size~) is returned, whereas the real result may be smaller or empty. To prevent this, we introduce a threshold selectivity of 2 / ~sample size~ which means the selectivity query has found at least two results and therefore the result is unlikely to be very small. If the estimated selectivity is smaller, we use a factor of 1, that is, the entire POG (and input relation) needs to be processed.
 
 */
 
 finishDistanceSortRTree(StreamIn, CostIn, 0,
    StreamOut, CostOut) :-
-  findTmpIndex(StreamIn, StreamOut, CostTmpIndex),
-  CostOut is CostIn + CostTmpIndex.
+  StreamOut = StreamIn,
+  path(Path),
+  initialCost(Path, InitialCost),
+  TempCost is InitialCost,
+ 
+  CostOut is CostIn + TempCost,
+    	nl, nl, 
+  	write('FinishDistanceSortRTree: '), nl,
+  	nl,
+
+  	write('CostIn = '), write(CostIn), nl, 
+  	write('TempCost = '), write(TempCost), nl, 
+  	write('CostOut = '), write(CostOut), nl.
 
 finishDistanceSortRTree(StreamIn, CostIn, HeadCount,
    StreamOut, CostOut) :-
-  findTmpIndex(head(StreamIn, HeadCount), StreamOut, CostTmpIndex),
-  highNode(Node),
+  % Determine the costs for building a temporary index beforehand
+  StreamOut = head(StreamIn, HeadCount),
+  path(Path),
+  initialCost(Path, InitialCost),
+  TempCost is InitialCost,
+  
+  % Determine the fraction of the input relation that needs to be read 
+  % in the scan.
+  % Don't trust it when the selectivity of conditions is too low.
+  distanceCost(rel(RelName, _), _, _, _),
+  getSampleSname(RelName, SampleName),
+  card(RelName, RelCard),
+  card(SampleName, SampleCard),
+  Threshold is 2/SampleCard,
+  highNode(Node), 
   resultSize(Node, Size),
-  CostOut is CostIn * min(HeadCount, Size) / Size + CostTmpIndex.
+  Selectivity is Size / RelCard,
+  ( Selectivity >= Threshold -> Fraction is min(HeadCount, Size) / Size
+    ; Fraction is 1),
+  
+  distanceScanCostFun(CostFun),
+  TuplesRead is RelCard * Fraction,
+  costDistanceScan(CostFun, RelCard, CostCompleteScan),
+  costDistanceScan(CostFun, TuplesRead, CostScan),
+  
+  % CostIn includes the cost for a complete distancescan which needs to be subtracted
+  % before applying the fraction.
+  
+  CostOut is TempCost + CostScan + (CostIn - CostCompleteScan) * Fraction,
+    
+  	nl, nl, 
+  	write('FinishDistanceSortRTree: '), nl,
+  	nl,
+        write('InitialCost = '), write(InitialCost), nl, 
+	write('TempCost = '), write(TempCost), nl, 
+	nl,
+	write('Selectivity = '), write(Selectivity), nl, 
+	write('Threshold = '), write(Threshold), nl, 
+  	write('Fraction = '), write(Fraction), nl, 
+  	nl,
+	write('RelCard = '), write(RelCard), nl, 
+	write('TuplesRead = '), write(TuplesRead), nl, 
+	write('CostFun = '), write(CostFun), nl, 
+	write('CostCompleteScan = '), write(CostCompleteScan), nl, 
+ 	write('CostScan = '), write(CostScan), nl, 
+ 	write('CostIn = '), write(CostIn), nl, 
+ 	CostX is (CostIn - CostCompleteScan) * Fraction,
+	write('(CostIn - CostCompleteDistanceScan) * Fraction = '), write(CostX), nl,
+ 	write('CostOut = '), write(CostOut), nl, 
+	nl.
 
+	
+	
+
+
+  
+/*
+----    initialCost(+Path, -Cost)
+----
+
+Cost for builing an auxiliary index before executing a query.
+
+*/
+
+initialCost([], 0).
+
+initialCost([costEdge(_, _, Term, _, _, _) | Path], Cost) :-
+  preCost(Term, Cost1), !,
+  initialCost(Path, Cost2),
+  Cost is Cost1 + Cost2.
+  
+initialCost([costEdge(_, _, _, _, _, _) | Path], Cost) :-
+  initialCost(Path, Cost).
+  
 /*
 ----    findTmpIndex(+Stream, -Stream2, - Cost)
 ----
@@ -11984,7 +12554,9 @@ stores them in planvariable
 
 findTmpIndex([], [], 0).
 
-findTmpIndex(dbobject(tmpindex(Rel,Attr)), a(IndexName, *, l), Cost) :-
+% RHG May 2025
+% findTmpIndex(dbobject(tmpindex(Rel,Attr)), a(IndexName, *, l), Cost) :-
+findTmpIndex(dbindexobject(tmpindex(Rel,Attr)), a(IndexName, *, l), Cost) :-
   newVariable(IndexName),
   Expr = createtmpbtree(Rel, Attr),
   assert(planvariable(IndexName, Expr)),

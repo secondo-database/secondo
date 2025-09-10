@@ -70,6 +70,9 @@ Cost constant definitions at the end of the file.
 % feedC(0.0011, 0.0004). 	% PerTuple, PerAttr [ms]
 	% original constants with machine factor 3.35 multiplied by
 	% 1.33 / 3.35 = 0.4 to adapt to currrent machine
+	
+% new values moma 25.5.2025
+% feedC(0.0014, 0.000062). 	% PerTuple, PerAttr [ms]
 
 cost(feed(X), Sel, Pred, Res, Mem, Card, NAttrs, TSize, Cost) :-
   cost(X, Sel, Pred, Res, Mem, Card, NAttrs, TSize, Cost1),
@@ -78,7 +81,8 @@ cost(feed(X), Sel, Pred, Res, Mem, Card, NAttrs, TSize, Cost) :-
 
 
 
-% feedprojectC(0.0033, 0.0003, 0.000006).  
+% Old values feedprojectC(0.0033, 0.0003, 0.000006).
+% feedprojectC(0.00080, 0.00012, 0.0000022). New values 30.5.2025 from moma.
 	% PerTuple, PerAttr, PerByte [ms]
 	% constants adapted to this machine, keeping relative
 	% sizes the same
@@ -89,6 +93,7 @@ cost(feedproject(rel(Rel, _), Project), _, _, _, _,
   getRelAttrList(Rel, OrigAttrs, _),
   attributes(Project, AList),
   projectAttrList(OrigAttrs, AList, _, TSize1),
+  	write('TSize1 = '), write(TSize1), nl,
   length(AList, NAttrs),
   % add memory required for embedding attributes in tuples
   TSize1 = sizeTerm(MemoryFix, S2, S3),
@@ -101,7 +106,83 @@ cost(feedproject(rel(Rel, _), Project), _, _, _, _,
   Cost is Cost1 + Card * 
     (PerTuple + PerAttr * NAttrs + PerByte * MemoryFix).
 
+/*
+1.2.1 Determination of Constants for Feedproject
 
+We use relation ~Roads~ from database niedersachsen (2024).
+
+Size per Byte:
+
+We run queries
+
+----	query Roads feedproject[Osm_id, Code] count
+----
+
+1.69, 1.69, 1.72 seconds, avg 1.700
+
+----	query Roads feedproject[Osm_id, GeoData] count
+----
+
+2.38, 2.32, 2.36 seconds, avg 2.350
+
+Both queries have the same number of tuples (1413255) and attributes (2). The sizes of the projections are 64 + 16 = 80 bytes for the first and 64 + 228 = 292 bytes for the second query. Hence there is a difference of about 210 bytes per tuple and of 650 milliseconds. We conclude that the time per byte is $650 / (1413255 * 210) = 0.0000022$ ms.
+
+Size per Attribute:
+
+We need to run queries with the same number of bytes but different number of attributes. Attribute sizes in relation ~Roads~ are as follows (obtained with query ~showDatabase~ in ~SecondoTTYPL~).
+
+----
+Relation Roads	(Auxiliary objects: SelSample(7066)  JoinSample(7066) )
+	AttributeName               Type          Memory  DiskCore    DiskLOB
+	GeoData                     line          227.904    227.904  890.8800000000001
+	Tunnel                      string        64.0       7.0      0.0
+	Bridge                      string        64.0       7.0      0.0
+	Layer                       int           16.0       5.0      0.0
+	Maxspeed                    int           16.0       5.0      0.0
+	Oneway                      string        64.0       7.0      0.0
+	Ref                         string        64.0       6.468    0.0
+	Name                        text          77.748     77.748   0.0
+	Fclass                      string        64.0       14.214   0.0
+	Code                        int           16.0       5.0      0.0
+	Osm_id                      string        64.0       14.796   0.0
+
+	Indices: 
+	(Name:btree)
+
+	Ordering:  []
+
+
+	Cardinality:   1413255
+	Avg.TupleSize: 1268.01 = sizeTerm(873.652,377.1300048828125,890.8799951171875)
+	(Tuple size in memory is 136 + sum of attribute sizes.)
+----
+
+----	query Roads feedproject[GeoData] count
+----
+
+228 bytes, 1 attribute; 2.00, 1.97, 2.01 seconds, avg 2.000
+
+----	query Roads feedproject[Osm_id, Fclass, Oneway, Code, Maxspeed] count
+----
+
+224 bytes, 5 attributes; 2.67, 2.69, 2.67 seconds, avg 2.680
+
+The difference is 4 attributes and 680 milliseconds. We conclude that the time per attribute is $680 / (1413255 * 4) = 0.00012$ milliseconds.
+
+Time per tuple:
+
+Using the last query, we use the running time of 2680 ms and subtract the contributions per attribute and per byte: 
+
+$2680 - (1413255 * 5 * 0.00012) - (1413255 * 224 * 0.0000022) = $
+
+$2680 - 850 - 700 = 1130$
+
+The time per tuple is $1130 / 1413255 = 0.00080$ ms. hence we have constants
+
+----	feedprojectC(0.00080, 0.00012, 0.0000022)
+----
+
+*/
 
 /*
 1.3 filter
@@ -334,17 +415,23 @@ These costs are reflected in the following cost function.
 
 */
 
-% attrC(0.00016).	% Cost per attribute in result tuple. in ms.
-% itHashJoinC(0.003, 0.49, 0.00016, 0.000047) % see above
+% new constants moma 29.5.2025
+% old attrC(0.00016).	% Cost per attribute in result tuple. in ms.
+% new attrC(0.0000555).	% Cost per attribute in result tuple. in ms.
+% itHashJoinC(0.00047, 0.00075, 0.00016, 0.000047) % (U, V, W, X) see above
 
 cost(itHashJoin(Arg1, Arg2, _, _), Sel, Pred, Res, Mem, 
 	Card, NAttrs, TSize, Cost) :-
   cost(Arg1, 1, Pred, Res, Mem, Card1, _, sizeTerm(Size1, _, _), Cost1), 
   cost(Arg2, 1, Pred, Res, Mem, Card2, _, sizeTerm(Size2, _, _), Cost2),
   Card is Card1 * Card2 * Sel,
+%  	write('Cost1 = '), write(Cost1), nl,
+%  	write('Cost2 = '), write(Cost2), nl,
+%  	write('Card = '), write(Card), nl,
   nodeNAttrs(Res, NAttrs),
   nodeTupleSize(Res, TSize),
   P is 1 + floor((Card1 * Size1) / (Mem * 1024 * 1024)), % # of partitions
+%  	write('P = '), write(P), nl,
   itHashJoinC(U, V, W, X),
   ( P = 1 
     -> C1 is Card1 * U + Card2 * V
@@ -352,8 +439,12 @@ cost(itHashJoin(Arg1, Arg2, _, _), Sel, Pred, Res, Mem,
          + Card2 * Size2 * W
          + (P - 1) * Card2 * Size2 * X
   ),
+%    	write('C1 = '), write(C1), nl,
   attrC(PerAttr), 			% Cost depending on result size,
   C2 is Card * NAttrs * PerAttr,	% the same for all joins
+%        write('Card = '), write(Card), nl,
+%      	write('NAttrs = '), write(NAttrs), nl,
+%    	write('C2 = '), write(C2), nl,
   Cost is Cost1 + Cost2 + C1 + C2.
   
 
@@ -521,14 +612,19 @@ cost(symmjoin(Arg1, Arg2, _), Sel, Pred, Res, Mem,
   cost(Arg1, 1, Pred, Res, Mem, Card1, _, _, Cost1), 
   cost(Arg2, 1, Pred, Res, Mem, Card2, _, _, Cost2),
   Card is Card1 * Card2 * Sel,
+%  	write('Cost1 = '), write(Cost1), nl,
+%  	write('Cost2 = '), write(Cost2), nl,
   nodeNAttrs(Res, NAttrs),
   nodeTupleSize(Res, TSize),
   symmjoinC(U),
   getPET(Pred, _, ExpPET),   % fetch stored predicate evaluation time
+%  	write('ExpPET = '), write(ExpPET), nl,
   ( (ExpPET =< 0.01) -> (PET is 0.0); PET is ExpPET),
   C1 is Card1 * Card2 * (U + PET),
+%    	write('C1 = '), write(C1), nl,
   attrC(PerAttr), 			% Cost dep. on result size,
   C2 is Card * NAttrs * PerAttr,	% the same for all joins
+%    	write('C2 = '), write(C2), nl,
   Cost is Cost1 + Cost2 + C1 + C2.
 
 /*
@@ -559,37 +655,28 @@ cost(symmouterjoin(Arg1, Arg2, _), Sel, Pred, Res, Mem,
 
 */
 
-feedC(0.0011, 0.0004). 	% PerTuple, PerAttr [ms]
-	% original constants with machine factor 3.35 multiplied by
-	% 1.33 / 3.35 = 0.4 to adapt to currrent machine
+% feedC(0.0011, 0.0004). 	% PerTuple, PerAttr [ms]
+feedC(0.0014, 0.000062).	% new values moma 26.5.2025
 
-feedprojectC(0.0033, 0.0003, 0.000006). 
-	% PerTuple, PerAttr, PerByte [ms]
-	% constants adapted to this machine, keeping relative sizes
-	% the same
+% feedprojectC(0.0033, 0.0003, 0.000006). % PerTuple, PerAttr, PerByte [ms]
+feedprojectC(0.00080, 0.00012, 0.0000022). % new values moma 29.5.2025
+	
+
 
 filterC(0.00111).	% PerTuple [ms]
 
-renameC(0.000367). 	% PerTuple
+% renameC(0.000367). 	% PerTuple
+renameC(0.0000425). 	% PerTuple new value moma 26.5.2025
 
-itHashJoinC(0.003, 0.49, 0.00016, 0.000047).
+itHashJoinC(0.00043, 0.00068, 0.00016, 0.000047).
 	% u, v, w, x constants for itHashJoin, see above
+	% new values moma 29.5.2025
 
 itSpatialJoinC(0.059, 0.125, 0.006, 0.001).
 
 symmjoinC(0.003).
 
-attrC(0.00016).	% PerAttr [ms], cost per attribute in result tuple
-
-
-
-
-
-
-
-
-
-
+attrC(0.0000555). % PerAttr [ms], cost per attribute in result tuple
 
 
 /*
