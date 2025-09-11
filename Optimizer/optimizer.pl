@@ -9976,9 +9976,11 @@ translateType(Type, Type) :- !.
 Translates a query which is ordered by the distance between ~DistAttr1~
 and ~DistAttr2~. ~HeadCount~ is the number of objects to look for in the
 distance query. ~assertDistanceRel~ is used to check for an
-R-Tree-Index.
+R-tree or other index suitable for distance-based (or similarity) search.
 
 ~Param~ allows one to specify a parameter such as using bounding box distances or other kinds of distance functions or indexes.
+
+The first case handles queries without where-clause but with an index.
 
 */
 
@@ -9987,7 +9989,7 @@ translateDistanceQuery(Select from [Rel], X, Y, HeadCount, Param,
   Rel = rel(_, _),
   assertDistanceRel([Rel], X, Y, HeadCount, Param), !,
   translate1(Select from [Rel], StreamOut, SelectOut, Update, Cost),
-  retractall(distanceRel(Rel, _, _, HeadCount, Param)).
+  retractall(distanceRel(_, _, _, _, _)).
 
 /*
 
@@ -12311,6 +12313,25 @@ hasMemoryIndex(Rel, X, DCindex, IndexType) :-
   X = attr(AttrName, _, _),
   my_concat_atom([RelName, '_', AttrName, '_', IndexType], '', DCindex),
   secondoCatalogInfo(DCindex, _, _, _).
+  
+:- dynamic flobsCached/1.
+
+
+% Make sure the indexed relation has been read once into the operating system's cache.
+% Otherwise the random accesses to FLOBs during the index scan can be very expensive.
+% This is relevant for disk-based indexes (hence not for the N-tree, for example).
+  
+ensureFlobsCached(Rel) :-
+  \+ flobsCached(Rel), !,
+  plan_to_atom(Rel, RelAtom), 
+  my_concat_atom(['query ', RelAtom, 'feed extend[OK : . bringToMemory] count'], '', 
+    Command),
+  secondo(Command),
+  assert(flobsCached(Rel)).
+  
+ensureFlobsCached(_).
+
+removeFlobsCached(Rel) :- retractall(flobsCached(Rel)).
 
 
 :- dynamic distanceCost/4.
@@ -12329,12 +12350,6 @@ assertDistanceRel([Rel|_], X, Y, HeadCount, distanceAvg) :-
   assert(distanceCost(Rel, X, Y, ExpPET)).
 
 
-
-
-
-
-
-
 % R-tree
 assertDistanceRel([Rel|_], X, Y, HeadCount, Param) :-
   Rel = rel(_,_),
@@ -12343,6 +12358,7 @@ assertDistanceRel([Rel|_], X, Y, HeadCount, Param) :-
   hasIndex(Rel, X ,DCindex, rtree),
   dcName2externalName(DCindex,IndexName), !,
   assert(distanceRel(Rel, IndexName, Y, HeadCount, Param)),
+  ensureFlobsCached(Rel),
   selectivity(pr(distance(X, Y) > value_expr(int, 1), Rel), _, _, ExpPET),
   retractall(distanceCost(_, _, _, _)),
   assert(distanceCost(Rel, X, Y, ExpPET)).
@@ -12354,6 +12370,7 @@ assertDistanceRel([Rel|_], X, Y, HeadCount, Param) :-
   hasIndex(Rel, Y ,DCindex, rtree),
   dcName2externalName(DCindex,IndexName), !,
   assert(distanceRel(Rel, IndexName, X, HeadCount, Param)),
+  ensureFlobsCached(Rel),
   selectivity(pr(distance(X, Y) > value_expr(int, 1), Rel), _, _, ExpPET),
   retractall(distanceCost(_, _, _, _)),
   assert(distanceCost(Rel, X, Y, ExpPET)).
