@@ -2752,10 +2752,11 @@ k is guaranteed to be between 1 and relation size
     delete rit;
     std::sort(Res_2.begin(), Res_2.end());
     // for (unsigned int i = 0; i < Res_2.size(); i++) {
-      // cout << "kNN: dc(q, " << Res_2[i].tid << ") = " << Res_2[i].dist << endl;
+    //   cout << "kNN: dc(q, " << Res_2[i].tid << ") = " << Res_2[i].dist
+    //        << endl;
     // }
     // cout << "start adding results. Res_2 has length " << Res_2.size()
-         // << " and k is " << k << endl;
+    //      << " and k is " << k << endl;
     for (int i = 0; i < k; i++) {
       addResult(Res_2[i].tid, Res_2[i].dist);
     }
