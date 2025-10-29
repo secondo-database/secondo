@@ -6847,8 +6847,14 @@ class mnearestNeighborNInfo {
   mnearestNeighborNInfo(MemoryNtreeObject<T, DistComp, variant>* ntreeX,
                         MemoryRelObject* mrel, T* q, ListExpr typeList, 
                         const int _k = 0) : tupleTypeList(typeList) {
+    // ntreeX->getNtreeX()->print(cout);
     rel = mrel->getmmrel();
-    k = min((int)_k, (int)(rel->size()));
+    if (_k <= 0 || _k > (int)(rel->size())) {
+      k = (int)(rel->size());
+    }
+    else {
+      k = _k;
+    }
     T* stretched = new T(true);
     StretchOrCompress(*q, *stretched);
     MTreeEntry<T> p(*stretched, 0);
@@ -6936,10 +6942,6 @@ int mnearestNeighborNVMT(Word* args, Word& result, int message, Word& local,
       K* key = (K*)args[2].addr;
       CcInt *_k = (CcInt*)args[3].addr;
       if (!_k->IsDefined()) {
-        return 0;
-      }
-      if (_k->GetValue() < 1) {
-        cout << "k must be at least 1" << endl;
         return 0;
       }
       local.addr = new mnearestNeighborNInfo<K, StdDistComp<K>, variant>(n,

@@ -1208,7 +1208,7 @@ class NTreeInnerNode : public NTreeNode<T, DistComp, variant> {
     out << " (";
     for (int i = 0; i < node_t::count; i++) {
       out << "center #" << i << " = (";
-      centers[i]->getKey()->Print(out);
+      // centers[i]->getKey()->Print(out);
       out << ", TID " << centers[i]->getTid() << ")";
       if (printSubtrees) {
         out << ", child #" << i << " with node id " << node_t::nodeId << " = ";
@@ -1862,7 +1862,7 @@ class NTreeLeafNode : public NTreeNode<T, DistComp, variant> {
       if (i > 0) {
         out << ", ";
       }
-      dc.print(*entries[i], out);
+      // dc.print(*entries[i], out);
     }
     out << "\"]" << endl;
     out << "maxDist = " << maxDist << endl;
@@ -2603,12 +2603,16 @@ class NNIteratorN {
   typedef NodePQElem<T, DistComp, variant> nodepqelem_t;
   typedef NodePQComp<T, DistComp, variant> nodepqcomp_t;
   
+
+/*
+3.1 Constructor for class NNIteratorN
+
+k is guaranteed to be between 1 and relation size
+
+*/
   NNIteratorN(node_t* root, const T& _q, const DistComp& di, const int _k) : 
                                                   q(_q), pos(0), dc(di), k(_k) {
     results.clear();
-    if (k == 0) {
-      k = INT_MAX;
-    }
     dc.switchStorage(true);
     collectNN(root);
     //stat.print(cout, dc.getNoDistFunCalls(), true);
@@ -2741,13 +2745,17 @@ class NNIteratorN {
     std::vector<TidDist> Res_2;
     while (obj != 0) {
       dist_i = dc(q, *obj);
-//       cout << "kNN: dc(q, " << obj->getTid() << ") = " << dist_i << endl;
       TidDist td(obj->getTid(), dist_i);
       Res_2.push_back(td);
       obj = rit->nextObj();
     }
     delete rit;
     std::sort(Res_2.begin(), Res_2.end());
+    // for (unsigned int i = 0; i < Res_2.size(); i++) {
+      // cout << "kNN: dc(q, " << Res_2[i].tid << ") = " << Res_2[i].dist << endl;
+    // }
+    // cout << "start adding results. Res_2 has length " << Res_2.size()
+         // << " and k is " << k << endl;
     for (int i = 0; i < k; i++) {
       addResult(Res_2[i].tid, Res_2[i].dist);
     }
