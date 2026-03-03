@@ -4,9 +4,7 @@
 
 <a href="https://github.com/secondo-database/secondo/actions/workflows/build.yml">
   <img alt="Build Status" src="https://github.com/secondo-database/secondo/actions/workflows/build.yml/badge.svg">
-</a><a href="http://makeapullrequest.com">
- <img src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg" />
- </a>
+</a>
 
 Secondo is an extensible database system supporting especially non-standard applications. Designed at the FernUniversität in Hagen, Secondo is a platform for implementing and experimenting with various kinds of data models.
 
