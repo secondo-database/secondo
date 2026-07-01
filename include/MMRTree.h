@@ -48,6 +48,7 @@ This section contains  __includes__,
 */
 
 
+#include <sys/types.h> // for ssize_t
 #include <string.h>
 #include <iostream>
 #include <sstream>

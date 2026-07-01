@@ -84,7 +84,7 @@ result value will be 0.
 #define YYERROR_VERBOSE
 
 extern int yylex();
-extern int treeerror();
+extern int treeerror(const char*);
 extern void yy_scan_string(const char*);
 extern void tree_scan_string(const char*);
 extern void deleteCurrentBuffer();
@@ -183,7 +183,7 @@ http://www.gnu.org/software/bison/manual/
     struct tree* theTree;
 }
 
-%name-prefix "tree"
+%define api.prefix {tree}
 
 %token OR XOR NOT CONDITIONAL BICONDITIONAL OPEN CLOSE AND ERROR
 %token II IB IE BI BB BE EI EB EE TRUE FALSE  

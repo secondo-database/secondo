@@ -170,7 +170,7 @@ int Distance::RectangleValueMapping(ArgVector args, Word &result,
 
     if (value.IsDefined())
     {
-      for (const SpatialAttrArrayEntry<dim> &entry : values.GetFilter())
+      for (const SpatialAttrArrayEntry<dim> entry : values.GetFilter())
       {
         distance.Set(entry.GetDistance(value));
 

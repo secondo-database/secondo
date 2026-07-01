@@ -99,7 +99,7 @@ string collectEnum    = "";	string collectArgs3    = "";
  parsers of the system
 
 */
-%name-prefix "opsig"
+%define api.prefix {opsig}
 
 %token ZZALG ZZWHERE ZZIN ZZPARAM ZZCROSSPRODUCT ZZFOLLOWS ZZSEMICOLON ZZERROR
 

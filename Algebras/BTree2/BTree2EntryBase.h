@@ -154,7 +154,7 @@ or overwriting the old one during writing of this entry.
 
 
   public:
-  BTreeEntryBase<std::string>() { extendedId = 0; }
+  BTreeEntryBase() { extendedId = 0; }
 /*
 Constructor: Mark ~extendedValueId~ as unset.
 
@@ -307,13 +307,13 @@ or overwriting the old one during writing of this entry.
 */
 
   public:
-  BTreeEntryBase<IndexableAttribute*>() { key = 0; }
+  BTreeEntryBase() { key = 0; }
 /*
 Constructor: Mark ~extendedValueId~ as unset.
 
 */
 
-  ~BTreeEntryBase<IndexableAttribute*>() { 
+  ~BTreeEntryBase() {
       if (key != 0) key->DeleteIfAllowed(); 
   }
 /*

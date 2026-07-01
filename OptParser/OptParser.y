@@ -89,7 +89,7 @@ For further checks, we have to extend this definition.
 }
 
 
-%name-prefix "opt"  // use opt instead of yy to avoid naming conflicts with other 
+%define api.prefix {opt}  // use opt instead of yy to avoid naming conflicts with other 
                     // parsers of the system
 
 

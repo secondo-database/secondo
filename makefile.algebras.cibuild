@@ -360,7 +360,7 @@ ALGEBRAS      += AuxiliaryAlgebra
 ALGEBRA_DIRS += Distributed2
 ALGEBRAS += Distributed2Algebra
 CCFLAGS += -pthread -DTHREAD_SAFE
-COMMON_LD_FLAGS += -lboost_thread -lboost_system
+COMMON_LD_FLAGS += -lboost_thread
 
 # On systems that have boost::chrono compiled without header-only
 # option, the following line is required
@@ -378,14 +378,14 @@ COMMON_LD_FLAGS += -lboost_thread -lboost_system
 #ALGEBRAS += Distributed2Algebra
 #DEFAULTCCFLAGS += -pthread -DTHREAD_SAFE
 #CCFLAGS += -pthread -DTHREAD_SAFE
-#COMMON_LD_FLAGS += -lboost_thread-mt -lboost_system-mt
+#COMMON_LD_FLAGS += -lboost_thread-mt
 
 
 #ALGEBRA_DIRS += Distributed3
 #ALGEBRAS += Distributed3Algebra
 #DEFAULTCCFLAGS += -pthread -DTHREAD_SAFE
 #CCFLAGS += -pthread -DTHREAD_SAFE
-#COMMON_LD_FLAGS += -lboost_thread -lboost_system
+#COMMON_LD_FLAGS += -lboost_thread
 
 
 # Failing selftest
@@ -397,7 +397,7 @@ COMMON_LD_FLAGS += -lboost_thread -lboost_system
 
 ALGEBRA_DIRS += Pregel
 ALGEBRAS     += PregelAlgebra
-COMMON_LD_FLAGS += -lboost_log -lboost_log_setup -lboost_system -lboost_date_time -lboost_thread -lboost_filesystem -lboost_chrono -lboost_regex
+COMMON_LD_FLAGS += -lboost_log -lboost_log_setup -lboost_date_time -lboost_thread -lboost_filesystem -lboost_chrono -lboost_regex
 
 #ALGEBRA_DIRS += Distributed4
 #ALGEBRAS += Distributed4Algebra
@@ -545,7 +545,7 @@ ALGEBRAS     += JNetAlgebra
 
 ALGEBRA_DIRS += CStream
 ALGEBRAS     += CStreamAlgebra
-COMMON_LD_FLAGS += -lboost_thread -lboost_system -lboost_regex
+COMMON_LD_FLAGS += -lboost_thread -lboost_regex
 
 #ALGEBRA_DIRS += PMRegion
 #ALGEBRAS     += PMRegionAlgebra
@@ -724,7 +724,7 @@ ALGEBRAS     += ConversionAlgebra
 #DEFAULTCCFLAGS += -DUSE_MULTIHREADED_QUERY_PROCESSING
 #DEFAULTCCFLAGS += -pthread -DTHREAD_SAFE
 #CCFLAGS += -pthread -DTHREAD_SAFE
-#COMMON_LD_FLAGS += -lboost_thread -lboost_system -lboost_filesystem
+#COMMON_LD_FLAGS += -lboost_thread -lboost_filesystem
 #COMMON_LD_FLAGS += -L$(TBB_LIB_DIR) -ltbb
 #ALGEBRA_INCLUDE_DIRS += $(TBB_INCLUDE_DIR)
 

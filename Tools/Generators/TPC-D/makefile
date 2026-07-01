@@ -24,7 +24,10 @@ else
 endif
 
 #
-CFLAGS  = -O -D$(DATABASE) -D$(PLATFORM) $(posix)
+# -std=gnu17: legacy TPC-D dbgen relies on pre-C23 semantics where an empty
+# parameter list () means "unspecified arguments" (tdefs[] function-pointer
+# table). GCC 15 defaults to C23, which breaks it.
+CFLAGS  = -std=gnu17 -O -D$(DATABASE) -D$(PLATFORM) $(posix)
 LDFLAGS = -lm 
 # The OBJ,EXE and LIB macros will need to be changed for compilation under
 #  Windows NT

@@ -1,6 +1,6 @@
 CXX=clang++
 CPPFLAGS=-O3 -fPIC -Wall -ggdb -I../../../include
-LIBS=-lCGAL -lCGAL_Core -lboost_thread -lboost_system -lgmp -lmpfr
+LIBS=-lCGAL -lCGAL_Core -lboost_thread -lgmp -lmpfr
 LDFLAGS=$(LIBS)
 LIBOBJ=PMRegion_operations.o PMRegion_conversions.o PMRegion_helpers.o RList.o PMRegion_coverduration.o PMRegion_decompose.o
 

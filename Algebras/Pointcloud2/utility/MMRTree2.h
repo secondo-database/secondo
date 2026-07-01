@@ -39,6 +39,7 @@ This section contains  __includes__,
 */
 
 #pragma once
+#include <sys/types.h>
 #include <string.h>
 #include <iostream>
 #include <sstream>

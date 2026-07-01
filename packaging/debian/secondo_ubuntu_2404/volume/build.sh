@@ -51,7 +51,7 @@ sed -i '336s|#ALGEBRA_DIRS += Distributed2|ALGEBRA_DIRS += Distributed2|g' makef
 sed -i '337s|#ALGEBRAS += Distributed2Algebra|ALGEBRAS += Distributed2Algebra|g' makefile.algebras
 sed -i '338s|#DEFAULTCCFLAGS += -pthread -DTHREAD_SAFE|DEFAULTCCFLAGS += -pthread -DTHREAD_SAFE|g' makefile.algebras
 sed -i '339s|#CCFLAGS += -pthread -DTHREAD_SAFE|CCFLAGS += -pthread -DTHREAD_SAFE|g' makefile.algebras
-sed -i '340s|#COMMON_LD_FLAGS += -lboost_thread -lboost_system|COMMON_LD_FLAGS += -lboost_thread -lboost_system|g' makefile.algebras
+sed -i '340s|#COMMON_LD_FLAGS += -lboost_thread|COMMON_LD_FLAGS += -lboost_thread|g' makefile.algebras
 sed -i '343s|#COMMON_LD_FLAGS += -lboost_chrono|COMMON_LD_FLAGS += -lboost_chrono|g' makefile.algebras
 
 sed -i 's|#ALGEBRA_DIRS  += DFS|ALGEBRA_DIRS  += DFS|g' makefile.algebras

@@ -115,7 +115,7 @@ Creates a depth copy of this node.
      this->right =   source.right
                    ? new AvlNode<contenttype,Comparator>(source.right)
                    :NULL;
-     this->heigth = source.height;
+     this->height = source.height;
      return *this;
   }
 

@@ -1,6 +1,30 @@
-secondo (4.2.0-1+ubuntu1804) stable; urgency=medium
+secondo (4.4.0-1+ubuntu2604) stable; urgency=low
 
-  * New upstream version
+  * New upstream version 
+
+ -- Jan Nidzwetzki <jnidzwetzki@gmx.de>  Thu, 01 Jul 2026 09:06:31 +0100
+
+secondo (4.4.0-1+ubuntu2404) stable; urgency=low
+
+  * New upstream version 
+
+ -- Jan Nidzwetzki <jnidzwetzki@gmx.de>  Thu, 20 Feb 2025 05:02:14 +0100
+
+secondo (4.4.0-1+ubuntu2204) stable; urgency=low
+
+  * New upstream version 
+
+ -- Jan Nidzwetzki <jnidzwetzki@gmx.de>  Fri, 03 Apr 2022 20:03:12 +0000
+
+secondo (4.3.0-1+ubuntu2110) stable; urgency=low
+
+  * New upstream version 
+
+ -- Jan Nidzwetzki <jnidzwetzki@gmx.de>  Fri, 25 Oct 2021 15:59:22 +0000
+
+secondo (4.2.0-1+ubuntu2004) stable; urgency=low
+
+  * New upstream version 
 
  -- Jan Nidzwetzki <jnidzwetzki@gmx.de>  Fri, 22 May 2020 06:53:31 +0000
 

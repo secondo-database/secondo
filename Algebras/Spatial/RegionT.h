@@ -1106,7 +1106,7 @@ The region must be defined!
     return listutils::isSymbol(type, BasicType());
   }
 
-   inline RegionT<ArrayT>() {}
+   inline RegionT() {}
 /*
 This constructor should not be used.
 

@@ -679,7 +679,8 @@ class TupleIndex {
   TupleIndex(std::vector<TrieTI*> t, std::vector<BTreeTI*> b,
              std::vector<RTree1TI*> r1, std::vector<RTree2TI*> r2,
              RTree1TI *tI, std::map<int, std::pair<IndexType, int> > aI,
-             std::map<std::pair<IndexType, int>, int> iA, int mA, int64_t *fE);
+             std::map<std::pair<IndexType, int>, int> iA, int mA,
+             std::vector<int64_t> fE);
   TupleIndex(bool dummy) { timeIndex = 0;}
   TupleIndex(TupleIndex &src);
   ~TupleIndex() {deleteIndexes();}
@@ -3475,7 +3476,8 @@ template<class PosType, class PosType2>
 TupleIndex<PosType, PosType2>::TupleIndex(std::vector<TrieTI*> t, 
   std::vector<BTreeTI*> b, std::vector<RTree1TI*> r1, std::vector<RTree2TI*> r2,
   RTree1TI *tI, std::map<int, std::pair<IndexType, int> > aI,
-  std::map<std::pair<IndexType, int>, int> iA, int mA, int64_t *fE) {
+  std::map<std::pair<IndexType, int>, int> iA, int mA,
+  std::vector<int64_t> fE) {
   tries = t;
   btrees = b;
   rtrees1 = r1;

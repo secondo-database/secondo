@@ -428,6 +428,10 @@ This is the super class of inner nodes and leaf nodes.
 template<unsigned Dim, class Info>
 class Node : public BasicNode<Dim>{
  public:
+   // Keep BasicNode's virtual getMax() const visible; the static
+   // getMax(buffersize) overload below would otherwise hide it
+   // (-Woverloaded-virtual).
+   using BasicNode<Dim>::getMax;
 /*
 4.1 Constructors
 
@@ -843,6 +847,9 @@ class QNodeSplitter{
 template<int Dim, class Info>
 class TBLeafNode : public Node<Dim, Info>{
   public:
+   // Keep the inherited getMax overloads visible; the getMax() below
+   // would otherwise hide the base virtual (-Woverloaded-virtual).
+   using Node<Dim, Info>::getMax;
 /*
 5.1 Constructors
 
@@ -996,6 +1003,10 @@ Returns a clone of this node.
 template<int Dim, class Info>
 class InnerNode : public Node<Dim, Info>{
   public:
+   // Keep the inherited getMax overloads visible; the static
+   // getMax(buffersize) below would otherwise hide the base virtual
+   // (-Woverloaded-virtual).
+   using Node<Dim, Info>::getMax;
 /*
 5.1 Constructors
 

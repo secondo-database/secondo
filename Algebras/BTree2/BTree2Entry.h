@@ -246,7 +246,7 @@ or overwriting the old one during writing of this entry.
 */
 
   public:
-  BTreeEntry<KEYTYPE,std::string>() { extendedValueId = 0; }
+  BTreeEntry() { extendedValueId = 0; }
 /*
 Constructor: Mark ~extendedValueId~ as unset.
 
@@ -417,12 +417,12 @@ or overwriting the old one during writing of this entry.
 */
 
   public:
-  BTreeEntry<KEYTYPE,Attribute*>() { extendedValueId = 0; value = 0; }
+  BTreeEntry() { extendedValueId = 0; value = 0; }
 /*
 Constructor: Mark ~extendedValueId~ as unset.
 
 */
-  ~BTreeEntry<KEYTYPE,Attribute*>() { 
+  ~BTreeEntry() {
       if (value != 0) value->DeleteIfAllowed(); 
   }
 /*
