@@ -53,7 +53,7 @@ and the operator specification.
 #include "../../PregelAlgebra.h"
 #include "../../typedefs.h"
 
-#include <boost/bind.hpp>
+#include <boost/bind/bind.hpp>
 #include <boost/ref.hpp>
 #include <boost/thread.hpp>
 

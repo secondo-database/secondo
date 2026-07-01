@@ -942,7 +942,7 @@ postfix    : simpleargsblank ZZOP
              for(int i=1;i< size;i++){
                 if(i==nextlist){
                    lists++;
-                   nextlist=(*currenttranslation.sublistlengths)[lists];
+                   nextlist=i+(*currenttranslation.sublistlengths)[lists];
                    (*currenttranslation.pattern ) << ";" << endl;
                 }else{
                    (*currenttranslation.pattern) << "," << endl;

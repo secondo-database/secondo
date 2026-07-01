@@ -314,3 +314,4 @@ makefile.algebras
 /WebGui2/.gwt
 /WebGui2/war/secondoweb
 
+Algebras/Cassandra/tools/dsecondo-gui/.classpath

@@ -2,7 +2,7 @@ ALGEBRA_DIRS += MThreaded
 ALGEBRAS     += MThreadedAlgebra
 DEFAULTCCFLAGS += -pthread -DTHREAD_SAFE
 CCFLAGS += -pthread -DTHREAD_SAFE
-COMMON_LD_FLAGS += -lboost_thread -lboost_system
+COMMON_LD_FLAGS += -lboost_thread
 
 # note if you want to enable thread save compilation the first time
 # on your system, goto into Secondo's home directory and enter:
@@ -16,4 +16,4 @@ COMMON_LD_FLAGS += -lboost_thread -lboost_system
 #ALGEBRAS     += MThreadedAlgebra
 #DEFAULTCCFLAGS += -pthread -DTHREAD_SAFE
 #CCFLAGS += -pthread -DTHREAD_SAFE
-#COMMON_LD_FLAGS += -lboost_thread-mt -lboost_system-mt 
+#COMMON_LD_FLAGS += -lboost_thread-mt

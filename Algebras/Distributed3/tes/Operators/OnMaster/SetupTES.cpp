@@ -14,7 +14,7 @@
 #include "../../MessageBroker/MessageBroker.h"
 #include "../../typedefs.h"
 #include "../../TESManager.h"
-#include <boost/bind.hpp>
+#include <boost/bind/bind.hpp>
 #include <boost/ref.hpp>
 #include <boost/thread.hpp>
 //#include "Algebras/Distributed2/Distributed2Algebra.h"

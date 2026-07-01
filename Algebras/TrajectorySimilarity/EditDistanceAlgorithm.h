@@ -55,6 +55,7 @@ such definitions are not considered here.
 #define __EDIT_DISTANCE_ALGORITHM_H__
 
 #include "functional"
+#include <sys/types.h>
 
 
 namespace tsa {

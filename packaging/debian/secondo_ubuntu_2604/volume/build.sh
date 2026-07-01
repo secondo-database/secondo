@@ -1,18 +1,27 @@
-#/bin/bash
+#!/bin/bash
 #
 # This script creates a debian package of the swi-prolog package
 # that can be used with secondo
 #####################################################################
 
 # Install dependencies
-apt-get install -y flex bison gcc g++ libdb5.3 libdb5.3-dev libdb5.3++ libdb5.3++-dev db5.3-util libjpeg62 libjpeg62-dev libgsl0-dev libreadline-dev librecode-dev libgmp-dev libncurses-dev libxml2-dev libboost-all-dev build-essential debhelper fakeroot openjdk-8-jdk libxml2 libxml2-dev wget swi-prolog-nox swi-prolog-java swi-prolog libquadmath0 libgmp-dev libgmp10 original-awk libboost-all-dev libbison-dev
+export DEBIAN_FRONTEND=noninteractive
 
-cd ../../../ 
+apt-get update
+apt-get install -y flex bison gcc g++ libdb5.3 libdb5.3-dev libdb5.3++ libdb5.3++-dev db5.3-util libjpeg62 libjpeg62-dev libgsl0-dev libreadline-dev librecode-dev libgmp-dev libncurses-dev libxml2-dev libboost-all-dev build-essential debhelper fakeroot openjdk-8-jdk libxml2 libxml2-dev wget swi-prolog-nox swi-prolog-java swi-prolog libquadmath0 libgmp-dev libgmp10 original-awk libboost-all-dev libbison-dev git vim wget rsync dpkg-dev screen
+
+cd /tmp
+
+if [ ! -d secondo ]; then
+   git clone  --depth 1  https://github.com/secondo-database/secondo.git
+fi
+
+cd secondo
 
 # Link our debian files to the package
 if [ ! -h debian ]; then
    rmdir debian
-   ln -s packaging/debian/secondo_ubuntu_2110/debian debian
+   ln -s /volume/debian debian
 fi 
 
 cp makefile.algebras.sample makefile.algebras
@@ -42,7 +51,7 @@ sed -i '336s|#ALGEBRA_DIRS += Distributed2|ALGEBRA_DIRS += Distributed2|g' makef
 sed -i '337s|#ALGEBRAS += Distributed2Algebra|ALGEBRAS += Distributed2Algebra|g' makefile.algebras
 sed -i '338s|#DEFAULTCCFLAGS += -pthread -DTHREAD_SAFE|DEFAULTCCFLAGS += -pthread -DTHREAD_SAFE|g' makefile.algebras
 sed -i '339s|#CCFLAGS += -pthread -DTHREAD_SAFE|CCFLAGS += -pthread -DTHREAD_SAFE|g' makefile.algebras
-sed -i '340s|#COMMON_LD_FLAGS += -lboost_thread -lboost_system|COMMON_LD_FLAGS += -lboost_thread -lboost_system|g' makefile.algebras
+sed -i '340s|#COMMON_LD_FLAGS += -lboost_thread|COMMON_LD_FLAGS += -lboost_thread|g' makefile.algebras
 sed -i '343s|#COMMON_LD_FLAGS += -lboost_chrono|COMMON_LD_FLAGS += -lboost_chrono|g' makefile.algebras
 
 sed -i 's|#ALGEBRA_DIRS  += DFS|ALGEBRA_DIRS  += DFS|g' makefile.algebras
@@ -59,10 +68,7 @@ sed -i 's|#ALGEBRAS     += MONTreeAlgebra|ALGEBRAS     += MONTreeAlgebra|g' make
 
 #sed -i 's|# DEFAULTCCFLAGS += -DSM_FILE_ID|DEFAULTCCFLAGS += -DSM_FILE_ID|g' secondo/makefile.env
 
-# Link our debian files to the package
-if [ ! -h debian ]; then
-   rmdir debian
-   ln -s ../debian debian
-fi 
-
 dpkg-buildpackage -rfakeroot -nc -b
+
+cp -av ../secondo*ubuntu* /volume
+

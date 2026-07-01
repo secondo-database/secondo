@@ -3,7 +3,7 @@
 #include <boost/thread/condition.hpp>
 #include <boost/thread/thread.hpp>
 #include <boost/call_traits.hpp>
-#include <boost/bind.hpp>
+#include <boost/bind/bind.hpp>
 
 
 template <class T>

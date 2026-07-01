@@ -840,7 +840,7 @@ destructor
 
 */
 template<class timeType>
-NNSegTree<timeType>::~NNSegTree<timeType>()
+NNSegTree<timeType>::~NNSegTree()
 {
   makeEmpty( sroot );
 }

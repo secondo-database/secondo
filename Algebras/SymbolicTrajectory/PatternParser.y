@@ -91,7 +91,7 @@ char* errMsg;
   class ExprList* el;
 }
 
-%name-prefix "pattern"
+%define api.prefix {pattern}
 
 %token ZZEND
 %token<text> ZZVARIABLE ZZCONTENTS ZZWILDCARD ZZDOUBLESLASH ZZVAR_DOT_TYPE ZZCOMMA
@@ -298,14 +298,14 @@ expression : ZZVAR_DOT_TYPE {
                string list;
                list.append(exprList.exprs.back());
                $$ = Tools::convert(list);
-               exprList.exprs.erase(exprList.exprs.end());
+               exprList.exprs.pop_back();
 /*                cout << "expressionlistparentheses reads " << $$ << endl; */
              }
            | expressionlistbrackets {
                string list;
                list.append(exprList.exprs.back());
                $$ = Tools::convert(list);
-               exprList.exprs.erase(exprList.exprs.end());
+               exprList.exprs.pop_back();
 /*                cout << "expressionlistbrackets reads " << $$ << endl; */
              }
            ;

@@ -49,7 +49,7 @@ char* result;
 
 %}
 
-%name-prefix "dateconv"
+%define api.prefix {dateconv}
 %token NUMBER MONTH
 %%
 

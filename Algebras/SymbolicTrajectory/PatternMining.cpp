@@ -1537,8 +1537,15 @@ void FPTree::mineTree(vector<unsigned int>& initLabels,
   Class ~FPTree~, Function ~retrievePatterns~
 
 */
-void FPTree::retrievePatterns(const unsigned int minNoAtoms, 
+void FPTree::retrievePatterns(const unsigned int minNoAtoms,
                               const unsigned int maxNoAtoms) {
+  // Keep the shared aggregator's atom bounds in sync. FPTree::initialize() is
+  // called for every conditional tree during mining and resizes the shared
+  // checkedSeqs vector to agg->maxNoAtoms + 1. If agg->maxNoAtoms were left at
+  // its default (0), that would shrink checkedSeqs below the maxNoAtoms + 1
+  // slots that collectPatternsFromSeq() indexes, corrupting the heap.
+  agg->minNoAtoms = minNoAtoms;
+  agg->maxNoAtoms = maxNoAtoms;
   if (minNoAtoms == 1) {
     string pattern, atom;
     set<TupleId> commonTupleIds;

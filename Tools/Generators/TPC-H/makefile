@@ -25,7 +25,10 @@ endif
 #
 # add -EDTERABYTE if orderkey will execeed 32 bits (SF >= 300)
 # and make the appropriate change in gen_schema() of runit.sh
-CFLAGS	= -O -DDBNAME=\"dss\" -D$(MACHINE) -D$(DATABASE) -D$(WORKLOAD) $(posix)
+# -std=gnu17: this legacy TPC-H dbgen code relies on pre-C23 semantics where an
+# empty parameter list () means "unspecified arguments" (needed for the tdefs[]
+# function-pointer table). GCC 15 defaults to C23, which breaks it.
+CFLAGS	= -std=gnu17 -O -DDBNAME=\"dss\" -D$(MACHINE) -D$(DATABASE) -D$(WORKLOAD) $(posix)
 LDFLAGS = -O
 # The OBJ,EXE and LIB macros will need to be changed for compilation under
 #  Windows NT

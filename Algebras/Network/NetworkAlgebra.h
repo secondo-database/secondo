@@ -127,9 +127,9 @@ template <class Value>
 class Entry
 {
 public:
-  Entry<Value>(){};
+  Entry(){};
 
-  Entry<Value>(const Value val, const int left = -1, const int right = -1):
+  Entry(const Value val, const int left = -1, const int right = -1):
       value(val), leftSonIndex(left), rightSonIndex(right) {};
 
   ~Entry(){};
@@ -193,12 +193,12 @@ class SortedTree {
 
 public:
 
-  SortedTree<TreeEntry>():tree(0) {
+  SortedTree():tree(0) {
     freePos = 0;
     numOfElements = 0;
   };
 
-  SortedTree<TreeEntry>(const int n): tree(n){
+  SortedTree(const int n): tree(n){
     freePos = 0;
     numOfElements = 0;
   };

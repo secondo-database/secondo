@@ -190,7 +190,7 @@ template<class E> class BinTreeNode
 {
 public:
 
-   BinTreeNode<E>() {};
+   BinTreeNode() {};
    E GetEntry()                         { return entry;}
    void SetEntry(const E& newentry)     { entry.Set(newentry); }
    BinTreeNode<E>* GetNext()            { return Next; }
@@ -225,8 +225,8 @@ last entrie of the tree (used in the priority queue)
 template<class E> class BinTree
 {
 public:
-   BinTree<E>();
-   ~BinTree<E>();
+   BinTree();
+   ~BinTree();
    // different function to insert entries in the tree
    BinTreeNode<E>* Insert(const E &entry, const Coord x);
    BinTreeNode<E>* Insert(const E &entry,const Coord x,Segment sgs[]);
