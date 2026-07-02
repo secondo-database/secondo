@@ -28,29 +28,24 @@ jobs:
         working-directory: Tools/usingcheck
         run: make
 
-      - uses: nrwl/last-successful-commit-action@v1
-        id: last_successful_commit_push
-        with:
-          branch: ${{ steps.branch-name.outputs.current_branch }} # Get the last successful commit for the current branch.
-          workflow_id: 'format.yml'
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Get changed C/C++ files
-        id: changed-files-specific
-        uses: tj-actions/changed-files@v33
-        with:
-           base_sha: ${{ steps.last_successful_commit_push.outputs.commit_hash }}
-
-      - name: Process all modified source files
+      - name: Process all source files modified in the last 2 weeks
         run: |
           export PATH=$PATH:$GITHUB_WORKSPACE/Tools/usingcheck
           export PATH=$PATH:$GITHUB_WORKSPACE/Tools/pd
           export PD_HEADER=$GITHUB_WORKSPACE/Tools/pd/pd.header
-          for file in ${{ steps.changed-files-specific.outputs.all_modified_files }}; do
+          base_sha=$(git rev-list -1 --before="2 weeks ago" HEAD)
+          if [ -z "$base_sha" ]; then
+            echo "No commit found before 2 weeks ago; nothing to check"
+            exit 0
+          fi
+          # We check just the files of the last 2 weeks, because we have non compliant code from
+          # CVS times in the repository that just executed these checks on changed files.
+          echo "Checking files changed since $base_sha"
+          git diff --name-only --diff-filter=d "$base_sha" HEAD | while read -r file; do
             echo "$file was modified"
             if [[ $file == *.h ]] || [[ $file == *.hpp ]] || [[ $file == *.c ]] || [[ $file == *.cpp ]]; then
-              ./Tools/usingcheck/usingcheck $file
-              ./Tools/pd/checkpd --strong $file
+              ./Tools/usingcheck/usingcheck "$file"
+              ./Tools/pd/checkpd --strong "$file"
             fi
           done
 
