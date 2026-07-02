@@ -61,7 +61,7 @@ jobs:
 
       - name: Cache SECONDO object files 
         id: cache-secondo-objects
-        uses: actions/cache@v3
+        uses: actions/cache@v6
         with:
           path: ~/build_cache
           key: ${{ matrix.os }}-build-${{ hashFiles('makefile.algebras.cibuild') }}
