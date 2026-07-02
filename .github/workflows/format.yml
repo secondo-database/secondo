@@ -48,6 +48,11 @@ jobs:
           # the loop; a pipe would run the loop in a subshell.
           while read -r file; do
             echo "$file was modified"
+            # Tools/Generators is excluded from these checks.
+            if [[ $file == Tools/Generators/* ]]; then
+              echo "Skipping $file (Tools/Generators is excluded)"
+              continue
+            fi
             if [[ $file == *.h ]] || [[ $file == *.hpp ]] || [[ $file == *.c ]] || [[ $file == *.cpp ]]; then
               if ! output=$(./Tools/usingcheck/usingcheck "$file" 2>&1); then
                 echo "$output"
