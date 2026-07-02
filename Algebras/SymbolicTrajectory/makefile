@@ -24,8 +24,6 @@ ALGEBRA_DEPENDENCIES := TrieAlgebra
 # inlcude global definitions
 include ../../makefile.env
 
-
-
 # expand compile flags if necessary
 CCFLAGS += -Werror
 PARSEFLAGS = -std=c++17
@@ -42,19 +40,9 @@ all: check_dependencies $(OBJECTS) $(LIBOBJ)
 check_dependencies:
 	$(check-algebra-dependencies)
 
-
-# include pre-computed dependencies
-ifneq ($(MAKECMDGOALS),clean)
--include $(DEP_FILES)
-endif
-
-.PHONY: deps
-deps: $(DEP_FILES)
-
 # generic rule for creating a library
 $(LIBOBJ): $(OBJECTS)
 	$(create-lib)
-
 
 scan.o: lex.pattern.c
 	        $(CPPC) -c -fPIC -ggdb -o $@ $< $(DEFAULTCCFLAGS)
@@ -64,7 +52,6 @@ lex.pattern.c: $(BASE).l parse.o
 
 parse.o: $(BASE).tab.c
 	        $(CPPC) -c $(PARSEFLAGS) -fPIC -ggdb -o $@ $< -lstd -I ../../include -I ../../Tools/ListsAndTables -I $(BDB_INCLUDE_DIR) $(ALL_ALGEBRA_DIR_INCLUDE_FLAGS)  $(DEFAULTCCFLAGS)
-
 
 $(BASE).tab.c: $(BASE).y
 	        bison -v -d $(BASE).y
@@ -81,12 +68,9 @@ PatternRegExParser.o:  PatternRegExParser.y.c
 PatternRegExParser.y.c: PatternRegExParser.y
 	$(YACC) -d -o $@ $<
 
-
 # generic rule for cleaning all generated files
 .PHONY: clean
 clean:
 	$(clean-algebra)
 	rm -f $(BASE).tab.c parse.o lex.pattern.c scan.o PatternRegExParser.o PatternRegExScanner.o mini $(BASE).tab.h $(BASE).output PatternRegExParser.y.c PatternRegExScanner.c PatternRegExParser.y.h
-
-
 

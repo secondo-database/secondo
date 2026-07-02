@@ -23,12 +23,10 @@
 #
 ########################################################################
 
-
 CURRENT_ALGEBRA := SpatialJoinTOUCHAlgebra
 
 #this algebra depends only on the StandardAlgebra
 ALGEBRA_DEPENDENCIES :=  StandardAlgebra
-
 
 # include global definitions
 include ../../makefile.env
@@ -51,15 +49,6 @@ check_dependencies:
 # OBJECTS and LIBOBJ are computed automatically by makefile.env
 .PHONY: all
 all: $(OBJECTS) $(LIBOBJ)
-
-# include pre-computed dependencies
-ifneq ($(MAKECMDGOALS),clean)
--include $(DEP_FILES)
-endif
-
-.PHONY: deps
-deps: $(DEP_FILES)
-
 
 # generic rule for creating a library
 $(LIBOBJ): $(OBJECTS)

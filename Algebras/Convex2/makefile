@@ -23,28 +23,16 @@
 #
 ########################################################################
 
-
-
 # inlcude global definitions
 include ../../makefile.env
 
 # expand compile flags if necessary
 CCFLAGS +=   -Werror
 
-
 # create objects and algebra library. The values for the variables
 # OBJECTS and LIBOBJ are computed automatically by makefile.env 
 .PHONY: all
 all: $(OBJECTS) $(LIBOBJ)
-
-# include pre-computed dependencies
-ifneq ($(MAKECMDGOALS),clean)
--include $(DEP_FILES)
-endif
-
-.PHONY: deps
-deps: $(DEP_FILES)
-
 
 # generic rule for creating a library
 $(LIBOBJ): $(OBJECTS)

@@ -17,13 +17,11 @@
 #along with SECONDO; if not, write to the Free Software
 #Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-
 ########################################################################
 #
 # makefile for the TrajectorySimilarityAlgebra module
 #
 ########################################################################
-
 
 CURRENT_ALGEBRA := TrajectorySimilarityAlgebra
 
@@ -33,7 +31,6 @@ ALGEBRA_DEPENDENCIES := \
 	SpatialAlgebra \
 	TemporalAlgebra \
 	SymbolicTrajectoryBasicAlgebra
-
 
 # Include global definitions.
 include ../../makefile.env
@@ -48,16 +45,6 @@ all: check_dependencies $(OBJECTS) $(LIBOBJ)
 
 check_dependencies:
 	$(check-algebra-dependencies)
-
-
-# Include pre-computed dependencies.
-ifneq ($(MAKECMDGOALS),clean)
--include $(DEP_FILES)
-endif
-
-.PHONY: deps
-deps: $(DEP_FILES)
-
 
 # Generic rule for creating a library.
 $(LIBOBJ): $(OBJECTS)

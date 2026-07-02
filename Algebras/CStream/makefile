@@ -34,8 +34,6 @@ CCFLAGS += $(ALG_INC_DIRS)
 
 CCFLAGS += -Werror 
 
-
-
 # create objects and algebra library. The values for the variables
 # OBJECTS and LIBOBJ are computed automatically by makefile.env 
 .PHONY: all
@@ -43,15 +41,6 @@ all: check_dependencies $(OBJECTS) $(LIBOBJ)
 
 check_dependencies:
 	$(check-algebra-dependencies)
-
-# include pre-computed dependencies
-ifneq ($(MAKECMDGOALS),clean)
--include $(DEP_FILES)
-endif
-
-.PHONY: deps
-deps: $(DEP_FILES)
-
 
 # generic rule for creating a library
 $(LIBOBJ): $(OBJECTS)

@@ -38,11 +38,10 @@ APPLICATIONS =\
 	$(BINDIR)/SecondoCheckpoint$(EXEEXT)
 
 ifneq ($(platform),win32)
-DEP_FILES := $(filter-out Win32Socket%, $(DEP_FILES))
+CPP_FILES := $(filter-out Win32Socket%, $(CPP_FILES))
 else
-DEP_FILES := $(filter-out UnixSocket%, $(DEP_FILES))
+CPP_FILES := $(filter-out UnixSocket%, $(CPP_FILES))
 endif
-
 
 .PHONY: all
 all: $(OBJECTS) $(LIBDIROBJECTS)
@@ -50,9 +49,16 @@ all: $(OBJECTS) $(LIBDIROBJECTS)
 .PHONY: buildapp
 buildapp: $(APPLICATIONS)
 
+# Anchor the objects that are copied into $(LIBDIR) as current-directory
+# targets.  VPATH contains $(LIBDIR), so without an explicit prerequisite
+# make conflates the local X.o with the $(LIBDIR)/X.o copy target below,
+# reports a false "circular dependency" and leaves the object unbuilt.
+# The generated %.dep files used to provide this anchor; with -MMD they do
+# not exist yet on a clean build, so anchor these objects explicitly.
+$(notdir $(LIBDIROBJECTS)): %.$(OBJEXT): %.cpp
+
 $(LIBDIR)/%.$(OBJEXT): %.$(OBJEXT)
 	$(CP) $< $@
-
 
 # --- Link applications
 
@@ -77,10 +83,6 @@ $(BINDIR)/SecondoCheckpoint$(EXEEXT): $(CMSG) SecondoCheckpoint.o
 $(BINDIR)/SecondoListener$(EXEEXT): $(SECLIBFILES)
 $(BINDIR)/SecondoListener$(EXEEXT): $(CMSG) SecondoListener.o
 	$(link-app) $(COMMON_LD_FLAGS)
-
-ifneq ($(MAKECMDGOALS),clean)
--include $(DEP_FILES)
-endif
 
 .PHONY: clean
 clean:

@@ -24,6 +24,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <iostream>
 #include <string>
 
+using namespace std;
+
 void text2list( string& in, string& out, string& err );
 
 extern int xxdebug;

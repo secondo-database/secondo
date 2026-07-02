@@ -45,16 +45,13 @@ subdirs:
 	$(MAKE) -C Operators
 	$(MAKE) -C util
 
-# include pre-computed dependencies
-ifneq ($(MAKECMDGOALS),clean)
--include $(DEP_FILES)
-endif
-
-.PHONY: deps
-deps: $(DEP_FILES)
-
 # rule for creating a library
 ALL_OBJECTS = $(patsubst %.cpp,%.o,$(wildcard *.cpp Operators/*.cpp util/*.cpp))
+
+# The Operators/ and util/ objects are built by the sub-makes above
+Operators/%.o: | subdirs ;
+util/%.o: | subdirs ;
+
 $(LIBOBJ): $(ALL_OBJECTS) | subdirs $(OBJECTS)
 	$(create-lib)
 

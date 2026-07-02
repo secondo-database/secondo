@@ -82,8 +82,13 @@ ALL_TARGETS = makedirs \
 	update-config  \
 	API
 
+# The top-level build phases (makedirs -> buildlibs -> buildAlgebras ->
+# buildapps -> tests/examples/...) are sequential by nature and must not run in
+# parallel with each other.
+.NOTPARALLEL:
+
 .PHONY: all
-all: jnicheck $(ALL_TARGETS) 
+all: jnicheck $(ALL_TARGETS)
 
 .PHONY: TTY 
 TTY: kernel buildapps examples

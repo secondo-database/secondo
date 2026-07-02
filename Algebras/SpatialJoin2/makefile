@@ -22,7 +22,6 @@
 #
 ########################################################################
 
-
 #CURRENT_ALGEBRA := SpatialJoin2Algebra
 
 #ALGEBRA_DEPENDENCIES := StandardAlgebra
@@ -32,8 +31,6 @@
 #ALGEBRA_DEPENDENCIES += RectangleAlgebra
 #ALGEBRA_DEPENDENCIES += ExtRelationAlgebra
 #ALGEBRA_DEPENDENCIES += MMRTreeAlgebra
-
-
 
 # inlcude global definitions
 include ../../makefile.env
@@ -46,18 +43,8 @@ CCFLAGS += -Werror
 .PHONY: all
 all: check_dependencies $(OBJECTS) $(LIBOBJ)
 
-
 check_dependencies:
 	$(check-algebra-dependencies)
-
-
-# include pre-computed dependencies
-ifneq ($(MAKECMDGOALS),clean)
--include $(DEP_FILES)
-endif
-
-.PHONY: deps
-deps: $(DEP_FILES)
 
 # generic rule for creating a library
 $(LIBOBJ): $(OBJECTS)

@@ -23,9 +23,7 @@
 #
 ########################################################################
 
-
 CURRENT_ALGEBRA := Distributed2Algebra
-
 
 ALGEBRA_DEPENDENCIES := StandardAlgebra
 ALGEBRA_DEPENDENCIES += RelationAlgebra
@@ -34,11 +32,8 @@ ALGEBRA_DEPENDENCIES += ArrayAlgebra
 ALGEBRA_DEPENDENCIES += FTextAlgebra
 ALGEBRA_DEPENDENCIES += DFSAlgebra
 
-
-
 # include global definitions
 include ../../makefile.env
-
 
 # expand compile flags if necessary
 CCFLAGS += -Werror 
@@ -52,15 +47,6 @@ all: check_dependencies $(OBJECTS) $(LIBOBJ)
 check_dependencies:
 	$(check-algebra-dependencies)
 
-
-# include pre-computed dependencies
-ifneq ($(MAKECMDGOALS),clean)
--include $(DEP_FILES)
-endif
-.PHONY: deps
-deps: $(DEP_FILES)
-
-
 # generic rule for creating a library
 $(LIBOBJ): $(OBJECTS)
 	$(create-lib)
@@ -70,5 +56,4 @@ $(LIBOBJ): $(OBJECTS)
 clean:
 	$(clean-algebra)
 	rm -f *.dep *.o
-
 

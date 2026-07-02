@@ -83,7 +83,6 @@ FLOB := $(SECONDO_BUILD_DIR)/Tools/Flob/FlobManager.o
 
 CS_OBJECTS :=   MainTTYCS.o SecondoInterfaceCS.o
 
-
 APP_LIB := ../lib/libappCommon.$(LIBEXT)
 
 APPLICATIONS := $(addsuffix $(EXEEXT), $(APPLICATIONS))
@@ -116,13 +115,11 @@ entropy:
 clean:
 	$(RM) *.dep $(APPLOBJECTS) $(APPLICATIONS) $(ENTROPY_OBJ) $(DEP_FILES)
 
-
 #
 # RULES SECTION
 #
 # create dependencies from include directives
 
-CCFLAGS += $(DEFAULTCCFLAGS)
 
 # NVK ADDED MA
 MEMORY_ALLOCATION := true
@@ -146,7 +143,6 @@ SecondoPL.$(OBJEXT): $(ENTROPY_OBJ) $(MO_OBJECTS)
 %.$(OBJEXT): %.cpp
 	$(CC) -c -o $@ $< $(CCFLAGS) $(JNIINCLUDE) $(MAFLAGS)
 
-
 # Rules for linkage
 #
 # Note: Currently, the SecondoInterface depends on a static function of the relation
@@ -160,7 +156,6 @@ $(BINDIR)/Secondo$(SMIUP)$(EXEEXT): $(SECLIBFILES) $(ALGLIBFILES) $(JNILIBFILES)
 $(BINDIR)/Secondo$(SMIUP)$(EXEEXT): MainTTY.o $(APP_LIB) $(ALG_LIST) $(FLOB) $(PL_OBJECTS)
 	$(LD) $(EXEFLAGS) $(LDFLAGS) $(LDJNIFLAGS) $(PROFILERFLAGS) $(LIBXML2) -o $@ $(filter %.o, $^) -lappCommon -lsdbutils $(MAFLAGS) -lm $(LD_LINK_LIBS_ALG) $(RL_LD_FLAG) $(PLLDFLAGS) 
 
-
 # The TTY-Clients, they use special implementations of SecondoInterface and don't
 # need the algebra libs.
 # 
@@ -168,7 +163,3 @@ $(BINDIR)/SecondoCS$(EXEEXT): $(SECLIBFILES) $(FLOB)
 $(BINDIR)/SecondoCS$(EXEEXT): $(CS_OBJECTS) $(APP_LIB) $(PL_OBJECTS) $(FLOB)
 	$(LD) $(EXEFLAGS) $(LDFLAGS) $(PROFILERFLAGS) -o $@ $(filter %.o, $^) -lappCommon -lsdbutils $(MAFLAGS) -lm $(OPTLIB_LIBS) $(LD_LINK_LIBS) $(RL_LD_FLAG) $(PLLDFLAGS)
 
-
-ifneq ($(MAKECMDGOALS),clean)
-include $(DEP_FILES:.cpp=.dep)
-endif

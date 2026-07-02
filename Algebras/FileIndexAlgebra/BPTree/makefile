@@ -35,11 +35,6 @@ ALGEBRA_DEPENDENCIES += FileIndexAlgebra
 .PHONY: all
 all: $(OBJECTS)
 
-# include pre-computed dependencies
-ifneq ($(MAKECMDGOALS),clean)
--include $(DEP_FILES)
-endif
-
 # generic rule for cleaning all generated files
 .PHONY: clean
 clean:

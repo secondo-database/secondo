@@ -17,9 +17,6 @@
 #along with SECONDO; if not, write to the Free Software
 #Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-
-
-
 # include global definitions
 include ../../../makefile.env
 
@@ -36,18 +33,8 @@ baltest: btest.o ../BalancedCollect.cpp
 	$(MAKE) -C ..
 	g++ -o $@ $^
 
-
 crnd: crnd.o
 	g++ -o $@ $^ 
-
-# include pre-computed dependencies
-ifneq ($(MAKECMDGOALS),clean)
--include $(DEP_FILES)
-endif
-.PHONY: deps
-deps: $(DEP_FILES)
-
-
 
 # generic rule for cleaning all generated files
 .PHONY: clean

@@ -37,7 +37,6 @@ include ../../makefile.env
 # expand compile flags if necessary
 CCFLAGS += -Werror
 
-
 # create objects and algebra library. The values for the variables
 # OBJECTS and LIBOBJ are computed automatically by makefile.env 
 .PHONY: all
@@ -46,16 +45,6 @@ all: check_dependencies $(OBJECTS) $(LIBOBJ)
 check_dependencies:
 	$(check-algebra-dependencies)
 
-
-# include pre-computed dependencies
-ifneq ($(MAKECMDGOALS),clean)
--include $(DEP_FILES)
-endif
-
-.PHONY: deps
-deps: $(DEP_FILES)
-
-
 SOURCES := $(shell find $(SRCDIR) -name "*.cpp")
 OBJECTS := $(patsubst %.cpp, %.o, $(SOURCES))
 
@@ -63,7 +52,6 @@ OBJECTS := $(patsubst %.cpp, %.o, $(SOURCES))
 $(LIBOBJ): $(OBJECTS) 
 	$(MAKE) -C ../Pointcloud/lasreader all
 	$(create-lib) ../Pointcloud/lasreader/*.o ../Pointcloud/lasreader/prjconvert/*.o
-
 
 # generic rule for cleaning all generated files
 .PHONY: clean

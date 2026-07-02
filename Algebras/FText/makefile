@@ -23,17 +23,13 @@
 #
 ########################################################################
 
-
 CURRENT_ALGEBRA := FTextAlgebra
-
 
 ALGEBRA_DEPENDENCIES := StandardAlgebra
 ALGEBRA_DEPENDENCIES += RelationAlgebra
 ALGEBRA_DEPENDENCIES += FunctionAlgebra
 ALGEBRA_DEPENDENCIES += StreamAlgebra
 ALGEBRA_DEPENDENCIES += TupleIdentifierAlgebra
-
-
 
 # include global definitions
 include ../../makefile.env
@@ -52,16 +48,6 @@ all: check_dependencies $(OBJECTS) $(LIBOBJ)
 check_dependencies:
 	$(check-algebra-dependencies)
 
-
-# include pre-computed dependencies
-ifneq ($(MAKECMDGOALS),clean)
--include $(DEP_FILES)
-endif
-
-.PHONY: deps
-deps: $(DEP_FILES)
-
-
 RegExScanner.o: RegExScanner.c
 	$(CC) $(CCFLAGS) -fPIC -c  -I../../include -o RegExScanner.o RegExScanner.c
 
@@ -73,7 +59,6 @@ RegExParser.o:  RegExParser.y.c
 
 RegExParser.y.c: RegExParser.y 
 	$(YACC) -d -o RegExParser.y.c RegExParser.y
-
 
 # generic rule for creating a library
 $(LIBOBJ): $(OBJECTS)

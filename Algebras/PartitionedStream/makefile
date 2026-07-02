@@ -32,14 +32,7 @@ CCFLAGS += -DTRACE_ON -Werror
 # create objects and algebra library. The values for the variables
 # OBJECTS and LIBOBJ are computed automatically by makefile.env 
 .PHONY: all
-all: $(DEP_FILES) $(OBJECTS) $(LIBOBJ)
-
-# include pre-computed dependencies
-ifneq ($(MAKECMDGOALS),clean)
--include $(DEP_FILES)
-endif
-.PHONY: deps
-deps: $(DEP_FILES)
+all: $(OBJECTS) $(LIBOBJ)
 
 # generic rule for creating a library
 $(LIBOBJ): $(OBJECTS)

@@ -29,7 +29,6 @@ include ../../makefile.env
 # expand compile flags if necessary
 CCFLAGS += -Werror
 
-
 # create objects and library. 
 
 OBJECTS += scan.o parse.o
@@ -39,11 +38,6 @@ BASE:=OpSigParser
 
 .PHONY: all
 all: $(OBJECTS) $(LIBOBJ) makedirs 
-
-# include pre-computed dependencies
-ifneq ($(MAKECMDGOALS),clean)
--include $(DEP_FILES)
-endif
 
 # OpSigParser
 
@@ -56,22 +50,18 @@ lex.opsig.c: $(BASE).l parse.o
 parse.o: $(BASE).tab.c
 	g++ -c -fPIC -ggdb -o parse.o $(BASE).tab.c -lstd
 
-
 $(BASE).tab.c: $(BASE).y
 	bison -v -d $(BASE).y
-
 
 # generic rule for creating a library
 $(LIBOBJ): $(OBJECTS)
 	$(create-lib)
-
 
 # make also for Parsers directory
 .PHONY: makedirs
 makedirs: 
 	$(MAKE) -C OpSigParser
 	$(MAKE) -C OpSpecParser
-
 
 # generic rule for cleaning all generated files
 .PHONY: clean

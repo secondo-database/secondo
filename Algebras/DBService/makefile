@@ -23,7 +23,6 @@
 #
 ########################################################################
 
-
 CURRENT_ALGEBRA := DBServiceAlgebra
 
 # include global definitions
@@ -90,15 +89,6 @@ test: check_dependencies $(OBJECTS) $(LIBOBJ)
 
 check_dependencies:
 	$(check-algebra-dependencies)
-
-# include pre-computed dependencies
-ifneq ($(MAKECMDGOALS),clean)
--include $(DEP_FILES)
-endif
-
-.PHONY: deps
-deps: $(DEP_FILES)
-
 
 # generic rule for creating a library
 $(LIBOBJ): $(OBJECTS)

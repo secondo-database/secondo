@@ -34,14 +34,6 @@ CCFLAGS += -Werror
 .PHONY: all
 all: $(OBJECTS) $(LIBOBJ)
 
-# include pre-computed dependencies
-ifneq ($(MAKECMDGOALS),clean)
--include $(DEP_FILES)
-endif
-
-.PHONY: deps
-deps: $(DEP_FILES)
-
 # generic rule for creating a library
 $(LIBOBJ): $(OBJECTS)
 	$(create-lib)
@@ -50,7 +42,6 @@ $(LIBOBJ): $(OBJECTS)
 .PHONY: clean
 clean: cleanpdf cleanplugin
 	$(clean-algebra)
-
 
 .PHONY: pdf
 pdf: PeriodicAlgebra.pd.dvi
@@ -63,8 +54,6 @@ PeriodicAlgebra.pd.dvi: PeriodicAlgebra.pd.tex
 
 PeriodicAlgebra.pd.tex: PeriodicAlgebra.pd
 	pd2tex $<
-
-
 
 SRCFILES = PeriodicTypes.h PeriodicSupport.h PeriodicSupport.cpp classImpl.txt SimplePoint.cpp PBBox.cpp RelInterval.cpp PInterval.cpp CompositeMove.cpp SpatialCompositeMove.cpp SubMove.cpp CSubMove.cpp PeriodicMove.cpp SpatialPeriodicMove.cpp LinearConstantMove.h LinearBoolMove.cpp LinearIntMove.cpp LinearInt9mMove.cpp LinearPointMove.cpp LinearPointsMove.cpp MRealMap.cpp MovingRealUnit.cpp TwoPoints.cpp PMSimple.h PMInt9M.cpp PMPoint.cpp PMPoints.cpp NodeTypes.h List2.h RepTree.h RepTree.cpp PeriodicAlgebra.cpp 
 
@@ -81,7 +70,6 @@ cleanpdf:
 	rm -f *.pd.*
 	rm -f PeriodicAlgebra.pd
 	$(MAKE) -C Figures clean
-
 
 .PHONY: plugin
 plugin:
@@ -108,7 +96,4 @@ cleanplugin:
 	rm -rf algebra
 	rm -rf displayClasses
 	rm -f Periodic.zip
-
-
-
 

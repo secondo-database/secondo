@@ -30,10 +30,6 @@ include ../../makefile.env
 .PHONY: all
 all:  $(OBJECTS)
 
-ifneq ($(MAKECMDGOALS),clean)
--include $(DEP_FILES)
-endif
-
 .PHONY: clean
 clean:
 	$(RM) $(OBJECTS) $(DEP_FILES) 

@@ -28,7 +28,7 @@
 include ../../makefile.env
 
 MODNAME = RoseAlgebra
-CCFLAGS += $(DEFAULTCCFLAGS) $(JNIINCLUDE) $(LDFLAGS) -Werror
+CCFLAGS += $(JNIINCLUDE) $(LDFLAGS) -Werror
 
 .PHONY: all
 all: alljava allcpp
@@ -39,13 +39,6 @@ alljava:
 
 .PHONY: allcpp
 allcpp: $(OBJECTS) $(LIBOBJ)
-
-ifneq ($(MAKECMDGOALS),clean)
--include $(DEP_FILES)
-endif
-
-.PHONY: deps
-deps: $(DEP_FILES)
 
 # --- Standard Algebra C++ library ---
 
@@ -63,7 +56,4 @@ clean:
 	$(MAKE) -f makejava clean
 	$(RM) $(OBJECTS) $(DEP_FILES) $(LIBOBJ) *.class *~
 	rm -f *.o
-
-
-
 

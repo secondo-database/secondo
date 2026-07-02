@@ -38,13 +38,9 @@ CCFLAGS += -DWITH_LIBXML2_SUPPORT
 .PHONY: all
 all: $(OBJECTS) $(LIBOBJ)
 
-# include pre-computed dependencies
 #ifneq ($(MAKECMDGOALS),clean)
 #-include $(DEP_FILES)
 #endif
-
-.PHONY: deps
-deps: $(DEP_FILES)
 
 # generic rule for creating a library
 $(LIBOBJ): $(OBJECTS)

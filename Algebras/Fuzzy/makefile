@@ -28,7 +28,7 @@
 include ../../makefile.env
 
 MODNAME = FuzzyAlgebra
-CCFLAGS += $(DEFAULTCCFLAGS) $(JNIINCLUDE) $(LDFLAGS)
+CCFLAGS += $(JNIINCLUDE) $(LDFLAGS)
 
 JAVA_FILES_TMP=$(shell find fuzzyobjects -name "*.java")
 JAVA_FILES1=$(subst fuzzyobjects/,,$(JAVA_FILES_TMP))
@@ -47,14 +47,6 @@ alljava:
 .PHONY: allcpp
 allcpp: $(OBJECTS) $(LIBOBJ)
 
-ifneq ($(MAKECMDGOALS),clean)
--include $(DEP_FILES)
-endif
-
-.PHONY: deps
-deps: $(DEP_FILES)
-
-
 $(LIBOBJ): $(OBJECTS)
 ifeq ($(shared),yes)
 # ... as shared object
@@ -64,14 +56,11 @@ else
 	$(AR) -r $(LIBOBJ) $(OBJECTS)
 endif
 
-
 .PHONY: pdf
 pdf: FuzzyAlgebra.pdf
 
-
 FuzzyAlgebra.pdf: FuzzyAlgebra.pd.dvi
 	dvipdfm -p a4 -o FuzzyAlgebra.pdf FuzzyAlgebra.pd.dvi
-
 
 .PHONY: dvi
 dvi: FuzzyAlgebra.pd.dvi
@@ -90,7 +79,6 @@ FuzzyAlgebra.pd.tex: FuzzyAlgebra.cpp Appendix.pd
 
 Appendix.pd: $(JAVA_FILES_TMP)
 	sh createAppendix $(JAVA_FILES) >Appendix.pd
-
 
 .PHONY: clean
 clean:

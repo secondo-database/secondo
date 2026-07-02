@@ -27,10 +27,8 @@ include ../makefile.env
 #LIBXML2 := /opt/local/lib/libxml2.dylib
 LIBXML2 := 
 
-
 SECONDOPLMODE1 := SecondoPLMode
 SECONDOPLMODE2 := SecondoPLTTYMode
-
 
 APPLOBJECTS := \
 	SecondoTTY.$(OBJEXT) \
@@ -84,7 +82,6 @@ ifeq ($(optimizer),"true")
 ALG_LIST += SecondoPrologInterface.$(OBJEXT)
 endif
 
-
 COMMON_OBJECTS := cmsg.$(OBJEXT) SecondoInterfaceGeneral.$(OBJEXT) DisplayTTY.$(OBJEXT)
 
 TTY_OBJECTS :=   MainTTY.$(OBJEXT) SecondoInterfaceTTY.$(OBJEXT) SecondoTTY.$(OBJEXT)  TestRunner.$(OBJEXT)
@@ -92,8 +89,6 @@ TTY_OBJECTS :=   MainTTY.$(OBJEXT) SecondoInterfaceTTY.$(OBJEXT) SecondoTTY.$(OB
 FLOB := $(SECONDO_BUILD_DIR)/Tools/Flob/FlobManager.$(OBJEXT)
 
 CS_OBJECTS :=   MainTTYCS.$(OBJEXT)  SecondoInterfaceCS.$(OBJEXT) SecondoTTYCS.$(OBJEXT) TestRunnerCS.$(OBJEXT)
-
-
 
 APP_LIB := ../lib/libappCommon.$(LIBEXT)
 
@@ -128,14 +123,11 @@ clean:
 	$(RM) *.dep $(APPLOBJECTS) $(APPLICATIONS) $(ENTROPY_OBJ) $(DEP_FILES) $(PLCSOBJ)  $(CS_OBJECTS) 
 	$(MAKE) -C InteractiveQueryEditor clean
 
-
-
 #
 # RULES SECTION
 #
 # create dependencies from include directives
 
-CCFLAGS += $(DEFAULTCCFLAGS)
 
 MainTTYCS.$(OBJEXT): MainTTY.$(OBJEXT)
 MainTTYCS.$(OBJEXT): MainTTY.cpp
@@ -166,17 +158,10 @@ $(APP_LIB): $(COMMON_OBJECTS) $(BDB_OBJECTS)
 $(BINDIR)/Secondo$(SMIUP)$(EXEEXT):  $(APP_LIB) $(ALG_LIST) $(FLOB) $(PL_OBJECTS) $(TTY_OBJECTS)
 	$(LD) $(EXEFLAGS) $(LDFLAGS) $(LDJNIFLAGS) $(PROFILERFLAGS) $(LIBXML2) -o $@ $(filter %.o, $^) -lappCommon -lsdbutils $(LD_LINK_LIBS_ALG) $(RL_LD_FLAG) $(PLLDFLAGS) $(COMMON_LD_FLAGS)
 
-
 # The TTY-Clients, they use special implementations of SecondoInterface and don't
 # need the algebra libs.
 # 
 $(BINDIR)/SecondoCS$(EXEEXT): $(SECLIBFILES) $(FLOB)
 $(BINDIR)/SecondoCS$(EXEEXT): $(CS_OBJECTS) $(APP_LIB) $(PLCS_OBJECTS) $(FLOB)
 	$(LD) $(EXEFLAGS) $(LDFLAGS) $(PROFILERFLAGS) -o $@ $(filter %.o, $^) -lappCommon -lsdbutils $(OPTLIB_LIBS)   $(LD_LINK_LIBS) $(RL_LD_FLAG) $(PLLDFLAGS) $(COMMON_LD_FLAGS)
-
-
-ifneq ($(MAKECMDGOALS),clean)
--include $(DEP_FILES:.cpp=.dep)
-endif
-
 

@@ -33,13 +33,10 @@ ALGEBRA_DEPENDENCIES += StreamAlgebra
 ALGEBRA_DEPENDENCIES += FTextAlgebra
 ALGEBRA_DEPENDENCIES += TupleIdentifier
 
-
 # expand compile flags if necessary
 CCFLAGS += $(ALG_INC_DIRS) 
 
 CCFLAGS += -Werror
-
-
 
 # create objects and algebra library. The values for the variables
 # OBJECTS and LIBOBJ are computed automatically by makefile.env 
@@ -48,11 +45,6 @@ all: check_dependencies $(OBJECTS) $(LIBOBJ)
 
 check_dependencies:
 	$(check-algebra-dependencies)
-
-# include pre-computed dependencies
-ifneq ($(MAKECMDGOALS),clean)
--include $(DEP_FILES)
-endif
 
 # generic rule for creating a library
 $(LIBOBJ): $(OBJECTS)

@@ -36,14 +36,6 @@ CCFLAGS += -Werror
 .PHONY: all
 all: $(OBJECTS) $(LIBOBJ) mtree_docu
 
-# include pre-computed dependencies
-ifneq ($(MAKECMDGOALS),clean)
--include $(DEP_FILES)
-endif
-
-.PHONY: deps
-deps: $(DEP_FILES)
-
 # generic rule for creating a library
 $(LIBOBJ): $(OBJECTS)
 	$(create-lib)

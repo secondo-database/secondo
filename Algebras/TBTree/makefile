@@ -35,7 +35,6 @@ ALGEBRA_DEPENDENCIES += SpatialAlgebra
 ALGEBRA_DEPENDENCIES += TemporalAlgebra
 ALGEBRA_DEPENDENCIES += TupleIdentifierAlgebra
 
-
 # expand compile flags if necessary
 CCFLAGS +=  -Werror
 
@@ -46,15 +45,6 @@ all: check_dependencies $(OBJECTS) $(LIBOBJ)
 
 check_dependencies:
 	$(check-algebra-dependencies)
-
-
-# include pre-computed dependencies
-ifneq ($(MAKECMDGOALS),clean)
--include $(DEP_FILES)
-endif
-
-.PHONY: deps
-deps: $(DEP_FILES)
 
 # generic rule for creating a library
 $(LIBOBJ): $(OBJECTS)
@@ -70,10 +60,7 @@ PLUGINFILES = copyright.txt makefile SecondoExtension.xml TBTreeAlgebra.cpp
 PLUGINFILES += TBTreeAlgebra.spec TBTree.examples TBTree.h
 PLUGINFILES += ../../bin/tbtreetest
 
-
 .PHONY: plugin
 plugin:
 	zip -D -j TBTree.zip $(PLUGINFILES)
-
-
 
