@@ -51,7 +51,7 @@ jobs:
           echo "JPL_DLL=/usr/lib/swi-prolog/lib/x86_64-linux/libjpl.so" >> $GITHUB_ENV
 
       - name: Checkout repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
