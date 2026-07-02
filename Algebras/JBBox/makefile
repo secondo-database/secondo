@@ -31,11 +31,10 @@ include ../../makefile.env
 
 MODNAME = JBBoxAlgebra
 
-CCFLAGS += $(DEFAULTCCFLAGS) $(JNIINCLUDE)
+CCFLAGS += $(JNIINCLUDE)
 
 .PHONY: all
 all: alljava allcpp
-
 
 .PHONY: alljava
 alljava:
@@ -43,14 +42,6 @@ alljava:
 
 .PHONY: allcpp
 allcpp: $(OBJECTS) $(LIBOBJ)
-
-ifneq ($(MAKECMDGOALS),clean)
--include $(DEP_FILES)
-endif
-
-.PHONY: deps
-deps: $(DEP_FILES)
-
 
 $(LIBOBJ): $(OBJECTS)
 ifeq ($(shared),yes)
@@ -60,7 +51,6 @@ else
 # ... as static library
 	$(AR) -r $(LIBOBJ) $(OBJECTS)
 endif
-
 
 .PHONY: clean
 clean:
@@ -76,13 +66,11 @@ clean:
 	$(RM) *.tex *.aux *.toc *.pd *.dvi *.pdf *.log *.tmp
 	$(RM) $(DEP_FILES)
 
-
 .PHONY: pdf
 pdf: JBBoxAlgebra.pdf
 
 JBBoxAlgebra.pdf: JBBoxAlgebra.pd.dvi
 	dvipdfm -p a4 -o JBBoxAlgebra.pdf JBBoxAlgebra.pd.dvi
-
 
 .PHONY: pd
 pd: JBBoxAlgebra.pd.dvi

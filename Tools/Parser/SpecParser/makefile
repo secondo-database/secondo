@@ -31,7 +31,6 @@ include ../../../makefile.env
 
 DEP_FILES += SpecParser.tab.dep
 
-CCFLAGS += $(DEFAULTCCFLAGS)
 
 OBJECTS := NestedText.o lex.yy.o lex2.yy.o 
 GENFILES := lex.yy.cpp lex2.yy.cpp SpecParser.tab.cpp 
@@ -46,6 +45,10 @@ lex2.yy.cpp: SpecLex.l
 
 SpecParser.tab.cpp: SpecParser.y
 	$(YACC) -d -o $@ $<
+
+# lex.yy.cpp / lex2.yy.cpp include the bison-generated SpecParser.tab.hpp,
+# which is produced as a side effect of SpecParser.tab.cpp.
+lex.yy.o lex2.yy.o: | SpecParser.tab.cpp
 
 Parser$(EXEEXT): SpecParser.tab.o lex.yy.o NestedText.o
 	$(CXX) -o Parser$(EXEEXT) $^ $(CCFLAGS) $(COMMON_LD_FLAGS)

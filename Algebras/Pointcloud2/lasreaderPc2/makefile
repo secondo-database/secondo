@@ -36,12 +36,6 @@ CCFLAGS += -Werror
 all: $(OBJECTS) $(LIBOBJ)
 	$(MAKE) -C prjconvert all
 
-
-# include pre-computed dependencies
-ifneq ($(MAKECMDGOALS),clean)
--include $(DEP_FILES)
-endif
-
 # generic rule for creating a library
 $(LIBOBJ): $(OBJECTS)
 

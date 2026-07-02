@@ -39,14 +39,6 @@ all: $(OBJECTS) $(LIBOBJ)
 librip/lib/librip.a:
 	$(MAKE) -C librip
 
-# include pre-computed dependencies
-ifneq ($(MAKECMDGOALS),clean)
--include $(DEP_FILES)
-endif
-
-.PHONY: deps
-deps: $(DEP_FILES)
-
 # generic rule for creating a library
 $(LIBOBJ): $(OBJECTS) librip/lib/librip.a
 	$(MAKE) -C librip

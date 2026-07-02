@@ -26,11 +26,9 @@
 # inlcude global definitions
 include ../../makefile.env
 
-
 CURRENT_ALGEBRA := KafkaAlgebra
 ALGEBRA_DEPENDENCIES := StandardAlgebra
 ALGEBRA_DEPENDENCIES += RelationAlgebra
-
 
 # expand compile flags if necessary
 ADDINCLUDES := -I$(BUILDDIR)/Algebras/Kafka/include
@@ -46,30 +44,14 @@ all: check_dependencies $(OBJECTS) $(LIBOBJ)
 check_dependencies:
 	$(check-algebra-dependencies)
 
-
-# include pre-computed dependencies
-ifneq ($(MAKECMDGOALS),clean)
--include $(DEP_FILES)
-endif
-
-.PHONY: deps
-deps: $(DEP_FILES)
-
-
 # generic rule for creating a library
 $(LIBOBJ): $(OBJECTS)
 	$(create-lib)
-
-
-
 
 doc: GuideAlgebra.pdf
 
 GuideAlgebra.pdf: title.pdf GuideAlgebra.doc.pdf
 	pdftk title.pdf GuideAlgebra.doc.pdf cat output GuideAlgebra.pdf
-
-
-
 
 title.pdf: title.ps
 	ps2pdf $<
@@ -80,10 +62,8 @@ title.ps: title.dvi
 title.dvi: title.tex
 	latex $<
 
-
 GuideAlgebra.doc.pdf: GuideAlgebra.doc
 	pd2pdf $<
-
 
 GuideAlgebra.doc: GuideAlgebra.cpp SpecificationDescription.pd Guide.spec ExampleFile.pd TestRunner.pd Guide.examples makefile
 	@echo "Concatenate documentation file"
@@ -107,10 +87,7 @@ GuideAlgebra.doc: GuideAlgebra.cpp SpecificationDescription.pd Guide.spec Exampl
 	@echo "*/" >> $@
 	@cat TestRunner.pd >>$@	
 
-
 	
-
-
 
 # generic rule for cleaning all generated files
 .PHONY: clean

@@ -39,11 +39,6 @@ buildlibs: $(LIBNAME).$(LIBEXT)
 $(LIBDIR)/libsmibdb.$(LIBEXT): $(OBJECTS)
 	$(create-lib)
 
-
-ifneq ($(MAKECMDGOALS),clean)
--include $(DEP_FILES)
-endif
-
 .PHONY: clean
 clean:
 	$(RM) $(DEP_FILES) $(OBJECTS) $(LIBDIR)/$(LIBNAME).$(LIBEXT)

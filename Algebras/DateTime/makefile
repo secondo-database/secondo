@@ -30,7 +30,6 @@ CURRENT_ALGEBRA := DateTimeAlgebra
 ALGEBRA_DEPENDENCIES := StandardAlgebra
 ALGEBRA_DEPENDENCIES += FTextAlgebra
 
-
 # expand compile flags if necessary
 CCFLAGS += -Werror 
 
@@ -44,16 +43,6 @@ all:  check_dependencies  $(OBJECTS) $(LIBOBJ)
 check_dependencies:
 	$(check-algebra-dependencies)
 
-
-# include pre-computed dependencies
-ifneq ($(MAKECMDGOALS),clean)
--include $(DEP_FILES)
-endif
-
-.PHONY: deps
-deps: $(DEP_FILES)
-
-
 # generic rule for creating a library
 $(LIBOBJ): $(OBJECTS)
 	$(create-lib)
@@ -63,8 +52,6 @@ $(LIBOBJ): $(OBJECTS)
 clean: cleanpdf
 	$(clean-algebra)
 	rm -f 	dateconvertparser.c  dateconvertparser.h dateconvertscan.c
-
-
 
 dateconvscan.o: dateconvertscan.c
 	$(CC) -c -fPIC  -o $@ $<
@@ -78,7 +65,6 @@ dateconvertparser.c: dateconvert.y
 dateconvertscan.c:  dateconvert.l dateconvertparser.c
 	$(LEX) -o $@ $<
 
-
 .PHONY:pdf
 pdf: DateTimeAlgebra.pdf
 
@@ -87,7 +73,6 @@ DateTimeAlgebra.pdf: DateTimeAlgebra.pd.dvi
 
 .PHONY:dvi
 dvi: DateTimeAlgebra.pd.dvi
-
 
 DateTimeAlgebra.pd.dvi: DateTimeAlgebra.pd.tex
 	latex DateTimeAlgebra.pd.tex
@@ -99,9 +84,7 @@ DateTimeAlgebra.pd.tex: DateTimeAlgebra.cpp ../../include/DateTime.h
 	pd2tex DateTimeAlgebra.pd
 	$(RM) DateTimeAlgebra.pd
 
-
 .PHONY: cleanpdf
 cleanpdf:
 	$(RM) *.toc *.log *.tex *.dvi *.aux *.pdf
-
 

@@ -52,7 +52,6 @@ include ../../../makefile.env
 # Prefetch Iterator
 #TESTNAMES += tprefetch
 
-
 # Base64 encoding
 #TESTNAMES += base64encoder
 
@@ -77,20 +76,11 @@ ifndef file
 endif
 
 CC := g++
-CCFLAGS := -I../../../StorageManager -I../../../Algebras/TupleIdentifier $(DEFAULTCCFLAGS) $(myflags) -Werror
+CCFLAGS += -I../../../StorageManager -I../../../Algebras/TupleIdentifier $(myflags) -Werror
 LIBS := ../../../UserInterfaces/cmsg.o $(LD_LINK_LIBS)
 
 .PHONY: all 
 all:  $(OBJECTS)
-
-
-# create dependencies from include directives
-%.dep: %.cpp
-	$(CC) -MM $(CCFLAGS) $< > $@
-
-
-%.o: %.cpp
-	$(CC) -c -o $@ $(CCFLAGS) $< 
 
 # default rule for linking
 %$(EXEEXT): %.o
@@ -108,7 +98,6 @@ endif
 #	$(LD) $(DLLFLAGS) -o libtdynlib1.$(DLLEXT) $(LDOPT1) tdynlib1.$(DLLOBJEXT) -L$(LIBDIR) $(TOOLLIB) $(DEFAULTLIB)
 #	$(LD) $(DLLFLAGS) -o libtdynlib2.$(DLLEXT) $(LDOPT2) tdynlib2.$(DLLOBJEXT) -L. -ltdynlib1 -L$(LIBDIR) $(TOOLLIB) $(DEFAULTLIB)
 
-
 #tdynlib1.$(DLLOBJEXT): tdynlib1.cpp
 #	$(CC) -c $(DLLPICFLAG) -o tdynlib1.$(DLLOBJEXT) tdynlib1.cpp $(CCFLAGS)
 
@@ -116,10 +105,6 @@ endif
 #	$(CC) -c $(DLLPICFLAG) -o tdynlib2.$(DLLOBJEXT) tdynlib2.cpp $(CCFLAGS)
 
 	
-ifneq ($(MAKECMDGOALS),clean)
-include $(DEP_FILES:.cpp=.dep)
-endif
-
 .PHONY: clean
 clean:
 	$(RM) *.dep *.$(OBJEXT) $(OBJECTS) $(addprefix $(BINDIR)/,$(OBJECTS))

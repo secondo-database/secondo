@@ -33,15 +33,18 @@ all: $(OBJECTS) $(LIBOBJECTS)
 
 CCFLAGS+= $(PLINCLUDEFLAGS) $(PICFLAG) $(DEFAULTCCFLAGS) --std=c++11 $(shell pkg-config swipl --cflags) -I../Algebras/Relation-C++ -I../Algebras/TupleIdentifier
 
+# Anchor the objects that are copied into $(LIBDIR) as current-directory
+# targets.  VPATH contains $(LIBDIR), so without an explicit prerequisite
+# make conflates the local X.o with the $(LIBDIR)/X.o copy target below,
+# reports a false "circular dependency" and leaves the object unbuilt.
+# The generated %.dep files used to provide this anchor; with -MMD they do
+# not exist yet on a clean build, so anchor these objects explicitly.
+$(notdir $(LIBOBJECTS)): %.$(OBJEXT): %.cpp
+
 $(LIBDIR)/%.$(OBJEXT): %.$(OBJEXT)
 	$(CP) $< $@ 
-
-ifneq ($(MAKECMDGOALS),clean)
--include $(DEP_FILES)
-endif
 
 .PHONY: clean
 clean: 
 	$(RM) $(DEP_FILES) $(OBJECTS) $(LIBOBJECTS)
-
 

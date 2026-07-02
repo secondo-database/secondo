@@ -23,9 +23,7 @@
 #
 ########################################################################
 
-
 CURRENT_ALGEBRA := Distributed3Algebra
-
 
 ALGEBRA_DEPENDENCIES := StandardAlgebra
 ALGEBRA_DEPENDENCIES += RelationAlgebra
@@ -35,11 +33,8 @@ ALGEBRA_DEPENDENCIES += FTextAlgebra
 ALGEBRA_DEPENDENCIES += DFSAlgebra
 ALGEBRA_DEPENDENCIES += Distributed2Algebra
 
-
-
 # include global definitions
 include ../../makefile.env
-
 
 # expand compile flags if necessary
 CCFLAGS += -Werror 
@@ -58,18 +53,8 @@ all: check_dependencies $(OBJECTS) $(LIBOBJ)
 	make -C tes/MessageBroker
 	make -C tes/Helpers
 
-
 check_dependencies:
 	$(check-algebra-dependencies)
-
-
-# include pre-computed dependencies
-ifneq ($(MAKECMDGOALS),clean)
-include $(DEP_FILES)
-endif
-.PHONY: deps
-deps: $(DEP_FILES)
-
 
 # generic rule for creating a library
 $(LIBOBJ): $(OBJECTS)

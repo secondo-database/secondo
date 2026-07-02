@@ -40,14 +40,6 @@ all: $(OBJECTS) subdirs $(LIBOBJ)
 subdirs:	
 	$(MAKE) -C operators
 
-# include pre-computed dependencies
-ifneq ($(MAKECMDGOALS),clean)
--include $(DEP_FILES)
-endif
-
-.PHONY: deps
-deps: $(DEP_FILES)
-
 # rule for creating the static library
 ALL_OBJECTS = $(patsubst %.cpp,%.o,$(wildcard *.cpp */*.cpp))
 $(LIBOBJ): $(ALL_OBJECTS) | subdirs $(OBJECTS)

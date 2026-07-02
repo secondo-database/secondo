@@ -34,6 +34,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //#include "../RasterStorage.h"
 #include "Import.h"
 
+using namespace std;
+
 const string esriGridDataFile =
     "/home/fapra/workspace/ImportTest/src/esridata/w001001.adf";
 const string esriGridIndexFile =

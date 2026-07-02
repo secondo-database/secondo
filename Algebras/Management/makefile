@@ -25,17 +25,13 @@
 
 include ../../makefile.env
 
-CCFLAGS += $(DEFAULTCCFLAGS) -Werror
-ALL_OBJS = AlgebraList.i $(DEP_FILES) \
+CCFLAGS += -Werror
+ALL_OBJS = AlgebraList.i \
 	   $(LIBDIR)/AlgebraList.$(OBJEXT) Algebra.$(OBJEXT) AlgebraManager.$(OBJEXT)
 
 .PHONY: all
 all: $(ALL_OBJS) 
 	rm -f AlgebraList.i
-
-ifneq ($(MAKECMDGOALS),clean)
--include $(DEP_FILES)
-endif
 
 # After building AlgebraList.o the file AlgebraList.i will be deleted
 # this ensures that it will be rebuild for every call of make. This guarantees
@@ -55,7 +51,6 @@ AlgebraList.cpp : AlgebraList.i
 $(LIBDIR)/AlgebraList.$(OBJEXT): AlgebraList.cpp AlgebraList.i
 	$(CC) -c -o  $@ $(CCFLAGS) $<
 
-
 .PHONY: clean
-clean: 
-	$(RM) $(ALL_OBJS)
+clean:
+	$(RM) $(ALL_OBJS) $(DEP_FILES)

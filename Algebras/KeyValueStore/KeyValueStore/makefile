@@ -11,7 +11,6 @@ CCFLAGS += -I../../Spatial
 CCFLAGS += -I../../Relation-C++
 CCFLAGS += -I../../KeyValueStore
 
-CCFLAGS += $(DEFAULTCCFLAGS)
 
 #not sure
 #@chmod u+x ../bin/KeyValueStore
