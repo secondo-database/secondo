@@ -41,12 +41,32 @@ jobs:
           # We check just the files of the last 2 weeks, because we have non compliant code from
           # CVS times in the repository that just executed these checks on changed files.
           echo "Checking files changed since $base_sha"
-          git diff --name-only --diff-filter=d "$base_sha" HEAD | while read -r file; do
+          # Collect all errors and report them at the end instead of stopping
+          # at the first failing file.
+          errors=""
+          # Use process substitution (not a pipe) so that "$errors" survives
+          # the loop; a pipe would run the loop in a subshell.
+          while read -r file; do
             echo "$file was modified"
             if [[ $file == *.h ]] || [[ $file == *.hpp ]] || [[ $file == *.c ]] || [[ $file == *.cpp ]]; then
-              ./Tools/usingcheck/usingcheck "$file"
-              ./Tools/pd/checkpd --strong "$file"
+              if ! output=$(./Tools/usingcheck/usingcheck "$file" 2>&1); then
+                echo "$output"
+                errors+="usingcheck failed for $file:"$'\n'"$output"$'\n\n'
+              fi
+              if ! output=$(./Tools/pd/checkpd --strong "$file" 2>&1); then
+                echo "$output"
+                errors+="checkpd failed for $file:"$'\n'"$output"$'\n\n'
+              fi
             fi
-          done
+          done < <(git diff --name-only --diff-filter=d "$base_sha" HEAD)
+
+          if [ -n "$errors" ]; then
+            echo "=================================================="
+            echo "The following source code formatting errors were found:"
+            echo "=================================================="
+            printf '%s' "$errors"
+            exit 1
+          fi
+          echo "No source code formatting errors found"
 
 
