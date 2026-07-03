@@ -85,14 +85,17 @@ $(SPECFILE): $(SPECPARSER) $(SPECFILES)
 SecLex.cpp: SecLex.l
 	$(LEX) -Ca -d -+ -o$@ -Pxx $<
 
-# For some reasons bison may fail, even if it
-# computed some output. This may cause a subsequent
-# make to finish without errors creating an unusable
-# Secondo Parser. To avoid such situations SecParser.tab.cpp
-# will be deleted if any kind of error occurred.
-SecParser.tab.cpp SecParser.tab.hpp: SecParser.y
-	$(YACC) -d -p xx -o $@ $<; \
-	if [ $$? -ne 0 ]; then rm $@; exit 1; fi 
+# For some reasons bison may fail, even if it computed some output.  This may
+# cause a subsequent make to finish without errors creating an unusable Secondo
+# Parser.  To avoid this the outputs are deleted if any kind of error occurred.
+SecParser.tab.cpp: SecParser.y
+	$(YACC) -d -p xx -o SecParser.tab.cpp $<; \
+	if [ $$? -ne 0 ]; then rm -f SecParser.tab.cpp SecParser.tab.hpp; exit 1; fi
+SecParser.tab.hpp: SecParser.tab.cpp ;
+
+# SecLex.cpp #includes the bison-generated SecParser.tab.hpp, so it must exist
+# before the scanner is compiled.
+SecLex.$(OBJEXT): SecParser.tab.hpp
 
 SecLex.l: SecLex.l.1 lexrules SecLex.l.2
 	cat $^ > $@
@@ -105,8 +108,13 @@ ifneq ($(MAKECMDGOALS),clean)
 -include $(DEP_FILES)
 endif
 
-lexrules tokens yaccrules1 yaccrules2: $(SPECFILE) $(SPECPARSER) 
-	$(SPECPARSER) < $< 
+# One run of the spec parser produces all four files (lexrules, tokens,
+# yaccrules1, yaccrules2).  Only "lexrules" carries the recipe; the others are
+# declared to be produced alongside it, so a parallel build runs the spec
+# parser once instead of once per target.
+lexrules: $(SPECFILE) $(SPECPARSER)
+	$(SPECPARSER) < $<
+tokens yaccrules1 yaccrules2: lexrules ;
 
 .PHONY: clean
 clean:

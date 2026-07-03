@@ -46,8 +46,10 @@ OBJECTS += NLLex.$(OBJEXT) NLParser.tab.o NLParser.o
 .PHONY: all
 all: $(GENSRC) $(OBJECTS)
 
-NLParser.tab.cpp $(TOKENDEF): NLParser.y
-	$(YACC) -d -o $@ $<
+
+NLParser.tab.cpp: NLParser.y
+	$(YACC) -d -o NLParser.tab.cpp $<
+$(TOKENDEF): NLParser.tab.cpp ;
 
 NLLex.cpp: NLLex.l $(TOKENDEF)
 	$(LEX) -d -+ -Pnl -o$@ $<
