@@ -85,12 +85,8 @@ $(SPECFILE): $(SPECPARSER) $(SPECFILES)
 SecLex.cpp: SecLex.l
 	$(LEX) -Ca -d -+ -o$@ -Pxx $<
 
-# For some reasons bison may fail, even if it computed some output.  This may
-# cause a subsequent make to finish without errors creating an unusable Secondo
-# Parser.  To avoid this the outputs are deleted if any kind of error occurred.
 SecParser.tab.cpp: SecParser.y
-	$(YACC) -d -p xx -o SecParser.tab.cpp $<; \
-	if [ $$? -ne 0 ]; then rm -f SecParser.tab.cpp SecParser.tab.hpp; exit 1; fi
+	$(YACC) -d -p xx -o SecParser.tab.cpp $<
 SecParser.tab.hpp: SecParser.tab.cpp ;
 
 # SecLex.cpp #includes the bison-generated SecParser.tab.hpp, so it must exist
