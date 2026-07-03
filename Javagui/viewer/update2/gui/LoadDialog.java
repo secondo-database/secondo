@@ -79,10 +79,10 @@ public class LoadDialog extends JDialog implements ListSelectionListener
 	private Relation relRelProfiles;
 	
 	// lists
-	private DefaultListModel lmProfiles;
-	private JList lsProfiles;
-	private DefaultListModel lmRelations;
-	private JList lsRelations;
+	private DefaultListModel<String> lmProfiles;
+	private JList<String> lsProfiles;
+	private DefaultListModel<String> lmRelations;
+	private JList<String> lsRelations;
 	
 	// buttons
 	private JButton btLoadDirect;
@@ -158,15 +158,15 @@ public class LoadDialog extends JDialog implements ListSelectionListener
 		this.btRemoveRelation.setToolTipText("Remove the selected relation from the load profile");
 		
 		// profiles list
-		this.lmProfiles = new DefaultListModel();
-		this.lsProfiles = new JList();
+		this.lmProfiles = new DefaultListModel<String>();
+		this.lsProfiles = new JList<String>();
 		this.lsProfiles.setSelectionMode(ListSelectionModel.SINGLE_INTERVAL_SELECTION);
 		this.lsProfiles.addListSelectionListener(this);
 		this.lsProfiles.setVisibleRowCount(-1);
-		
+
 		// relations list
-		this.lmRelations = new DefaultListModel();
-		this.lsRelations = new JList();
+		this.lmRelations = new DefaultListModel<String>();
+		this.lsRelations = new JList<String>();
 		this.lsRelations.setSelectionMode(ListSelectionModel.SINGLE_INTERVAL_SELECTION);
 		this.lsRelations.addListSelectionListener(this);
 		this.lsRelations.setVisibleRowCount(-1);
@@ -520,7 +520,7 @@ public class LoadDialog extends JDialog implements ListSelectionListener
 		this.relRelProfiles.setAttributeReadOnly("ProfileName");
 		this.relRelProfiles.setAttributeReadOnly("RelationName");
 		
-		this.lmProfiles = new DefaultListModel();
+		this.lmProfiles = new DefaultListModel<String>();
 		for (int i = 0; i<relLoadProfiles.getTupleCount(); i++)
 		{
 			Tuple tup = relLoadProfiles.getTupleAt(i);
@@ -552,7 +552,7 @@ public class LoadDialog extends JDialog implements ListSelectionListener
 	{
 		if (e.getSource() == this.lsProfiles)
 		{
-			String profileName = (String)lsProfiles.getSelectedValue();
+			String profileName = lsProfiles.getSelectedValue();
 			
 			if (profileName != null)
 			{
@@ -561,7 +561,7 @@ public class LoadDialog extends JDialog implements ListSelectionListener
 				this.btRemoveProfile.setEnabled(true);
 				this.btAddRelation.setEnabled(true);
 				
-				this.lmRelations = new DefaultListModel();
+				this.lmRelations = new DefaultListModel<String>();
 				for (int i = 0; i<relRelProfiles.getTupleCount(); i++)
 				{
 					Tuple tup = relRelProfiles.getTupleAt(i);
