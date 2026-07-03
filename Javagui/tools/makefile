@@ -30,19 +30,19 @@ GetEnvDLL := ../lib/$(DLLPREF)GetEnv.$(JNI_DLLEXT)
 GCC := gcc
 
 
-CLASSFILES:= $(shell ls *.java | sed -e "s/java/class/")
+JAVAFILES := $(wildcard *.java)
 #CLASSFILES+=GetEnv.h GetEnv.o $(GetEnvDLL)
 
-.PHONY: all 
-all: ../secondoInterface/SecondoInterface.jar $(CLASSFILES)
+.PHONY: all
+all: ../secondoInterface/SecondoInterface.jar $(JAVA_STAMP)
 	$(MAKE) -C downloadmanager
 
 ../secondoInterface/SecondoInterface.jar:
 	$(MAKE) -C ../secondoInterface/SecondoInterface.jar
 
 
-%.class: %.java
-	$(JAVAC) -classpath $(CLASSPATH) $<
+$(JAVA_STAMP): $(JAVAFILES)
+	$(compile-java)
 
 
 #GetEnv.h: GetEnv.java
@@ -68,7 +68,7 @@ all: ../secondoInterface/SecondoInterface.jar $(CLASSFILES)
 
 .PHONY: clean
 clean:
-	rm -f *.class
+	rm -f *.class $(JAVA_STAMP)
 	$(MAKE) -C downloadmanager clean
 
 

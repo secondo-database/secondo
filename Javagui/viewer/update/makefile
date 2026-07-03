@@ -8,18 +8,16 @@ include ../../makefile.inc
 
 
 JAVAFILES =$(shell find -name "*.java")
-TMPFILES = $(subst .java,.class,$(JAVAFILES))
-CLASSFILES = $(subst ./,,$(TMPFILES))
 
 .PHONY: all
-all: $(CLASSFILES)
+all: $(JAVA_STAMP)
 	$(MAKE) -C format all
 
-%.class: %.java
-	$(JAVAC) -classpath $(CLASSPATH) $<
+$(JAVA_STAMP): $(JAVAFILES)
+	$(compile-java)
 
 
 .PHONY: clean
 clean:
-	rm -f *.class
+	rm -f *.class $(JAVA_STAMP)
 	$(MAKE) -C format clean

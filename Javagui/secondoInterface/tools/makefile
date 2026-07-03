@@ -4,20 +4,21 @@ include ../makefile.inc
 
 CLASSPATH=..
 
+JAVAFILES := $(wildcard *.java)
+
 .PHONY:all
 
-all: Base64Encoder.class Base64Decoder.class TextFormat.class Environment.class Reporter.class Encryption.class
+all: .javac-stamp
 
-
-
-
-%.class: %.java
-	$(JAVAC) -classpath $(CLASSPATH) $<
+# compile all sources with a single javac invocation instead of one per file
+.javac-stamp: $(JAVAFILES)
+	$(JAVAC) -classpath $(CLASSPATH) $?
+	@touch $@
 
 
 
 .PHONY:clean
 clean:
-	rm -rf *class
+	rm -rf *class .javac-stamp
 
 

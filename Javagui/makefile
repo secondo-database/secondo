@@ -42,6 +42,7 @@ demo:
 	@find -maxdepth 1 -not -name . -not -name Demotmp -not -name tmp -not -name osmDowloads -exec cp -r {} Demotmp \;
 	@find Demotmp -type d -name CVS -exec rm -rf {} \; 2>/dev/null || echo ""
 	@find Demotmp -name "*java" -exec rm -f {} \;
+	@find Demotmp -name ".javac-stamp" -exec rm -f {} \;
 	@echo "extract third party jar files and SecondoInterface"
 	@rm -rf Demotmp/lib
 	@cd Demotmp;find ../lib -name "*jar" -exec jar -xf {} \; ; cd ..

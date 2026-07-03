@@ -3,6 +3,7 @@
 *.dep
 *.fm
 *.class
+.javac-stamp
 *.aux
 *.log
 *.DS_Store

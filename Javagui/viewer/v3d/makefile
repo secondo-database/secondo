@@ -8,17 +8,16 @@ include ../../makefile.inc
 
 
 JAVAFILES =$(shell find -name "*.java")
-TMPFILES = $(subst .java,.class,$(JAVAFILES))
-CLASSFILES = $(subst ./,,$(TMPFILES))
+EXTRACP = $(JAVA3DCP)
 JAVA3DCP = /usr/share/java/j3dcore.jar:/usr/share/java/j3dutils.jar:/usr/share/java/vecmath.jar
 
 .PHONY: all
-all: $(CLASSFILES)
+all: $(JAVA_STAMP)
 
-%.class: %.java
-	$(JAVAC) -classpath $(CLASSPATH):$(JAVA3DCP) $<
+$(JAVA_STAMP): $(JAVAFILES)
+	$(compile-java)
 
 
 .PHONY: clean
 clean:
-	rm -f *.class
+	rm -f *.class $(JAVA_STAMP)

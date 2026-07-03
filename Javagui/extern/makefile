@@ -23,13 +23,11 @@
 
 include ../makefile.inc
 JAVAFILES =$(shell find -name "*.java")
-TMPFILES = $(subst .java,.class,$(JAVAFILES))
-CLASSFILES = $(subst ./,,$(TMPFILES))
 
 
 
 .PHONY:all
-all: subdirs $(CLASSFILES)
+all: subdirs $(JAVA_STAMP)
 
 
 .PHONY:subdirs
@@ -44,8 +42,8 @@ subdirs:
 	($(MAKE) -C gpxreader all)
 	($(MAKE) -C nl all)
 
-%.class:%.java
-	$(JAVAC) -classpath $(CLASSPATH) $<
+$(JAVA_STAMP): $(JAVAFILES)
+	$(compile-java)
 
 .PHONY: clean
 clean:
@@ -58,4 +56,4 @@ clean:
 	($(MAKE) -C psexport clean)
 	($(MAKE) -C gpxreader clean)
 	($(MAKE) -C nl clean)
-	rm -f *.class
+	rm -f *.class $(JAVA_STAMP)

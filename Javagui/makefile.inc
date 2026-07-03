@@ -100,6 +100,17 @@ ENCODING= -encoding $(SECONDO_SOURCE_ENCODING)
 endif
 
 
+# Historically every Java source was compiled by its own javac process, i.e.
+# one JVM start per file. JVM/compiler startup dominated the build time. The
+# following rule instead compiles all out-of-date sources of a directory with a
+# single javac invocation. 
+JAVA_STAMP := .javac-stamp
+
+define compile-java
+	$(JAVAC) $(JAVACFLAGS) -classpath $(CLASSPATH)$(if $(EXTRACP),:$(EXTRACP)) $(ENCODING) $?
+	@touch $@
+endef
+
 
 
 

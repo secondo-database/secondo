@@ -25,22 +25,20 @@ include ../../makefile.inc
 
 
 JAVAFILES =$(shell find -maxdepth 1 -name "*.java")
-TMPFILES = $(subst .java,.class,$(JAVAFILES))
-CLASSFILES = $(subst ./,,$(TMPFILES))
 
 
 .PHONY: all
-all: algebras $(CLASSFILES)
+all: algebras $(JAVA_STAMP)
 
 .PHONY: algebras
 algebras:
 	$(MAKE) -C algebras all
 
-%.class: %.java
-	$(JAVAC) -classpath $(CLASSPATH) $(ENCODING) $<	
+$(JAVA_STAMP): $(JAVAFILES)
+	$(compile-java)
 
 
 .PHONY: clean
 clean:
 	$(MAKE) -C algebras clean
-	rm -f *.class
+	rm -f *.class $(JAVA_STAMP)

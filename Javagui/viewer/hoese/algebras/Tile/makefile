@@ -23,16 +23,14 @@ include ../../../../makefile.inc
 
 
 JAVAFILES =$(shell find -maxdepth 1  -name "*.java")
-TMPFILES = $(subst .java,.class,$(JAVAFILES))
-CLASSFILES = $(subst ./,,$(TMPFILES))
 
 .PHONY: all
-all: $(CLASSFILES)
+all: $(JAVA_STAMP)
 
-%.class: %.java	
-	$(JAVAC) -classpath $(CLASSPATH) $<
+$(JAVA_STAMP): $(JAVAFILES)
+	$(compile-java)
 
 
 .PHONY: clean
 clean:
-	rm -f *.class
+	rm -f *.class $(JAVA_STAMP)
