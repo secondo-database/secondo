@@ -23,18 +23,16 @@
 include ../../makefile.inc
 
 JAVAFILES =$(shell find -maxdepth 1 -name "*.java")
-TMPFILES = $(subst .java,.class,$(JAVAFILES))
-CLASSFILES = $(subst ./,,$(TMPFILES))
 
 .PHONY: all
-all: $(CLASSFILES)
+all: $(JAVA_STAMP)
 	$(MAKE) -C mathe all
 	$(MAKE) -C graphic2d all
 	$(MAKE) -C graphic3d all
 	$(MAKE) -C objects all
 
-%.class: %.java
-	$(JAVAC) -classpath $(CLASSPATH) $<
+$(JAVA_STAMP): $(JAVAFILES)
+	$(compile-java)
 
 .PHONY:clean
 clean:
@@ -42,4 +40,4 @@ clean:
 	$(MAKE) -C graphic2d clean
 	$(MAKE) -C graphic3d clean
 	$(MAKE) -C objects clean
-	rm -f *.class
+	rm -f *.class $(JAVA_STAMP)

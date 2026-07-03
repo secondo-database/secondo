@@ -11,18 +11,18 @@ JARS := $(JARS):$(LIBPATH)/commons-logging-1.1.1.jar
 
 CLASSPATH := $(CLASSPATH):$(JARS):.
 JAVAFILES =$(shell find -name "*.java")
-TMPFILES = $(subst .java,.class,$(JAVAFILES))
-CLASSFILES = $(subst ./,,$(TMPFILES))
 
 default:jar
 
 .PHONY:all
 all:makedir files
 
-files: $(CLASSFILES);
+files: .javac-stamp
 
-%.class:%.java
-	$(JAVAC) -classpath $(CLASSPATH) -d bin $<
+# compile all sources with a single javac invocation instead of one per file
+.javac-stamp: $(JAVAFILES)
+	$(JAVAC) -classpath $(CLASSPATH) -d bin $?
+	@touch $@
 
 
 .PHONY:jar
@@ -45,5 +45,5 @@ makedir:
 .PHONY:clean
 clean:
 	find . -name '*.class' | xargs rm -rf
-	rm -f jar/MapViewer.jar
+	rm -f jar/MapViewer.jar .javac-stamp
 	rm -frd bin/*

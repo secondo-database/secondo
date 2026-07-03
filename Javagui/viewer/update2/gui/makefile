@@ -7,16 +7,15 @@ include ../../../makefile.inc
 
 
 JAVAFILES =$(shell find -name "*.java")
-TMPFILES = $(subst .java,.class,$(JAVAFILES))
-CLASSFILES = $(subst ./,,$(TMPFILES))
+JAVACFLAGS := -Xlint:unchecked
 
 .PHONY: all
-all: $(CLASSFILES)
+all: $(JAVA_STAMP)
 
-%.class: %.java
-	$(JAVAC) -Xlint:unchecked -classpath $(CLASSPATH) $<
+$(JAVA_STAMP): $(JAVAFILES)
+	$(compile-java)
 
 
 .PHONY: clean
 clean:
-	rm -f *.class
+	rm -f *.class $(JAVA_STAMP)

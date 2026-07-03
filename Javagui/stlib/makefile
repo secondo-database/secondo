@@ -21,14 +21,14 @@
 
 
 JAVAFILES =$(shell find -name "*.java")
-TMPFILES = $(subst .java,.class,$(JAVAFILES))
-CLASSFILES = $(subst ./,,$(TMPFILES))
 
+# compile all sources with a single javac invocation instead of one per file
 .PHONY:all
-all: $(CLASSFILES);
+all: .javac-stamp
 
-%.class:%.java
-	javac -classpath .. $<
+.javac-stamp: $(JAVAFILES)
+	javac -classpath .. $?
+	@touch $@
 
 .PHONY:lib
 lib: all
@@ -37,4 +37,4 @@ lib: all
 .PHONY:clean
 clean:
 	find . -name '*.class' | xargs rm -rf
-	rm -f MovingObjectsLibrary.jar
+	rm -f MovingObjectsLibrary.jar .javac-stamp

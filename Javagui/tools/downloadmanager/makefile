@@ -27,16 +27,16 @@ include ../../../makefile.$(platform)
 include ../../../makefile.jni
 
 
-CLASSFILES:= $(shell ls *.java | sed -e "s/java/class/")
+JAVAFILES := $(wildcard *.java)
 
-.PHONY: all 
-all: $(CLASSFILES)
+.PHONY: all
+all: $(JAVA_STAMP)
 
-%.class: %.java
-	$(JAVAC) -classpath $(CLASSPATH) $<
+$(JAVA_STAMP): $(JAVAFILES)
+	$(compile-java)
 
 .PHONY: clean
 clean:
-	rm -f *.class
+	rm -f *.class $(JAVA_STAMP)
 
 

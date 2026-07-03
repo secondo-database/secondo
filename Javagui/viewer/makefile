@@ -27,24 +27,28 @@ include ../makefile.inc
 
 
 .PHONY: all  # compile Menuvector and SecondoViewer
-all: makefile.viewers viewers MenuVector.class SecondoViewer.class 
+all: makefile.viewers viewers $(JAVA_STAMP)
 
 makefile.viewers: makefile.viewers.example
 	$(cp-config-file)
 
 include makefile.viewers
 
-
-
-
 INC_FILES := $(shell ls ./makefile.n*c 2>/dev/null)
 ifdef INC_FILES
 include $(INC_FILES)
 endif
 
+# the top-level viewer sources are exactly the viewer classes plus the two
+# framework classes; compile them all with a single javac invocation.
+# NOTE: this must come after the makefile.n*c includes above, which may append
+# to VIEWER_CLASSES (e.g. makefile.nonpublic adds ChessViewer.class).
+EXTRACP := $(JARS)
+JAVAFILES := $(VIEWER_CLASSES:.class=.java) MenuVector.java SecondoViewer.java
+
 # compile all viewers
 .PHONY: viewers
-viewers: $(VIEWER_CLASSES) makedirs
+viewers: makedirs
 
 
 .PHONY: makedirs
@@ -58,7 +62,7 @@ makedirs:
 
 .PHONY: clean
 clean:
-	rm -f *.class
+	rm -f *.class $(JAVA_STAMP)
 	rm -f makefile.viewers
 	for dir in $(VIEWER_DIRS); do \
           if !($(MAKE) -C $$dir clean) then \
@@ -66,7 +70,7 @@ clean:
           fi \
         done
 
-# default rule for creating java classes
-%.class: %.java
-	$(JAVAC) -classpath $(CLASSPATH):$(JARS) $<
+# compile all top-level viewer sources in one javac invocation
+$(JAVA_STAMP): $(JAVAFILES)
+	$(compile-java)
 

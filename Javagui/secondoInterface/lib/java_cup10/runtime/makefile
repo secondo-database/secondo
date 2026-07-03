@@ -1,15 +1,16 @@
 JAVAFILES := $(wildcard *.java)
-CLASSFILES := $(subst .java,.class,$(JAVAFILES))
 
 CLASSPATH = ../..
 
+# compile all sources with a single javac invocation instead of one per file
 .PHONY: all
-all: $(CLASSFILES) 
+all: .javac-stamp
 
-%.class: %.java
-	javac -classpath $(CLASSPATH) $<
+.javac-stamp: $(JAVAFILES)
+	javac -classpath $(CLASSPATH) $?
+	@touch $@
 
 .PHONY: clean
-clean: 
-	rm -f *.class
+clean:
+	rm -f *.class .javac-stamp
 

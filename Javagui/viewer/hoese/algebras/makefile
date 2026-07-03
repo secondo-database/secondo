@@ -25,27 +25,26 @@ include ../../../makefile.inc
 
 
 JAVAFILES =$(shell find -maxdepth 1  -name "*.java")
-TMPFILES = $(subst .java,.class,$(JAVAFILES))
-CLASSFILES = $(subst ./,,$(TMPFILES))
+EXTRACP := $(JARS)
 
 SUBDIRS = $(shell find -maxdepth 1 -not -name "CVS" -not -name "." -type d -printf "%f.dir ")
 SUBDIRSCLEAN = $(subst .dir,.dirclean,$(SUBDIRS))
 
 
 .PHONY: all
-all: $(SUBDIRS) $(CLASSFILES)
+all: $(SUBDIRS) $(JAVA_STAMP)
 
 
 %.dir: %
 	$(MAKE) -C  $<  all
 
-%.class: %.java
-	$(JAVAC) -classpath $(CLASSPATH):$(JARS) $<
+$(JAVA_STAMP): $(JAVAFILES)
+	$(compile-java)
 
 
 .PHONY: clean
 clean: $(SUBDIRSCLEAN)
-	rm -f *.class
+	rm -f *.class $(JAVA_STAMP)
 
 %.dirclean: %
 	$(MAKE) -C $< clean
