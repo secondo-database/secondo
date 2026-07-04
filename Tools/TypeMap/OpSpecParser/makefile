@@ -1,4 +1,4 @@
-
+include ../../../makefile.env
 
 BASE:=OpSpecParser
 
@@ -8,17 +8,17 @@ all: OpSpec
 
 
 OpSpec: scan.o parse.o
-	g++ -o OpSpec scan.o parse.o
+	$(CPPC) -o OpSpec scan.o parse.o
 
 
-scan.o: lex.opspec.c 
-	g++ -c -fPIC -ggdb -o scan.o lex.opspec.c
+scan.o: lex.opspec.c
+	$(CPPC) -c -fPIC -ggdb -o scan.o lex.opspec.c
 
-lex.opspec.c: $(BASE).l parse.o 
+lex.opspec.c: $(BASE).l parse.o
 	flex $(BASE).l
 
 parse.o: $(BASE).tab.c
-	g++ -fPIC -c -ggdb -o parse.o $(BASE).tab.c -lstd
+	$(CPPC) -fPIC -c -ggdb -o parse.o $(BASE).tab.c -lstd
 
 
 $(BASE).tab.c: $(BASE).y

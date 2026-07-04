@@ -1,6 +1,11 @@
 CC=g++
-CXXFLAGS =-I -Wall -g 
-LD=ld 
+CXX=g++
+ifdef SECONDO_CPP
+CXX := $(SECONDO_CPP)
+CC := $(SECONDO_CPP)
+endif
+CXXFLAGS =-I -Wall -g
+LD=ld
 CCO = $(CC) $(CCFLAGS)
 
 HDFS_HOME = /home/kingster/masterarbeit/hadoop

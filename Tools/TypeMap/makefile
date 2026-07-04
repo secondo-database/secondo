@@ -41,14 +41,14 @@ all: $(OBJECTS) $(LIBOBJ) makedirs
 
 # OpSigParser
 
-scan.o: lex.opsig.c 
-	g++ -c -fPIC -ggdb -o scan.o lex.opsig.c
+scan.o: lex.opsig.c
+	$(CPPC) -c -fPIC -ggdb -o scan.o lex.opsig.c
 
-lex.opsig.c: $(BASE).l parse.o 
+lex.opsig.c: $(BASE).l parse.o
 	flex $(BASE).l
 
 parse.o: $(BASE).tab.c
-	g++ -c -fPIC -ggdb -o parse.o $(BASE).tab.c -lstd
+	$(CPPC) -c -fPIC -ggdb -o parse.o $(BASE).tab.c -lstd
 
 $(BASE).tab.c: $(BASE).y
 	bison -v -d $(BASE).y
