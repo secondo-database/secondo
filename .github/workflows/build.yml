@@ -76,7 +76,6 @@ jobs:
 
       - name: Build SECONDO
         run: |
-          ls -l Algebras/Relation-C++/
           cp -av makefile.algebras.cibuild makefile.algebras
           make -j $(nproc)
 
