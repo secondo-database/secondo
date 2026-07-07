@@ -66,6 +66,11 @@ bool getCommand(istream& in,
     #ifdef HAVE_LIBREADLINE
       if(isStdInput){
          char* cline = readline(prompt.c_str());
+         // Handle CTRL+D
+         if(cline==nullptr){
+           in.setstate(ios::eofbit);
+           break;
+         }
          line = string(cline);
          free(cline);
       }
