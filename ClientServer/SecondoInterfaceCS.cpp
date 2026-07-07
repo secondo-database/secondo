@@ -935,7 +935,7 @@ SecondoInterfaceCS::GetTypeId( const string& name,
       {
         getline( iosock, line );
       }
-      while ( line == "</SecondoError>" || iosock.fail() );
+      while ( line != "</SecondoError>" && !iosock.fail() );
       ok = false;
     }
   }
@@ -983,7 +983,7 @@ SecondoInterfaceCS::LookUpTypeExpr( ListExpr type, string& name,
         {
           getline( iosock, line );
         }
-        while ( line == "</SecondoError>" || iosock.fail() );
+        while ( line != "</SecondoError>" && !iosock.fail() );
       }
     }
   }
