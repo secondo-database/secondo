@@ -13,43 +13,6 @@ jobs:
         os: ['ubuntu-22.04', 'ubuntu-24.04', 'ubuntu-26.04']
     runs-on: ${{ matrix.os }}
     steps:
-      - name: Set env vars general
-        run: |
-          echo "SECONDO_PLATFORM=linux64" >> $GITHUB_ENV
-          echo "SECONDO_BUILD_DIR=${GITHUB_WORKSPACE}" >> $GITHUB_ENV
-          echo "BERKELEY_DB_LIB=db_cxx" >> $GITHUB_ENV
-          echo "BERKELEY_DB_DIR=/usr" >> $GITHUB_ENV
-          echo "J2SDK_ROOT=/usr/lib/jvm/java-8-openjdk-amd64" >> $GITHUB_ENV
-          echo "SWI_HOME_DIR=/usr/lib/swi-prolog/" >> $GITHUB_ENV
-          echo "PL_INCLUDE_DIR=/usr/lib/swi-prolog/include" >> $GITHUB_ENV
-          echo "PL_VERSION=82705" >> $GITHUB_ENV
-          echo "JPL_JAR=/usr/lib/swi-prolog/lib/jpl.jar" >> $GITHUB_ENV
-          echo "PL_LIB=swipl" >> $GITHUB_ENV
-
-      - name: Set env vars for ubuntu 20.04
-        if: matrix.os == 'ubuntu-20.04'
-        run: |
-          echo "PL_LIB_DIR=/usr/lib/swi-prolog/lib/amd64/" >> $GITHUB_ENV
-          echo "JPL_DLL=/usr/lib/swi-prolog/lib/amd64/libjpl.so" >> $GITHUB_ENV
-
-      - name: Set env vars for ubuntu 22.04
-        if: matrix.os == 'ubuntu-22.04'
-        run: |
-          echo "PL_LIB_DIR=/usr/lib/swi-prolog/lib/x86_64-linux/" >> $GITHUB_ENV
-          echo "JPL_DLL=/usr/lib/swi-prolog/lib/x86_64-linux/libjpl.so" >> $GITHUB_ENV
-
-      - name: Set env vars for ubuntu 24.04
-        if: matrix.os == 'ubuntu-24.04'
-        run: |
-          echo "PL_LIB_DIR=/usr/lib/swi-prolog/lib/x86_64-linux/" >> $GITHUB_ENV
-          echo "JPL_DLL=/usr/lib/swi-prolog/lib/x86_64-linux/libjpl.so" >> $GITHUB_ENV
-
-      - name: Set env vars for ubuntu 26.04
-        if: matrix.os == 'ubuntu-26.04'
-        run: |
-          echo "PL_LIB_DIR=/usr/lib/swi-prolog/lib/x86_64-linux/" >> $GITHUB_ENV
-          echo "JPL_DLL=/usr/lib/swi-prolog/lib/x86_64-linux/libjpl.so" >> $GITHUB_ENV
-
       - name: Checkout repo
         uses: actions/checkout@v7
 
@@ -58,18 +21,27 @@ jobs:
         with:
           key: ${{ matrix.os }}
 
-      - name: Route compiler through ccache
-        run: |
-          echo "SECONDO_CC=ccache gcc" >> $GITHUB_ENV
-          echo "SECONDO_CPP=ccache g++" >> $GITHUB_ENV
-
       - name: Update packages
         run: |
-          sudo apt-get update 
+          sudo apt-get update
 
       - name: Install packages
         run: |
           sudo apt-get -y install flex bison gcc g++ libdb5.3 libdb5.3-dev libdb5.3++ libdb5.3++-dev db5.3-util libjpeg62 libjpeg62-dev libgsl0-dev libreadline-dev librecode-dev libgmp-dev libncurses-dev libxml2-dev libboost-all-dev build-essential openjdk-8-jdk wget swi-prolog-nox swi-prolog-java swi-prolog libquadmath0 libgmp-dev libgmp10 original-awk libboost-all-dev libbison-dev libfl-dev
+
+      - name: Detect SECONDO build environment
+        run: |
+          # Prolog paths/version, Berkeley DB and platform are derived from the
+          # installed tools by secondo-detect.sh.
+          export SECONDO_BUILD_DIR="${GITHUB_WORKSPACE}"
+          export SECONDO_CC="ccache gcc"
+          export SECONDO_CPP="ccache g++"
+          ./CM-Scripts/secondo-detect.sh --print-vars
+          {
+            echo "SECONDO_CC=${SECONDO_CC}"
+            echo "SECONDO_CPP=${SECONDO_CPP}"
+            ./CM-Scripts/secondo-detect.sh --print-vars
+          } >> "$GITHUB_ENV"
 
       - name: Show ccache statistics (before build)
         run: ccache -s
