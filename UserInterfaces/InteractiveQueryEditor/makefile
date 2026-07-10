@@ -75,7 +75,8 @@ SecondoKernel.o: JNIHeader util/secondo/SecondoKernel.cpp util/secondo/SecondoKe
 .PHONY: JNIHeader
 JNIHeader: util/secondo/SecondoKernel.java
 	@echo "Creating new SecondoKernel.h File"
-	@$(JAVAH) -o util/secondo/SecondoKernel.h -classpath $(CLASSPATH) util.secondo.SecondoKernel
+	@$(JAVAC) -h util/secondo -classpath $(CLASSPATH) util/secondo/SecondoKernel.java
+	@mv -f util/secondo/util_secondo_SecondoKernel.h util/secondo/SecondoKernel.h
 
 .PHONY: JNITool.o
 JNITool.o:

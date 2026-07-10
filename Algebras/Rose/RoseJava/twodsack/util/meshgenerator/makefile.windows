@@ -22,7 +22,8 @@ Triangle/triangle.o: Triangle/triangle.c
 	cd Triangle;gcc -O -c triangle.c -DTRILIBRARY -DNO_TIMER
 
 MeshGenerator.h:
-	javah -classpath $(CLASSPATH) -o MeshGenerator.h twodsack.util.meshgenerator.MeshGenerator
+	javac -h . -classpath $(CLASSPATH) MeshGenerator.java
+	mv -f twodsack_util_meshgenerator_MeshGenerator.h MeshGenerator.h
 
 MeshGenerator.o: MeshGenerator.c
 	gcc -c -g -fPIC -I$(J2SDK_ROOT)/include -I$(J2SDK_ROOT)/include/win32 MeshGenerator.c -o MeshGenerator.o

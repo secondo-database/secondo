@@ -30,13 +30,6 @@ endif
 GCC := gcc
 
 
-ifndef SECONDO_JAVAH
-JAVAH := javah
-else
-JAVAH = $(SECONDO_JAVAH)
-endif
-
-
 JAVA := java
 JAVADOC := javadoc
 MAKE := make

@@ -20,7 +20,8 @@ MeshGeneratorNetGen.o: MeshGeneratorNetGen.c
 	gcc -xc++ -ggdb -fPIC -D_REENTRANT -Wall -I$(J2SDK_ROOT)/include -I$(J2SDK_ROOT)/include/linux -I. -c MeshGeneratorNetGen.c -o MeshGeneratorNetGen.o
 
 MeshGenerator.h:
-	javah -classpath $(CLASSPATH) -o MeshGenerator.h twodsack.util.meshgenerator.MeshGenerator
+	javac -h . -classpath $(CLASSPATH) MeshGenerator.java
+	mv -f twodsack_util_meshgenerator_MeshGenerator.h MeshGenerator.h
 
 .PHONY: clean
 clean:
