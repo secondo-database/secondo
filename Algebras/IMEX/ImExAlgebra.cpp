@@ -4824,7 +4824,7 @@ ListExpr saveObjectTM(ListExpr args){
     return nl->TypeError();
   }
 
-  if(!nl->IsEqual(nl->Second(args),CcString::BasicType()) |
+  if(!nl->IsEqual(nl->Second(args),CcString::BasicType()) ||
      !nl->IsEqual(nl->Third(args),FText::BasicType())){
     ErrorReporter::ReportError(err);
     return nl->TypeError();
