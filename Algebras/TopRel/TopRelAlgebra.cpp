@@ -1874,7 +1874,7 @@ ListExpr GetClusterTM(ListExpr args){
 
 ListExpr SizeOfTM(ListExpr args){
    if(nl->ListLength(args)==1){
-      if(nl->IsEqual(nl->First(args),"cluster") |
+      if(nl->IsEqual(nl->First(args),"cluster") ||
          nl->IsEqual(nl->First(args),"predicategroup")){
          return nl->SymbolAtom(CcInt::BasicType());
       } else {
