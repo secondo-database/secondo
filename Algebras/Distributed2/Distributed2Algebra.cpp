@@ -22069,7 +22069,7 @@ int setHostForWorkerVMT(Word *args, Word &result, int message, Word &local,
      H* host = (H*) args[2].addr;
      result = qp->ResultStorage(s);
      if(!array->IsDefined() || !number->IsDefined()
-        | !host->IsDefined()){
+        || !host->IsDefined()){
            ((CcBool*)result.addr)->Set(true,false);
            return 0;
      }  
