@@ -46,6 +46,19 @@ public:
    WinUnix(){};
    ~WinUnix(){};
 
+   // SECONDO's logical storage page size. This is NOT the CPU/OS memory page
+   // size: it is the fixed unit that on-disk structures (R-tree/M-tree/X-tree
+   // nodes, BTree2 nodes, Berkeley DB records) are sized against. It must be a
+   // power of two accepted by Berkeley DB and identical on every host so that
+   // databases stay portable. See getPageSize() in WinUnix.cpp.
+   //
+   // Apple Silicon reports a 16384-byte OS page, which made nodes too large for
+   // the default Berkeley DB page (records overflowed the page and file creation
+   // failed) and produced databases whose layout differed from other platforms.
+   // Using a fixed value keeps the on-disk format portable and independent of the
+   // host's memory page size.
+   static const int SECONDO_PAGE_SIZE = 4096;
+
    static int getPageSize( void );
    static int getpid( void );
 

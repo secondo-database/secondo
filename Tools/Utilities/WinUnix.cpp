@@ -70,15 +70,9 @@ WinUnix::win32 = false;
 #endif  
 
 int
-WinUnix::getPageSize() { 
+WinUnix::getPageSize() {
 
-#ifndef SECONDO_WIN32
-   return ( getpagesize() );
-#else
-   SYSTEM_INFO SysInf;
-   GetSystemInfo( &SysInf );
-   return ( SysInf.dwPageSize );
-#endif
+   return WinUnix::SECONDO_PAGE_SIZE;
 }
 
 
