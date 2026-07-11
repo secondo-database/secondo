@@ -6466,7 +6466,7 @@ class DspatialJoinLocal{
  
         if(l1 && l2){
            processLeafLeaf(n1,n2);
-        } else if (l1 && !l1){
+        } else if (l1 && !l2){
            processLeafInner(n1,n2);
         } else if (!l1 && l2){
            processInnerLeaf(n1,n2);
