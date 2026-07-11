@@ -1961,7 +1961,11 @@ bool ImportXML::readSimpleEntry(const std::string& name, std::string& entry,
     return false;
   }
   if (attr != 0) {
-    xmlChar *attrXml = (xmlChar*)((char*)attr->GetValue().c_str());
+    // GetValue() returns a std::string by value; bind it to a named local so
+    // the buffer c_str() points to outlives the xmlTextReaderGetAttribute call
+    // (otherwise attrXml dangles).
+    std::string attrValue = attr->GetValue();
+    xmlChar *attrXml = (xmlChar*)((char*)attrValue.c_str());
     xmlChar *attrvalueXml = xmlTextReaderGetAttribute(reader, attrXml);
     if (attrvalueXml == NULL) {
 //       cout << "attr " << attr->GetValue() << " not found @ " << name << endl;
