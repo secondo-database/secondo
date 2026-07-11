@@ -1,5 +1,7 @@
 CC=g++
-CPPFLAGS=-O2 -fPIC -Wall -I../include -ggdb
+# EXTRA_CPPFLAGS is forwarded by the SECONDO algebra makefile (e.g. the
+# Homebrew include path on macOS, where Boost is not on a default path).
+CPPFLAGS=-O2 -fPIC -Wall -I../include -ggdb $(EXTRA_CPPFLAGS)
 #LIBS=-llua5.1
 LDFLAGS=$(LIBS) -shared
 OBJ=Face.o interpolate.o Interval.o lua.o matchFaces.o MFace.o MFaces.o MSeg.o MSegs.o RList.o ointersect.o Pt.o RotatingPlane.o Seg.o intersect.o

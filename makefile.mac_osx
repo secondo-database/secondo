@@ -67,10 +67,34 @@ DLLPREF := lib
 
 UNAME_M := $(shell uname -m)
 
-ifeq ($(UNAME_M),arm64)
-	DEFAULTCCFLAGS += -I/opt/homebrew/include
-	LDFLAGS += -L/opt/homebrew/lib
-	compileJava := false
+# Homebrew prefix differs by architecture: Apple Silicon uses /opt/homebrew,
+# Intel uses /usr/local. Ask brew, fall back to the arch default.
+HOMEBREW_PREFIX := $(shell brew --prefix 2>/dev/null)
+ifeq ($(strip $(HOMEBREW_PREFIX)),)
+  ifeq ($(UNAME_M),arm64)
+    HOMEBREW_PREFIX := /opt/homebrew
+  else
+    HOMEBREW_PREFIX := /usr/local
+  endif
 endif
 
+DEFAULTCCFLAGS += -I$(HOMEBREW_PREFIX)/include
+LDFLAGS += -L$(HOMEBREW_PREFIX)/lib
+
+# Keg-only formulae (readline, jpeg) are NOT symlinked into $(HOMEBREW_PREFIX),
+# so their formula prefixes must be added explicitly. These used to be provided
+# by the SDK; CM-Scripts/secondo-detect.sh now derives them from Homebrew.
+ifdef SECONDO_READLINE_DIR
+DEFAULTCCFLAGS += -I$(SECONDO_READLINE_DIR)/include
+LDFLAGS += -L$(SECONDO_READLINE_DIR)/lib
+endif
+ifdef SECONDO_JPEG_DIR
+DEFAULTCCFLAGS += -I$(SECONDO_JPEG_DIR)/include
+LDFLAGS += -L$(SECONDO_JPEG_DIR)/lib
+endif
+# FlexLexer.h must match the flex that generated the C++ scanners; use the
+# Homebrew flex header, not the older one from the macOS SDK.
+ifdef SECONDO_FLEX_DIR
+DEFAULTCCFLAGS += -I$(SECONDO_FLEX_DIR)/include
+endif
 DEFAULTCCFLAGS += -DSECONDO_MAC_OSX
