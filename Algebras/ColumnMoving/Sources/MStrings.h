@@ -329,8 +329,9 @@ returns  1 if ~value~ greater ~attr~
 */
   inline int StringUnit::compare(Value value, Attr attr)
   {
-    const char *b = attr.GetValue().c_str();
-    int r = strcmp(value.s, b);;
+    // GetValue() returns a std::string by value; use it inline so the buffer
+    // is not read after the temporary is destroyed (clang -Wdangling-gsl).
+    int r = strcmp(value.s, attr.GetValue().c_str());
     return r < 0 ? -1 : (r == 0 ? 0 : 1);
   }
   
