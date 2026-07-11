@@ -717,7 +717,7 @@ bool ReceiveFile( const std::string& localFileName )
   
   unsigned int bufSize=512;
   char buf[bufSize];
-  size_t calls=0;
+  [[maybe_unused]] size_t calls=0;  // used by the (disabled) debug output below
 
   // get data and write them to local file
 

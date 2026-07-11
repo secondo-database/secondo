@@ -3261,8 +3261,6 @@ int RegionT<Array>::GetNewFaceNo(HalfSegment &hsS, bool *cycle)
   //1. find the right place by binary search
   Find( hsS, startpos );
 
-  int hsVisiteds=0;
-
   //2. deal with equal-x hs's
   //To verify if it is need to deal with this
 
@@ -3278,7 +3276,6 @@ int RegionT<Array>::GetNewFaceNo(HalfSegment &hsS, bool *cycle)
   while (( i>=0)&&(touchedNo<coverno))
   {
     this->Get(i, hs);
-    hsVisiteds++;
 
     if ( (cycle[i]) && (hs.IsLeftDomPoint()) &&
          ( (hs.GetLeftPoint().GetX() <= p.GetX()) &&

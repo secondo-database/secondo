@@ -3139,7 +3139,6 @@ bool IndexMatchesLI::imiMatch(Match<M>& match, const int e, const TupleId id,
   }
   if (imi.range) {
     bool result = false;
-    int numOfNewIMIs = 0;
     for (int i = imi.next; i < trajSize[id]; i++) {
       if (match.valuesMatch(i, elem) && timesMatch(id, i, elem) &&
           match.easyCondsMatch(i, elem, p->easyConds, p->getEasyCondPos(e))) {
@@ -3162,7 +3161,6 @@ bool IndexMatchesLI::imiMatch(Match<M>& match, const int e, const TupleId id,
                      rel->GetNoTuples() * sizeof(void*));
             }
             newMatchInfo[newState][id]->imis.push_back(newIMI);
-            numOfNewIMIs++;
             result = true;
           }
         }
@@ -3437,7 +3435,7 @@ DeriveGroupsLI<M>::DeriveGroupsLI(Word _stream, double threshold, int attrNo) {
   std::vector<M*> trajStore;
   stream.open();
   Tuple *src = stream.request();
-  int noTuples = 0;
+  [[maybe_unused]] int noTuples = 0;
   while (src != 0) {
     trajStore.push_back((M*)(src->GetAttribute(attrNo)->Clone()));
     src = stream.request();
