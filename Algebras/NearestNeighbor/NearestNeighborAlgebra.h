@@ -318,14 +318,14 @@ class NNTree
       iter operator++(int)  //postfix
       {
         iter tmp = *this;
-        ++this;
+        ++(*this);
         return tmp;
       }
       iter& operator--(); //prefix
       iter operator--(int)  //postfix
       {
         iter tmp = *this;
-        --this;
+        --(*this);
         return tmp;
       }
       iter &leftItem()
