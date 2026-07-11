@@ -163,14 +163,12 @@ the returned list.
        rect2.Extend(eps);
        typename mmrtree::RtreeT<dim,TupleId>::iterator* it = index->find(rect2);
        const TupleId* tid;
-       int count = 0;
        while( (tid = it->next())){
           if(*tid!=id){
               Tuple* st = buffer->GetTuple(*tid);
                if(dist(((Rectangle<dim>*)st->GetAttribute(attrPos)),rect1)
                  <= eps){
               neighbors->push_back(*tid);
-              count++;
               }
              st->DeleteIfAllowed();
           }

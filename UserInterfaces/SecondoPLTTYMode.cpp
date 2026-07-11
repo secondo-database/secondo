@@ -1148,12 +1148,10 @@ string select2Secondo(const string& select, bool& correct){
    predicate_t p = PL_predicate("sqlToPlan",2,"");
    qid_t id;
    string plan="";
-   int count =0;
 
    try{
       id = PL_open_query(NULL, PL_Q_CATCH_EXCEPTION, p, a0);
       if(PL_next_solution(id)){
-        count++;
         char* res;
         if(PL_get_atom_chars(a0+1,&res)){
            string answer(res);

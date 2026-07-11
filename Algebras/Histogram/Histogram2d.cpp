@@ -2847,7 +2847,7 @@ Argument 0 Histogram2d, 1 real value
 
       Word wTuple = SetWord(Address(0));
 
-      size_t i = 0, a = 0, n = 0, m = 0, r = 0; // counter variables
+      [[maybe_unused]] size_t i = 0, a = 0, n = 0, m = 0, r = 0; // counter variables
       bool newRelation = true;
 
       MAX_MEMORY = qp->FixedMemory();
@@ -3149,7 +3149,7 @@ Argument 0 Histogram2d, 1 real value
 
       //Word wTuple = SetWord(Address(0));
 
-      size_t i = 0, a = 0, n = 0, m = 0, r = 0; // counter variables
+      [[maybe_unused]] size_t i = 0, a = 0, n = 0, m = 0, r = 0; // counter variables
       bool newRelation = true;
 
       MAX_MEMORY = qp->FixedMemory();

@@ -3356,7 +3356,7 @@ bool TMatchIndexLI::initialize(const bool mainAttr,
 //     cout << endl << endl;
   }
   if (minResultPos > -1) { // atom with smallest number of index result tuples
-    int removed = 0;
+    [[maybe_unused]] int removed = 0;
     for (set<int>::iterator it = crucialAtoms.begin(); it != crucialAtoms.end();
          it++) {
       PatElem atom;

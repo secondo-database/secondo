@@ -377,7 +377,7 @@ Word AttributeRelation::In(const ListExpr typeInfo, const ListExpr
      rel = arel->rel;
    }
    Tuple* tupleaddr;
-   int tupleno, count;
+   [[maybe_unused]] int tupleno, count;
    bool tupleCorrect;
    tuplelist = value;
    tupleno = 0;
@@ -1094,7 +1094,7 @@ NestedRelation::In( const ListExpr typeInfo, const ListExpr value,
 {
    ListExpr tuplelist, first;
    Tuple* tupleaddr;
-   int tupleno, count;
+   [[maybe_unused]] int tupleno, count;
    bool tupleCorrect;
    Word result = SetWord( Address(0) );
    NestedRelation* nrel = new NestedRelation( typeInfo );

@@ -7469,7 +7469,7 @@ int distribute5VMT(Word *args, Word &result, int message, Word &local,
   vector<size_t> slotdistribute;
 
   vector<int> slotcount;
-  int indexcounter = 0;
+  [[maybe_unused]] int indexcounter = 0;
 
   auto workers{res->getWorkers()};
 

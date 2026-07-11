@@ -16236,7 +16236,7 @@ class SplitLineInfo{
 
     // debug code
     Line* next1(){
-       static uint32_t count = 0;
+       [[maybe_unused]] static uint32_t count = 0;
 
        count++;
        HalfSegment hs;

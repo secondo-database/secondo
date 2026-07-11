@@ -2172,7 +2172,6 @@ removes all Tuple from the current table
        Tuple* inTuple = stream1.request();
        costEstimation -> processedTupleInStream1();
        
-       size_t noTuples = 0; 
        while((inTuple!=0) && (usedMem<maxMem)){
          size_t hash = getBucket(inTuple,true);
          usedMem += inTuple->GetMemSize();
@@ -2188,7 +2187,6 @@ removes all Tuple from the current table
          if(newcap > oldcap){
            usedMem += sizeof(void*) * (newcap - oldcap);
          }
-         noTuples++;
          if(usedMem < maxMem){
             inTuple = stream1.request();
             costEstimation -> processedTupleInStream1();

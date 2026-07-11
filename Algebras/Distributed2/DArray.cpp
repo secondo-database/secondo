@@ -748,10 +748,8 @@ bool DArrayBase::save(SmiRecord& valueRecord, size_t& offset,
         if(!writeVar(s,valueRecord,offset)){
           return false;
         }
-        int c = 0;
         for(auto it = used.begin();it!=used.end();it++){
            int slot = *it;
-           c++;
            if(!writeVar(slot,valueRecord,offset)){
              return false;
            }

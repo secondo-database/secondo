@@ -1553,7 +1553,7 @@ into the targets map.
 */
       void collectTargets(Word& s){
 
-          size_t failed = 0;
+          [[maybe_unused]] size_t failed = 0;
           Stream<Tuple> stream(s);
           stream.open();
           Tuple* tuple;

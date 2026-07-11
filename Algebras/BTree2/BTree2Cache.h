@@ -482,7 +482,6 @@ void BTree2Cache<KEYTYPE,VALUETYPE>::Write(SmiFileId fid, bool temporary) {
   size_t mem;
   record.Write( &size, sizeof(int), offset);
   offset += sizeof(int);
-  int i = 0;
   for (it = pinnedNodes.begin(); it != pinnedNodes.end(); it++){
     pni = *it;
     id = pni.id;
@@ -491,7 +490,6 @@ void BTree2Cache<KEYTYPE,VALUETYPE>::Write(SmiFileId fid, bool temporary) {
     mem = pni.memoryUsage;
     record.Write( &mem, sizeof(size_t), offset);
     offset += sizeof(size_t);
-    i++;
   }
 
   f->Close();

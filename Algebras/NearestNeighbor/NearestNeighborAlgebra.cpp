@@ -7728,8 +7728,8 @@ void MqkPartition(MQKnearest* mqk, std::vector<TupleId>& datanode,BBox<2>& box)
 //for each point in querypoints, find its k closest point, put into vectors
 void Mqknearest(MQKnearest* mqk)
 {
-  double x = 0;
-  double y = 0;
+  [[maybe_unused]] double x = 0;
+  [[maybe_unused]] double y = 0;
   //load query points into memory
   const int blocksize = 128;
   int start = 0;
@@ -11087,7 +11087,7 @@ void CellPart::AccessFunction(int depth,std::vector<long>& start_index,
   if(depth == 2){
     for(long i = start_index[depth]; i <= end_index[depth];i++){
       pos[depth] = i;
-      long cellid = 1;
+      [[maybe_unused]] long cellid = 1;
       for(int j = depth;j >= 0;j--){
         int k = j - 1;
         int size_low = 1;

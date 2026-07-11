@@ -1027,7 +1027,7 @@ to all targets in a single step.
        std::map<size_t, std::map<size_t,double> > cand;
        std::map<size_t,double> maxCost;
 
-       size_t candsize = 0;
+       [[maybe_unused]] size_t candsize = 0;
       
        // collect all candidates and there costs 
        for(edgeIt predIt = preds.begin(); predIt!=preds.end(); predIt++){

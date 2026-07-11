@@ -129,7 +129,7 @@ namespace pregel {
      }
   }
   
-  size_t success = 0;
+  [[maybe_unused]] size_t success = 0;
   size_t failed  = 0;
   std::string err;
   for(QueryRunner* qr : runners){

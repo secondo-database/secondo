@@ -282,7 +282,7 @@ ostream& operator <<( ostream& o, const Tuple& t )
 Tuple *Tuple::In( ListExpr typeInfo, ListExpr value, int errorPos,
                   ListExpr& errorInfo, bool& correct )
 {
-  int  attrno, algebraId, typeId, noOfAttrs;
+  [[maybe_unused]] int  attrno, algebraId, typeId, noOfAttrs;
   Word attr;
   bool valueCorrect;
   ListExpr first, firstvalue, valuelist, attrlist;
@@ -468,7 +468,7 @@ GenericRelation *Relation::In( ListExpr typeInfo, ListExpr value,
   ListExpr tuplelist, TupleTypeInfo, first;
   GenericRelation* rel;
   Tuple* tupleaddr;
-  int tupleno, count;
+  [[maybe_unused]] int tupleno, count;
   bool tupleCorrect;
 
   correct = true;

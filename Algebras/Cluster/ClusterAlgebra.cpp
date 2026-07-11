@@ -2213,8 +2213,6 @@ if the point has not been classified as a cluster member yet.
 int DBscan::FindClusters(double** cpoints, int cpoints_size){
   int point; // counter
   float percentage = 0.0;
-  int anzahl = 0;
-
 
   // iterate all cpoints
   for(point=0; point < cpoints_size; point++)
@@ -2228,7 +2226,6 @@ int DBscan::FindClusters(double** cpoints, int cpoints_size){
   for(point=0; point < cpoints_size; point++)
     if(cpoints[point][2] > 0)   {
       percentage++;
-      anzahl++;
     }
 
   percentage = percentage/(float)point;

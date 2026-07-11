@@ -364,7 +364,7 @@ In this case we need to delete also all tuples stored in memory.
         Heap* nextRun = &queue[1];
 
         Word wTuple(Address(0));
-        size_t  i = 0, a = 0, n = 0, m = 0, r = 0; // counter variables
+        [[maybe_unused]] size_t  i = 0, a = 0, n = 0, m = 0, r = 0; // counter variables
         bool newRelation = true;
 
 

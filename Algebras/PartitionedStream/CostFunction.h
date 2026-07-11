@@ -691,7 +691,6 @@ class CostFunctions {
    
     CostInfoVec civ;
     CostFunVec::const_iterator it;
-    int i = 0;
     for (it = cfv.begin(); it != cfv.end(); it++ )
     {
       CostFunction* cfp = *it;
@@ -705,7 +704,6 @@ class CostFunctions {
         civ.push_back( values );
         cout << values << endl;
       } 
-      i++;
     } 
     stable_sort(civ.begin(), civ.end());
     return civ[0];

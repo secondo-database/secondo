@@ -265,12 +265,10 @@ class Sort2HeapsInfo{
 
         TupleFile* currentFile = 0;
         Tuple* lastWritten = 0;
-        size_t count = 0;
         stream.open();
         h1->startBulkload();
 
         while( (nextTuple = stream.request()) ){
-           count++;
            if(stage == 1){
                size_t tm = nextTuple->GetMemSize() + sizeof(void*);
                if( h1Mem + tm <= maxMem ){
@@ -704,14 +702,12 @@ class SortAttr2HeapsInfo{
 
         AttributeFile* currentFile = 0;
         Attribute* lastWritten = 0;
-        size_t count = 0;
         stream.open();
         h1->startBulkload();
 
         
 
         while( (nextAttr = stream.request()) ){
-           count++;
            if(stage == 1){
                size_t tm = nextAttr->GetMemSize() + sizeof(void*);
                if( h1Mem + tm <= maxMem ){

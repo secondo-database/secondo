@@ -530,9 +530,9 @@ int sim_create_trip_VM ( Word* args, Word& result,
   Point*  pointStart = static_cast<Point*>(args[4].addr);
   CcReal*  cTopSpeed = static_cast<CcReal*>(args[5].addr);
   CcReal*    cVstart = static_cast<CcReal*>(args[6].addr);
-  long    tuplesReceived = 0;
-  long    tuplesAccepted = 0;
-  long invalidUnitsCreated = 0;
+  [[maybe_unused]] long    tuplesReceived = 0;
+  [[maybe_unused]] long    tuplesAccepted = 0;
+  [[maybe_unused]] long invalidUnitsCreated = 0;
 
 //   cout << "cLineIndex = "; cLineIndex->Print(cout); cout << endl;
 //   cout << "cVmaxIndex = "; cVmaxIndex->Print(cout); cout << endl;

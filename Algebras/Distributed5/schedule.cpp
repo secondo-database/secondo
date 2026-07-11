@@ -960,7 +960,6 @@ private:
                         WorkerLocation &location)
     {
         int cost = 0;
-        int i = 0;
         for (auto arg : args)
         {
             if (arg == 0)
@@ -969,7 +968,6 @@ private:
                 continue;
             }
             cost += arg->getDistance(location);
-            i++;
         }
         if (task->hasFlag(PreferSlotServer))
         {

@@ -2273,7 +2273,7 @@ The probe join will be stopped if
 
     inline void nextPTuple(Word& result)
     {
-      static int call=0;
+      [[maybe_unused]] static int call=0;
       call++;
 
       /*

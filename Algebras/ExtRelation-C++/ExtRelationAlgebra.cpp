@@ -1402,7 +1402,6 @@ SumValueMapping(Word* args, Word& result, int message,
                    Word& local, Supplier s)
 {
   T sum = 0;
-  int number = 0;
 
   Word currentTupleWord(Address(0));
   int attributeIndex = static_cast<CcInt*>( args[2].addr)->GetIntval() - 1;
@@ -1417,7 +1416,6 @@ SumValueMapping(Word* args, Word& result, int message,
 
     if( currentAttr->IsDefined() ) // process only defined elements
     {
-      number++;
       sum += currentAttr->GetValue();
     }
     currentTuple->DeleteIfAllowed();

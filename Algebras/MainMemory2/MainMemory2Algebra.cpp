@@ -13129,10 +13129,8 @@ public:
                                         current()->prev);
         bool found = false;
     
-        int i=0;
         while (!found && currentTuple != 0) {
           
-          i++;
           appendTuple(currentTuple,tt,seqNo,result);
           seqNo++;
           
@@ -20370,7 +20368,7 @@ int createmgraph3VMT(Word* args, Word& result, int message,
    Stream<Tuple> stream(args[0]);
    stream.open();
    Tuple* tuple;
-   size_t lost = 0;
+   [[maybe_unused]] size_t lost = 0;
    while( (tuple = stream.request())){
       if(!mg3->insertGraphEdge(tuple)){
          lost++;
