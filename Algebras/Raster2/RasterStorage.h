@@ -1558,7 +1558,7 @@ Postfix increment is implemented using
     RasterStorageIterator<T, dim, Undef>::operator++ (int)
     {
         RasterStorageIterator<T, dim, Undef> copy(*this);
-        ++this;
+        ++(*this);
         return copy;
     }
 
@@ -1638,7 +1638,7 @@ The constructor of ~RasterStorageRegionIterator~ is private, because
     RasterStorageRegionIterator<T, dim, Undef>
     RasterStorageRegionIterator<T, dim, Undef>::operator++(int) {
         RasterStorageRegionIterator<T, dim, Undef> copy(*this);
-        ++this;
+        ++(*this);
         return copy;
     }
 
