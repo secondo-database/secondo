@@ -1,5 +1,5 @@
 CC=g++
-CPPFLAGS=-O2 -I../include
+CPPFLAGS=-O2 -I../include $(EXTRA_CPPFLAGS)
 OBJ=rip.o
 LIBS=../build/librip.so
 LDFLAGS=$(LIBS)

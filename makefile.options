@@ -103,6 +103,19 @@ DEFAULTCCFLAGS += -DUSE_SERIALIZATION
 # only in some subordinated makefiles to avoid to many messages.
 #DEFAULTCCFLAGS += -DTRACE_ON
 
+# macOS/clang: several subdirectories build with -Werror, and Apple clang
+# errors on things gcc (the Linux reference compiler) does not, on code that is
+# valid and works. Downgrade only these to keep the -Werror build meaningful:
+#  - variable-length arrays in C++: a SUPPORTED clang/gcc extension, not a defect.
+#  - deprecated-declarations: the macOS SDK annotates POSIX functions such as
+#    sprintf() as deprecated (~460 call sites); glibc does not.
+MACOS_WNO := -Wno-vla-cxx-extension -Wno-vla-extension
+MACOS_WNO += -Wno-deprecated-declarations
+ifeq ($(platform),mac_osx)
+CPPSTDOPTION  += $(MACOS_WNO)
+DEFAULTCCFLAGS += $(MACOS_WNO)
+endif
+
 INC_FILES := $(shell ls $(SECONDO_BUILD_DIR)/makefile.n*c 2>/dev/null)
 ifdef INC_FILES
 include $(INC_FILES)

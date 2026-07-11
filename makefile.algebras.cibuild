@@ -42,7 +42,9 @@ ALGEBRA_DIRS := Standard-C++
 ALGEBRAS     := StandardAlgebra
 ALGEBRA_DEPS :=
 ALGEBRA_LINK_FLAGS :=
-ALGEBRA_DEP_DIRS := $(SECONDO_SDK)/lib
+# Dependency libraries (gsl, jpeg, xml2, ...) resolve from system paths on
+# Linux and from the Homebrew -L flags (makefile.mac_osx) on macOS; no SDK.
+ALGEBRA_DEP_DIRS :=
 
 ALGEBRA_DIRS += FText
 ALGEBRAS     += FTextAlgebra
@@ -422,9 +424,14 @@ ALGEBRAS += DBServiceAlgebra
 
 
 
+# TIN uses GCC's __float128 (via the bundled include/quadmath.h) and the GCC
+# libquadmath runtime. Neither exists under Apple clang (no __float128 on arm64,
+# no libquadmath on macOS at all), so TIN is not built on macOS.
+ifneq ($(platform),mac_osx)
 ALGEBRA_DIRS += TIN
 ALGEBRAS     += TinAlgebra
-ALGEBRA_DEPS += quadmath gmp gmpxx
+ALGEBRA_DEPS += gmp gmpxx quadmath
+endif
 
 #ALGEBRA_DIRS += Tile
 #ALGEBRAS += TileAlgebra
@@ -517,13 +524,17 @@ ALGEBRAS     += SuffixTreeAlgebra
 ALGEBRA_DIRS += OSM
 ALGEBRAS     += OsmAlgebra
 ALGEBRA_DEPS += xml2
-# in some linux or macosx distributions, the xml2 library is outside
-# of standard paths, iff so, add the missing parts here
+# libxml2 lives outside the standard paths. On Linux it is under /usr; on
+# macOS it is keg-only (SECONDO_LIBXML2_DIR, from secondo-detect.sh).
+ifeq ($(platform),mac_osx)
+ALGEBRA_DEP_DIRS += $(SECONDO_LIBXML2_DIR)/lib
+ALGEBRA_INCLUDE_DIRS += $(SECONDO_LIBXML2_DIR)/include/libxml2
+# OSM needs the CoreServices framework on macOS.
+ALGEBRA_LINK_FLAGS += -framework CoreServices
+else
 ALGEBRA_DEP_DIRS += /usr/lib/libxml2
 ALGEBRA_INCLUDE_DIRS += /usr/include/libxml2
-# on max os X the framework CoreServices must be added
-# uncomment the next line if you use mac os
-#ALGEBRA_LINK_FLAGS += -framework CoreServices
+endif
 
 ALGEBRA_DIRS += Groupby
 ALGEBRAS     += GroupbyAlgebra

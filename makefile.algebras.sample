@@ -42,7 +42,9 @@ ALGEBRA_DIRS := Standard-C++
 ALGEBRAS     := StandardAlgebra
 ALGEBRA_DEPS :=
 ALGEBRA_LINK_FLAGS :=
-ALGEBRA_DEP_DIRS := $(SECONDO_SDK)/lib
+# Dependency libraries (gsl, jpeg, xml2, ...) resolve from system paths on
+# Linux and from the Homebrew -L flags (makefile.mac_osx) on macOS; no SDK.
+ALGEBRA_DEP_DIRS :=
 
 ALGEBRA_DIRS += FText
 ALGEBRAS     += FTextAlgebra
@@ -512,12 +514,13 @@ ALGEBRAS     += SuffixTreeAlgebra
 #ALGEBRA_DIRS += OSM
 #ALGEBRAS     += OsmAlgebra
 #ALGEBRA_DEPS += xml2
-# in some linux or macosx distributions, the xml2 library is outside
-# of standard paths, iff so, add the missing parts here
+# libxml2 is outside the standard paths. On Linux uncomment the /usr lines:
 #ALGEBRA_DEP_DIRS += /usr/lib/libxml2
 #ALGEBRA_INCLUDE_DIRS += /usr/include/libxml2
-# on max os X the framework CoreServices must be added
-# uncomment the next line if you use mac os
+# On macOS libxml2 is keg-only, so use SECONDO_LIBXML2_DIR (set by
+# secondo-detect.sh) and add the CoreServices framework instead:
+#ALGEBRA_DEP_DIRS += $(SECONDO_LIBXML2_DIR)/lib
+#ALGEBRA_INCLUDE_DIRS += $(SECONDO_LIBXML2_DIR)/include/libxml2
 #ALGEBRA_LINK_FLAGS += -framework CoreServices
 
 ALGEBRA_DIRS += Groupby

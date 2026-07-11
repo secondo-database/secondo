@@ -150,10 +150,15 @@ done
 
 
 #
-# Optimizer tests
+# Optimizer tests (skippable: the optimizer is not built by "make TTY", e.g. in
+# the macOS Stage-1 CI, which builds only the C++ kernel and algebras)
 #
-echo "*** Executing optimizer tests ***"
-runTest ${buildDir}/Optimizer "TestOptimizer" "time TestOptimizer" $timeOutMax
+if [ "${SECONDO_SKIP_OPTIMIZER_TESTS:-}" == "true" ]; then
+  echo "*** Skipping optimizer tests (SECONDO_SKIP_OPTIMIZER_TESTS=true) ***"
+else
+  echo "*** Executing optimizer tests ***"
+  runTest ${buildDir}/Optimizer "TestOptimizer" "time TestOptimizer" $timeOutMax
+fi
 
 #clean up
 printf "\n%s\n\n" "Cleaning up ..."
