@@ -56,7 +56,6 @@ Creates a new HandlerIdle object.
 
 HandlerIdle::HandlerIdle(std::string address, int port): 
     _coordinatorAddress(address),
-    _coordinatorPort(port),
     _id(0),
     _coordinationClient(address, port)
 {

@@ -84,8 +84,7 @@ public:
 
 private:
     std::string _coordinatorAddress;
-    [[maybe_unused]] int _coordinatorPort;
-    [[maybe_unused]] int _id;
+    int _id;
 
     TcpClient _coordinationClient;
     std::thread _coordinationClientThread;

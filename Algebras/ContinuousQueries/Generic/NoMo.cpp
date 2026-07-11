@@ -59,7 +59,6 @@ Creates a new NoMo object.
 
 NoMo::NoMo(int id, std::string tupledescr, TcpClient* coordinationClient): 
     _coordinationClient(coordinationClient),
-    _id(id),
     _tupledescr(tupledescr),
     _running(false),
     _basePort(coordinationClient->GetServerPort()),

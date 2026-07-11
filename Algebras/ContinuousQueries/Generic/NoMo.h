@@ -107,7 +107,6 @@ public:
 
 private:
     TcpClient* _coordinationClient;
-    [[maybe_unused]] int _id;
     std::string _tupledescr;
     bool _running;
     int _basePort;
