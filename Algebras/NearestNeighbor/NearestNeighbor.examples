@@ -64,7 +64,7 @@ Operator : oldknearestfilter
 Number   : 6
 Signature: ((rtree (tuple ((x1 t1)...(xn tn))) ti)(rel (tuple ((x1 t1)...(xn tn)))) mpoint int) -> (stream (tuple ((x1 t1)...(xn tn))))
 Example  : query UTOrdered_rtree UTOrdered oldknearestfilter[train1, 5] count
-Result   : 1674
+Result   : (platform (linux64 (int 1674)) (linux (int 1674)) (win32 (int 1674)) (mac_osx (int 1649)))
 
 Operator : oldknearestfilter
 Number   : 7
@@ -109,7 +109,7 @@ Operator : greeceknearest
 Number   : 6
 Signature: ((rtree (tuple ((x1 t1)...(xn tn))) ti)(rel1 (tuple ((x1 t1)...(xn tn)))) x  mpoint int) -> (stream (tuple ((x1 t1)...(xn tn))))
 Example  : query UTOrdered_rtree UTOrdered greeceknearest[UTrip,train1, 3] count
-Result   : 4665
+Result   : (platform (linux64 (int 4665)) (linux (int 4665)) (win32 (int 4665)) (mac_osx (int 4577)))
 
 Operator : chinaknearest
 Number   : 6
