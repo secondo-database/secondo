@@ -80,7 +80,7 @@ DistributeStreamServer::~DistributeStreamServer() {
     if(_runner) {
         _runner->interrupt();
         if(listener->IsOk()) {
-            listener->ShutDown();
+            listener->CancelAccept();
         }
         _runner->join();
     }
