@@ -37,79 +37,76 @@ dependent code should be isolated in this class.
 #include <inttypes.h>
 #include <cstdlib>
 
-
 class WinUnix {
 
   static const bool win32;
 
 public:
-   WinUnix(){};
-   ~WinUnix(){};
+  WinUnix() {};
+  ~WinUnix() {};
 
-   // SECONDO's logical storage page size. This is NOT the CPU/OS memory page
-   // size: it is the fixed unit that on-disk structures (R-tree/M-tree/X-tree
-   // nodes, BTree2 nodes, Berkeley DB records) are sized against. It must be a
-   // power of two accepted by Berkeley DB and identical on every host so that
-   // databases stay portable. See getPageSize() in WinUnix.cpp.
-   //
-   // Apple Silicon reports a 16384-byte OS page, which made nodes too large for
-   // the default Berkeley DB page (records overflowed the page and file creation
-   // failed) and produced databases whose layout differed from other platforms.
-   // Using a fixed value keeps the on-disk format portable and independent of the
-   // host's memory page size.
-   static const int SECONDO_PAGE_SIZE = 4096;
+  // SECONDO's logical storage page size. This is NOT the CPU/OS memory page
+  // size: it is the fixed unit that on-disk structures (R-tree/M-tree/X-tree
+  // nodes, BTree2 nodes, Berkeley DB records) are sized against. It must be a
+  // power of two accepted by Berkeley DB and identical on every host so that
+  // databases stay portable. See getPageSize() in WinUnix.cpp.
+  //
+  // Apple Silicon reports a 16384-byte OS page, which made nodes too large for
+  // the default Berkeley DB page (records overflowed the page and file creation
+  // failed) and produced databases whose layout differed from other platforms.
+  // Using a fixed value keeps the on-disk format portable and independent of
+  // the host's memory page size.
+  static const int SECONDO_PAGE_SIZE = 4096;
 
-   static int getPageSize( void );
-   static int getpid( void );
+  static int getPageSize(void);
+  static int getpid(void);
 
-   static void setenv(const char *name, const char *value);
+  static void setenv(const char *name, const char *value);
 
-   static inline bool isLittleEndian() { return *(char *)&endian_detect == 1;}
+  static inline bool isLittleEndian() { return *(char *)&endian_detect == 1; }
 
-   static inline int rand(void) { return ::rand(); }
-   static inline int rand(int n)
-   {
-     return 1 + (int) (n * 1.0 * (rand() / (RAND_MAX + 1.0)));
-   }
+  static inline int rand(void) { return ::rand(); }
+  static inline int rand(int n) {
+    return 1 + (int)(n * 1.0 * (rand() / (RAND_MAX + 1.0)));
+  }
 
-   static void srand(unsigned int seed) { return std::srand(seed); }
+  static void srand(unsigned int seed) { return std::srand(seed); }
 
-   static void string2stdout(const char* string);
-   static void stacktrace(const char* appName, const char* stacktraceOutput,
-      const char* relocationInfo);
+  static void string2stdout(const char *string);
+  static void stacktrace(const char *appName, const char *stacktraceOutput,
+                         const char *relocationInfo);
 
-   static inline bool WindowsHost() { return isWin32(); }
-   static inline bool isWin32() { return win32; }
-   static inline bool isUnix() { return !win32; }
+  static inline bool WindowsHost() { return isWin32(); }
+  static inline bool isWin32() { return win32; }
+  static inline bool isUnix() { return !win32; }
 
-   static void sleep( const int seconds );
-   static std::string getPlatformStr();
+  static void sleep(const int seconds);
+  static std::string getPlatformStr();
 
-   static void writeBigEndian(std::ostream& o, const uint32_t number);
+  static void writeBigEndian(std::ostream &o, const uint32_t number);
 
-   static void writeLittleEndian(std::ostream& o, const uint32_t number);
+  static void writeLittleEndian(std::ostream &o, const uint32_t number);
 
-   static void writeLittleEndian(std::ostream& o, const uint16_t number);
+  static void writeLittleEndian(std::ostream &o, const uint16_t number);
 
-   static void writeBigEndian(std::ostream& o, const uint16_t number);
+  static void writeBigEndian(std::ostream &o, const uint16_t number);
 
-   static void writeLittle64(std::ostream& o, const double number);
+  static void writeLittle64(std::ostream &o, const double number);
 
-   static void writeBig64(std::ostream& o, const double number);
+  static void writeBig64(std::ostream &o, const double number);
 
-   static void writeLittleEndian(std::ostream& o, const unsigned char b);
+  static void writeLittleEndian(std::ostream &o, const unsigned char b);
 
-   static void writeBigEndian(std::ostream& o, const unsigned char b);
+  static void writeBigEndian(std::ostream &o, const unsigned char b);
 
-   static uint32_t convertEndian(const uint32_t n);
-   static uint16_t convertEndian(const uint16_t n);
-   static uint64_t convertEndian(const uint64_t n);
+  static uint32_t convertEndian(const uint32_t n);
+  static uint16_t convertEndian(const uint16_t n);
+  static uint64_t convertEndian(const uint64_t n);
 
-   static char* getAbsolutePath(const char* relPath);
-
+  static char *getAbsolutePath(const char *relPath);
 
 private:
-   static const int endian_detect;
+  static const int endian_detect;
 };
 
 /*
@@ -119,46 +116,30 @@ A Class for handling text files
 
 class CFile {
 
-   std::fstream object;
+  std::fstream object;
 
-  public:
-   CFile(const std::string& name) : fileName(MakePath(name))
-   { object.clear(); }
-   ~CFile() {}
-   bool exists();    // check whether file exists
-   bool open();      // open existing file in reading-mode
-   bool overwrite(); // open (possibly existing) file in overwrite-mode
-   bool append();    // open (possibly existing) file in append-mode
-   bool close();     // close an open file
-   bool eof() { return object.eof(); }
-   bool fail() { return object.fail(); }
-   bool good() { return object.good(); }
-   std::fstream& ios() { return object; }
+public:
+  CFile(const std::string &name) : fileName(MakePath(name)) { object.clear(); }
+  ~CFile() {}
+  bool exists();    // check whether file exists
+  bool open();      // open existing file in reading-mode
+  bool overwrite(); // open (possibly existing) file in overwrite-mode
+  bool append();    // open (possibly existing) file in append-mode
+  bool close();     // close an open file
+  bool eof() { return object.eof(); }
+  bool fail() { return object.fail(); }
+  bool good() { return object.good(); }
+  std::fstream &ios() { return object; }
 
-   const std::string fileName;
-   std::string getPath() const;
-   std::string getName() const;
+  const std::string fileName;
+  std::string getPath() const;
+  std::string getName() const;
 
-   static const char* pathSepWin32;
-   static const char* pathSepUnix;
-   static const char* pathSep;
+  static const char *pathSepWin32;
+  static const char *pathSepUnix;
+  static const char *pathSep;
 
-   static std::string MakePath(const std::string& s);
+  static std::string MakePath(const std::string &s);
 };
-
-  /*
-  template<class T>
-  CFile& operator<<(CFile& f, const T& t) {
-    f.ios() << t;
-    return f;
-  }
-
-  template <class T>
-  CFile& operator>>(CFile& f, const T& t) {
-    f.ios() >> t;
-    return f;
-  }
-  */
-
 
 #endif
