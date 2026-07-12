@@ -16,7 +16,7 @@ ifndef SECONDO_PLATFORM
   posix = 
 else
   ifeq ($(SECONDO_PLATFORM),mac_osx)
-    posix = -D_POSIX_SOURCE=2
+    posix = -D_DARWIN_C_SOURCE
   else
     posix = 
   endif
