@@ -52,8 +52,11 @@ query x12 exactmatch2[TRUE] consume;
 query x9 exactmatch2[7.52] consume;
 
 #testcase exactmatch2Example5
-#yields ((rel (tuple ((Key int)(Data tid))))((134000 9)(134000 8)))
-query x1 exactmatch2[134000] consume;
+# key 134000 occurs twice; the order of the two equal-key entries is an
+# implementation detail (it differs between libstdc++ and libc++), so sort by
+# Data.
+#yields ((rel (tuple ((Key int)(Data tid))))((134000 8)(134000 9)))
+query x1 exactmatch2[134000] sortby[Data] consume;
 
 #testcase exactmatchSTypeMapError1
 #yields error
