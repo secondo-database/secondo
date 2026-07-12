@@ -441,6 +441,13 @@ function timeOut() {
   killAfterTimeOut $TIMEOUT_PID $seconds&
   local FUNC_PID=$!
 
+  # Drop the watchdog (the job just backgrounded, i.e. the current job %+) from
+  # the shell's job table. When the command finishes in time we kill the still
+  # sleeping watchdog below with SIGTERM; without this, bash prints an
+  # asynchronous "Terminated: 15 killAfterTimeOut ..." job-control message for
+  # it.
+  disown %+ 2>/dev/null
+
   echo -e "${FUNCNAME}: command PID=$TIMEOUT_PID, killfunc PID=$FUNC_PID\n"
 
   # wait for termination of the command 
