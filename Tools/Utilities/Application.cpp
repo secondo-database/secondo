@@ -204,6 +204,10 @@ Application::Application( int argc, const char** argv )
 
 
   // --- Trap all signals that would terminate the program by default anyway.
+  // When SECONDO_NO_SIGNAL_HANDLERS is set, leave the signals at their default
+  // disposition so a sanitizer (AddressSanitizer) or a debugger can catch and
+  // symbolize faults such as SIGSEGV directly.
+  if (getenv("SECONDO_NO_SIGNAL_HANDLERS") == 0) {
   signalStr[SIGHUP] = "SIGINT";
   signal( SIGHUP,    Application::AbortOnSignalHandler );
 
@@ -270,6 +274,7 @@ Application::Application( int argc, const char** argv )
   signalStr[SIGPWR] = "SIGPWR";
   signal( SIGPWR,    Application::AbortOnSignalHandler );
 #endif
+  } // SECONDO_NO_SIGNAL_HANDLERS
 #else
   ::SetConsoleCtrlHandler( Application::AbortOnSignalHandler, TRUE );
 
