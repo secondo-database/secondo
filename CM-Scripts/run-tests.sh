@@ -150,14 +150,17 @@ done
 
 
 #
-# Optimizer tests (skippable: the optimizer is not built by "make TTY", e.g. in
-# the macOS Stage-1 CI, which builds only the C++ kernel and algebras)
+# Optimizer tests (skippable via SECONDO_SKIP_OPTIMIZER_TESTS, e.g. when the
+# optimizer and the JPL optimizer server were not built). TestOptimizer drives
+# the optimizer through the embedded Prolog interface; TestOptServer exercises
+# the JPL optimizer server (OptServer) over its socket protocol.
 #
 if [ "${SECONDO_SKIP_OPTIMIZER_TESTS:-}" == "true" ]; then
   echo "*** Skipping optimizer tests (SECONDO_SKIP_OPTIMIZER_TESTS=true) ***"
 else
   echo "*** Executing optimizer tests ***"
   runTest ${buildDir}/Optimizer "TestOptimizer" "time TestOptimizer" $timeOutMax
+  runTest ${buildDir}/Optimizer "TestOptServer" "time TestOptServer" $timeOutMax
 fi
 
 #clean up

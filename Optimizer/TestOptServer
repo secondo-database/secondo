@@ -1,0 +1,149 @@
+#!/bin/bash
+#
+# Functional test for the JPL optimizer server (OptServer).
+#
+# TestOptimizer drives the optimizer through the embedded Prolog interface
+# (SecondoBDB -pl). This test instead exercises the *server* path used by the
+# Java GUI: it starts a Secondo server plus the OptServer (OptimizerServer +
+# regSecondo, talking to Prolog via JPL), connects a socket client, and asks
+# the server to optimize an SQL query. That validates the whole JPL bridge
+# (jpl.jar / libjpl, regSecondo, the Prolog optimizer and the wire protocol)
+# end to end.
+
+set -u
+
+buildDir=${SECONDO_BUILD_DIR:-}
+if [ -z "$buildDir" ]; then
+  echo "Error: SECONDO_BUILD_DIR is not set."
+  exit 1
+fi
+
+# python3 speaks the OptServer's line protocol below. Skip (do not fail) if it
+# is unavailable, matching how optional tests are handled elsewhere.
+if ! command -v python3 >/dev/null 2>&1; then
+  echo "SKIP: python3 not found, cannot run the OptServer protocol client."
+  exit 0
+fi
+
+export SECONDO_CONFIG=${SECONDO_CONFIG:-$buildDir/bin/SecondoConfig.ini}
+export PATH="$buildDir/bin:$PATH"
+
+# The Secondo server and the OptServer use the ports from SecondoConfig.ini
+# (defaults: 1234 for the Secondo server, 1235 for the OptServer).
+SEC_PORT=1234
+OPT_PORT=1235
+DBNAME=opt
+QUERY="select * from ten"
+
+# Explicit template so this works with both GNU and BSD/macOS mktemp.
+home=$(mktemp -d "${TMPDIR:-/tmp}/TestOptServer.XXXXXX")
+export SECONDO_PARAM_SecondoHome="$home"
+client="$home/optclient.py"
+monPid="" optPid=""
+
+cleanup() {
+  # Stop the OptServer (StartOptServer + its java child) and the Secondo server
+  # (SecondoMonitor + the SecondoBDB it forks) by killing each process together
+  # with its children, then reap them so their termination signals do not
+  # disturb this script. Only PIDs we started are targeted (no broad pkill -f).
+  local pid
+  for pid in "$optPid" "$monPid"; do
+    [ -n "$pid" ] || continue
+    pkill -P "$pid" 2>/dev/null
+    kill "$pid" 2>/dev/null
+  done
+  wait 2>/dev/null
+  rm -rf "$home"
+}
+trap cleanup EXIT
+
+# Wait until a TCP port accepts connections (bash /dev/tcp, no extra tools).
+wait_port() {
+  local port=$1 tries=$2 i
+  for ((i = 0; i < tries; i++)); do
+    if (exec 3<>"/dev/tcp/127.0.0.1/$port") 2>/dev/null; then
+      exec 3>&- 3<&-
+      return 0
+    fi
+    sleep 1
+  done
+  return 1
+}
+
+echo "*** OptServer test: creating database '$DBNAME' ***"
+SecondoTTYBDB >"$home/db.log" 2>&1 <<SQL
+create database $DBNAME;
+restore database $DBNAME from '$buildDir/bin/$DBNAME';
+q;
+SQL
+if grep -qiE "cmd failed|command failed|Error in Secondo" "$home/db.log"; then
+  echo "Database restore failed:"; cat "$home/db.log"; exit 1
+fi
+
+echo "*** OptServer test: starting Secondo server ***"
+# SecondoMonitor launches the server program (SecondoBDB) from its working
+# directory, so start it from bin/. Use pushd (not a subshell) so $monPid is the
+# SecondoMonitor process itself and cleanup can reach the SecondoBDB it forks.
+pushd "$buildDir/bin" >/dev/null
+SecondoMonitor -s >"$home/monitor.log" 2>&1 &
+monPid=$!
+popd >/dev/null
+if ! wait_port "$SEC_PORT" 30; then
+  echo "Secondo server did not come up on port $SEC_PORT:"; cat "$home/monitor.log"; exit 1
+fi
+
+echo "*** OptServer test: starting OptServer ***"
+pushd "$buildDir/Optimizer" >/dev/null
+./StartOptServer >"$home/optserver.log" 2>&1 &
+optPid=$!
+popd >/dev/null
+if ! wait_port "$OPT_PORT" 60; then
+  echo "OptServer did not come up on port $OPT_PORT:"; cat "$home/optserver.log"; exit 1
+fi
+
+echo "*** OptServer test: optimizing \"$QUERY\" on database '$DBNAME' ***"
+cat >"$client" <<'PYEOF'
+import socket, sys
+host, port, db, query = "127.0.0.1", int(sys.argv[1]), sys.argv[2], sys.argv[3]
+s = socket.create_connection((host, port), timeout=60)
+s.settimeout(60)
+f = s.makefile("rw", encoding="utf-8", newline="\n")
+def send(line): f.write(line + "\n"); f.flush()
+
+send("<who>")
+who = f.readline().strip()
+if who != "<optimizer>":
+    print("handshake failed, expected <optimizer>, got:", repr(who)); sys.exit(2)
+
+send("<optimize>"); send("<database>"); send(db); send("</database>")
+send("<query>"); send(query); send("</query>"); send("</optimize>")
+
+ans = f.readline().strip()
+if ans != "<answer>":
+    print("protocol error, expected <answer>, got:", repr(ans)); sys.exit(3)
+
+plan = []
+while True:
+    line = f.readline()
+    if line == "":
+        print("connection broken while reading plan"); sys.exit(4)
+    if line.strip() == "</answer>":
+        break
+    plan.append(line.rstrip("\n"))
+send("<end connection>")
+
+plan = "".join(plan).strip()
+print("optimized plan:", plan)
+# select * from a relation must yield a plan that feeds the relation.
+if not plan or "feed" not in plan:
+    print("unexpected / empty plan"); sys.exit(5)
+print("OptServer test OK")
+PYEOF
+
+python3 "$client" "$OPT_PORT" "$DBNAME" "$QUERY"
+rc=$?
+if [ $rc -ne 0 ]; then
+  echo "OptServer client failed (rc=$rc). OptServer log:"
+  tail -40 "$home/optserver.log"
+fi
+exit $rc
