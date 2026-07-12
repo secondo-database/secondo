@@ -2365,7 +2365,7 @@ OperatorSpec meminsertSpec(
 Operator meminsertOp (
     "meminsert",
     meminsertSpec.getStr(),
-    3,
+    2,
     meminsertVM,
     meminsertSelect,
     meminsertTypeMap
@@ -3541,7 +3541,7 @@ OperatorSpec mexactmatchSpec(
 Operator mexactmatchOp (
     "mexactmatch",
     mexactmatchSpec.getStr(),
-    9,
+    4,
     mexactmatchVM,
     mexactmatchSelect,
     mexactmatchTM
@@ -3567,7 +3567,7 @@ OperatorSpec matchbelowSpec(
 Operator matchbelowOp (
     "matchbelow",
     matchbelowSpec.getStr(),
-    9,
+    4,
     matchbelowVM,
     mexactmatchSelect,
     mexactmatchTM
@@ -5602,7 +5602,7 @@ OperatorSpec mdistScan2Spec(
 Operator mdistScan2Op(
    "mdistScan2",
    mdistScan2Spec.getStr(),
-   36,
+   24,
    mdistScan2VM,
    mdistScan2Select,
    mdistScan2TM<true>
@@ -20627,7 +20627,7 @@ OperatorSpec mg3disconnectSpec(
 Operator mg3disconnectOp(
   "mg3disconnect",
   mg3disconnectSpec.getStr(),
-  3,
+  2,
   mg3disconnectVM,
   mgdisconnectSelect,
   mgdisconnectTM<MGraph3>
