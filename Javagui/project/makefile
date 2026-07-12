@@ -22,7 +22,7 @@
 # last change: 08-2003; Th. Behr
 
 include ../makefile.inc
-JAVAFILES =$(shell find -name "*.java")
+JAVAFILES =$(shell find . -name "*.java")
 
 
 

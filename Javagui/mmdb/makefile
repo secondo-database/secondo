@@ -23,7 +23,7 @@
 
 include ../makefile.inc
 
-JAVAFILES =$(shell find -name "*.java")
+JAVAFILES =$(shell find . -name "*.java")
 
 .PHONY:all
 all: $(JAVA_STAMP);

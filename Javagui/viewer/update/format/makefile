@@ -24,7 +24,7 @@
 include ../../../makefile.inc
 
 
-JAVAFILES =$(shell find -maxdepth 1  -name "*.java")
+JAVAFILES =$(shell find . -maxdepth 1  -name "*.java")
 EXTRACP := $(JARS)
 
 .PHONY: all

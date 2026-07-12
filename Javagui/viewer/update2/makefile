@@ -7,7 +7,7 @@
 include ../../makefile.inc
 
 
-JAVAFILES =$(shell find -name "*.java")
+JAVAFILES =$(shell find . -name "*.java")
 JAVACFLAGS := -Xlint:unchecked
 
 .PHONY: all

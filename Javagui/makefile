@@ -30,7 +30,7 @@ help:
 doc: removedoc 
 	@make -s all
 	@mkdir $(DOCPATH)
-	$(JAVADOC)  -d $(DOCPATH) -sourcepath $(CLASSPATH):$(JARS):secondoInterface  -classpath $(CLASSPATH):$(JARS) $(shell find -type d -not -name "*CVS" -not -name tmp -not -iname "[0-9]*" -not -ipath "*/[0-9]*" -not -iname "*-*"  -printf '%P\n' | sed "s#/#.#g" | sed "s#secondoInterface.##g" )   
+	$(JAVADOC)  -d $(DOCPATH) -sourcepath $(CLASSPATH):$(JARS):secondoInterface  -classpath $(CLASSPATH):$(JARS) $(shell find . -mindepth 1 -type d -not -name "*CVS" -not -name tmp -not -iname "[0-9]*" -not -ipath "*/[0-9]*" -not -iname "*-*" | sed 's|^\./||' | sed "s#/#.#g" | sed "s#secondoInterface.##g" )
 
 
 .PHONY: demo
@@ -39,7 +39,7 @@ demo:
 	@make -s
 	@rm -rf Demo Demotmp
 	@mkdir Demotmp
-	@find -maxdepth 1 -not -name . -not -name Demotmp -not -name tmp -not -name osmDowloads -exec cp -r {} Demotmp \;
+	@find . -maxdepth 1 -not -name . -not -name Demotmp -not -name tmp -not -name osmDowloads -exec cp -r {} Demotmp \;
 	@find Demotmp -type d -name CVS -exec rm -rf {} \; 2>/dev/null || echo ""
 	@find Demotmp -name "*java" -exec rm -f {} \;
 	@find Demotmp -name ".javac-stamp" -exec rm -f {} \;
@@ -69,7 +69,7 @@ demo:
 #	@echo "Javagui recompiled, extract the files needed by Demo"
 #	@find . -type d -printf "%P\n" | grep -v '^CVS' | grep -v '^Demotmp' | grep -v '^doc'| sed -e "s#.*#mkdir -p Demotmp/&#g " | sh
 #	@find . -name "*.class" -printf "%P\n" | sed -e "s#.*#cp '&' 'Demotmp/&' #g" | sh
-#	@(cd Demotmp; jar -xf ../lib/$(MP3); jar -xf ../lib/$(CUPRUNTIME); find -name "*.java" -exec rm {} \; )
+#	@(cd Demotmp; jar -xf ../lib/$(MP3); jar -xf ../lib/$(CUPRUNTIME); find . -name "*.java" -exec rm {} \; )
 #	@echo "Building jar-archive and removing temporaly files"
 
 

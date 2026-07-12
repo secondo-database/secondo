@@ -22,7 +22,7 @@
 # last change: 05-2003; Th.Behr
 include ../../makefile.inc
 
-JAVAFILES =$(shell find -maxdepth 1 -name "*.java")
+JAVAFILES =$(shell find . -maxdepth 1 -name "*.java")
 
 .PHONY: all
 all: $(JAVA_STAMP)

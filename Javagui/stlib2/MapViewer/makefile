@@ -10,7 +10,7 @@ JARS := $(JARS):$(LIBPATH)/jxmapviewer2-2.3.jar
 JARS := $(JARS):$(LIBPATH)/commons-logging-1.1.1.jar
 
 CLASSPATH := $(CLASSPATH):$(JARS):.
-JAVAFILES =$(shell find -name "*.java")
+JAVAFILES =$(shell find . -name "*.java")
 
 default:jar
 

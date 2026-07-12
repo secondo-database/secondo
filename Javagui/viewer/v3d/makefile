@@ -7,7 +7,7 @@
 include ../../makefile.inc
 
 
-JAVAFILES =$(shell find -name "*.java")
+JAVAFILES =$(shell find . -name "*.java")
 EXTRACP = $(JAVA3DCP)
 JAVA3DCP = /usr/share/java/j3dcore.jar:/usr/share/java/j3dutils.jar:/usr/share/java/vecmath.jar
 

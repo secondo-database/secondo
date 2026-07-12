@@ -24,10 +24,10 @@
 include ../../../makefile.inc
 
 
-JAVAFILES =$(shell find -maxdepth 1  -name "*.java")
+JAVAFILES =$(shell find . -maxdepth 1  -name "*.java")
 EXTRACP := $(JARS)
 
-SUBDIRS = $(shell find -maxdepth 1 -not -name "CVS" -not -name "." -type d -printf "%f.dir ")
+SUBDIRS = $(shell find . -mindepth 1 -maxdepth 1 -not -name "CVS" -type d | sed 's|.*/||;s|$$|.dir|')
 SUBDIRSCLEAN = $(subst .dir,.dirclean,$(SUBDIRS))
 
 

@@ -13,7 +13,7 @@ all:
 doc: removedoc 
 	@make -s all
 	mkdir $(DOCPATH)
-	$(JAVADOC)  -d $(DOCPATH) -sourcepath .  -classpath .  $(shell find -type d -not -name "*CVS" -not -name tmp -not -iname "[0-9]*" -not -path "lib*"  -not -ipath "*/[0-9]*"  -printf '%P\n' | sed "s#/#.#g" )   
+	$(JAVADOC)  -d $(DOCPATH) -sourcepath .  -classpath .  $(shell find . -mindepth 1 -type d -not -name "*CVS" -not -name tmp -not -iname "[0-9]*" -not -path "lib*"  -not -ipath "*/[0-9]*" | sed 's|^\./||' | sed "s#/#.#g" )
 
 
 
@@ -24,7 +24,7 @@ SecondoInterface.jar: all
 	mkdir exporttmp
 	@echo "extract third party jar files"
 	@cd exporttmp;find ../lib -name "*jar" -exec jar -xf {} \; ; cd ..
-	@find -maxdepth 1 -not -name . -not -name exporttmp -exec cp -r {} exporttmp \;
+	@find . -maxdepth 1 -not -name . -not -name exporttmp -exec cp -r {} exporttmp \;
 	@find exporttmp -type d -name CVS -exec rm -rf {} \; 2>/dev/null || echo ""
 	@find exporttmp -name "*java" -exec rm -f {} \;
 	@find exporttmp -name "makefile" -exec rm -f {} \;

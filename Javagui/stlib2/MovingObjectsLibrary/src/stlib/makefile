@@ -20,7 +20,7 @@
 # file: stlib/makefile
 
 
-JAVAFILES =$(shell find -name "*.java")
+JAVAFILES =$(shell find . -name "*.java")
 
 # compile all sources with a single javac invocation instead of one per file
 .PHONY:all
