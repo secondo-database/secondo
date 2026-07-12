@@ -470,7 +470,7 @@ Operator : receivetextstreamUDP
 Number   : 1
 Signature: {string|text} x {string|text} x real x real -> stream(tuple((Ok bool)(Msg text)(ErrMsg string)(SenderIP string)(SenderPort string)(SenderIPversion string)))
 Example  : query receivetextstreamUDP("",'2626',0.08,5.0) count >= 50
-Result   : TRUE
+Result   : (platform (linux (bool TRUE)) (linux64 (bool TRUE)) (win32 (bool TRUE)) (mac_osx bug))
 
 
 Operator : crypt

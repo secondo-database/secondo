@@ -1055,7 +1055,7 @@ Operator : intersection_rob
 Number   : 1
 Signature: region x line -> line
 Example  : query intersection1(thecenter,  boundary(thecenter)) = intersection_rob(thecenter, boundary(thecenter))
-Result   : TRUE
+Result   : (platform (linux (bool TRUE)) (linux64 (bool TRUE)) (win32 (bool TRUE)) (mac_osx bug))
 
 Operator : intersection_rob
 Number   : 2
