@@ -1394,7 +1394,8 @@ int WindowIntersects( Word* args, Word& result,
 ValueMapping rtreewindowintersectsmap [] = { WindowIntersects<2>,
                                              WindowIntersects<3>,
                                              WindowIntersects<4>,
-                                             WindowIntersects<8> };
+                                             WindowIntersects<8>,
+                                             WindowIntersects<1> };
 
 
 /*
@@ -3698,7 +3699,7 @@ const string CreateRTreeBulkLoadSpec  =
 Operator bulkloadrtree(
          "bulkloadrtree",       // name
          CreateRTreeBulkLoadSpec,      // specification
-         16,
+         20,
          CreateRTreeBulkLoad,          // value mapping
          CreateRTreeBulkLoadSelect,    // selection function
          CreateRTreeBulkLoadTypeMap    // type mapping

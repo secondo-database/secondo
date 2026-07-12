@@ -1542,7 +1542,7 @@ ValueMapping windowtimeintersectss [] = { MON_WindowTimeIntersectsS,
 Operator windowtimeintersectsS (
          "windowtimeintersectsS",
          windowtimeintersectsSSpec,
-         3,
+         2,
          windowtimeintersectss,
          WindowTimeIntersectsSSelection,
          MON_WindowTimeIntersectsSTypeMap

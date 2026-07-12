@@ -12325,7 +12325,7 @@ Operator spatialadd (
 Operator spatialwindowclippingin (
   "windowclippingin",
   SpatialSpecWindowClippingIn,
-  4,
+  2,
   spatialwindowclippinginmap,
   SpatialSelectWindowClipping,
   SpatialWindowClippingMap );
@@ -12333,7 +12333,7 @@ Operator spatialwindowclippingin (
 Operator spatialwindowclippingout (
   "windowclippingout",
   SpatialSpecWindowClippingOut,
-  4,
+  2,
   spatialwindowclippingoutmap,
   SpatialSelectWindowClipping,
   SpatialWindowClippingMap );
@@ -17347,7 +17347,7 @@ ValueMapping berlin2wgsVMs[] = {
 Operator berlin2wgs(
   "berlin2wgs",
   berlin2wgsSpec.getStr(),
-  4,
+  5,
   berlin2wgsVMs,
   berlin2wgsSelect,
   berlin2wgsTM

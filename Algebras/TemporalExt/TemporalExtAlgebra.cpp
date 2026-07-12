@@ -5676,7 +5676,7 @@ struct EverNearerThanInfo : OperatorInfo {
 Operator temporalatinstantext(
     "atinstant",
     TemporalSpecAtInstantExt,
-    5,
+    1,
     temporalatinstantextmap,
     MovingExtSimpleSelect,
     MovingInstantExtTypeMapIntime );
@@ -5692,7 +5692,7 @@ Operator temporalatperiodsext(
 Operator temporalinitialext(
     "initial",
     TemporalSpecInitialExt,
-    5,
+    1,
     temporalinitialextmap,
     MovingExtSimpleSelect,
     MovingExtTypeMapIntime );
@@ -5700,7 +5700,7 @@ Operator temporalinitialext(
 Operator temporalfinalext(
     "final",
     TemporalSpecFinalExt,
-    5,
+    1,
     temporalfinalextmap,
     MovingExtSimpleSelect,
     MovingExtTypeMapIntime );
@@ -5732,7 +5732,7 @@ Operator temporalpassesext(
 Operator temporaldeftimeext(
     "deftime",
     TemporalSpecDefTimeExt,
-    5,
+    1,
     temporaldeftimeextmap,
     MovingExtSimpleSelect,
     MovingExtTypeMapPeriods );

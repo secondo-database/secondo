@@ -209,8 +209,8 @@ ListExpr realJoinMMRTreeTM(ListExpr args){
       !listutils::isKind(type1,Kind::SPATIAL3D()) &&
       !temporalalgebra::MRegion::checkType(type1) &&
       !temporalalgebra::MPoint::checkType(type1) ){
-     string t = " (type is " + nl->ToString(type1)+ ")";  
-     return listutils::typeError("Attribute " + name1 + 
+     string t = " (type is " + nl->ToString(type1)+ ")";
+     return listutils::typeError("Attribute " + name1 +
                                  " is not in Kind Spatial2D or Spatial3D"
                                  + t);
    }
@@ -398,6 +398,15 @@ ValueMapping realJoinMMRTreeVecVM[] = {
                 temporalalgebra::MRegion, temporalalgebra::MRegion,3,3,3> >,
     joinRTreeVM<RealJoinTreeVecLocalInfo<mmrtree::RtreeT<3, TupleId>,
                 temporalalgebra::MRegion, temporalalgebra::MPoint,3,3,3> >,
+
+    joinRTreeVM<RealJoinTreeVecLocalInfo<mmrtree::RtreeT<2, TupleId>,
+                temporalalgebra::MPoint, StandardSpatialAttribute<2>,3,2,2> >,
+    joinRTreeVM<RealJoinTreeVecLocalInfo<mmrtree::RtreeT<3, TupleId>,
+                temporalalgebra::MPoint, StandardSpatialAttribute<3>,3,3,3> >,
+    joinRTreeVM<RealJoinTreeVecLocalInfo<mmrtree::RtreeT<3, TupleId>,
+                temporalalgebra::MPoint, temporalalgebra::MRegion,3,3,3> >,
+    joinRTreeVM<RealJoinTreeVecLocalInfo<mmrtree::RtreeT<3, TupleId>,
+                temporalalgebra::MPoint, temporalalgebra::MPoint,3,3,3> >,
 
   };
 
