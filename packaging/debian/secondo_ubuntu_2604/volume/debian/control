@@ -2,7 +2,7 @@ Source: secondo
 Section: database
 Priority: extra
 Maintainer: Jan Nidzwetzki <jnidzwetzki@gmx.de>
-Build-Depends: debhelper (>= 5), flex, bison, libdb5.3, libdb5.3-dev, libdb5.3++, libdb5.3++-dev, db5.3-util, libjpeg62, libjpeg62-dev, libgsl-dev, libreadline-dev, librecode-dev, libgmp-dev, libncurses-dev, libboost-all-dev, libxml2-dev, openjdk-8-jdk, swi-prolog-nox, swi-prolog-java, swi-prolog, libquadmath0, libgmp-dev, libgmp10, libboost-all-dev, original-awk
+Build-Depends: debhelper (>= 5), flex, bison, libdb5.3, libdb5.3-dev, libdb5.3++, libdb5.3++-dev, db5.3-util, libjpeg62, libjpeg62-dev, libgsl-dev, libreadline-dev, librecode-dev, libgmp-dev, libncurses-dev, libboost-all-dev, libxml2-dev, openjdk-8-jdk, swi-prolog-nox, swi-prolog-java, swi-prolog, libquadmath0, libgmp-dev, libgmp10, libboost-all-dev, original-awk, nlohmann-json3-dev
 Standards-Version: 4.6.0
 Homepage: https://secondo-database.github.io/
 
