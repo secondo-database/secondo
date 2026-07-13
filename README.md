@@ -64,7 +64,7 @@ Silicon). Other Linux distributions generally work as well.
 
 ### 1. Install the prerequisites
 
-There is no SECONDO SDK any more — all dependencies (compiler, flex, bison, Berkeley DB, Boost,
+All dependencies (compiler, flex, bison, Berkeley DB, Boost,
 SWI-Prolog, a JDK, …) come from your package manager. The per-platform package lists are kept in
 the **[installation instructions](https://secondo-database.github.io/content_install.html)**;
 follow the section for your system before continuing.
