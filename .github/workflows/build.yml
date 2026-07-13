@@ -49,7 +49,6 @@ jobs:
 
       - name: Build SECONDO
         run: |
-          cp -av makefile.algebras.cibuild makefile.algebras
           make -j $(nproc)
 
       - name: Show ccache statistics (after build)
@@ -149,7 +148,6 @@ jobs:
 
       - name: Build SECONDO
         run: |
-          cp -av makefile.algebras.cibuild makefile.algebras
           make -j $(sysctl -n hw.ncpu)
 
       - name: Show ccache statistics (after build)
