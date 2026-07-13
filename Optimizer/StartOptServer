@@ -115,15 +115,29 @@ if [ -n "$PSWD" ]; then
 fi
 
 
-JAVAPATH=$(find -L $J2SDK_ROOT -iname libjsig.so | head -n 1 | sed "s/libjsig.so//")
-
-if [ -z "$LD_LIBRARY_PATH" ]; then
- LD_LIBRARY_PATH=$JAVAPATH
+# The JVM handles some SIGSEGVs itself (implicit null checks, stack banging).
+# Prolog installs its SIGSEGV handler on top of the JVM's and the next
+# JVM-internal SIGSEGV reaches Prolog, which aborts with "received fatal signal 11". 
+# libjsig chains the two handlers and avoids the crash.
+if [ "$SECONDO_PLATFORM" == mac_osx ]; then
+  JSIG=$(find -L $J2SDK_ROOT -name libjsig.dylib | head -n 1)
+  if [ -n "$JSIG" ]; then
+    export DYLD_INSERT_LIBRARIES=$JSIG${DYLD_INSERT_LIBRARIES:+:$DYLD_INSERT_LIBRARIES}
+  fi
 else
- LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$JAVAPATH
+  JSIG=$(find -L $J2SDK_ROOT -name libjsig.so | head -n 1)
+  if [ -n "$JSIG" ]; then
+    export LD_PRELOAD=$JSIG${LD_PRELOAD:+:$LD_PRELOAD}
+  fi
 fi
 
-echo "LD_LIBRARY_PATH=$LD_LIBRARY_PATH"
+if [ -z "$JSIG" ]; then
+  echo "Warning: libjsig not found under J2SDK_ROOT=$J2SDK_ROOT;" \
+       "the JVM and SWI-Prolog will fight over SIGSEGV."
+else
+  JAVAPATH=$(dirname $JSIG)
+  export LD_LIBRARY_PATH=$JAVAPATH${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}
+fi
 
 cmd="$JAVA -Djava.library.path=$LIB_PATH -classpath $CLASSPATH  OptimizerServer $S_PORT $AUTOQUIT $TRACE $*"
 
