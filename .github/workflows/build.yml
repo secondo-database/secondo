@@ -112,7 +112,7 @@ jobs:
       # finished keg.
       - name: Cache swi-prolog (built with JPL)
         id: swipl-cache
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ${{ env.SWIPL_CELLAR }}
           key: swipl-jpl-${{ matrix.os }}-${{ runner.arch }}-${{ env.SWIPL_VERSION }}-v1
