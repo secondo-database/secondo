@@ -4724,9 +4724,11 @@ QueryProcessor::Received( const Supplier s )
   else if ( tree->nodetype == IndirectObject)
     return (tree->u.received);
   else
+  {
     cerr << "Call of QueryProcessor::Received() not allowed "
-   << "for this node type" << endl;
+         << "for this node type" << endl;
     abort();
+  }
 }
 
 /*
