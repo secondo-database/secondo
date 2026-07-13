@@ -1,8 +1,14 @@
-#
+#!/bin/bash
 #
 ##############################
 
 executable=$(which SecondoBDB)
+
+if [ ! -x "$executable" ]; then
+  echo "Error: SecondoBDB not found on PATH" >&2
+  echo "Set up the SECONDO environment first, e.g. 'source ~/.secondorc'" >&2
+  exit 1
+fi
 
 VALGRIND_STD_OPTIONS=" --num-callers=25 --suppressions=vgs.txt --error-limit=no --smc-check=all --track-origins=yes"
 

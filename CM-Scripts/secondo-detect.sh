@@ -232,6 +232,12 @@ secondo_detect() {
     *":$SECONDO_BUILD_DIR/Tools/pd:"*) ;;
     *) PATH="$PATH:$SECONDO_BUILD_DIR/Tools/pd"; export PATH ;;
   esac
+
+  # put the SECONDO binaries on PATH once
+  case ":$PATH:" in
+    *":$SECONDO_BUILD_DIR/bin:"*) ;;
+    *) PATH="$PATH:$SECONDO_BUILD_DIR/bin"; export PATH ;;
+  esac
 }
 
 # Warn about drift/mismatch cases that used to fail silently.
