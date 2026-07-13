@@ -24,7 +24,7 @@
 #############################################
 
 # System dependent default libraries
-DEFAULTLIB = -lpthread -lm -ldl -lstdc++
+DEFAULTLIB = -lpthread -lm -ldl -lc++
 
 # macros for shared library support
 ifeq ($(shared),yes)
