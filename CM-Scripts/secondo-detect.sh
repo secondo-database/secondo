@@ -70,7 +70,18 @@ secondo_detect() {
     : "${PL_INCLUDE_DIR:=$PLBASE/include}"
     : "${PL_LIB:=swipl}"
     : "${JPL_JAR:=$PLBASE/lib/jpl.jar}"
-    : "${JPL_DLL:=$PLLIBDIR/libjpl.$PLSOEXT}"   # PLSOEXT = so (Linux) / dylib (mac)
+    # The JPL library is libjpl.so on Linux but libjpl.dylib on macOS, while
+    # swipl reports PLSOEXT=so on BOTH. Probe for the file that is really there
+    # rather than deriving its name from PLSOEXT.
+    if [ -z "${JPL_DLL:-}" ]; then
+      for _jpl in "$PLLIBDIR/libjpl.$PLSOEXT" "$PLLIBDIR/libjpl.dylib" \
+                  "$PLLIBDIR/libjpl.so"; do
+        if [ -f "$_jpl" ]; then JPL_DLL=$_jpl; break; fi
+      done
+      # Nothing found: keep the conventional name so --check can report it.
+      : "${JPL_DLL:=$PLLIBDIR/libjpl.$PLSOEXT}"
+      unset _jpl
+    fi
     export PL_VERSION SWI_HOME_DIR PL_LIB_DIR PL_DLL_DIR PL_INCLUDE_DIR
     export PL_LIB JPL_JAR JPL_DLL
     SECONDO_PL_FOUND=yes
@@ -235,6 +246,13 @@ secondo_env_warnings() {
   fi
   if [ ! -f "${BERKELEY_DB_DIR:-/nonexistent}/include/db_cxx.h" ]; then
     echo "  ! db_cxx.h not under ${BERKELEY_DB_DIR:-?} (set BERKELEY_DB_DIR)"; w=1
+  fi
+  # OptServer/OptTest link against libjpl; without it they fail late, at link
+  # time. A swipl built without the Java package ships no JPL at all.
+  if [ "${SECONDO_PL_FOUND:-no}" = yes ] && [ ! -f "${JPL_DLL:-/nonexistent}" ]; then
+    echo "  ! JPL library not found at ${JPL_DLL:-?} -> optimizer server will not link"
+    echo "    (swi-prolog must be built with the Java package, see the macOS install guide)"
+    w=1
   fi
   # exported PL_VERSION vs the swipl actually on PATH now (stale shell / upgrade)
   live_swipl=${SECONDO_SWIPL:-$(command -v swipl 2>/dev/null || command -v pl 2>/dev/null)}
