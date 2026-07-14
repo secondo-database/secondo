@@ -78,16 +78,33 @@ specs.test: $(SPECFILES) ../makefile.algebras
 	@rm -f tokens lexrules yaccrules1 yaccrules2
 
 
-.PHONY:buildlibs
-buildlibs: examples
+# The algebra modules are independent of each other, each one compiles its own
+# sources and creates its own library. One make target per algebra is generated. 
+# This way make can build several algebras at the same time when it is called with -j.
+BUILD_ALGEBRA_DIRS := $(foreach dir,$(USED_ALGEBRA_DIRS), \
+                        $(if $(wildcard $(dir)/makefile),$(dir)))
+BUILD_ALGEBRA_TARGETS := $(addprefix build-algebra-, $(BUILD_ALGEBRA_DIRS))
+
+.PHONY: buildlibs-start
+buildlibs-start: examples
 	@echo && echo  " *** Building algebra libs ***" && echo;
-	for dir in $(USED_ALGEBRA_DIRS); do \
-          if [ -e $$dir/makefile ]; then \
-            if !($(MAKE) -C $$dir) then \
-	          exit 1; \
-	        fi; \
-          fi \
-	done
+
+# A static pattern rule, which gives all targets of BUILD_ALGEBRA_TARGETS the
+# same recipe. The "%" matches the part of the target name after the prefix,
+# i.e. the algebra directory, and "$*" expands to exactly that match. So the
+# target build-algebra-RTree runs "make -C RTree".
+.PHONY: $(BUILD_ALGEBRA_TARGETS)
+$(BUILD_ALGEBRA_TARGETS): build-algebra-%: buildlibs-start
+	$(MAKE) -C $*
+
+# Pointcloud and Pointcloud2 both build the shared directory
+# Pointcloud/lasreader, hence they must not run at the same time.
+ifneq (,$(filter Pointcloud,$(BUILD_ALGEBRA_DIRS)))
+build-algebra-Pointcloud2: build-algebra-Pointcloud
+endif
+
+.PHONY:buildlibs
+buildlibs: $(BUILD_ALGEBRA_TARGETS)
 	@echo && echo " *** Algebra libs successfully created ***" && echo;
 
 
