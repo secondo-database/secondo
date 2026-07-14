@@ -27,7 +27,7 @@ jobs:
 
       - name: Install packages
         run: |
-          sudo apt-get -y install flex bison gcc g++ libdb5.3 libdb5.3-dev libdb5.3++ libdb5.3++-dev db5.3-util libjpeg-dev libgsl0-dev libreadline-dev librecode-dev libgmp-dev libncurses-dev libxml2-dev libboost-all-dev build-essential openjdk-8-jdk wget swi-prolog-nox swi-prolog-java swi-prolog libquadmath0 libgmp-dev libgmp10 original-awk libboost-all-dev libbison-dev libfl-dev nlohmann-json3-dev
+          sudo apt-get -y install flex bison gcc g++ libdb5.3 libdb5.3-dev libdb5.3++ libdb5.3++-dev db5.3-util libjpeg-dev libgsl0-dev libreadline-dev librecode-dev libgmp-dev libncurses-dev libxml2-dev libboost-all-dev build-essential default-jdk wget swi-prolog-nox swi-prolog-java swi-prolog libquadmath0 libgmp-dev libgmp10 original-awk libboost-all-dev libbison-dev libfl-dev nlohmann-json3-dev
 
       - name: Detect SECONDO build environment
         run: |
