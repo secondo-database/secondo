@@ -24,8 +24,11 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v7
 
+      # Not run under sudo: the script only uses sudo where it needs root (to
+      # install the build dependencies). Under "sudo -E" the environment below
+      # does not survive on every Ubuntu release.
       - name: Build the Debian package
-        run: sudo -E packaging/debian/build-deb.sh --install-deps
+        run: packaging/debian/build-deb.sh --install-deps
         env:
           # Makes the package version of this run supersede all previous ones.
           SECONDO_DEB_BUILD_ID: ${{ github.run_number }}

@@ -62,7 +62,7 @@ that has to change to package for another distribution.
 On an Ubuntu machine, from the checkout:
 
 ```bash
-sudo packaging/debian/build-deb.sh --install-deps
+packaging/debian/build-deb.sh --install-deps
 ```
 
 Without `--install-deps`, the build dependencies (the `Build-Depends` of

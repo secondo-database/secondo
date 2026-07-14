@@ -11,7 +11,8 @@
 # Usage: build-deb.sh [--install-deps]
 #
 #   --install-deps   apt-get install the Build-Depends from debian/control
-#                    (needs root; this is what the CI and the container do)
+#                    (uses sudo for that; the package itself is built as the
+#                    calling user, so do not call this script with sudo)
 #
 # The resulting packages are placed in packaging/debian/out.
 #####################################################################
@@ -78,12 +79,19 @@ cp -a "$script_dir/debian" "$build_dir/debian"
 } > "$build_dir/debian/changelog"
 
 if [ "$install_deps" = true ]; then
+   # Only the dependencies need root. The package itself is built as the calling
+   # user (dpkg-buildpackage fakes the root it needs), so that this script can be
+   # called without sudo -- sudo does not reliably pass the environment through
+   # (SECONDO_DEB_BUILD_ID was silently lost on Ubuntu 26.04).
+   sudo=""
+   [ "$(id -u)" -eq 0 ] || sudo="sudo"
+
    export DEBIAN_FRONTEND=noninteractive
-   apt-get update
+   $sudo apt-get update
    # The toolchain, plus the Build-Depends of debian/control -- which is the
    # single source of truth for the build dependencies.
-   apt-get install -y build-essential debhelper fakeroot dpkg-dev
-   apt-get build-dep -y ./
+   $sudo apt-get install -y build-essential debhelper fakeroot dpkg-dev
+   $sudo apt-get build-dep -y ./
 fi
 
 dpkg-buildpackage -us -uc -b -rfakeroot
