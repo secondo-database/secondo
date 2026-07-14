@@ -321,3 +321,6 @@ Optimizer/.secondo_history
 # Python bytecode
 __pycache__/
 *.pyc
+
+# Javagui Demo
+/Javagui/Demo
