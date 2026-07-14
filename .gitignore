@@ -316,3 +316,4 @@ makefile.algebras
 /WebGui2/war/secondoweb
 
 Algebras/Cassandra/tools/dsecondo-gui/.classpath
+Optimizer/.secondo_history
