@@ -1,0 +1,36 @@
+#!/bin/bash
+#
+# Launcher for the optimizer tools of the installed SECONDO package.
+#
+# The optimizer writes into its own directory (samples, statistics, ...) while
+# /opt/secondo belongs to root, so the tools run in a per-user copy of the
+# Optimizer directory. They address the SECONDO binaries relative to it
+# (../bin/SecondoBDB), which is why the work directory mirrors the layout of a
+# build directory.
+#
+# This script is installed under the name of every optimizer tool (SecondoPL,
+# SecondoPLTTY, StartOptServer, ...). The name it is called by selects the
+# launcher of the SECONDO sources that is executed -- those launchers know how
+# to start their tool (which SWI-Prolog stack options the installed swipl
+# understands, for example), and this script must not repeat that knowledge.
+#####################################################################
+
+set -e
+
+tool=$(basename "$0")
+
+if [ -z "${SECONDO_WORK_DIR:-}" ] || [ -z "${SECONDO_BUILD_DIR:-}" ]; then
+   echo "\$SECONDO_WORK_DIR is not defined, check your SECONDO installation."
+   echo "Run /opt/secondo/bin/secondo_installer.sh and 'source ~/.secondorc'."
+   exit 1
+fi
+
+optimizer_dir="$SECONDO_WORK_DIR/optimizer"
+mkdir -p "$optimizer_dir"
+
+echo "Preparing the SECONDO Optimizer in $optimizer_dir"
+rsync -rlpt "$SECONDO_BUILD_DIR/Optimizer/" "$optimizer_dir/"
+ln -sfn "$SECONDO_BUILD_DIR/bin" "$SECONDO_WORK_DIR/bin"
+
+cd "$optimizer_dir"
+exec "./$tool" "$@"

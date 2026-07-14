@@ -1,0 +1,47 @@
+Source: secondo
+Section: database
+Priority: optional
+Maintainer: Jan Nidzwetzki <jnidzwetzki@gmx.de>
+Build-Depends: debhelper-compat (= 13),
+ flex,
+ libfl-dev,
+ bison,
+ libbison-dev,
+ gcc,
+ g++,
+ libdb5.3-dev,
+ libdb5.3++-dev,
+ db5.3-util,
+ libjpeg62-dev,
+ libgsl-dev,
+ libreadline-dev,
+ librecode-dev,
+ libgmp-dev,
+ libncurses-dev,
+ libxml2-dev,
+ libboost-all-dev,
+ nlohmann-json3-dev,
+ openjdk-8-jdk,
+ swi-prolog,
+ swi-prolog-nox,
+ swi-prolog-java,
+ original-awk
+Standards-Version: 4.7.0
+Homepage: https://secondo-database.github.io/
+
+Package: secondo
+Architecture: any
+# The shared libraries are not listed here: dh_shlibdeps derives them from the
+# built binaries.
+Depends: ${shlibs:Depends},
+ ${misc:Depends},
+ db5.3-util,
+ openjdk-8-jdk | openjdk-8-jre,
+ swi-prolog,
+ swi-prolog-nox,
+ swi-prolog-java,
+ original-awk,
+ rsync
+Description: The secondo database
+ Designed at the FernUniversitaet in Hagen, Secondo is a platform for
+ implementing and experimenting with various kinds of data models.

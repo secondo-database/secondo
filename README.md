@@ -61,6 +61,17 @@ clients concurrently.
 Tested continuously on **Ubuntu 22.04 / 24.04 / 26.04** and **macOS 15 / 26** (Intel and Apple
 Silicon). Other Linux distributions generally work as well.
 
+On Ubuntu you can install a prebuilt package instead of building from source (replace `24.04`
+with your release):
+
+```bash
+echo 'deb [trusted=yes] https://secondo-database.github.io/secondo/apt/ubuntu/24.04/ ./' \
+  | sudo tee /etc/apt/sources.list.d/secondo.list
+sudo apt-get update
+sudo apt-get install secondo
+/opt/secondo/bin/secondo_installer.sh    # sets up ~/.secondorc and your database directory
+```
+
 ### 1. Install the prerequisites
 
 All dependencies (compiler, flex, bison, Berkeley DB, Boost,
