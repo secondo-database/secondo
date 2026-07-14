@@ -1,0 +1,95 @@
+name: Build Debian packages
+
+# Builds the SECONDO Debian packages for all supported Ubuntu releases and
+# publishes them as an apt repository on GitHub Pages. Every run produces a
+# higher package version than the run before it (see packaging/debian/build-deb.sh),
+# so a published package always supersedes the previously published one.
+
+on:
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: 'Publish the packages to the apt repository on GitHub Pages'
+        type: boolean
+        default: true
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ['ubuntu-22.04', 'ubuntu-24.04', 'ubuntu-26.04']
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v7
+
+      - name: Build the Debian package
+        run: sudo -E packaging/debian/build-deb.sh --install-deps
+        env:
+          # Makes the package version of this run supersede all previous ones.
+          SECONDO_DEB_BUILD_ID: ${{ github.run_number }}
+
+      # Installs the package in a pristine container and runs SECONDO in it. A
+      # failure here fails the job, and the publish job needs it, so a broken
+      # package cannot reach the apt repository.
+      - name: Test the package
+        run: |
+          # ubuntu-24.04 (the runner label) -> ubuntu:24.04 (the image)
+          packaging/debian/docker-test.sh "${OS/-/:}"
+        env:
+          OS: ${{ matrix.os }}
+
+      - name: Upload the packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: debs-${{ matrix.os }}
+          path: packaging/debian/out/*
+
+  publish:
+    needs: build
+    if: ${{ inputs.publish }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write     # to push the gh-pages branch
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v7
+
+      - name: Download the packages
+        uses: actions/download-artifact@v4
+        with:
+          path: packages
+          pattern: 'debs-*'
+
+      - name: Build the apt repository
+        run: |
+          sudo apt-get update
+          sudo apt-get -y install apt-utils
+
+          # One repository per distribution and release: apt/ubuntu/24.04, and
+          # apt/debian/13 should Debian packages ever be built here as well.
+          # A single shared repository would not work, because all packages
+          # carry the same name and apt would simply install the highest
+          # version, i.e. the ubuntu2604 package on a 22.04 machine.
+          for dir in packages/debs-*; do
+            distribution=${dir#packages/debs-}       # ubuntu-24.04
+            target="apt/${distribution%-*}/${distribution##*-}"
+            mkdir -p "$target"
+            cp "$dir"/*.deb "$target"
+            (cd "$target" && "${GITHUB_WORKSPACE}/packaging/debian/repository/build_index.sh")
+          done
+          cp packaging/debian/repository/index.html apt/index.html
+          find apt -type f | sort
+
+      - name: Publish to the gh-pages branch
+        run: |
+          # The branch is rebuilt from scratch on every run, so the repository
+          # never accumulates the packages of all previous builds.
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout --orphan gh-pages
+          git rm -rqf --cached .
+          git add -f apt
+          git commit -m "apt repository: build ${{ github.run_number }} (${{ github.sha }})"
+          git push -f origin gh-pages

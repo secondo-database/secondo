@@ -7,7 +7,7 @@ echo "================================="
 if [ -f ~/.secondorc ]; then
     echo "Error: Found an old secondo configuration '~/.secondorc'"
     echo "To reconfigure SECONDO, please delete the file first"
-    exit -1
+    exit 1
 fi
 
 databasedir=~/secondo-databases
@@ -42,38 +42,15 @@ fi
 cp /opt/secondo/etc/SecondoConfig.ini ~/
 sed -i "s|SecondoHome=.*|SecondoHome=$databasedir|" ~/SecondoConfig.ini
 
-# Determine plattform
-architecture=$(getconf LONG_BIT)
-
-if [ $architecture -eq 64 ]; then
+# The platform, the SWI-Prolog paths, the JDK and Berkeley DB are detected at
+# login time by the same script the package was built with. Hardcoding them
+# here would break as soon as the installed SWI-Prolog or JDK changes.
 cat <<-EOF > ~/.secondorc
 export SECONDO_WORK_DIR=$workdir
 export SECONDO_BUILD_DIR=/opt/secondo
-export SECONDO_PLATFORM=linux64
-export SECONDO_CONFIG=~/SecondoConfig.ini
-export SWI_HOME_DIR=/usr/lib/swi-prolog
-export PL_LIB_DIR=\$SWI_HOME_DIR/lib/amd64/
-export PL_DLL_DIR=\$SWI_HOME_DIR/lib/amd64/
-export LD_LIBRARY_PATH=\$LD_LIBRARY_PATH:\$SWI_HOME_DIR/lib:\$PL_LIB_DIR
-export PATH=\$PATH:\$SECONDO_BUILD_DIR/bin
-export JPL_DLL=\$SWI_HOME_DIR/\$PL_LIB_DIR/libjpl.so
-export JPL_JAR=\$SWI_HOME_DIR/lib/jpl.jar
+export SECONDO_CONFIG=\$HOME/SecondoConfig.ini
+source \$SECONDO_BUILD_DIR/CM-Scripts/secondo-detect.sh
 EOF
-else 
-cat <<-EOF > ~/.secondorc
-export SECONDO_WORK_DIR=$workdir
-export SECONDO_BUILD_DIR=/opt/secondo
-export SECONDO_PLATFORM=linux
-export SECONDO_CONFIG=~/SecondoConfig.ini
-export SWI_HOME_DIR=/usr/lib/swipl-6.6.5
-export PL_LIB_DIR=\$SWI_HOME_DIR/lib/i686-linux/
-export PL_DLL_DIR=\$SWI_HOME_DIR/lib/i686-linux/
-export LD_LIBRARY_PATH=\$LD_LIBRARY_PATH:\$SWI_HOME_DIR/lib:\$PL_LIB_DIR
-export PATH=\$PATH:\$SECONDO_BUILD_DIR/bin
-export JPL_DLL=\$SWI_HOME_DIR/\$PL_LIB_DIR/libjpl.so
-export JPL_JAR=\$SWI_HOME_DIR/lib/jpl.jar
-EOF
-fi
 
 if [ $(grep secondorc ~/.bashrc | wc -l) -eq 0 ]; then
    sed -i '1s|^|source ~/.secondorc\n|' ~/.bashrc

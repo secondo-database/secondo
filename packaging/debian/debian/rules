@@ -1,0 +1,83 @@
+#!/usr/bin/make -f
+# -*- makefile -*-
+#
+
+# Uncomment this to turn on verbose mode.
+#export DH_VERBOSE=1
+
+SECONDO_ENV_MK := debian/secondo-env.mk
+
+# --make-vars emits "NAME ?= value" for every variable the SECONDO makefiles
+# and the runtime care about (SECONDO_PLATFORM, PL_*, JPL_*, J2SDK_ROOT,
+# BERKELEY_DB_*, readline, ...).
+$(shell SECONDO_BUILD_DIR=$(CURDIR) $(CURDIR)/CM-Scripts/secondo-detect.sh --make-vars > $(SECONDO_ENV_MK))
+include $(SECONDO_ENV_MK)
+export $(shell sed -n 's/^\([A-Za-z_][A-Za-z0-9_]*\) *?=.*/\1/p' $(SECONDO_ENV_MK))
+
+PARALLEL := $(patsubst parallel=%,%,$(filter parallel=%,$(DEB_BUILD_OPTIONS)))
+NUMJOBS := $(if $(PARALLEL),$(PARALLEL),$(shell nproc))
+
+DESTDIR := $(CURDIR)/debian/secondo
+PREFIX := $(DESTDIR)/opt/secondo
+
+# The tools of Optimizer/ that the package makes available in /opt/secondo/bin.
+OPTIMIZER_TOOLS := SecondoPL SecondoPLCS SecondoPLNT SecondoPLTTY \
+                   SecondoPLTTYCS SecondoPLTTYNT StartOptServer
+
+%:
+	dh $@
+
+override_dh_auto_configure:
+
+override_dh_auto_build:
+	./CM-Scripts/secondo-detect.sh --check
+	$(MAKE) -j$(NUMJOBS)
+	$(MAKE) -C Javagui demo
+
+# The SECONDO makefile has no packaging-safe clean target.
+override_dh_auto_clean:
+
+# A local build runs in the checkout, and dh_clean would delete the tracked
+# *.orig and *.bak files of the source tree.
+override_dh_clean:
+	dh_clean -X.orig -X.bak
+
+# The test suite needs a running SecondoMonitor; it runs in the CI instead.
+override_dh_auto_test:
+
+# dwz cannot handle the debug info of the algebra objects.
+override_dh_dwz:
+
+override_dh_auto_install:
+	mkdir -p $(PREFIX)/bin
+	cp -a bin/* $(PREFIX)/bin
+	mv $(PREFIX)/bin/SecondoMonitor $(PREFIX)/bin/SecondoMonitor.real
+	cp packaging/debian/tools/secondo_installer.sh $(PREFIX)/bin
+	cp packaging/debian/tools/SecondoMonitor $(PREFIX)/bin
+	cp packaging/debian/tools/sgui $(PREFIX)/bin
+
+	# The optimizer tools are the launchers of the SECONDO sources, run in the
+	# per-user copy of the Optimizer directory by packaging/debian/tools/secondo-optimizer.
+	cp packaging/debian/tools/secondo-optimizer $(PREFIX)/bin
+	for tool in $(OPTIMIZER_TOOLS); do \
+	   ln -sf secondo-optimizer $(PREFIX)/bin/$$tool; \
+	done
+	cp -a Data $(PREFIX)
+
+	# The installed SECONDO detects its runtime environment with the same
+	# script the build used; secondo_installer.sh sources it from here.
+	mkdir -p $(PREFIX)/CM-Scripts
+	cp CM-Scripts/secondo-detect.sh $(PREFIX)/CM-Scripts
+
+	# Databases
+	sed -i "s|Trains.obj|/opt/secondo/bin/Trains.obj|g" $(PREFIX)/bin/berlintest
+
+	# Java gui
+	cp -a Javagui/Demo $(PREFIX)/bin/javagui
+	rm -f $(PREFIX)/bin/javagui/*.bat
+
+	# Optimizer
+	cp -a Optimizer $(PREFIX)/Optimizer
+
+	mkdir -p $(PREFIX)/etc
+	cp bin/SecondoConfig.ini $(PREFIX)/etc

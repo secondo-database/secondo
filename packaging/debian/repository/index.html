@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>SECONDO apt repository</title>
+<style>
+  body { font-family: sans-serif; max-width: 46em; margin: 2em auto; padding: 0 1em; }
+  pre { background: #f4f4f4; padding: 1em; overflow-x: auto; }
+</style>
+</head>
+<body>
+<h1>SECONDO apt repository</h1>
+
+<p>Packages for the <a href="https://secondo-database.github.io/">SECONDO database</a>,
+built from the current state of the <code>main</code> branch. Pick the repository
+for your Ubuntu release (<a href="ubuntu/22.04/">22.04</a>,
+<a href="ubuntu/24.04/">24.04</a>, <a href="ubuntu/26.04/">26.04</a>):</p>
+
+<pre>
+echo 'deb [trusted=yes] https://secondo-database.github.io/secondo/apt/ubuntu/24.04/ ./' \
+  | sudo tee /etc/apt/sources.list.d/secondo.list
+sudo apt-get update
+sudo apt-get install secondo
+</pre>
+
+<p>The repository is not signed, hence the <code>[trusted=yes]</code> option.</p>
+
+<p>After the installation, set up your SECONDO environment once:</p>
+
+<pre>
+/opt/secondo/bin/secondo_installer.sh
+source ~/.secondorc
+SecondoTTYBDB
+</pre>
+</body>
+</html>

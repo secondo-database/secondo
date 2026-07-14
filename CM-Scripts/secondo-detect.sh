@@ -1,3 +1,5 @@
+#!/bin/bash
+#
 # SECONDO environment detection
 #
 # Derives the SECONDO build/runtime environment from the tools installed on
@@ -220,8 +222,10 @@ secondo_detect() {
   if [ "$os" = Darwin ]; then
     opener=open
   else
+    # '|| true' since no viewer installed is fine and should not fail sourcing.
+    # It is the normal case on a server.
     opener=$(command -v xdg-open 2>/dev/null || command -v evince 2>/dev/null \
-             || command -v okular 2>/dev/null)
+             || command -v okular 2>/dev/null || true)
   fi
   : "${PD_DVI_VIEWER:=$opener}"
   : "${PD_PS_VIEWER:=$PD_DVI_VIEWER}"
