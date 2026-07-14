@@ -23,15 +23,14 @@ spatial, spatio-temporal, moving objects, graphs, and whatever you implement nex
 
 SECONDO is a *generic* database system frame that can be filled with implementations of
 different data models. Most database systems let you add data types; SECONDO additionally
-lets you replace the core data model — relational, object-oriented, temporal, graph-based, or
+lets you replace the core data model — relational, object-oriented, spatial, spatio-temporal, graph-based, or
 something entirely new. It was designed and developed by the
 [Database Systems for New Applications](https://web.archive.org/web/20190717163530/http://dna.fernuni-hagen.de/index.html)
 group at the [FernUniversität in Hagen](https://www.fernuni-hagen.de/).
 
 Everything is built from **algebra modules**: self-contained bundles of data types and
 operators that plug into the kernel through a well-defined interface. Around 190 algebras ship
-with the system today, from `RelationAlgebra` and `RTreeAlgebra` to `SpatialAlgebra`,
-`TemporalAlgebra` (moving objects), `Distributed2` (distributed query processing) and
+with the system today, from `RelationAlgebra` and `RTreeAlgebra` to `SpatialAlgebra` (spatial data / GIS), `TemporalAlgebra` (spatio-temporal data / moving objects), `Distributed2` (distributed query processing) and
 `RasterAlgebra`.
 
 SECONDO is used to
@@ -171,6 +170,87 @@ cd Javagui && ./sgui                   # start the GUI
 
 `Javagui` shows query results in viewers — including a spatial viewer that renders points,
 lines and regions, and animates moving objects.
+
+---
+
+## Moving objects
+
+SECONDO was one of the first DBMS able to manage **moving objects**: not just the
+current position of something, but its *complete history of movement*, stored as a single value
+and queryable like any other attribute.
+
+The key idea are spatio-temporal data types. A **moving point** (`mpoint`) is a function from time
+into points — an entire trip of a vehicle is one `mpoint` value. A **moving region** (`mregion`)
+is a function from time into regions, e.g. a snowfall area or a forest fire spreading over time.
+The `TemporalAlgebra` adds the operations to query them:
+
+| Operation | Signature | Meaning |
+| --- | --- | --- |
+| `trajectory` | `mpoint → line` | Projection of the movement into the 2D plane. |
+| `distance` | `mpoint × point → mreal` | Time-dependent distance — the result is a *moving real*. |
+| `passes` | `mpoint × region → bool` | Did the object ever pass through this area? |
+| `atinstant` | `mpoint × instant → ipoint` | The position at a given point in time. |
+| `inside` | `mpoint × mregion → mbool` | Time-dependent boolean: when was the object inside the moving region? |
+| `intersection` | `mpoint × mregion → mpoint` | The part of the movement that lies inside the moving region. |
+
+### Try it
+
+The `berlintest` database restored above contains the movements of 562 underground trains in
+Berlin on 2003-11-20, in a relation `Trains(Id: int, Line: int, Up: bool, Trip: mpoint)`:
+
+```
+Secondo => query Trains count;                                        # 562
+```
+
+Which trains ever passed through the region `tiergarten`?
+
+```
+Secondo => query Trains feed filter[.Trip passes tiergarten] count;   # 80
+```
+
+The path a single train took, and its distance to the station `mehringdamm` over time — the
+latter is an `mreal`, a real number that changes continuously:
+
+```
+Secondo => query trajectory(train7);
+Secondo => query distance(train7, mehringdamm);
+```
+
+The same questions in SQL, via the optimizer (`SecondoPL` or the GUI with the optimizer enabled):
+
+```prolog
+?- sql select count(*) from trains where trip passes mehringdamm.
+```
+
+Where were the trains that pass `mehringdamm` at 7:05 on that day?
+
+```prolog
+?- let 'seven05 = theInstant(2003,11,20,7,5)'.
+?- sql select [id, line, up, val(trip atinstant seven05) as pos]
+       from trains where [trip passes mehringdamm, trip present seven05].
+```
+
+And which trains ran into the moving snow area `msnow` (60 of them) — the predicate intersects a
+moving point with a moving region and asks whether the result is defined at any time at all:
+
+```prolog
+?- sql select * from trains where [not(isempty(deftime(intersection(trip, msnow))))].
+```
+
+Back at the executable level, `intersection` gives you not only *which* trains, but *which part*
+of each trip was inside the snow area:
+
+```
+Secondo => query Trains feed filter[not(isempty(deftime(intersection(.Trip, msnow))))]
+           projectextend[Id; Insnow: intersection(.Trip, msnow)] consume;
+```
+
+This is where the GUI pays off: load the `BerlinU.cat` categories in the *Hoese viewer*, display
+`UBahn` as a background, and the query results become an animation — trains moving along the
+network, the snow area drifting across it, and the trains changing colour as they enter it.
+
+The full walk-through, including the GUI steps and the display styles to pick, is the
+[Short Guide to Using SECONDO](https://secondo-database.github.io/files/Documentation/General/Secondo-mod.pdf).
 
 ---
 
