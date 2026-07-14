@@ -45,6 +45,12 @@ else
 CC := gcc
 endif
 
+# This makefile does not include makefile.env, hence the SECONDO_CC override is
+# repeated here. Without it, a compiler wrapper like ccache would be ignored.
+ifdef SECONDO_CC
+CC := $(SECONDO_CC)
+endif
+
 DOCU_FILES = PD1 PDNestedText.h PDNestedText.c \
 	     PD3 PDLex.l PDTokens.h PDLexTest.c PDParserDS.c PDParser.y \
 	     PD6 pd.header PDMaketex.c \
