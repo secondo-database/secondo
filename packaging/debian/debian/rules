@@ -5,11 +5,25 @@
 # Uncomment this to turn on verbose mode.
 #export DH_VERBOSE=1
 
+# Build with the JDK of the distribution (default-jdk), which is the JDK whose
+# JRE the package depends on (see debian/control). A build host can have other,
+# newer JDKs installed -- the GitHub runners have Temurin on the PATH -- and
+# secondo-detect.sh would pick whichever javac comes first. Javagui would then
+# be compiled to class files that default-jre cannot load.
+JDK_HOME := /usr/lib/jvm/default-java
+ifeq ($(wildcard $(JDK_HOME)/bin/javac),)
+$(error no JDK at $(JDK_HOME) -- default-jdk is a build dependency)
+endif
+export J2SDK_ROOT := $(JDK_HOME)
+export JAVA_HOME := $(JDK_HOME)
+export PATH := $(JDK_HOME)/bin:$(PATH)
+
 SECONDO_ENV_MK := debian/secondo-env.mk
 
 # --make-vars emits "NAME ?= value" for every variable the SECONDO makefiles
 # and the runtime care about (SECONDO_PLATFORM, PL_*, JPL_*, J2SDK_ROOT,
-# BERKELEY_DB_*, readline, ...).
+# BERKELEY_DB_*, readline, ...). J2SDK_ROOT is already set above, and the "?="
+# assignments it emits do not override it.
 $(shell SECONDO_BUILD_DIR=$(CURDIR) $(CURDIR)/CM-Scripts/secondo-detect.sh --make-vars > $(SECONDO_ENV_MK))
 include $(SECONDO_ENV_MK)
 export $(shell sed -n 's/^\([A-Za-z_][A-Za-z0-9_]*\) *?=.*/\1/p' $(SECONDO_ENV_MK))

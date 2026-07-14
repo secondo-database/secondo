@@ -55,6 +55,12 @@ public class ToneGenerator {
             clip.open(af, data,0 , data.length);
          } catch(javax.sound.sampled.LineUnavailableException e){
             clip = null;
+         } catch(IllegalArgumentException e){
+            // A machine without a sound device has no Clip line at all, and
+            // AudioSystem.getLine reports that as an IllegalArgumentException.
+            // This class is initialized by Category, i.e. by every tool that
+            // loads a viewer -- it must not fail where there is nothing to play.
+            clip = null;
          }
      }
 
