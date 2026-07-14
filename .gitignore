@@ -317,3 +317,7 @@ makefile.algebras
 
 Algebras/Cassandra/tools/dsecondo-gui/.classpath
 Optimizer/.secondo_history
+
+# Python bytecode
+__pycache__/
+*.pyc
