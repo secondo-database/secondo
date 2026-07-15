@@ -1,0 +1,5 @@
+fastapi>=0.110
+uvicorn[standard]>=0.29
+pybind11>=2.12
+pytest>=8.0
+httpx>=0.27

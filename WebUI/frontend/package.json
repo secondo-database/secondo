@@ -1,0 +1,33 @@
+{
+  "name": "secondo-webui",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview",
+    "e2e": "node e2e/run.mjs"
+  },
+  "dependencies": {
+    "@deck.gl/core": "^9.3.6",
+    "@deck.gl/geo-layers": "^9.3.6",
+    "@deck.gl/layers": "^9.3.6",
+    "@deck.gl/react": "^9.3.6",
+    "maplibre-gl": "^4.7.1",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-map-gl": "^7.1.9"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.3",
+    "@types/react-dom": "^18.3.0",
+    "@vitejs/plugin-react": "^6.0.3",
+    "puppeteer-core": "^25.3.0",
+    "typescript": "^5.5.3",
+    "vite": "^8.1.5"
+  },
+  "overrides": {
+    "@types/mapbox-gl": "3.4.0"
+  }
+}
