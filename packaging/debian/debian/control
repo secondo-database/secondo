@@ -25,7 +25,6 @@ Build-Depends: debhelper-compat (= 13),
  swi-prolog,
  swi-prolog-nox,
  swi-prolog-java,
- original-awk
 Standards-Version: 4.7.0
 Homepage: https://secondo-database.github.io/
 
@@ -40,7 +39,6 @@ Depends: ${shlibs:Depends},
  swi-prolog,
  swi-prolog-nox,
  swi-prolog-java,
- original-awk,
  rsync
 Description: The secondo database
  Designed at the FernUniversitaet in Hagen, Secondo is a platform for
