@@ -1,0 +1,18 @@
+# Python
+backend/.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Native build artifacts
+backend/native/*.so
+backend/native/*.o
+
+# Node / Vite
+frontend/node_modules/
+frontend/dist/
+frontend/e2e/out/
+frontend/.vite/
+
+# Local logs
+*.log

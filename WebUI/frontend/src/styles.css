@@ -1,0 +1,855 @@
+:root {
+  color-scheme: light dark;
+  font-family: ui-sans-serif, system-ui, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: #0f1115;
+  color: #e6e6e6;
+}
+
+.app {
+  display: grid;
+  height: 100vh;
+}
+
+/* Console docked to the left of the map (default). */
+.app.side {
+  grid-template-columns: var(--cat) 5px var(--con) 5px 1fr;
+  grid-template-rows: 1fr;
+}
+.app.side .catalog-pane { grid-column: 1; grid-row: 1; }
+.app.side .split-a { grid-column: 2; grid-row: 1; cursor: col-resize; }
+.app.side .console-pane { grid-column: 3; grid-row: 1; }
+.app.side .split-b { grid-column: 4; grid-row: 1; cursor: col-resize; }
+.app.side .map-pane { grid-column: 5; grid-row: 1; }
+
+/* Console docked under the map. */
+.app.bottom {
+  grid-template-columns: var(--cat) 5px 1fr;
+  grid-template-rows: 1fr 5px var(--conh);
+}
+.app.bottom .catalog-pane { grid-column: 1; grid-row: 1 / -1; }
+.app.bottom .split-a { grid-column: 2; grid-row: 1 / -1; cursor: col-resize; }
+.app.bottom .map-pane { grid-column: 3; grid-row: 1; }
+.app.bottom .split-b { grid-column: 3; grid-row: 2; cursor: row-resize; }
+.app.bottom .console-pane { grid-column: 3; grid-row: 3; }
+
+/* Collapsed console = header + input only, so the map takes the rest. */
+.app.bottom.con-collapsed {
+  grid-template-rows: 1fr 5px min-content;
+}
+
+.console.collapsed .log {
+  display: none;
+}
+
+/* Nothing to resize while a panel is collapsed. */
+.app.cat-collapsed .split-a,
+.app.con-collapsed .split-b {
+  cursor: default;
+}
+
+.rail-btn {
+  width: 100%;
+  height: 2.2rem;
+  background: none;
+  border: none;
+  border-bottom: 1px solid #262a33;
+  color: #9aa4b2;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.rail-btn:hover {
+  color: #e6e6e6;
+  background: #171a21;
+}
+
+.cat-collapse {
+  margin-left: auto;
+  background: none;
+  border: none;
+  color: #6b7280;
+  cursor: pointer;
+  font-size: 0.85rem;
+  padding: 0 0.2rem;
+}
+
+.cat-collapse:hover {
+  color: #e6e6e6;
+}
+
+.split {
+  background: #1c2028;
+  transition: background 0.12s;
+}
+
+.split:hover,
+body.dragging .split {
+  background: #3b82f6;
+}
+
+/* Keep the pointer consistent and prevent text selection while dragging. */
+body.dragging {
+  user-select: none;
+}
+
+.catalog-pane {
+  overflow: hidden;
+}
+
+.catalog {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  padding: 0.5rem;
+  gap: 0.35rem;
+  overflow-y: auto;
+}
+
+.cat-section {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: #9aa4b2;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-top: 0.3rem;
+}
+
+.cat-count {
+  margin-left: auto;
+  background: #1c2028;
+  border-radius: 10px;
+  padding: 0 0.4rem;
+  font-size: 0.68rem;
+}
+
+.cat-dbs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+
+.cat-db {
+  background: #171a21;
+  border: 1px solid #262a33;
+  color: #cbd5e1;
+  border-radius: 5px;
+  padding: 0.2rem 0.45rem;
+  font-size: 0.72rem;
+  cursor: pointer;
+}
+
+.cat-db.active {
+  border-color: #60a5fa;
+  color: #fff;
+}
+
+.cat-db.pending {
+  border-color: #60a5fa;
+}
+
+.cat-db:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.cat-db {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.cat-spin {
+  width: 11px;
+  height: 11px;
+  border: 2px solid #3a3f4b;
+  border-top-color: #60a5fa;
+  border-radius: 50%;
+  display: inline-block;
+  animation: spin 0.7s linear infinite;
+  flex: none;
+}
+
+.cat-loading {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #9aa4b2;
+  font-size: 0.75rem;
+  padding: 0.3rem;
+}
+
+.cat-filter {
+  background: #171a21;
+  border: 1px solid #262a33;
+  color: #e6e6e6;
+  border-radius: 5px;
+  padding: 0.3rem 0.45rem;
+  font-size: 0.75rem;
+}
+
+.cat-objs {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+}
+
+.cat-obj {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  width: 100%;
+  background: none;
+  border: none;
+  color: #e6e6e6;
+  padding: 0.22rem 0.3rem;
+  border-radius: 4px;
+  cursor: pointer;
+  text-align: left;
+  font-size: 0.76rem;
+}
+
+.cat-obj:hover {
+  background: #171a21;
+}
+
+.cat-ic {
+  width: 1rem;
+  text-align: center;
+  color: #6b7280;
+}
+
+.cat-obj.kind-spatial .cat-ic {
+  color: #7fb3e6;
+}
+
+.cat-obj.kind-temporal .cat-ic {
+  color: #fd805d;
+}
+
+.cat-oname {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: ui-monospace, Menlo, monospace;
+}
+
+.cat-otype {
+  color: #6b7280;
+  font-size: 0.68rem;
+}
+
+.pane {
+  min-width: 0;
+  min-height: 0;
+  position: relative;
+}
+
+.map-pane {
+  background: #0b0d11;
+}
+
+.mapview {
+  position: absolute;
+  inset: 0;
+}
+
+.map-empty {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #6b7280;
+  pointer-events: none;
+}
+
+.projection-ctl {
+  position: absolute;
+  top: 0.5rem;
+  left: 0.5rem;
+  z-index: 3;
+}
+
+.projection-ctl select {
+  background: rgba(23, 26, 33, 0.9);
+  color: #e6e6e6;
+  border: 1px solid #262a33;
+  border-radius: 6px;
+  padding: 0.25rem 0.45rem;
+  font-size: 0.75rem;
+  backdrop-filter: blur(4px);
+}
+
+.zoom-ctl {
+  position: absolute;
+  right: 0.6rem;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.zoom-ctl button {
+  width: 2rem;
+  height: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(23, 26, 33, 0.9);
+  color: #e6e6e6;
+  border: 1px solid #262a33;
+  border-radius: 6px;
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+  backdrop-filter: blur(4px);
+}
+
+.zoom-ctl button:hover {
+  border-color: #60a5fa;
+}
+
+.zoom-ctl .zoom-fit {
+  font-size: 0.95rem;
+  margin-top: 0.15rem;
+}
+
+.loading {
+  position: absolute;
+  top: 0.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: rgba(15, 17, 21, 0.92);
+  border: 1px solid #262a33;
+  color: #cbd5e1;
+  padding: 0.35rem 0.8rem;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  backdrop-filter: blur(4px);
+}
+
+.spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid #3a3f4b;
+  border-top-color: #60a5fa;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.lp-check select {
+  background: #171a21;
+  color: #e6e6e6;
+  border: 1px solid #3a3f4b;
+  border-radius: 4px;
+  margin-left: 0.4rem;
+  font-size: 0.72rem;
+}
+
+.lp-actions {
+  display: flex;
+  gap: 0.35rem;
+}
+
+.geohint {
+  color: #7fd1b9;
+  font-size: 0.75rem;
+  margin-bottom: 0.2rem;
+}
+
+.layers-panel {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  z-index: 2;
+  width: 240px;
+  background: rgba(15, 17, 21, 0.92);
+  border: 1px solid #262a33;
+  border-radius: 8px;
+  backdrop-filter: blur(4px);
+  font-size: 0.8rem;
+  overflow: hidden;
+}
+
+.lp-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.45rem 0.6rem;
+  border-bottom: 1px solid #262a33;
+  color: #cbd5e1;
+  font-weight: 600;
+}
+
+/* The export/clear buttons are taller than the title text and set the header's
+   height. Hiding them while collapsed keeps them in layout -- and out of hit
+   testing and the tab order -- so the header never changes height and the
+   title stays put. */
+.lp-actions.lp-hidden {
+  visibility: hidden;
+}
+
+.lp-collapse {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: none;
+  border: none;
+  padding: 0;
+  color: inherit;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.lp-collapse:hover {
+  color: #e6e6e6;
+}
+
+.lp-chevron {
+  display: inline-block;
+  width: 0.7rem;
+  color: #9aa4b2;
+  font-size: 0.7rem;
+}
+
+.lp-count {
+  background: #262a33;
+  color: #9aa4b2;
+  border-radius: 999px;
+  padding: 0 0.35rem;
+  font-size: 0.7rem;
+  font-weight: 500;
+}
+
+.lp-clear {
+  background: none;
+  border: 1px solid #3a3f4b;
+  color: #9aa4b2;
+  border-radius: 5px;
+  font-size: 0.72rem;
+  padding: 0.1rem 0.4rem;
+  cursor: pointer;
+}
+
+.lp-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 45vh;
+  overflow-y: auto;
+}
+
+.lp-item {
+  border-bottom: 1px solid #1c2028;
+}
+
+.lp-row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.5rem;
+}
+
+.lp-swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  flex: none;
+}
+
+.lp-name {
+  flex: 1;
+  text-align: left;
+  background: none;
+  border: none;
+  color: #e6e6e6;
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: ui-monospace, Menlo, monospace;
+  font-size: 0.76rem;
+}
+
+.lp-mini {
+  background: none;
+  border: none;
+  color: #9aa4b2;
+  cursor: pointer;
+  padding: 0 0.15rem;
+  font-size: 0.8rem;
+}
+
+.lp-mini:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.lp-x:hover {
+  color: #f87171;
+}
+
+.lp-style {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.3rem 0.5rem;
+  align-items: center;
+  padding: 0.4rem 0.6rem 0.6rem;
+  background: #12151b;
+}
+
+.lp-style label {
+  display: contents;
+  color: #9aa4b2;
+}
+
+.lp-style input[type="range"] {
+  width: 100%;
+  accent-color: #60a5fa;
+}
+
+.lp-style input[type="color"] {
+  width: 100%;
+  height: 1.4rem;
+  background: none;
+  border: 1px solid #3a3f4b;
+  border-radius: 4px;
+}
+
+.lp-check {
+  grid-column: 1 / -1;
+  display: flex !important;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.details {
+  position: absolute;
+  left: 0.75rem;
+  bottom: 4rem;
+  z-index: 2;
+  max-width: 320px;
+  max-height: 40vh;
+  overflow: auto;
+  background: rgba(15, 17, 21, 0.92);
+  border: 1px solid #262a33;
+  border-radius: 8px;
+  backdrop-filter: blur(4px);
+}
+
+.details-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.4rem 0.6rem;
+  border-bottom: 1px solid #262a33;
+  color: #7fd1b9;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.details-head button {
+  background: none;
+  border: none;
+  color: #9aa4b2;
+  cursor: pointer;
+}
+
+.details table {
+  border-collapse: collapse;
+  font-size: 0.76rem;
+  width: 100%;
+}
+
+.details td {
+  padding: 0.2rem 0.6rem;
+  vertical-align: top;
+}
+
+.details .dk {
+  color: #9aa4b2;
+  font-family: ui-monospace, Menlo, monospace;
+}
+
+.details .dv {
+  color: #e6e6e6;
+  word-break: break-word;
+}
+
+/* Value plots: small multiples, one per measure (never a shared/dual y-axis). */
+.plots {
+  position: absolute;
+  left: 0.75rem;
+  bottom: 4.2rem;
+  z-index: 3;
+  background: rgba(15, 17, 21, 0.92);
+  border: 1px solid #262a33;
+  border-radius: 8px;
+  backdrop-filter: blur(4px);
+  padding: 0.4rem 0.55rem 0.5rem;
+  max-height: 46vh;
+  overflow-y: auto;
+}
+
+.plots-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  color: #9aa4b2;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 0.2rem;
+}
+
+.plots-toggle {
+  background: none;
+  border: none;
+  color: #9aa4b2;
+  cursor: pointer;
+  font-size: 0.75rem;
+}
+
+.plot + .plot {
+  margin-top: 0.5rem;
+  border-top: 1px solid #1c2028;
+  padding-top: 0.4rem;
+}
+
+.plot-title {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.72rem;
+}
+
+.plot-swatch {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  flex: none;
+}
+
+.plot-label {
+  color: #cbd5e1; /* text ink, not the series colour */
+  font-family: ui-monospace, Menlo, monospace;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.plot-value {
+  margin-left: auto;
+  color: #e6e6e6;
+  font-family: ui-monospace, Menlo, monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+.plot-svg {
+  display: block;
+}
+
+.plot-axis {
+  stroke: #262a33;
+  stroke-width: 1;
+}
+
+.plot-cursor {
+  stroke: #6b7280;
+  stroke-width: 1;
+  stroke-dasharray: 2 2;
+}
+
+.plot-range {
+  display: flex;
+  justify-content: space-between;
+  color: #6b7280;
+  font-size: 0.62rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.timeline {
+  position: absolute;
+  left: 0.75rem;
+  right: 0.75rem;
+  bottom: 0.75rem;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.5rem 0.75rem;
+  background: rgba(15, 17, 21, 0.9);
+  border: 1px solid #262a33;
+  border-radius: 8px;
+  backdrop-filter: blur(4px);
+}
+
+.tl-play {
+  background: #fd805d;
+  color: #101216;
+  border: none;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 0.75rem;
+  line-height: 1;
+}
+
+.tl-clock {
+  font-family: ui-monospace, Menlo, monospace;
+  font-size: 0.78rem;
+  color: #cbd5e1;
+  min-width: 4.5rem;
+  text-align: center;
+}
+
+.tl-range {
+  flex: 1;
+  accent-color: #fd805d;
+}
+
+.tl-speed {
+  background: #171a21;
+  color: #e6e6e6;
+  border: 1px solid #262a33;
+  border-radius: 6px;
+  padding: 0.25rem 0.4rem;
+  font-size: 0.78rem;
+}
+
+.console {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+.console header {
+  display: flex;
+  align-items: baseline;
+  gap: 1rem;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #262a33;
+}
+
+.console header .db {
+  color: #7fd1b9;
+  font-size: 0.85rem;
+}
+
+.dock-btn {
+  margin-left: auto;
+  background: #171a21;
+  border: 1px solid #262a33;
+  color: #9aa4b2;
+  border-radius: 5px;
+  padding: 0.15rem 0.45rem;
+  font-size: 0.72rem;
+  cursor: pointer;
+}
+
+.dock-btn:hover {
+  border-color: #60a5fa;
+  color: #e6e6e6;
+}
+
+.log {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1rem;
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 0.85rem;
+}
+
+.entry {
+  margin-bottom: 0.9rem;
+}
+
+.cmd {
+  color: #cbd5e1;
+  margin-bottom: 0.25rem;
+}
+
+.prompt {
+  color: #60a5fa;
+  user-select: none;
+}
+
+pre {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  background: #171a21;
+}
+
+pre.ok {
+  border-left: 3px solid #34d399;
+}
+
+pre.err {
+  border-left: 3px solid #f87171;
+  color: #fca5a5;
+}
+
+.input {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  border-top: 1px solid #262a33;
+}
+
+.input input {
+  flex: 1;
+  background: #171a21;
+  border: 1px solid #262a33;
+  color: #e6e6e6;
+  padding: 0.55rem 0.7rem;
+  border-radius: 6px;
+  font-family: ui-monospace, Menlo, monospace;
+  font-size: 0.85rem;
+}
+
+.input button {
+  background: #2563eb;
+  color: white;
+  border: none;
+  padding: 0.55rem 1.1rem;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.input button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}

@@ -69,6 +69,134 @@ jobs:
             echo "########## $f"; tail -80 "$f"
           done || true
 
+      # -----------------------------------------------------------------------
+      # Web UI (WebUI/). Build the JS/Python components against the freshly
+      # built kernel, then bring the whole stack up (SecondoMonitor + FastAPI
+      # bridge) and confirm SECONDO answers a real query through the REST
+      # interface. The headless-browser end-to-end tests (WebUI/frontend/e2e)
+      # are intentionally NOT run here.
+      # -----------------------------------------------------------------------
+      - name: Build the SECONDO client library
+        # The bridge's native module links libsecondo.a, which the top-level
+        # make does not build.
+        run: make -C apis/api_cpp/cs
+
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+          cache: 'npm'
+          cache-dependency-path: WebUI/frontend/package-lock.json
+
+      - name: Build the WebUI frontend
+        working-directory: WebUI/frontend
+        run: |
+          npm ci
+          npm run build
+
+      - name: Build and test the WebUI backend
+        # Builds the pybind11 module over libsecondo.a and runs the backend
+        # unit tests (which fake the SECONDO connection, so no monitor needed).
+        working-directory: WebUI/backend
+        run: |
+          python3 -m venv .venv
+          . .venv/bin/activate
+          pip install -r requirements.txt
+          make -C native
+          python -m pytest -q
+
+      - name: Restore the berlintest database
+        # A dedicated database home for the WebUI monitor, shared with the
+        # following steps via $GITHUB_ENV.
+        run: |
+          echo "${GITHUB_WORKSPACE}/bin" >> "$GITHUB_PATH"
+          echo "SECONDO_CONFIG=${GITHUB_WORKSPACE}/bin/SecondoConfig.ini" >> "$GITHUB_ENV"
+          echo "SECONDO_PARAM_SecondoHome=${RUNNER_TEMP}/webui-dbs" >> "$GITHUB_ENV"
+          export PATH="${GITHUB_WORKSPACE}/bin:${PATH}"
+          export SECONDO_CONFIG="${GITHUB_WORKSPACE}/bin/SecondoConfig.ini"
+          export SECONDO_PARAM_SecondoHome="${RUNNER_TEMP}/webui-dbs"
+          mkdir -p "$SECONDO_PARAM_SecondoHome"
+          cd bin
+          printf 'create database berlintest;\nrestore database berlintest from berlintest;\nclose database;\nquit;\n' \
+            | ./SecondoTTYBDB
+
+      - name: Start the SECONDO monitor
+        working-directory: bin
+        run: |
+          nohup ./SecondoMonitor -s > "${RUNNER_TEMP}/secondo-monitor.log" 2>&1 &
+          echo "SECONDO_MONITOR_PID=$!" >> "$GITHUB_ENV"
+          for i in $(seq 1 60); do
+            if (exec 3<>/dev/tcp/127.0.0.1/1234) 2>/dev/null; then
+              exec 3>&- 3<&-; echo "Monitor is listening on port 1234"; exit 0
+            fi
+            sleep 1
+          done
+          echo "SECONDO monitor did not come up"; cat "${RUNNER_TEMP}/secondo-monitor.log"; exit 1
+
+      - name: Start the WebUI backend bridge
+        working-directory: WebUI/backend
+        run: |
+          . .venv/bin/activate
+          nohup uvicorn app.main:app --host 127.0.0.1 --port 8000 \
+            > "${RUNNER_TEMP}/webui-backend.log" 2>&1 &
+          echo "WEBUI_BACKEND_PID=$!" >> "$GITHUB_ENV"
+
+      - name: Query SECONDO through the REST interface
+        run: |
+          # Wait for the bridge to accept requests.
+          for i in $(seq 1 60); do
+            if curl -sf http://127.0.0.1:8000/api/health > /dev/null; then break; fi
+            if [ "$i" = 60 ]; then
+              echo "Backend did not come up"; cat "${RUNNER_TEMP}/webui-backend.log"; exit 1
+            fi
+            sleep 1
+          done
+
+          # The first SECONDO command races the monitor's per-connection
+          # server fork, so retry until the catalog lists BERLINTEST.
+          echo "== /api/databases =="
+          dbs=""
+          for i in $(seq 1 30); do
+            dbs=$(curl -sf http://127.0.0.1:8000/api/databases || true)
+            if echo "$dbs" | grep -q BERLINTEST; then break; fi
+            if [ "$i" = 30 ]; then
+              echo "BERLINTEST not listed (last response: ${dbs:-<none>})"; exit 1
+            fi
+            sleep 1
+          done
+          echo "$dbs"
+
+          # Open the database and run a real spatial query, keeping the session
+          # cookie so both land on the same SECONDO connection.
+          jar="${RUNNER_TEMP}/webui-cookies.txt"
+          curl -sf -c "$jar" -b "$jar" -X POST http://127.0.0.1:8000/api/query \
+            -H 'Content-Type: application/json' \
+            -d '{"command":"open database berlintest"}' > /dev/null
+
+          echo "== query mehringdamm =="
+          res=$(curl -sf -c "$jar" -b "$jar" -X POST http://127.0.0.1:8000/api/query \
+            -H 'Content-Type: application/json' \
+            -d '{"command":"query mehringdamm"}')
+          echo "$res"
+          # The point value and its GeoJSON conversion must both be present.
+          echo "$res" | grep -q '(point (9396.0 9871.0))'
+          echo "$res" | grep -q '"geojson"'
+          echo "SECONDO answered a query through the REST bridge."
+
+      - name: Stop the WebUI stack
+        if: always()
+        run: |
+          kill "${WEBUI_BACKEND_PID:-}" 2>/dev/null || true
+          kill "${SECONDO_MONITOR_PID:-}" 2>/dev/null || true
+
+      - name: Show WebUI logs on failure
+        if: failure()
+        run: |
+          echo "########## SECONDO monitor"
+          cat "${RUNNER_TEMP}/secondo-monitor.log" 2>/dev/null || true
+          echo "########## WebUI backend"
+          cat "${RUNNER_TEMP}/webui-backend.log" 2>/dev/null || true
+
    build-macos:
     # Builds the C++ kernel + TTY, the Java GUI, the embedded-Prolog optimizer
     # engine and the JPL optimizer server (OptServer), then runs the full test
