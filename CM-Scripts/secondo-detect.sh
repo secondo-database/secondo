@@ -214,7 +214,6 @@ secondo_detect() {
   fi
 
   # --- misc constants / trivial derivations --------------------------------
-  : "${readline:=true}";                                       export readline
   : "${SECONDO_CONFIG:=$SECONDO_BUILD_DIR/bin/SecondoConfig.ini}"; export SECONDO_CONFIG
 
   # --- PD documentation tooling --------------------------------------------
@@ -291,7 +290,7 @@ SECONDO_VARS='SECONDO_BUILD_DIR SECONDO_PLATFORM PL_VERSION SWI_HOME_DIR PL_LIB_
   PL_DLL_DIR PL_INCLUDE_DIR PL_LIB JPL_JAR JPL_DLL J2SDK_ROOT SECONDO_JAVA
   BERKELEY_DB_DIR BERKELEY_DB_LIB SECONDO_READLINE_DIR SECONDO_JPEG_DIR
   SECONDO_FLEX_DIR SECONDO_LIBXML2_DIR SECONDO_JVM_LIB_DIR SECONDO_CONFIG
-  readline PD_HEADER PD_DVI_VIEWER PD_PS_VIEWER'
+  PD_HEADER PD_DVI_VIEWER PD_PS_VIEWER'
 
 # Machine-readable dump (NAME=value).
 secondo_print_vars() {

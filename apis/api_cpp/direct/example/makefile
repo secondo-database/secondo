@@ -30,9 +30,7 @@ Config.ini: $(SECONDO_BUILD_DIR)/bin/SecondoConfig.ini
 
 LDFLAGS+=-L../lib/ -lsecondo -lstdc++ $(ALGDEPS) $(DEFAULTLIB)
 
-ifeq ($(readline),true)
-  LDFLAGS+=-lreadline 
-endif
+LDFLAGS+=-lreadline
 
 
 
