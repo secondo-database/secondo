@@ -438,7 +438,6 @@ UnixSocket::Accept( ostream* traceInStream,
   }
   else
   {
-    static struct linger l = { 1, LINGER_TIME };
     if ( domain == SockGlobalDomain )
     {
       int enabled = 1;
@@ -449,12 +448,6 @@ UnixSocket::Accept( ostream* traceInStream,
         ::close( s );
         return (NULL);
       }
-    }
-    if ( setsockopt( s, SOL_SOCKET, SO_LINGER, (char*) &l, sizeof(l) ) != 0 )
-    {
-      lastError = EC_INVALID_ACCESS_MODE;
-      ::close( s );
-      return (NULL);
     }
     lastError = EC_OK;
     return (new UnixSocket( s, traceInStream, traceOutStream, destroyStreams));

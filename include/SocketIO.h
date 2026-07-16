@@ -198,12 +198,6 @@ Defines the default time interval between two connect attempts.
 
 */
 
-#define LINGER_TIME                  10 // seconds
-/*
-Defines how long the kernel should try to send data still waiting in
-the socket buffer after the socket was closed.
-
-*/
 #define WAIT_FOREVER                 ((time_t)-1)
 /*
 Specifies an indefinite time period. Specifying this value for a time out
