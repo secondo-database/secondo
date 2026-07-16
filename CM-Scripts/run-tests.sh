@@ -163,6 +163,21 @@ else
   runTest ${buildDir}/Optimizer "TestOptServer" "time TestOptServer" $timeOutMax
 fi
 
+#
+# Client/server tests (skippable via SECONDO_SKIP_CS_TESTS). The .test suites
+# above run against a kernel linked into TestRunner; this one starts a real
+# SecondoMonitor on a private port and drives parallel SecondoCS clients
+# against it, covering the process tree that serves network clients.
+# ClientServer/ is not on PATH (libutil.sh adds bin/, Optimizer/ and
+# CM-Scripts/ only), so invoke via ./ -- runTest cds into the directory first.
+#
+if [ "${SECONDO_SKIP_CS_TESTS:-}" == "true" ]; then
+  echo "*** Skipping client/server tests (SECONDO_SKIP_CS_TESTS=true) ***"
+else
+  echo "*** Executing client/server tests ***"
+  runTest ${buildDir}/ClientServer "TestClientServer" "time ./TestClientServer" $timeOutMax
+fi
+
 #clean up
 printf "\n%s\n\n" "Cleaning up ..."
 rm -rf $dbDir

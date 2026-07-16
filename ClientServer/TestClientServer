@@ -1,0 +1,247 @@
+#!/bin/bash
+#
+# Concurrency and lifecycle test for the SECONDO ClientServer stack.
+#
+# The .test suites exercise the kernel through TestRunner (single user, kernel
+# linked in-process). Nothing exercised the client/server path: SecondoMonitor
+# forking a SecondoServer per client, the SecondoRegistrar arbitrating database
+# access, and the shutdown of that whole process tree. This test does, by
+# starting a real SecondoMonitor on a private port and driving N real clients
+# (SecondoCS, i.e. the SecondoInterfaceCS path the WebUI and the Java GUI use)
+# against it concurrently.
+#
+# Modelled on Optimizer/TestOptServer, which is the other test here that starts
+# a live monitor.
+#
+# Assertions check the client's exit status *and* its log. Both are needed: the
+# exit status catches a failed command file (2) or a failed connect (1), while
+# only the log can show that the query actually produced its result rather than
+# the session merely connecting successfully.
+
+set -u
+
+buildDir=${SECONDO_BUILD_DIR:-}
+if [ -z "$buildDir" ]; then
+  echo "Error: SECONDO_BUILD_DIR is not set."
+  exit 1
+fi
+
+export SECONDO_CONFIG=${SECONDO_CONFIG:-$buildDir/bin/SecondoConfig.ini}
+export PATH="$buildDir/bin:$PATH"
+
+# A private port keeps this off 1234, so it neither collides with a developer's
+# running Secondo nor with Optimizer/TestOptServer. It also gives the registrar
+# its own socket name (SmiProfile::GetUniqueSocketName keys on the port).
+SEC_PORT=${SECONDO_CS_TEST_PORT:-12234}
+DBNAME=cstest
+
+# Deliberately low for now. The point of this test is 25+ concurrent clients,
+# but SecondoServer currently deadlocks in BerkeleyDB (__txn_begin, opening the
+# database) when many clients connect at once, and the failure is load-dependent
+# rather than count-dependent. Measured on 2 cores, which is what a CI runner
+# gives us:
+#
+#   3, 5, 10, 15 clients -> 3/3 pass (6-16s)
+#   20 clients           -> 2/3 pass
+#   25 clients           -> 0/4 pass, always hangs
+#
+# So 3 keeps CI honest and fast today without going red on a bug nobody has
+# fixed yet. RAISE THIS as the fixes land -- see the client-count ratchet in the
+# plan. Override locally to reproduce the deadlock:
+#   SECONDO_CS_TEST_CLIENTS=25 ./TestClientServer
+NCLIENTS=${SECONDO_CS_TEST_CLIENTS:-3}
+
+home=$(mktemp -d "${TMPDIR:-/tmp}/TestClientServer.XXXXXX")
+export SECONDO_PARAM_SecondoHome="$home"
+monPid=""
+rc=0
+
+# Run from the temporary home. The TTY binaries drop cwd-relative files
+# (.secondo_history, proglogt.csv, temp_nested_list/, tmp/ -- the last two once
+# per client process), and run-tests.sh invokes this with cwd=ClientServer/,
+# so without this the test litters the source tree. Everything below uses
+# absolute paths, and cleanup removes $home.
+cd "$home" || exit 1
+
+# Tear the monitor down without ever blocking indefinitely. Every wait here is
+# bounded and escalates to SIGKILL: this test exists partly because shutdown is
+# unreliable, so the teardown must not assume it works. A bare "wait" would hang
+# the whole CI job (timeout 12000s) whenever the monitor fails to exit.
+cleanup() {
+  local pid grace
+  [ -n "$monPid" ] || { rm -rf "$home"; return; }
+
+  # Snapshot the tree before signalling; once the monitor is gone we can no
+  # longer walk to its children.
+  local kids
+  kids=$(descendants "$monPid")
+
+  # Ask the monitor to shut down first and let it stop its own children, which
+  # is the intended path. Only ever target PIDs we started -- a broad
+  # "pkill -f Secondo" would kill a developer's unrelated session.
+  kill -TERM "$monPid" 2>/dev/null
+  for ((grace = 0; grace < 15; grace++)); do
+    kill -0 "$monPid" 2>/dev/null || break
+    sleep 1
+  done
+
+  # Escalate to anything still standing, monitor included.
+  kill -KILL "$monPid" 2>/dev/null
+  for pid in $kids; do kill -KILL "$pid" 2>/dev/null; done
+
+  # Reap only our monitor; a bare "wait" could block on an unrelated job.
+  wait "$monPid" 2>/dev/null
+  rm -rf "$home"
+}
+# EXIT alone is not enough: bash does not run an EXIT trap when it is killed by
+# an *untrapped* signal, which is exactly how run-tests.sh's timeOut helper and
+# CI cancellation kill a hung test. Without INT/TERM here, being timed out leaks
+# the whole monitor tree.
+trap 'cleanup; exit 143' INT TERM
+trap cleanup EXIT
+
+# Wait until a TCP port accepts connections (bash /dev/tcp, no extra tools).
+wait_port() {
+  local port=$1 tries=$2 i
+  for ((i = 0; i < tries; i++)); do
+    if (exec 3<>"/dev/tcp/127.0.0.1/$port") 2>/dev/null; then
+      exec 3>&- 3<&-
+      return 0
+    fi
+    sleep 1
+  done
+  return 1
+}
+
+# Full descendant closure of a pid, via one ps snapshot. "ps -ax -o pid=,ppid="
+# behaves the same on Linux (procps) and macOS (BSD ps). Used instead of
+# "pgrep -g": that needs a known process group, which needs setsid, which does
+# not exist as a command on macOS.
+descendants() {
+  local root=$1
+  ps -ax -o pid=,ppid= 2>/dev/null | awk -v root="$root" '
+    { ppid[$1] = $2; pids[n++] = $1 }
+    END {
+      want[root] = 1
+      do {
+        added = 0
+        for (i = 0; i < n; i++) {
+          p = pids[i]
+          if (!(p in want) && (ppid[p] in want)) { want[p] = 1; added = 1 }
+        }
+      } while (added)
+      for (p in want) if (p != root) print p
+    }'
+}
+
+# Assert every pid passed is gone. Used by the shutdown tests in later commits;
+# defined here so the helper lands with the harness.
+assert_no_orphans() {
+  local label=$1; shift
+  local leaked="" pid
+  for pid in "$@"; do
+    if kill -0 "$pid" 2>/dev/null; then leaked="$leaked $pid"; fi
+  done
+  if [ -n "$leaked" ]; then
+    echo "FAIL ($label): processes survived:$leaked"
+    ps -p "$(echo "$leaked" | tr ' ' ',' | sed 's/^,//')" -o pid=,ppid=,comm= 2>/dev/null
+    return 1
+  fi
+  echo "OK ($label): no orphans"
+  return 0
+}
+
+#
+# Phase 1: create the test database.
+#
+echo "*** ClientServer test: creating database '$DBNAME' ***"
+SecondoTTYBDB >"$home/db.log" 2>&1 <<SQL
+create database $DBNAME;
+open database $DBNAME;
+let ten = intstream(1,10) transformstream consume;
+close database;
+q;
+SQL
+if grep -qiE "cmd failed|command failed|Error in Secondo" "$home/db.log"; then
+  echo "FAIL: database setup failed:"; cat "$home/db.log"; exit 1
+fi
+
+#
+# Phase 2: start the monitor.
+#
+echo "*** ClientServer test: starting SecondoMonitor on port $SEC_PORT ***"
+# The monitor launches its server program from its working directory, so start
+# it from bin/. pushd (not a subshell) keeps $monPid the monitor itself, so
+# cleanup can reach the children it forks.
+pushd "$buildDir/bin" >/dev/null
+SecondoMonitor -s -p "$SEC_PORT" >"$home/monitor.log" 2>&1 &
+monPid=$!
+popd >/dev/null
+if ! wait_port "$SEC_PORT" 30; then
+  echo "FAIL: monitor did not come up on port $SEC_PORT:"; cat "$home/monitor.log"; exit 1
+fi
+
+kids=$(descendants "$monPid" | tr '\n' ' ')
+echo "    monitor pid $monPid, children:$kids"
+
+#
+# Phase 3: N clients running real queries concurrently.
+#
+echo "*** ClientServer test: $NCLIENTS parallel clients ***"
+declare -a cpid crc
+for i in $(seq 1 "$NCLIENTS"); do
+  cat >"$home/c$i.sec" <<SQL
+open database $DBNAME;
+query ten feed count;
+close database;
+q;
+SQL
+  SecondoCS -h 127.0.0.1 -p "$SEC_PORT" -i "$home/c$i.sec" \
+    >"$home/c$i.log" 2>&1 &
+  cpid[$i]=$!
+done
+
+for i in $(seq 1 "$NCLIENTS"); do
+  wait "${cpid[$i]}" 2>/dev/null
+  crc[$i]=$?
+done
+
+# Assert on both the exit status and the log. The log checks are not redundant:
+# they prove the query actually produced its result, which an exit status alone
+# cannot show.
+failed=0
+for i in $(seq 1 "$NCLIENTS"); do
+  log="$home/c$i.log"
+  if [ "${crc[$i]}" -ne 0 ]; then
+    echo "FAIL: client $i exited with ${crc[$i]}"
+    failed=$((failed + 1))
+  elif ! grep -q "successfully processed" "$log" 2>/dev/null; then
+    echo "FAIL: client $i did not complete its command file"
+    failed=$((failed + 1))
+  elif grep -qE "SECONDO-000[0-9]|Error in Secondo|Errors during processing" "$log"; then
+    echo "FAIL: client $i reported an error"
+    failed=$((failed + 1))
+  elif ! grep -qE "^[[:space:]]*10[[:space:]]*$" "$log"; then
+    # "query ten feed count" must return 10; proves the query really ran rather
+    # than the session merely connecting.
+    echo "FAIL: client $i did not return the expected query result"
+    failed=$((failed + 1))
+  fi
+done
+
+if [ "$failed" -gt 0 ]; then
+  echo "*** $failed/$NCLIENTS clients failed ***"
+  echo "=== first failing client log ==="
+  for i in $(seq 1 "$NCLIENTS"); do
+    if ! grep -q "successfully processed" "$home/c$i.log" 2>/dev/null; then
+      tail -30 "$home/c$i.log"; break
+    fi
+  done
+  echo "=== monitor log ==="
+  tail -30 "$home/monitor.log"
+  rc=1
+else
+  echo "OK: $NCLIENTS/$NCLIENTS clients completed successfully"
+fi
+
+exit $rc
