@@ -722,7 +722,11 @@ SecondoTTY::Execute()
     }
     else
     {
-      ProcessFile(iFileName, false, false);
+      // Report a failed command file to the shell.
+      if ( !ProcessFile(iFileName, false, false) )
+      {
+        rc = 2;
+      }
     }
 
     if ( useOutputFile ){
@@ -732,6 +736,7 @@ SecondoTTY::Execute()
   } else {
     cerr << "Error in initializing the secondo system: "
          << errorMsg << endl;
+    rc = 1;
   }
 
   try {
