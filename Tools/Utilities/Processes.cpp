@@ -36,6 +36,10 @@ April 2003 Ulrich Telle Fixed a bug in the transfer of Win32 socket handle on Wi
 
 #include "Processes.h"
 
+#ifndef SECONDO_WIN32
+#include <sys/syscall.h>
+#endif
+
 using namespace std;
 
 #ifndef _POSIX_OPEN_MAX
@@ -44,6 +48,46 @@ using namespace std;
 
 #ifndef WAIT_ANY
 #define WAIT_ANY (-1)
+#endif
+
+#ifndef SECONDO_WIN32
+/*
+Closes every descriptor in the range [~first~, ~last~].
+
+A child must not inherit the parent's descriptors, but there is no portable way
+to ask which ones are open, so the usual answer is to close the whole possible
+range. Done one descriptor at a time that is ruinous on a host with a large
+limit: with ~RLIMIT\_NOFILE~ at 524288, an ordinary value for a system,
+it issues half a million close() calls and costs about 550ms of processor time
+for every process spawned.
+
+*/
+static void CloseDescriptorRange( unsigned int first, unsigned int last )
+{
+  if ( first > last )
+  {
+    return;
+  }
+
+#if defined(SYS_close_range)
+  if ( syscall( SYS_close_range, first, last, 0 ) == 0 )
+  {
+    return;
+  }
+#endif
+
+  long fdlimit = sysconf( _SC_OPEN_MAX );
+  if ( fdlimit == -1 )
+  {
+    fdlimit = _POSIX_OPEN_MAX;
+  }
+  unsigned int end = ( (unsigned long) last >= (unsigned long) fdlimit )
+                     ? (unsigned int) fdlimit : last + 1;
+  for ( unsigned int fd = first; fd < end; fd++ )
+  {
+    close( (int) fd );
+  }
+}
 #endif
 
 ProcessFactory* ProcessFactory::instance = 0;
@@ -370,18 +414,18 @@ A session without a control tty can only have background jobs.
   {
     // --- child process
 
-    int fdlimit = sysconf( _SC_OPEN_MAX );
-    if ( fdlimit == -1 )
+    // Close everything the child must not inherit, keeping stdin/stdout/stderr
+    // and, where there is one, the client socket: the child is told its number
+    // with --socket and adopts it after exec.
+    int sd = (clientSocket != 0) ? clientSocket->GetDescriptor() : -1;
+    if ( sd >= 3 )
     {
-      fdlimit = _POSIX_OPEN_MAX;
+      CloseDescriptorRange( 3, (unsigned int) sd - 1 );
+      CloseDescriptorRange( (unsigned int) sd + 1, ~0U );
     }
-    int sd = (clientSocket != 0) ? clientSocket->GetDescriptor() : 0;
-    for ( int fd = 3; fd < fdlimit; fd++ )
+    else
     {
-      if ( fd != sd )
-      {
-        close( fd );
-      }
+      CloseDescriptorRange( 3, ~0U );
     }
     pgrp = getpid();
     if ( foreground && setpgid( 0, pgrp ) == 0 )
