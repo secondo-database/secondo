@@ -36,6 +36,34 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 using namespace std;
 
+/*
+Writes the whole buffer, coping with the two ways a write() may fall short of
+it: an interruption before anything was sent, and a partial write. Sending less
+than the whole command would leave the registrar waiting for the rest of a line
+that never arrives.
+
+*/
+static bool
+WriteAll( int fd, const char* data, size_t size )
+{
+  size_t written = 0;
+
+  while ( written < size ) {
+    ssize_t result = write(fd, data + written, size - written);
+
+    if(result < 0) {
+      if(errno == EINTR) {
+        continue;
+      }
+      return false;
+    }
+
+    written = written + (size_t) result;
+  }
+
+  return true;
+}
+
 bool
 Messenger::Send( const string& message, string& answer )
 {
@@ -57,12 +85,17 @@ Messenger::Send( const string& message, string& answer )
   
   if (connect(fd, (struct sockaddr*)&addr, sizeof(addr)) == -1) {
     answer = "Connect error";
+    close(fd);
     return false;
   }
 
   // Write command to registry
-  write(fd, message.c_str(), message.length());
-  write(fd, "\n", 1);
+  if( !WriteAll(fd, message.c_str(), message.length())
+      || !WriteAll(fd, "\n", 1) ) {
+    answer = "Unable to send the command";
+    close(fd);
+    return false;
+  }
 
   // Read the answer from the registrar: a single newline-terminated line.
   char buf[255];
