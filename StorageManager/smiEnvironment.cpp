@@ -332,7 +332,6 @@ bool SmiEnvironment::CallRegistrar(const string &dbname, const string &cmd,
     }
 
     Messenger messenger( registrar );
-    string answer("");
     string msg = cmd + blank + dbname + blank + user;
     ok = messenger.Send( msg, answer );
 
