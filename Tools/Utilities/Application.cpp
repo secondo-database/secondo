@@ -433,7 +433,7 @@ abort the process if not handled otherwise.
   if ( appPointer->gracefulTermination && IsTerminatingSignal( sig ) )
   {
     appPointer->lastSignal = sig;
-    appPointer->abortFlag  = 1;
+    appPointer->abortFlag = 1;
     return;
   }
 

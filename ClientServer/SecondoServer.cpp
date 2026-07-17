@@ -1071,11 +1071,18 @@ int SecondoServer::Execute() {
   registrar = SmiProfile::GetUniqueSocketName( parmFile , port);
 
   if(dbDir.empty()){
-     dbDir = SmiProfile::GetParameter( "Environment", 
-                                       "SecondoHome", 
-                                       "", 
+     dbDir = SmiProfile::GetParameter( "Environment",
+                                       "SecondoHome",
+                                       "",
                                        parmFile );
   }
+
+  // On a terminating signal, wind down through SmiEnvironment::ShutDown rather
+  // than dying where the signal lands.
+  //
+  // The command loop below already checks ShouldAbort after each request, so it
+  // stops at the next request boundary; an in-flight query still finishes.
+  SetGracefulTermination( true );
 
   si = new SecondoInterfaceTTY(true);
 
