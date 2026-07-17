@@ -83,6 +83,7 @@ const char* Application::signalStr[NSIG] = {};
 bool Application::dumpStacktrace = true;
 char* Application::stacktraceOutput = NULL;
 char* Application::relocationInfo = NULL;
+char* Application::stacktraceAppName = NULL;
 
 Application* Application::Instance()
 {
@@ -185,6 +186,11 @@ Application::Application( int argc, const char** argv )
   // Store stacktrace output filenanme for later 
   // use. If the application crashes, it's not ensured that the 
   // env variabes can be accessed. 
+
+  // Keep a plain copy of the application name for the stacktrace. The signal
+  // handler passes it on, and GetApplicationName hands back a std::string by
+  // value, which is an allocation the handler must not make.
+  Application::stacktraceAppName = strdup( appName.c_str() );
 
   char* localStacktrace = getenv("SECONDO_LOCAL_STACKTRACE");
   if(localStacktrace == 0){
@@ -306,7 +312,12 @@ Application::~Application()
         free(Application::stacktraceOutput);
         Application::stacktraceOutput = NULL;
     }
-    
+
+    if(Application::stacktraceAppName != NULL) {
+        free(Application::stacktraceAppName);
+        Application::stacktraceAppName = NULL;
+    }
+
 #ifdef SECONDO_WIN32
   if ( rshSocket != 0 )
   {
@@ -320,6 +331,31 @@ Application::~Application()
 
 #ifndef SECONDO_WIN32
 
+/*
+Writes a number as decimal digits, for the signal handlers below. They must not
+call snprintf or a stream to do it: neither may be used from a handler, and a
+signal arriving while the main program is inside one of them would deadlock on
+the lock it already holds. WinUnix::string2stdout covers the text.
+
+*/
+static void
+number2stdout( unsigned int value )
+{
+  char   buf[16];
+  size_t pos = sizeof(buf);
+
+  do
+  {
+    buf[--pos] = (char) ('0' + (value % 10));
+    value /= 10;
+  }
+  while ( value > 0 && pos > 0 );
+
+  // A handler has nowhere to report a failed write to.
+  ssize_t written = write( STDOUT_FILENO, buf + pos, sizeof(buf) - pos );
+  (void) written;
+}
+
 void
 Application::AbortOnSignalHandler ( int sig )
 {
@@ -330,19 +366,23 @@ abort the process if not handled otherwise.
 */
   const char* signame = ( sig > 0 && sig < NSIG && signalStr[sig] != 0 )
                         ? signalStr[sig] : "unknown";
-  cout << endl << "*** Signal " << signame
-       << " (" << sig << ") caught!";
-   
+  WinUnix::string2stdout( "\n*** Signal " );
+  WinUnix::string2stdout( signame );
+  WinUnix::string2stdout( " (" );
+  number2stdout( (unsigned int) sig );
+  WinUnix::string2stdout( ") caught!" );
+
   if ( sig == SIGABRT || sig == SIGSEGV || sig == SIGFPE || sig == SIGILL)
   {
      if(Application::dumpStacktrace) {
-        Application* ap = Application::Instance();
-        string appName = ap->GetApplicationName();
-        WinUnix::stacktrace(appName.c_str(), stacktraceOutput, 
+        // Never a std::string here: see stacktraceAppName in the constructor.
+        const char* appname = ( Application::stacktraceAppName != NULL )
+                              ? Application::stacktraceAppName : "unknown";
+        WinUnix::stacktrace(appname, stacktraceOutput,
             Application::relocationInfo);
      }
   }
-  cout << " Calling default signal handler ..." << endl;
+  WinUnix::string2stdout( " Calling default signal handler ...\n" );
   signal( sig, SIG_DFL );
   raise(sig);
 }
@@ -353,9 +393,8 @@ Application::UserSignalHandler ( int sig )
   // SIGUSR1 is used to cancel running queries
   if ( sig == SIGUSR1 )
   {
-    cout << endl << endl;
-    cout << "Got Signal, cancel running query." << endl;
-    
+    WinUnix::string2stdout( "\n\nGot Signal, cancel running query.\n" );
+
     Application::appPointer->user1Flag = true;
   }
   else

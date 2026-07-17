@@ -320,6 +320,7 @@ These methods emulate the signal mechanism for the ~Microsoft Windows~ platform.
   static bool dumpStacktrace;     // Dump stacktrace on app crash
   static char* stacktraceOutput;  // Output filename for stacktraces
   static char* relocationInfo;  // Relocation info (for -fPIC binaries)
+  static char* stacktraceAppName; // Application name (for stacktraces)
 
 };
 
