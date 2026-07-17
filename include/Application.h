@@ -279,11 +279,11 @@ such circumstances.
   ProcessId     parent;       // parent process id
   bool          hasSocket;    // flag 
   Socket*       clientSocket; // reference to client socket
-  int           lastSignal;   // last signal received
   bool          abortMode;    // abort mode
-  volatile bool abortFlag;    // abort signal flag
-  volatile bool user1Flag;    // user1 signal flag
-  volatile bool user2Flag;    // user2 signal flag
+  volatile sig_atomic_t lastSignal; // last signal received
+  volatile sig_atomic_t abortFlag;  // abort signal flag
+  volatile sig_atomic_t user1Flag;  // user1 signal flag
+  volatile sig_atomic_t user2Flag;  // user2 signal flag
 
 #ifndef SECONDO_WIN32
   static void AbortOnSignalHandler( int sig );
