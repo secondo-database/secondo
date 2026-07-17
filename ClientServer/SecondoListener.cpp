@@ -25,6 +25,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <string>
 #include <algorithm>
 
+#include <poll.h>
+#include <errno.h>
+
 #include "Application.h"
 #include "Processes.h"
 #include "SocketIO.h"
@@ -49,23 +52,12 @@ class SecondoListener : public Application
   virtual ~SecondoListener() {};
   int  Execute();
   bool ClientAllowed();
-  bool AbortOnSignal( int sig ) const;
   void LogMessage( const string msg );
  private:
   string parmFile;
   Socket* gate;
   Socket* client;
 };
-
-bool
-SecondoListener::AbortOnSignal( int sig ) const
-{
-  if ( gate != 0 )
-  {
-    gate->CancelAccept();
-  }
-  return (true);
-}
 
 void
 SecondoListener::LogMessage( const string msg )
@@ -77,6 +69,11 @@ SecondoListener::Execute()
 {
   int rc = EXIT_LISTENER_OK;
   SetAbortMode( true );
+
+  // Shut down on a terminating signal instead of dying in the accept loop. The
+  // monitor stops the listener with SIGTERM; a graceful exit lets us bring the
+  // spawned servers down with us instead of orphaning them.
+  SetGracefulTermination( true );
 
   // --- Get configuration file
   if (GetArgCount() < 2) {
@@ -144,7 +141,18 @@ SecondoListener::Execute()
   // --- Create listener socket
   gate = Socket::CreateGlobal(host, port);
   if (gate && gate->IsOk()) {
+    struct pollfd pfd;
+    pfd.fd = gate->GetDescriptor();
+    pfd.events = POLLIN;
     while (!ShouldAbort()) {
+      // Wait for a connection, but only for a bounded time, and let a signal
+      // interrupt the wait: unlike accept(), poll() is never restarted after a
+      // signal, so a SIGTERM breaks out here and the loop sees ShouldAbort().
+      int ready = poll( &pfd, 1, 1000 );
+      if (ready <= 0) {
+        // Timeout, or a signal (EINTR); re-check ShouldAbort and wait again.
+        continue;
+      }
       client = gate->Accept();
       if (client && client->IsOk()) {
         if (ipRules.Ok(SocketAddress(client->GetPeerAddress()))) {
@@ -182,6 +190,10 @@ SecondoListener::Execute()
       delete client;
       client = nullptr;
     }
+    // --- Shutting down: ask the spawned servers to terminate, then wait for
+    //     them. WaitForAll kills any that overstay the grace period, so the
+    //     listener never leaves a server behind.
+    ProcessFactory::SignalAllProcesses();
     ProcessFactory::WaitForAll();
   } else {
     if(gate != nullptr) {
