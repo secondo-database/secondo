@@ -173,11 +173,12 @@ ProcessFactory::SpawnProcess( const string& programpath,
         break;
       }
     }
-    // no space left in process table
-    if ( idx >= instance->maxChilds )
-    {
-      return (false);
-    }
+  }
+
+  // No space left in the process table.
+  if ( idx >= instance->maxChilds )
+  {
+    return (false);
   }
 
 #ifdef SECONDO_WIN32
