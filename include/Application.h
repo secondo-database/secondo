@@ -101,6 +101,7 @@ This module offers the following routines:
 #include <map>
 #include <sstream>
 #include <iostream>
+#include <csignal>
 
 #include "SecondoConfig.h"
 #include "SocketIO.h"
@@ -313,7 +314,9 @@ These methods emulate the signal mechanism for the ~Microsoft Windows~ platform.
 
 
   static Application* appPointer;
-  static std::map<int, std::string> signalStr;
+  // Signal names, indexed by signal number. A plain array rather than a map:
+  // the signal handler reads it, so the lookup must not allocate.
+  static const char* signalStr[NSIG];
   static bool dumpStacktrace;     // Dump stacktrace on app crash
   static char* stacktraceOutput;  // Output filename for stacktraces
   static char* relocationInfo;  // Relocation info (for -fPIC binaries)

@@ -79,7 +79,7 @@ MessageCenter* MessageCenter::msg = 0;
  using namespace std;
  
 Application* Application::appPointer = 0;
-map<int, string> Application::signalStr;
+const char* Application::signalStr[NSIG] = {};
 bool Application::dumpStacktrace = true;
 char* Application::stacktraceOutput = NULL;
 char* Application::relocationInfo = NULL;
@@ -208,7 +208,7 @@ Application::Application( int argc, const char** argv )
   // disposition so a sanitizer (AddressSanitizer) or a debugger can catch and
   // symbolize faults such as SIGSEGV directly.
   if (getenv("SECONDO_NO_SIGNAL_HANDLERS") == 0) {
-  signalStr[SIGHUP] = "SIGINT";
+  signalStr[SIGHUP] = "SIGHUP";
   signal( SIGHUP,    Application::AbortOnSignalHandler );
 
   signalStr[SIGINT] = "SIGINT";
@@ -226,10 +226,10 @@ Application::Application( int argc, const char** argv )
   signalStr[SIGFPE] = "SIGFPE";
   signal( SIGFPE,    Application::AbortOnSignalHandler );
 
-  signalStr[SIGILL] = "SIGILL";
-  signal( SIGILL,    Application::AbortOnSignalHandler );
-
+  signalStr[SIGPIPE] = "SIGPIPE";
   signal( SIGPIPE,   Application::AbortOnSignalHandler );
+
+  signalStr[SIGALRM] = "SIGALRM";
   signal( SIGALRM,   Application::AbortOnSignalHandler );
 
   signalStr[SIGTERM] = "SIGTERM";
@@ -253,7 +253,7 @@ Application::Application( int argc, const char** argv )
   signalStr[SIGSTKFLT] = "SIGSTKFLT";
   signal( SIGSTKFLT, Application::AbortOnSignalHandler );
 #endif
-  signalStr[SIGIO] = "SIGKIO";
+  signalStr[SIGIO] = "SIGIO";
   signal( SIGIO,     Application::AbortOnSignalHandler );
 #ifdef SIGPOLL
   signalStr[SIGPOLL] = "SIGPOLL";
@@ -328,7 +328,9 @@ This is the default signal handler for all signals that would
 abort the process if not handled otherwise.
 
 */
-  cout << endl << "*** Signal " << signalStr[sig] 
+  const char* signame = ( sig > 0 && sig < NSIG && signalStr[sig] != 0 )
+                        ? signalStr[sig] : "unknown";
+  cout << endl << "*** Signal " << signame
        << " (" << sig << ") caught!";
    
   if ( sig == SIGABRT || sig == SIGSEGV || sig == SIGFPE || sig == SIGILL)
