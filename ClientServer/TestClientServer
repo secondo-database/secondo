@@ -244,4 +244,47 @@ else
   echo "OK: $NCLIENTS/$NCLIENTS clients completed successfully"
 fi
 
+#
+# Phase 3: graceful shutdown. Send the monitor a SIGTERM -- what a service
+# manager or a CTRL+C does -- and assert the whole tree comes down cleanly:
+#   * the monitor exits rather than hanging (it used to deadlock in BerkeleyDB
+#     teardown run from its signal handler, roughly two shutdowns in three),
+#   * no child is left orphaned (the reported symptom), and
+#   * the registrar's unix socket is unlinked, which only happens if it unwound
+#     through its destructor rather than being killed -- a precise oracle for
+#     "the whole shutdown ran cleanly" (RC1b).
+#
+echo "*** ClientServer test: graceful shutdown ***"
+
+regPrefix=$(grep -E "^[[:space:]]*RegistrarSocketNamePrefix" "$SECONDO_CONFIG" \
+            2>/dev/null | head -1 | cut -d= -f2 | tr -d '[:space:]')
+regSocket="/tmp/${regPrefix:-SECREGIS}_port${SEC_PORT}"
+
+kids=$(descendants "$monPid" | tr '\n' ' ')
+if [ ! -S "$regSocket" ]; then
+  echo "FAIL (shutdown): registrar socket $regSocket missing before shutdown"
+  rc=1
+fi
+
+kill -TERM "$monPid" 2>/dev/null
+shutdownGone=0
+for _ in $(seq 1 30); do
+  kill -0 "$monPid" 2>/dev/null || { shutdownGone=1; break; }
+  sleep 0.5
+done
+wait "$monPid" 2>/dev/null
+
+if [ "$shutdownGone" -ne 1 ]; then
+  echo "FAIL (shutdown): monitor still alive 15s after SIGTERM (deadlock?)"
+  rc=1
+else
+  assert_no_orphans "shutdown" $kids "$monPid" || rc=1
+  if [ -e "$regSocket" ]; then
+    echo "FAIL (shutdown): registrar socket $regSocket not removed"
+    rc=1
+  else
+    echo "OK (shutdown): registrar socket removed"
+  fi
+fi
+
 exit $rc

@@ -32,6 +32,10 @@ Oct 2009, M. Spiekermann. Input, command processsing and termination revised
 #include <sstream>
 #include <string>
 
+#include <poll.h>
+#include <unistd.h>
+#include <errno.h>
+
 #include "Application.h"
 #include "Processes.h"
 #include "SecondoSMI.h"
@@ -62,8 +66,6 @@ class SecondoMonitor : public Application
   void ProcessCommands();
   void Terminate();
   
-  static SecondoMonitor* p;
-  static void HandleShutDown(int sig);
 
   SmiEnvironment::SmiType smiType;
   string cfgFile;
@@ -100,35 +102,12 @@ SecondoMonitor::SecondoMonitor( const int argc, const char** argv )
   running       = false;
   quit          = false;
 
-  p = this;
-#ifndef SECONDO_WIN32
-  signal(SIGTERM, HandleShutDown);
-  signal(SIGINT,  HandleShutDown);
-  signal(SIGKILL, HandleShutDown);
-#endif
+  // Terminating signals are left to the base Application handler, which just
+  // sets the abort flag that ProcessCommands checks. The shutdown work must not
+  // run from a signal handler: it tears down BerkeleyDB, whose region locks are
+  // not robust, so doing it on the interrupted stack deadlocks.
+  SetGracefulTermination( true );
 }
-
-
-void SecondoMonitor::HandleShutDown(int sig) {
-
-#ifndef SECONDO_WIN32
-  if (sig == SIGTERM || sig == SIGINT || sig == SIGKILL) {
-    cerr << endl
-         << "SIGTERM, SIGINT or SIGKILL received, "
-         << "terminating child processes." << endl;
-
-    if (p) {
-      p->ExecShutDown();
-      p->Terminate();
-      p = 0;
-    }  
-  }
-  signal(sig, SIG_DFL);
-  raise(sig);
-#endif
-}
-
-SecondoMonitor* SecondoMonitor::p = 0;
 
 bool SecondoMonitor::AbortOnSignal( int sig ) const
 {
@@ -304,15 +283,41 @@ void SecondoMonitor::ProcessCommands() {
 
   string cmd("");
   do {
+    // Handle a termination signal first, on every iteration and independent of
+    // stdin state. We have to do the shutdown outside of a signal handler.
+    // Otherwise, we will get deadlocked in BerkeleyDB teardown;
+    if (Application::Instance()->ShouldAbort()) {
+      cout << endl
+           << "*** Termination signal received, initiating shutdown!" << endl;
+      if (running) {
+        ExecShutDown();
+      }
+      quit = true;
+      break;
+    }
+
     if (!cin.eof()) {
+      cout << prompt << flush;
+      // Wait for a command line, but interruptibly. A plain getline blocks in a
+      // read() that SA_RESTART restarts, so a signal would not break it; poll()
+      // is interrupted and the abort is handled at the top of the loop.
+      struct pollfd pfd;
+      pfd.fd = STDIN_FILENO;
+      pfd.events = POLLIN;
+      int ready;
+      do {
+        ready = poll( &pfd, 1, 1000 );
+      } while ( ready == 0 && !Application::Instance()->ShouldAbort() );
+
+      if ( ready <= 0 ) {
+        continue;
+      }
+
       line = "";
       cmd = "";
-      cout << prompt;
       getline(cin, line);
-      // cout << "line = '" << line << "'" << endl;
       istringstream in(line);
       in >> cmd;
-      // cout << "input = '" << cmd << "'" << endl;
 
       if (cmd != "") {
         transform(cmd.begin(), cmd.end(), cmd.begin(), ::toupper);
@@ -350,14 +355,8 @@ void SecondoMonitor::ProcessCommands() {
                << "valid commands." << endl;
         }
       }
-
-      if (Application::Instance()->ShouldAbort()) {
-        cout << "*** Termination signal received, initiating shutdown!" << endl;
-        ExecQuit();
-      }
     } else {
-      // since input is eof avoid consuming cpu time
-      WinUnix::sleep(60);
+      poll( NULL, 0, 1000 );
     }
   } while (!quit);
 }
