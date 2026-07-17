@@ -169,6 +169,9 @@ ProcessFactory::SpawnProcess( const string& programpath,
     {
       if ( instance->processList[idx].terminated )
       {
+        // Release the previous occupant before taking the entry over, so that
+        // whatever it still holds is given back rather than leaked.
+        instance->processList[idx].Finish();
         instance->processList[idx].reserved = true;
         break;
       }
@@ -563,6 +566,10 @@ ProcessFactory::GetExitCode( const int processId, int& status )
   {
     status = instance->processList[index].exitStatus;
     ok = true;
+
+    // The caller has the exit status, which is the last thing the entry was
+    // holding for it, so give the entry back.
+    instance->processList[index].Finish();
   }
   return (ok);
 }
