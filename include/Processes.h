@@ -311,6 +311,13 @@ process is still running. In case of success "true"[4] is returned, otherwise
 "false"[4].
 
 */
+  static bool SignalAllProcesses( const ProcessSignal signo = eSIGTERM );
+/*
+Sends the specified signal ~signo~ to every process still running under the
+control of the process factory. Used at shutdown to ask all children to
+terminate before waiting for them.
+
+*/
   static bool GetExitCode( const int processId, int& status );
 /*
 Provides access to the exit code ~status~ of the process ~processId~.
@@ -339,10 +346,12 @@ In case the process terminated "true"[4] is returned, in case of an error
 "false"[4] is returned.
 
 */
-  static bool WaitForAll();
+  static bool WaitForAll( const int graceSeconds = 30 );
 /*
-Waits for the termination *all* processes under control of the process factory.
-The method returns "true"[4] if all processes have terminated; in case of an error
+Waits up to ~graceSeconds~ for *all* processes under the control of the process
+factory to terminate, reaping them as they go. Any still running when the grace
+period expires are killed outright. The method returns "true"[4] if all
+processes have terminated; in case of an error
 "false"[4] is returned.
 
 */

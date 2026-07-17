@@ -555,6 +555,21 @@ ProcessFactory::SignalRealProcess( const ProcessId processId,
 }
 
 bool
+ProcessFactory::SignalAllProcesses( const ProcessSignal signo /* = eSIGTERM */ )
+{
+  bool ok = true;
+  for ( int idx = 0; idx < instance->maxChilds; idx++ )
+  {
+    if ( instance->processList[idx].reserved &&
+        !instance->processList[idx].terminated )
+    {
+      ok = instance->processList[idx].SendSignal( signo ) && ok;
+    }
+  }
+  return (ok);
+}
+
+bool
 ProcessFactory::GetExitCode( const int processId, int& status )
 {
   bool ok = false;
@@ -625,7 +640,7 @@ ProcessFactory::WaitForProcess( const int processId )
 }
 
 bool
-ProcessFactory::WaitForAll()
+ProcessFactory::WaitForAll( const int graceSeconds /* = 30 */ )
 {
   bool ok = true;
 #ifdef SECONDO_WIN32
@@ -659,33 +674,69 @@ ProcessFactory::WaitForAll()
   }
   while (hCount > 0);
 #else
-  int serrno = errno;
-  int exitcode;
-  pid_t childId;
-  while ((childId = waitpid( WAIT_ANY, &exitcode, WNOHANG )) > 0)
+  // Poll for the children to exit, giving them graceSeconds to do it. The
+  // SIGCHLD handler may reap some of them concurrently, so the terminated flag,
+  // not our own waitpid, is the authoritative liveness check. A straggler still
+  // present when the grace period runs out is killed outright.
+  const int pollMs   = 100;
+  const int maxIters = ( graceSeconds * 1000 ) / pollMs;
+  bool      killed   = false;
+
+  for ( int iter = 0; ; iter++ )
   {
-    for ( int idx = 0; idx < instance->maxChilds; idx++)
+    int serrno = errno;
+    int exitcode;
+    pid_t childId;
+    while ((childId = waitpid( WAIT_ANY, &exitcode, WNOHANG )) > 0)
     {
-      if ( childId == instance->processList[idx].pid )
+      for ( int idx = 0; idx < instance->maxChilds; idx++)
       {
-        instance->processList[idx].terminated = true;
-        instance->processList[idx].exitStatus = (uint32_t) exitcode;
-        break;
+        if ( childId == instance->processList[idx].pid )
+        {
+          instance->processList[idx].terminated = true;
+          instance->processList[idx].exitStatus = (uint32_t) exitcode;
+          break;
+        }
       }
     }
-  }
-  errno = serrno;
+    errno = serrno;
 
-  int pCount = 0;
-  for ( int idx = 0; idx < instance->maxChilds; idx++)
-  {
-    if ( instance->processList[idx].reserved &&
-        !instance->processList[idx].terminated )
+    int pCount = 0;
+    for ( int idx = 0; idx < instance->maxChilds; idx++)
     {
-      pCount++;
+      if ( instance->processList[idx].reserved &&
+          !instance->processList[idx].terminated )
+      {
+        pCount++;
+      }
     }
+    if ( pCount == 0 )
+    {
+      ok = true;
+      break;
+    }
+
+    if ( iter >= maxIters )
+    {
+      if ( killed )
+      {
+        // Already sent SIGKILL and gave it a further tick to be reaped.
+        ok = false;
+        break;
+      }
+      for ( int idx = 0; idx < instance->maxChilds; idx++)
+      {
+        if ( instance->processList[idx].reserved &&
+            !instance->processList[idx].terminated )
+        {
+          kill( instance->processList[idx].pid, SIGKILL );
+        }
+      }
+      killed = true;
+    }
+
+    usleep( pollMs * 1000 );
   }
-  ok = (pCount == 0);
 #endif
   return (ok);
 }
