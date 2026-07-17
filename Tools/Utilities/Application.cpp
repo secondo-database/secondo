@@ -190,6 +190,7 @@ Application::Application( int argc, const char** argv )
   lastSignal = 0;
   abortMode = true;
   abortFlag = false;
+  gracefulTermination = false;
   user1Flag = false;
   user2Flag = false;
 
@@ -358,6 +359,26 @@ Application::~Application()
 }
 
 
+bool
+Application::ProcessPendingSignals()
+{
+  if ( !abortFlag )
+  {
+    return (false);
+  }
+
+  // The abort mode decides whether the cleanup hook runs here. Either way the
+  // caller is told an abort is pending and is expected to leave its loop, so
+  // AbortOnSignal is reached at most once.
+  if ( abortMode )
+  {
+    AbortOnSignal( lastSignal );
+  }
+
+  return (true);
+}
+
+
 #ifndef SECONDO_WIN32
 
 /*
@@ -385,6 +406,18 @@ number2stdout( unsigned int value )
   (void) written;
 }
 
+/*
+Tells the terminating signals -- the ones a daemon may want to shut down on --
+apart from the fatal ones. A fatal signal means the process is already corrupt
+and must not run cleanup, so it is never deferred.
+
+*/
+static bool
+IsTerminatingSignal( int sig )
+{
+  return sig == SIGINT || sig == SIGTERM || sig == SIGHUP || sig == SIGQUIT;
+}
+
 void
 Application::AbortOnSignalHandler ( int sig )
 {
@@ -393,6 +426,17 @@ This is the default signal handler for all signals that would
 abort the process if not handled otherwise.
 
 */
+  // When the application opted in, a terminating signal is only recorded here;
+  // the shutdown itself runs later from the main loop, via
+  // ProcessPendingSignals. Everything else -- and every signal when the opt-in
+  // is off -- keeps the original behaviour below.
+  if ( appPointer->gracefulTermination && IsTerminatingSignal( sig ) )
+  {
+    appPointer->lastSignal = sig;
+    appPointer->abortFlag  = 1;
+    return;
+  }
+
   const char* signame = ( sig > 0 && sig < NSIG && signalStr[sig] != 0 )
                         ? signalStr[sig] : "unknown";
   WinUnix::string2stdout( "\n*** Signal " );

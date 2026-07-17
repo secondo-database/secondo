@@ -259,7 +259,7 @@ Returns the current state of the abort mode. If the abort mode is
 activated "true"[4] is returned, otherwise "false"[4].
 
 */
-  virtual bool AbortOnSignal ( int __attribute__((unused)) sig )const { 
+  virtual bool AbortOnSignal ( int __attribute__((unused)) sig )const {
       return (true);
    };
 /*
@@ -268,6 +268,31 @@ a signal is caught that would have aborted the process anyway. This
 is the case for most signals like "SIGTERM"[4], "SIGQUIT"[4] and so on. The
 pre-installed signal handler ensures proper application shutdown in
 such circumstances.
+
+*/
+  void SetGracefulTermination( bool activate )
+  { 
+    gracefulTermination = activate; 
+  };
+/*
+Opts the application into graceful handling of the terminating signals
+("SIGINT"[4], "SIGTERM"[4], "SIGHUP"[4], "SIGQUIT"[4]). It defaults to *off*,
+in which case those signals keep their default disposition -- the process
+prints a message and dies -- so that only the long running daemons that ask
+for it are affected. When *on*, such a signal only sets the abort flag; the
+work of shutting down happens in the main loop, never in the handler.
+
+Fatal signals ("SIGSEGV"[4] and the like) are never affected: a corrupt
+process must not run cleanup.
+
+*/
+  bool ProcessPendingSignals();
+/*
+Is called from the daemon's main loop, not from a signal handler. If a
+terminating signal was received it invokes ~AbortOnSignal~ once (when the
+abort mode is active) and returns "true"[4]; otherwise it returns "false"[4].
+This is where the shutdown work deferred by ~SetGracefulTermination~ actually
+runs, on a normal stack with nothing blocked.
 
 */
  private:
@@ -282,6 +307,7 @@ such circumstances.
   bool          abortMode;    // abort mode
   volatile sig_atomic_t lastSignal; // last signal received
   volatile sig_atomic_t abortFlag;  // abort signal flag
+  volatile sig_atomic_t gracefulTermination; // opt-in: defer term signals
   volatile sig_atomic_t user1Flag;  // user1 signal flag
   volatile sig_atomic_t user2Flag;  // user2 signal flag
 
