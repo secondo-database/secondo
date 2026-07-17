@@ -50,6 +50,8 @@ are implemented in class ~CSProtocol~ and can be used by inside the
 #include <fstream>
 #include <sstream>
 #include <signal.h>
+#include <poll.h>
+#include <errno.h>
 
 #include "Application.h"
 #include "SocketIO.h"
@@ -148,6 +150,7 @@ class SecondoServer : public Application
   void CallRestore(const string& tag, bool database=false);
   void CallSave(const string& tag, bool database=false);
   string CreateTmpName(const string& prefix);
+  bool WaitForRequest();
   
   Socket*           client;
   SecondoInterface* si;
@@ -1063,6 +1066,35 @@ SecondoServer::Disconnect()
   quit = true;
 }
 
+bool
+SecondoServer::WaitForRequest()
+{
+  iostream& iosock = client->GetSocketStream();
+  struct pollfd pfd;
+  pfd.fd = client->GetDescriptor();
+  pfd.events = POLLIN;
+
+  while ( !Application::Instance()->ShouldAbort() )
+  {
+    // Anything already sitting in the stream buffer would not show up on the
+    // socket, so read it without waiting. Only an empty buffer means we really
+    // have to block, and there we wait on poll(), which -- unlike a read() --
+    // is interrupted by a terminating signal, so the server wakes to shut down
+    // instead of hanging in getline while a silent client stays connected.
+    if ( iosock.rdbuf()->in_avail() > 0 )
+    {
+      return (true);
+    }
+    int ready = poll( &pfd, 1, 1000 );
+    if ( ready > 0 )
+    {
+      return (true);
+    }
+    // ready <= 0: timeout or an interrupted wait; re-check ShouldAbort.
+  }
+  return (false);
+}
+
 int SecondoServer::Execute() {
   int rc = 0;
   parmFile = (GetArgCount() > 1) ? GetArgValues()[1] : "SecondoConfig.ini";
@@ -1222,9 +1254,15 @@ int SecondoServer::Execute() {
 
       do {
       try {
+        if ( !WaitForRequest() )
+        {
+          // A terminating signal arrived while waiting for the next request.
+          quit = true;
+          break;
+        }
         string cmd;
         getline( iosock, cmd );
-        debug_server(cmd); 
+        debug_server(cmd);
         cmdPos = commandTable.find( cmd );
         if ( cmdPos != commandTable.end() )
         {
@@ -1233,7 +1271,7 @@ int SecondoServer::Execute() {
         else
         {
           iosock << "<SecondoError>" << endl
-                 << "SECONDO-0080 Protocol-Error: Start tag \"" 
+                 << "SECONDO-0080 Protocol-Error: Start tag \""
                  << cmd << "\" unknown!" << endl
                  << "</SecondoError>" << endl;
         }
