@@ -43,8 +43,8 @@ using namespace std;
 class SecondoListener : public Application
 {
  public:
-  SecondoListener( const int argc, const char** argv ) : 
-    Application( argc, argv ) 
+  SecondoListener( const int argc, const char** argv ) :
+    Application( argc, argv ), gate( nullptr ), client( nullptr )
   {};
   virtual ~SecondoListener() {};
   int  Execute();
