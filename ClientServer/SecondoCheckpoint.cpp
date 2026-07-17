@@ -100,11 +100,19 @@ SecondoCheckpoint::Execute()
     dbDir = SmiProfile::GetParameter("Environment", "SecondoHome", "",parmFile);
   }
   
-  u_int32_t minutes = SmiProfile::GetParameter( "BerkeleyDB", 
-                                                "CheckpointTime", 
+  u_int32_t minutes = SmiProfile::GetParameter( "BerkeleyDB",
+                                                "CheckpointTime",
                                                 5, parmFile       );
   u_int32_t seconds = minutes * 60;
   int rc;
+
+  // Shut down on a terminating signal instead of dying where it lands. This
+  // process spends its life inside BerkeleyDB, holding region locks that are
+  // not robust; being killed mid-region would orphan a lock and wedge every
+  // other process in the environment. The loop below polls ShouldAbort(), which
+  // now returns true when a terminating signal arrives, and shuts down the
+  // environment which releases the region cleanly.
+  SetGracefulTermination( true );
 
   // --- Setup of Berkeley DB environment
   DbEnv* bdbEnv = new DbEnv( DB_CXX_NO_EXCEPTIONS );
