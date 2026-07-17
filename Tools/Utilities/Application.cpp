@@ -90,6 +90,35 @@ Application* Application::Instance()
   return (appPointer);
 }
 
+#ifndef SECONDO_WIN32
+
+/*
+Installs a signal handler. This is what signal() already does for us here, but
+only by accident: signal() is specified loosely, and glibc gives it the BSD
+meaning -- handler stays installed, interrupted calls are restarted -- only
+while a feature test macro happens to be defined. Without it the same call
+means System V instead, where the handler resets to the default the first time
+it fires. sigaction states both properties instead of inheriting them.
+
+The signal being handled is blocked for the duration of its own handler; that
+is what an empty mask means, and it is what signal() does too.
+
+*/
+static void
+InstallSignalHandler( int sig, void (*handler)( int ) )
+{
+  struct sigaction sa;
+
+  memset( &sa, 0, sizeof(sa) );
+  sa.sa_handler = handler;
+  sigemptyset( &sa.sa_mask );
+  sa.sa_flags = SA_RESTART;
+
+  sigaction( sig, &sa, NULL );
+}
+
+#endif
+
 /*
 Class constructors/destructors
 
@@ -215,70 +244,70 @@ Application::Application( int argc, const char** argv )
   // symbolize faults such as SIGSEGV directly.
   if (getenv("SECONDO_NO_SIGNAL_HANDLERS") == 0) {
   signalStr[SIGHUP] = "SIGHUP";
-  signal( SIGHUP,    Application::AbortOnSignalHandler );
+  InstallSignalHandler( SIGHUP,    Application::AbortOnSignalHandler );
 
   signalStr[SIGINT] = "SIGINT";
-  signal( SIGINT,    Application::AbortOnSignalHandler );
+  InstallSignalHandler( SIGINT,    Application::AbortOnSignalHandler );
 
   signalStr[SIGQUIT] = "SIGQUIT";
-  signal( SIGQUIT,   Application::AbortOnSignalHandler );
+  InstallSignalHandler( SIGQUIT,   Application::AbortOnSignalHandler );
 
   signalStr[SIGILL] = "SIGILL";
-  signal( SIGILL,    Application::AbortOnSignalHandler );
+  InstallSignalHandler( SIGILL,    Application::AbortOnSignalHandler );
 
   signalStr[SIGABRT] = "SIGABRT";
-  signal( SIGABRT,   Application::AbortOnSignalHandler );
+  InstallSignalHandler( SIGABRT,   Application::AbortOnSignalHandler );
 
   signalStr[SIGFPE] = "SIGFPE";
-  signal( SIGFPE,    Application::AbortOnSignalHandler );
+  InstallSignalHandler( SIGFPE,    Application::AbortOnSignalHandler );
 
   signalStr[SIGPIPE] = "SIGPIPE";
-  signal( SIGPIPE,   Application::AbortOnSignalHandler );
+  InstallSignalHandler( SIGPIPE,   Application::AbortOnSignalHandler );
 
   signalStr[SIGALRM] = "SIGALRM";
-  signal( SIGALRM,   Application::AbortOnSignalHandler );
+  InstallSignalHandler( SIGALRM,   Application::AbortOnSignalHandler );
 
   signalStr[SIGTERM] = "SIGTERM";
-  signal( SIGTERM,   Application::AbortOnSignalHandler );
+  InstallSignalHandler( SIGTERM,   Application::AbortOnSignalHandler );
 
   signalStr[SIGSEGV] = "SIGSEGV";
-  signal( SIGSEGV,   Application::AbortOnSignalHandler );
+  InstallSignalHandler( SIGSEGV,   Application::AbortOnSignalHandler );
   
   signalStr[SIGUSR1] = "SIGUSR1";
-  signal( SIGUSR1,   Application::UserSignalHandler );
+  InstallSignalHandler( SIGUSR1,   Application::UserSignalHandler );
   
   signalStr[SIGUSR2] = "SIGUSR2";
-  signal( SIGUSR2,   Application::UserSignalHandler );
+  InstallSignalHandler( SIGUSR2,   Application::UserSignalHandler );
   
   signalStr[SIGTRAP] = "SIGTRAP";
-  signal( SIGTRAP,   Application::AbortOnSignalHandler );
+  InstallSignalHandler( SIGTRAP,   Application::AbortOnSignalHandler );
   
   signalStr[SIGBUS] = "SIGBUS";
-  signal( SIGBUS,    Application::AbortOnSignalHandler );
+  InstallSignalHandler( SIGBUS,    Application::AbortOnSignalHandler );
 #ifdef SIGSTKFLT
   signalStr[SIGSTKFLT] = "SIGSTKFLT";
-  signal( SIGSTKFLT, Application::AbortOnSignalHandler );
+  InstallSignalHandler( SIGSTKFLT, Application::AbortOnSignalHandler );
 #endif
   signalStr[SIGIO] = "SIGIO";
-  signal( SIGIO,     Application::AbortOnSignalHandler );
+  InstallSignalHandler( SIGIO,     Application::AbortOnSignalHandler );
 #ifdef SIGPOLL
   signalStr[SIGPOLL] = "SIGPOLL";
-  signal( SIGPOLL,   Application::AbortOnSignalHandler );
+  InstallSignalHandler( SIGPOLL,   Application::AbortOnSignalHandler );
 #endif
   signalStr[SIGXCPU] = "SIGXCPU";
-  signal( SIGXCPU,   Application::AbortOnSignalHandler );
+  InstallSignalHandler( SIGXCPU,   Application::AbortOnSignalHandler );
   
   signalStr[SIGXFSZ] = "SIGXFSZ";
-  signal( SIGXFSZ,   Application::AbortOnSignalHandler );
+  InstallSignalHandler( SIGXFSZ,   Application::AbortOnSignalHandler );
   
   signalStr[SIGVTALRM] = "SIGVTALRM";
-  signal( SIGVTALRM, Application::AbortOnSignalHandler );
+  InstallSignalHandler( SIGVTALRM, Application::AbortOnSignalHandler );
   
   //signalStr[SIGPROF] = "SIGPROF";
-  //signal( SIGPROF,   Application::AbortOnSignalHandler );
+  //InstallSignalHandler( SIGPROF,   Application::AbortOnSignalHandler );
 #ifdef SIGPWR
   signalStr[SIGPWR] = "SIGPWR";
-  signal( SIGPWR,    Application::AbortOnSignalHandler );
+  InstallSignalHandler( SIGPWR,    Application::AbortOnSignalHandler );
 #endif
   } // SECONDO_NO_SIGNAL_HANDLERS
 #else
@@ -402,7 +431,6 @@ Application::UserSignalHandler ( int sig )
     Application::appPointer->user2Flag = true;
   }
   Application::appPointer->lastSignal = sig;
-  signal( sig, Application::UserSignalHandler );
 }
 
 #else // Windows
