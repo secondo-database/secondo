@@ -260,11 +260,6 @@ ProcessFactory::SpawnProcess( const string& programpath,
 
   instance->processList[idx].processInfo = processInfo;
   instance->processList[idx].terminated = false;
-  instance->processList[idx].cycle++;
-  if ( instance->processList[idx].cycle >= instance->maxChilds )
-  {
-    instance->processList[idx].cycle = 1;
-  }
   if ( clientSocket != 0 )
   {
     instance->processList[idx].hasSocket = true;
@@ -460,7 +455,6 @@ A session without a control tty can only have background jobs.
 
   instance->processList[idx].pid = pid;
   instance->processList[idx].terminated = false;
-  instance->processList[idx].cycle++;
   if ( clientSocket != 0 )
   {
     clientSocket->Close();
@@ -475,6 +469,13 @@ A session without a control tty can only have background jobs.
   Sleep( 0 );
 #endif
   instance->processDirectory = "";
+
+  instance->processList[idx].cycle++;
+  if ( instance->processList[idx].cycle >= instance->maxChilds )
+  {
+    instance->processList[idx].cycle = 1;
+  }
+
   processId = idx * (instance->maxChilds+1) + instance->processList[idx].cycle;
   return (true);
 }
