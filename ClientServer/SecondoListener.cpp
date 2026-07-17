@@ -160,7 +160,6 @@ SecondoListener::Execute()
                << "SECONDO-0002: Server not available. Try again later." << endl
                << "</SecondoError>" << endl;
             client->Close();
-            delete client;
             LogMessage("Start of client server failed");
           }
           WinUnix::sleep(0);
@@ -171,15 +170,17 @@ SecondoListener::Execute()
           ss << "<SecondoError>" << endl << "SECONDO-0001: Connection rejected."
              << endl << "</SecondoError>" << endl;
 
-          string errmsg = string("Client '") + client->GetPeerAddress() 
+          string errmsg = string("Client '") + client->GetPeerAddress()
                           + "' not allowed.";
           LogMessage(errmsg);
 
           client->Close();
-          delete client;
-          client = nullptr;
         }
       }
+      // --- The listener is done with the socket on every path: a spawned
+      //     server got its own descriptor, and the other paths closed theirs.
+      delete client;
+      client = nullptr;
     }
     ProcessFactory::WaitForAll();
   } else {
