@@ -30,6 +30,9 @@ C++ code re-implemented. Bug fix for command UNREGISTER.
 #include <map>
 #include <queue>
 
+#include <poll.h>
+#include <errno.h>
+
 #include "Application.h"
 #include "Processes.h"
 #include "SocketIO.h"
@@ -53,7 +56,6 @@ class SecondoRegistrar : public Application
   { };
   virtual ~SecondoRegistrar() {};
   int Execute();
-  bool AbortOnSignal( int sig ) const;
  private:
   int  ProcessCommands();
   string parmFile;
@@ -88,16 +90,6 @@ class SecondoRegistrar : public Application
     LOGIN, LOGOUT, LOGMSG, 
     SHOWMSGS, SHOWUSERS, SHOWLOCKS, SHOWDATABASES } cmdTok;  
 };
-
-bool
-SecondoRegistrar::AbortOnSignal( int sig ) const
-{
-  if ( msgSocket != 0 )
-  {
-    msgSocket->CancelAccept();
-  }
-  return (true);
-}
 
 void
 SecondoRegistrar::ExecRegister()
@@ -322,8 +314,26 @@ SecondoRegistrar::ProcessCommands()
   commandTable["SHOWDATABASES"] = SHOWDATABASES;
 
   int rc = 0;
+  struct pollfd pfd;
+  pfd.fd = msgSocket->GetDescriptor();
+  pfd.events = POLLIN;
   while (rc == 0)
   {
+    // Wait for a connection, but bounded and interruptible: unlike accept(),
+    // poll() is not restarted after a signal, so a SIGTERM breaks the wait and
+    // the ShouldAbort check ends the loop instead of the process being killed
+    // where it stands.
+    int ready = poll( &pfd, 1, 1000 );
+    if ( Application::Instance()->ShouldAbort() )
+    {
+      rc = EXIT_REGISTRAR_ABORT;
+      continue;
+    }
+    if ( ready <= 0 )
+    {
+      // Timeout, or an interrupted wait; nothing pending to accept.
+      continue;
+    }
     request = msgSocket->Accept();
     if ( request != 0 && request->IsOk() )
     {
@@ -369,10 +379,10 @@ SecondoRegistrar::ProcessCommands()
       }
 
     }
-    if(request) delete request;
-    if ( Application::Instance()->ShouldAbort() )
+    if(request)
     {
-      rc = EXIT_REGISTRAR_ABORT;
+      delete request;
+      request = nullptr;
     }
   }
   if ( rc == EXIT_REGISTRAR_ABORT )
@@ -386,6 +396,12 @@ int
 SecondoRegistrar::Execute()
 {
   SetAbortMode( true );
+
+  // Shut down on a terminating signal instead of dying in the accept loop. A
+  // clean exit runs the delete msgSocket below, whose destructor unlinks the
+  // /tmp socket file; killed where it stands, the registrar leaks that file.
+  SetGracefulTermination( true );
+
   if (RTFlag::isActive("Registar:trace")) {
     trace.on();
   }  
