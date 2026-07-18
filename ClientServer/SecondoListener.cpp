@@ -25,9 +25,12 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <string>
 #include <algorithm>
 #include <ctime>
+#include <cstring>
+#include <map>
 
 #include <poll.h>
 #include <errno.h>
+#include <sys/wait.h>
 
 #include "Application.h"
 #include "Processes.h"
@@ -56,10 +59,14 @@ class SecondoListener : public Application
   bool ClientAllowed();
   void LogMessage( const string msg );
  private:
+  void ReapServers();
   string parmFile;
   string port;
   Socket* gate;
   Socket* client;
+  // Encoded ProcessFactory id -> a "server pid N for client 'addr'" label,
+  // captured at spawn while the pid and peer are still available.
+  map<int, string> serverInfo;
 };
 
 void
@@ -83,6 +90,46 @@ SecondoListener::LogMessage( const string msg )
   Messenger messenger( regName );
   string answer;
   messenger.Send( "LOGMSG " + msg, answer );
+}
+
+void
+SecondoListener::ReapServers()
+{
+  // The SIGCHLD reaper records every child's exit status but runs in async-
+  // signal context and cannot log. The accept loop calls this each tick to
+  // turn a silent server crash into a visible LISTENER line (monitor.log and
+  // SHOW LOG). A dead server holds no state we need, but *why* it died -- e.g.
+  // SIGSEGV during "open database" -- is exactly the diagnostic that was lost.
+  for (map<int, string>::iterator it = serverInfo.begin();
+       it != serverInfo.end(); ) {
+    const int id = it->first;
+    if (ProcessFactory::IsProcessTerminated(id)) {
+      int status = 0;
+      ProcessFactory::GetExitCode(id, status);   // also reclaims the slot
+      if (WIFSIGNALED(status)) {
+        const int sig = WTERMSIG(status);
+        const char* nm = strsignal(sig);
+        LogMessage(it->second + " terminated on signal "
+                   + (nm ? nm : "unknown") + " (" + to_string(sig) + ")");
+      }
+      else if (WIFEXITED(status) && WEXITSTATUS(status) != 0) {
+        LogMessage(it->second + " exited with status "
+                   + to_string(WEXITSTATUS(status)));
+      }
+      // A normal exit (status 0, the client just finished) is not logged.
+      it = serverInfo.erase(it);
+    }
+    else if (!ProcessFactory::IsProcessOk(id)) {
+      // The slot was recycled before we observed the exit (only possible once
+      // the table filled and a new spawn reused it). Drop the stale entry so
+      // the map stays bounded; the rare cost is a missed line, never a wrong
+      // one.
+      it = serverInfo.erase(it);
+    }
+    else {
+      ++it;
+    }
+  }
 }
 
 int
@@ -166,6 +213,8 @@ SecondoListener::Execute()
     pfd.events = POLLIN;
     bool backoffLogged = false;   // rate-limit the resource-exhaustion log
     while (!ShouldAbort()) {
+      // Log any server that died since the last tick before waiting again.
+      ReapServers();
       // Wait for a connection, but only for a bounded time, and let a signal
       // interrupt the wait: unlike accept(), poll() is never restarted after a
       // signal, so a SIGTERM breaks out here and the loop sees ShouldAbort().
@@ -210,9 +259,12 @@ SecondoListener::Execute()
         if (ipRules.Ok(SocketAddress(client->GetPeerAddress()))) {
           // --- Spawn server for client
           int pidServer;
-          string pgmArgs = string("\"-srv\" \"") + parmFile + "\" \"" + dbDir 
-                         + "\" " + port; 
-          if (!ProcessFactory::SpawnProcess(server, pgmArgs, pidServer, true, 
+          // Capture the peer now: SpawnProcess hands this socket to the child,
+          // after which GetPeerAddress on our copy returns "<unknown>".
+          const string peer = client->GetPeerAddress();
+          string pgmArgs = string("\"-srv\" \"") + parmFile + "\" \"" + dbDir
+                         + "\" " + port;
+          if (!ProcessFactory::SpawnProcess(server, pgmArgs, pidServer, true,
                                             client)) {
             // --- Start of server failed
             iostream& ss = client->GetSocketStream();
@@ -221,6 +273,14 @@ SecondoListener::Execute()
                << "</SecondoError>" << endl;
             client->Close();
             LogMessage("Start of client server failed");
+          }
+          else {
+            // Record the server's pid and client while both are known, so
+            // ReapServers can name it if it later dies abnormally. The pid
+            // must be read now: GetRealProcessId returns -1 once it exits.
+            const ProcessId rp = ProcessFactory::GetRealProcessId(pidServer);
+            serverInfo[pidServer] = "server pid " + to_string((long) rp)
+                                  + " for client '" + peer + "'";
           }
           WinUnix::sleep(0);
         }
