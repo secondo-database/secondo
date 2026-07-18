@@ -355,6 +355,12 @@ UnixSocket::GetErrorText()
   return (msg);
 }
 
+int
+UnixSocket::GetErrorCode()
+{
+  return (lastError);
+}
+
 string
 UnixSocket::GetSocketAddress() const
 {
@@ -456,14 +462,10 @@ UnixSocket::Accept( ostream* traceInStream,
   {
     if ( domain == SockGlobalDomain )
     {
+      // TCP_NODELAY is an optimisation, not a requirement.
       int enabled = 1;
-      if ( setsockopt( s, IPPROTO_TCP, TCP_NODELAY,
-                       (char*) &enabled, sizeof(enabled) ) != 0 )
-      {
-        lastError = errno;
-        ::close( s );
-        return (NULL);
-      }
+      setsockopt( s, IPPROTO_TCP, TCP_NODELAY,
+                  (char*) &enabled, sizeof(enabled) );
 
       // A client that vanishes without a FIN would otherwise leave its
       // SecondoServer blocked in read() forever, holding its database

@@ -62,6 +62,7 @@ class UnixSocket : public Socket
   bool    Write( void const* buf, size_t size );
   bool    IsOk();
   std::string  GetErrorText();
+  int          GetErrorCode();
   std::string  GetSocketAddress() const;
   std::string  GetPeerAddress() const;
   Socket* Accept( std::ostream* traceInStream=0,

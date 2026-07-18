@@ -164,6 +164,7 @@ SecondoListener::Execute()
     struct pollfd pfd;
     pfd.fd = gate->GetDescriptor();
     pfd.events = POLLIN;
+    bool backoffLogged = false;   // rate-limit the resource-exhaustion log
     while (!ShouldAbort()) {
       // Wait for a connection, but only for a bounded time, and let a signal
       // interrupt the wait: unlike accept(), poll() is never restarted after a
@@ -174,7 +175,38 @@ SecondoListener::Execute()
         continue;
       }
       client = gate->Accept();
-      if (client && client->IsOk()) {
+      if (client == nullptr) {
+        // accept() failed. React to the reason rather than retrying blindly:
+        // the pending connection is still queued, so poll() returns ready again
+        // at once, and a persistent error would spin the loop at 100% CPU
+        // (EMFILE, the per-process fd limit, is the classic way to hit this at
+        // high connection counts).
+        int err = gate->GetErrorCode();
+        if (err == EINTR || err == ECONNABORTED || err == EAGAIN
+            || err == EWOULDBLOCK || err == EPROTO) {
+          // Client vanished during the handshake, or a signal interrupted us:
+          // normal under load. Retry at once, no log.
+          continue;
+        }
+        if (err == EBADF || err == EINVAL || err == ENOTSOCK) {
+          // The listening socket itself is broken; retrying cannot help.
+          LogMessage("Listening socket is broken; stopping the accept loop.");
+          break;
+        }
+        // Resource exhaustion (EMFILE/ENFILE/ENOBUFS/ENOMEM) or anything else:
+        // log once and back off, so the machine can recover instead of the
+        // listener burning a core. poll() is the pause so a signal still
+        // interrupts it.
+        if (!backoffLogged) {
+          LogMessage("Accept failed (" + gate->GetErrorText()
+                     + "); backing off.");
+          backoffLogged = true;
+        }
+        poll( NULL, 0, 100 );
+        continue;
+      }
+      backoffLogged = false;   // a good accept ends the back-off episode
+      if (client->IsOk()) {
         if (ipRules.Ok(SocketAddress(client->GetPeerAddress()))) {
           // --- Spawn server for client
           int pidServer;

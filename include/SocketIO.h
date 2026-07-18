@@ -410,6 +410,13 @@ Checks whether the socket is correctly initialized and ready for operation.
 Returns an error message text for the last error occurred.
 
 */
+  virtual int          GetErrorCode() { return (0); }
+/*
+Returns the numeric code of the last error, a positive "errno"[4] where it came
+from a failed system call. Overridden by sockets that track it; the default is
+0 so other socket types are unaffected.
+
+*/
   virtual std::string  GetSocketAddress() const = 0;
 /*
 Returns the IP address of the socket in string representation.
