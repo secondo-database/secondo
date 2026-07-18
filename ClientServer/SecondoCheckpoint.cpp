@@ -32,15 +32,6 @@ time intervals.
 
 
 #include <db_cxx.h>
-#define DB_FTYPE_SET  -1  // Call pgin/pgout functions
-#if defined(__cplusplus)
-extern "C" {
-#endif
-int __db_pgin(DB_ENV *, db_pgno_t, void *, DBT *);
-int __db_pgout(DB_ENV *, db_pgno_t, void *, DBT *);
-#if defined(__cplusplus)
-}
-#endif
 #include <fstream>
 
 
@@ -52,8 +43,7 @@ int __db_pgout(DB_ENV *, db_pgno_t, void *, DBT *);
 
 const int EXIT_CHECKPOINT_OK    = 0;
 const int EXIT_CHECKPOINT_NOENV = 1;
-const int EXIT_CHECKPOINT_NOPGF = 2;
-const int EXIT_CHECKPOINT_FAIL  = 3;
+const int EXIT_CHECKPOINT_FAIL  = 2;
 
 using namespace std;
 
@@ -133,18 +123,6 @@ SecondoCheckpoint::Execute()
   }
   f << "Opening environment successful" << endl;
   f << "Set checkpoint every " << minutes << " minutes" << endl;
-
-  // --- Register the standard pgin/pgout functions, in case we do I/O
-  rc = bdbEnv->memp_register( DB_FTYPE_SET, __db_pgin, __db_pgout );
-  if ( rc != 0 )
-  {
-    bdbEnv->err(rc, "%s", "memp_register failed!");
-    rc = bdbEnv->close( 0 );
-    if (rc != 0)
-      bdbEnv->err(rc, "%s", "Environment close failed!");
-    delete bdbEnv;
-    return (EXIT_CHECKPOINT_NOPGF);
-  }
 
   // --- Create checkpoints
   while (!ShouldAbort())
