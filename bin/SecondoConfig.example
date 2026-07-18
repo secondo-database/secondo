@@ -294,7 +294,7 @@ CheckpointTime=5
 # Cache Size in kB
 CacheSize=65536
 # Lock System Configuration
-MaxLockers=100
+MaxLockers=1000
 MaxLocks=300000
 MaxLockObjects=300000
 
