@@ -33,6 +33,7 @@ time intervals.
 
 #include <db_cxx.h>
 #include <fstream>
+#include <sstream>
 
 
 #include "Application.h"
@@ -45,7 +46,72 @@ const int EXIT_CHECKPOINT_OK    = 0;
 const int EXIT_CHECKPOINT_NOENV = 1;
 const int EXIT_CHECKPOINT_FAIL  = 2;
 
+// Warn near the threshold, recover below a lower one (hysteresis) so a run
+// hovering at the edge does not spam the log every tick.
+const unsigned LOCK_WARN_PERCENT   = 80;
+const unsigned LOCK_RECOVER_PERCENT = 60;
+
 using namespace std;
+
+/*
+Watches the shared Berkeley DB lock region for approaching exhaustion.
+
+Berkeley DB serves a fixed number of lockers, locks and objects from a region
+shared by every process attached to the environment. Once a table fills,
+transaction and lock requests fail. Make the user aware of the problem
+that he can fix by increasing the configuration parameters in the ini file.
+
+*/
+static void
+CheckLockPressure( DbEnv* env, ostream& log, bool warned[3] )
+{
+  // DB_STAT_CLEAR resets the "max so far" counters after reading, so each call
+  // reports the *peak* usage since the previous wake-up. Sampling the current
+  // count would miss short bursts: with a healthy table, lockers are released
+  // almost immediately, so a snapshot reads near zero even mid-spike. The
+  // high-water mark is what reveals how close a burst came to the limit.
+  DB_LOCK_STAT* sp = 0;
+  if ( env->lock_stat( &sp, DB_STAT_CLEAR ) != 0 || sp == 0 )
+  {
+    return;
+  }
+  const char* names[3]  = { "locker", "lock", "object" };
+  const char* params[3] = { "MaxLockers", "MaxLocks", "MaxLockObjects" };
+  u_int32_t   peak[3]   = { sp->st_maxnlockers, sp->st_maxnlocks,
+                            sp->st_maxnobjects };
+  u_int32_t   mx[3]     = { sp->st_maxlockers, sp->st_maxlocks,
+                            sp->st_maxobjects };
+  free( sp );
+
+  for ( int i = 0; i < 3; ++i )
+  {
+    if ( mx[i] == 0 )
+    {
+      continue;
+    }
+    // 64 bit math so the percentage cannot overflow on large tables.
+    unsigned pct = (unsigned) ( (uint64_t) peak[i] * 100 / mx[i] );
+    bool high = pct >= LOCK_WARN_PERCENT;
+    bool low  = pct <= LOCK_RECOVER_PERCENT;
+    if ( high && !warned[i] )
+    {
+      warned[i] = true;
+      ostringstream m;
+      m << "Berkeley DB " << names[i] << " table peaked at " << peak[i]
+        << "/" << mx[i] << " (>=" << LOCK_WARN_PERCENT << "% full); increase "
+        << params[i] << " in the configuration to avoid exhaustion.";
+      log  << "WARNING: " << m.str() << endl;
+      cerr << "[SecondoCheckpoint] WARNING: " << m.str() << endl;
+    }
+    else if ( low && warned[i] )
+    {
+      warned[i] = false;
+      log << "Berkeley DB " << names[i] << " table back below "
+          << LOCK_RECOVER_PERCENT << "% (peak " << peak[i] << "/" << mx[i]
+          << ")." << endl;
+    }
+  }
+}
 
 class SecondoCheckpoint : public Application
 {
@@ -124,16 +190,34 @@ SecondoCheckpoint::Execute()
   f << "Opening environment successful" << endl;
   f << "Set checkpoint every " << minutes << " minutes" << endl;
 
+  // Report the configured table sizes once, and confirm lock_stat works, so
+  // the periodic pressure warnings below have a visible baseline.
+  bool lockWarned[3] = { false, false, false };
+  {
+    DB_LOCK_STAT* sp = 0;
+    if ( bdbEnv->lock_stat( &sp, 0 ) == 0 && sp != 0 )
+    {
+      f << "Lock region: lockers max " << sp->st_maxlockers
+        << ", locks max " << sp->st_maxlocks
+        << ", objects max " << sp->st_maxobjects << endl;
+      free( sp );
+    }
+  }
+
   // --- Create checkpoints
   while (!ShouldAbort())
   {
     rc = bdbEnv->txn_checkpoint( 0, minutes, 0 );
-    if ( rc != 0 ) { 
+    if ( rc != 0 ) {
       bdbEnv->err(rc, "%s", "txn_checkpoint failed!");
       break;
-    }  
+    }
     for ( u_int32_t sec = 0; !ShouldAbort() && sec < seconds; sec += 5 )
     {
+      // Watch the shared lock region for approaching exhaustion on every
+      // wake-up, so a load spike is warned about long before it can wedge the
+      // installation.
+      CheckLockPressure( bdbEnv, f, lockWarned );
       WinUnix::sleep( 5 );
     }
   }
