@@ -28,7 +28,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include <sys/socket.h>
 #include <sys/un.h>
+#include <sys/time.h>
 #include <errno.h>
+#include <fcntl.h>
+#include <poll.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -82,12 +85,53 @@ Messenger::Send( const string& message, string& answer )
     answer = "Socket error";
     return false;
   }
-  
-  if (connect(fd, (struct sockaddr*)&addr, sizeof(addr)) == -1) {
+
+  // Bound every step so a registrar that accepts a connection but never answers
+  // cannot stall the caller.
+  static const int kTimeoutSecs = 5;
+
+  // A blocking connect() does not honour SO_SNDTIMEO, so connect non-blocking
+  // and wait for writability with a bounded poll(), then restore blocking mode.
+  int flags = fcntl(fd, F_GETFL, 0);
+  if (flags != -1) {
+    fcntl(fd, F_SETFL, flags | O_NONBLOCK);
+  }
+  int crc = connect(fd, (struct sockaddr*)&addr, sizeof(addr));
+  if (crc == -1 && errno == EINPROGRESS) {
+    struct pollfd pfd;
+    pfd.fd = fd;
+    pfd.events = POLLOUT;
+    int pr = poll(&pfd, 1, kTimeoutSecs * 1000);
+    if (pr <= 0) {
+      answer = (pr == 0) ? "Connect timed out" : "Connect error";
+      close(fd);
+      return false;
+    }
+    int soerr = 0;
+    socklen_t len = sizeof(soerr);
+    if (getsockopt(fd, SOL_SOCKET, SO_ERROR, (char*)&soerr, &len) == -1
+        || soerr != 0) {
+      answer = "Connect error";
+      close(fd);
+      return false;
+    }
+  } else if (crc == -1) {
     answer = "Connect error";
     close(fd);
     return false;
   }
+
+  // Back to blocking, now bounded by the timeouts
+  if (flags != -1) {
+    fcntl(fd, F_SETFL, flags);   
+  }
+
+  // Set timeouts
+  struct timeval tv;
+  tv.tv_sec  = kTimeoutSecs;
+  tv.tv_usec = 0;
+  setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, (char*)&tv, sizeof(tv));
+  setsockopt(fd, SOL_SOCKET, SO_SNDTIMEO, (char*)&tv, sizeof(tv));
 
   // Write command to registry
   if( !WriteAll(fd, message.c_str(), message.length())
@@ -116,12 +160,14 @@ Messenger::Send( const string& message, string& answer )
     ssize_t result = read(fd, buf + buf_used, sizeof(buf) - buf_used);
 
     if(result < 0) {
-      // Only EINTR is worth retrying: this socket is blocking, so there is no
-      // EAGAIN to wait out, and retrying a real error just repeats it.
+      // EINTR is worth retrying. A receive timeout (EAGAIN/EWOULDBLOCK from
+      // SO_RCVTIMEO) means the registrar accepted the connection but went
+      // silent; report that rather than retry, and any other error likewise.
       if(errno == EINTR) {
         continue;
       }
-      answer = "Unable to read data";
+      answer = (errno == EAGAIN || errno == EWOULDBLOCK)
+               ? "Registrar timed out" : "Unable to read data";
       break;
     }
 
