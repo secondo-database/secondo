@@ -191,11 +191,12 @@ on its own, but for child processes which are created using the
 Returns a reference to the single ~Application~ instance.
 
 */
-  bool ShouldAbort() const { return (abortFlag); };
+  bool ShouldAbort() const;
 /*
-Checks whether the abort flag was set by a signal handler.
-If this method returns "true"[4], the application should terminate as soon as
-possible.
+Checks whether the application should terminate as soon as possible: either the
+abort flag was set by a signal handler, or, for a child started through the
+~ProcessFactory~, its parent process has died. If this method returns
+"true"[4], the application should terminate as soon as possible.
 
 */
   bool GetUser1Flag() { return (user1Flag); };

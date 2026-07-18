@@ -136,29 +136,34 @@ Application::Application( int argc, const char** argv )
   appPointer = this;
   argCount   = argc;
   argValues  = argv;
-  if ( strncmp( argv[argc-1], "--socket=", 9 ) == 0 )
+  hasSocket    = false;
+  clientSocket = 0;
+  parent       = INVALID_PID;
+
+  // Consume all arguments
+  bool consumed = true;
+  while ( consumed && argCount > 1 )
   {
-    argCount--;
-    hasSocket = true;
-    SocketDescriptor sd;
-    istringstream is( argv[argc-1]+9 );
-    is >> sd;
-    clientSocket = Socket::CreateClient( sd );
-  }
-  else
-  {
-    hasSocket = false;
-    clientSocket = 0;
-  }
-  if ( strncmp( argv[argc-1], "--ppid=", 7 ) == 0 )
-  {
-    argCount--;
-    istringstream is( argv[argc-1]+7 );
-    is >> parent;
-  }
-  else
-  {
-    parent = INVALID_PID;
+    const char* last = argValues[argCount-1];
+    if ( strncmp( last, "--socket=", 9 ) == 0 )
+    {
+      hasSocket = true;
+      SocketDescriptor sd;
+      istringstream is( last+9 );
+      is >> sd;
+      clientSocket = Socket::CreateClient( sd );
+      argCount--;
+    }
+    else if ( strncmp( last, "--ppid=", 7 ) == 0 )
+    {
+      istringstream is( last+7 );
+      is >> parent;
+      argCount--;
+    }
+    else
+    {
+      consumed = false;
+    }
   }
 
 #ifndef SECONDO_WIN32
@@ -356,6 +361,29 @@ Application::~Application()
     rshSocket = 0;
   }
 #endif
+}
+
+
+bool
+Application::ShouldAbort() const
+{
+  if ( abortFlag )
+  {
+    return (true);
+  }
+#ifndef SECONDO_WIN32
+  // Belt and braces for the orphaned-child case: if this process was started
+  // by the ProcessFactory, so its parent pid is known, and that parent has
+  // since died, getppid() no longer matches and we should shut down. On Linux
+  // this backs up PR_SET_PDEATHSIG; on a platform without it, it is the only
+  // mechanism. Costs one getppid() per poll tick, and nothing for a process
+  // that was never given a --ppid.
+  if ( parent != INVALID_PID && getppid() != (pid_t) parent )
+  {
+    return (true);
+  }
+#endif
+  return (false);
 }
 
 

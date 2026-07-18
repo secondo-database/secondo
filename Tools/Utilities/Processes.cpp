@@ -286,9 +286,12 @@ ProcessFactory::SpawnProcess( const string& programpath,
 
 #else // Unix and Solaris
 
+  ostringstream os;
+  os << " --ppid=" << getpid();
+  localArgs += os.str();
   if ( clientSocket != 0 )
   {
-    ostringstream os;
+    os.str( "" );
     os << " --socket=" << clientSocket->GetDescriptor();
     localArgs += os.str();
   }
