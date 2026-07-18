@@ -35,21 +35,11 @@ export PATH="$buildDir/bin:$PATH"
 SEC_PORT=${SECONDO_CS_TEST_PORT:-12234}
 DBNAME=cstest
 
-# Deliberately low for now. The point of this test is 25+ concurrent clients,
-# but SecondoServer currently deadlocks in BerkeleyDB (__txn_begin, opening the
-# database) when many clients connect at once, and the failure is load-dependent
-# rather than count-dependent. Measured on 2 cores, which is what a CI runner
-# gives us:
+# 25 concurrent clients -- the workload this test exists for.
 #
-#   3, 5, 10, 15 clients -> 3/3 pass (6-16s)
-#   20 clients           -> 2/3 pass
-#   25 clients           -> 0/4 pass, always hangs
-#
-# So 3 keeps CI honest and fast today without going red on a bug nobody has
-# fixed yet. RAISE THIS as the fixes land -- see the client-count ratchet in the
-# plan. Override locally to reproduce the deadlock:
-#   SECONDO_CS_TEST_CLIENTS=25 ./TestClientServer
-NCLIENTS=${SECONDO_CS_TEST_CLIENTS:-3}
+# Override to stress higher locally:
+#   SECONDO_CS_TEST_CLIENTS=50 ./TestClientServer
+NCLIENTS=${SECONDO_CS_TEST_CLIENTS:-25}
 
 home=$(mktemp -d "${TMPDIR:-/tmp}/TestClientServer.XXXXXX")
 export SECONDO_PARAM_SecondoHome="$home"
