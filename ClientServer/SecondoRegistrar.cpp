@@ -70,6 +70,11 @@ static const size_t kMaxConns    = 256;
 static const size_t kMaxLineLen  = 8192;
 static const time_t kIdleTimeout = 30;
 
+// SHOW LOG drains the log queue, but in daemon mode nobody ever runs it, so the
+// queue is otherwise write-only. Bound it as a ring buffer, dropping the oldest
+// messages, so a busy listener cannot grow it without limit.
+static const size_t kMaxLogMsgs  = 1000;
+
 // Per-connection state. One command per connection: read into inbuf until a
 // newline, dispatch, then drain outbuf and close.
 struct RegConn
@@ -290,6 +295,10 @@ SecondoRegistrar::ExecLogMsg( istringstream& args )
   string msg;
   getline( args, msg );
   logMsgs.push( msg );
+  while ( logMsgs.size() > kMaxLogMsgs )
+  {
+    logMsgs.pop();   // drop the oldest, keeping the queue bounded
+  }
   return "0 Registrar: Ok\n";
 }
 

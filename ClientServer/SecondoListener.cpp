@@ -24,6 +24,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include <string>
 #include <algorithm>
+#include <ctime>
 
 #include <poll.h>
 #include <errno.h>
@@ -34,6 +35,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Profiles.h"
 #include "CharTransform.h"
 #include "WinUnix.h"
+#include "Messenger.h"
 
 const int EXIT_LISTENER_OK       = 0;
 const int EXIT_LISTENER_NOPF     = 1;
@@ -55,6 +57,7 @@ class SecondoListener : public Application
   void LogMessage( const string msg );
  private:
   string parmFile;
+  string port;
   Socket* gate;
   Socket* client;
 };
@@ -62,6 +65,24 @@ class SecondoListener : public Application
 void
 SecondoListener::LogMessage( const string msg )
 {
+  // Always record to stderr with a timestamp. The listener inherits the
+  // monitor's stdout/stderr (the spawn fd-sweep starts at fd 3), so this lands
+  // in the monitor log with no extra plumbing and works even when the
+  // registrar is down. Until now this method was empty, so its three call
+  // sites -- spawn failure, rejected client, socket failure -- were silently
+  // discarded, which are exactly the messages that would explain a problem.
+  time_t now = time( 0 );
+  char stamp[32];
+  strftime( stamp, sizeof(stamp), "%Y-%m-%d %H:%M:%S", localtime( &now ) );
+  cerr << "[" << stamp << "] LISTENER: " << msg << endl;
+
+  // Best effort: forward to the registrar so SHOW LOG surfaces it as well.
+  // Logging must never fail an accept, so the result is ignored; a down
+  // registrar just means the line lives in the monitor log only.
+  string regName = SmiProfile::GetUniqueSocketName( parmFile, port );
+  Messenger messenger( regName );
+  string answer;
+  messenger.Send( "LOGMSG " + msg, answer );
 }
 
 int
@@ -98,9 +119,8 @@ SecondoListener::Execute()
     ipRules.LoadFromFile(ruleSetFile);
   }
   // --- Get host and port of Secondo server
-  string host = SmiProfile::GetParameter("Environment", 
+  string host = SmiProfile::GetParameter("Environment",
                                          "SecondoHost", "", parmFile);
-  string port;
   if (GetArgCount() > 2) {
     istringstream iss(GetArgValues()[2]);
     int portNum = 0;
