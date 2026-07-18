@@ -85,6 +85,7 @@ extern "C" {
 
 #include "UnixSocket.h"
 #include <cstdio>
+#include <cstdlib>
 #include <signal.h>
 #include <string.h>
 #include <string>
@@ -410,6 +411,21 @@ UnixSocket::GetPeerAddress() const
   }
 }
 
+// Reads a positive integer from the environment, falling back to a default.
+// Used to make the TCP keepalive timing overridable, chiefly so a test need
+// not wait out the ~90 s production window.
+static int
+KeepAliveEnvInt( const char* name, int fallback )
+{
+  const char* value = getenv( name );
+  if ( value == 0 || *value == 0 )
+  {
+    return (fallback);
+  }
+  int parsed = atoi( value );
+  return ( parsed > 0 ) ? parsed : fallback;
+}
+
 Socket*
 UnixSocket::Accept( ostream* traceInStream,
                     ostream* traceOutStream,
@@ -448,6 +464,33 @@ UnixSocket::Accept( ostream* traceInStream,
         ::close( s );
         return (NULL);
       }
+
+      // A client that vanishes without a FIN would otherwise leave its
+      // SecondoServer blocked in read() forever, holding its database
+      // registration. Enable TCP keepalive so the kernel probes a silent peer
+      // and the blocking read eventually fails with ETIMEDOUT. Default idle
+      // 60 s, then a probe every 10 s up to 3 times, so a dead peer is noticed
+      // after ~90 s; the timing is overridable from the environment for tests.
+      // Best effort only: keepalive is an optimisation, so unlike TCP_NODELAY
+      // above a failure here must not refuse the client.
+      int idle  = KeepAliveEnvInt( "SECONDO_TCP_KEEPIDLE",  60 );
+      int intvl = KeepAliveEnvInt( "SECONDO_TCP_KEEPINTVL", 10 );
+      int cnt   = KeepAliveEnvInt( "SECONDO_TCP_KEEPCNT",    3 );
+      setsockopt( s, SOL_SOCKET, SO_KEEPALIVE,
+                  (char*) &enabled, sizeof(enabled) );
+#if defined(TCP_KEEPIDLE)
+      setsockopt( s, IPPROTO_TCP, TCP_KEEPIDLE, (char*) &idle, sizeof(idle) );
+#elif defined(TCP_KEEPALIVE)
+      // macOS spells it TCP_KEEPALIVE
+      setsockopt( s, IPPROTO_TCP, TCP_KEEPALIVE, (char*) &idle, sizeof(idle) );
+#endif
+#if defined(TCP_KEEPINTVL)
+      setsockopt( s, IPPROTO_TCP, TCP_KEEPINTVL,
+                  (char*) &intvl, sizeof(intvl) );
+#endif
+#if defined(TCP_KEEPCNT)
+      setsockopt( s, IPPROTO_TCP, TCP_KEEPCNT, (char*) &cnt, sizeof(cnt) );
+#endif
     }
     lastError = EC_OK;
     return (new UnixSocket( s, traceInStream, traceOutStream, destroyStreams));
