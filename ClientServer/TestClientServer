@@ -287,4 +287,46 @@ else
   fi
 fi
 
+#
+# Phase 4: hard kill. A kill -9 of the monitor never runs Terminate(), so the
+# only thing that can bring its children down is PR_SET_PDEATHSIG, armed in each
+# child at spawn. Start a fresh monitor -- no clients needed, the registrar,
+# checkpoint and listener are what must not be orphaned -- SIGKILL it, and
+# assert the whole tree is reaped. On Linux this exercises PR_SET_PDEATHSIG; a
+# platform without it would leave the children running and fail here, which is
+# correct until the getppid watchdog lands.
+#
+echo "*** ClientServer test: hard kill (kill -9) orphan check ***"
+pushd "$buildDir/bin" >/dev/null
+SecondoMonitor -s -p "$SEC_PORT" >"$home/monitor2.log" 2>&1 &
+monPid2=$!
+popd >/dev/null
+monPid=$monPid2   # let the cleanup trap reach this tree if we are interrupted
+if ! wait_port "$SEC_PORT" 30; then
+  echo "FAIL (kill9): monitor did not come up on port $SEC_PORT:"
+  cat "$home/monitor2.log"; exit 1
+fi
+kids2=$(descendants "$monPid2" | tr '\n' ' ')
+echo "    monitor pid $monPid2, children:$kids2"
+
+kill -KILL "$monPid2" 2>/dev/null
+wait "$monPid2" 2>/dev/null
+
+# PR_SET_PDEATHSIG fires, then each child runs its own graceful shutdown, so
+# give that a bounded window rather than asserting instantly.
+kill9Gone=0
+for _ in $(seq 1 20); do
+  alive=""
+  for pid in $kids2; do kill -0 "$pid" 2>/dev/null && alive="$alive $pid"; done
+  [ -z "$alive" ] && { kill9Gone=1; break; }
+  sleep 0.5
+done
+if [ "$kill9Gone" -eq 1 ]; then
+  echo "OK (kill9): monitor children reaped after hard kill"
+else
+  assert_no_orphans "kill9" $kids2 || rc=1
+  # Do not leak the orphans we just diagnosed.
+  for pid in $kids2; do kill -KILL "$pid" 2>/dev/null; done
+fi
+
 exit $rc

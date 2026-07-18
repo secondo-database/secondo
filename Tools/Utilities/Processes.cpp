@@ -38,6 +38,9 @@ April 2003 Ulrich Telle Fixed a bug in the transfer of Win32 socket handle on Wi
 
 #ifndef SECONDO_WIN32
 #include <sys/syscall.h>
+#if defined(__linux__)
+#include <sys/prctl.h>  // PR_SET_PDEATHSIG (see SpawnProcess child branch)
+#endif
 #endif
 
 using namespace std;
@@ -409,6 +412,9 @@ A session without a control tty can only have background jobs.
   }
 
   pid_t pid, pgrp;
+#if defined(__linux__)
+  const pid_t parentPid = getpid();  // for the child's PDEATHSIG guard
+#endif
   if ( (pid = fork()) == 0 )
   {
     // --- child process
@@ -426,6 +432,17 @@ A session without a control tty can only have background jobs.
     {
       CloseDescriptorRange( 3, ~0U );
     }
+#if defined(__linux__)
+    // Ask the kernel to send SIGTERM if the parent (the monitor, or the
+    // listener in the case of a server) dies.
+    prctl( PR_SET_PDEATHSIG, SIGTERM );
+    // Close the fork/prctl race: if the parent already died in the window
+    // before the call above, the death signal was never armed, so exit now.
+    if ( getppid() != parentPid )
+    {
+      _exit( -4 );
+    }
+#endif
     pgrp = getpid();
     if ( foreground && setpgid( 0, pgrp ) == 0 )
     {
