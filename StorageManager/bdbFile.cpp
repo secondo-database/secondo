@@ -1765,6 +1765,7 @@ void PrefetchingIteratorImpl::Init
   this->dbc = dbc;
   this->isBTreeIterator = isBTreeIterator;
   state = INITIAL;
+  errorCode = 0;
 }
 
 void
@@ -1994,6 +1995,17 @@ SmiSize PrefetchingIteratorImpl::ReadCurrentData
       buf.set_doff(offset);
       buf.set_ulen(nBytes);
       errorCode = dbc->get(&keyDbt, &buf, DB_CURRENT);
+      if ( errorCode != 0 )
+      {
+        // A failed read (e.g. a deadlock or lock timeout under concurrency)
+        // must not be reported to the caller as valid data. Surface the error
+        // and return 0 bytes read.
+        if ( errorCode != DB_NOTFOUND )
+        {
+          SmiEnvironment::SetBDBError(errorCode);
+        }
+        return 0;
+      }
       bytes = buf.get_size();
       byteCtr += bytes;
       return bytes;
