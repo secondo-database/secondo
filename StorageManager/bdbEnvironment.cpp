@@ -1006,6 +1006,26 @@ SmiEnvironment::Implementation::EraseFiles( bool onCommit,
      removed[entry.fileId] = true;
      delete dbp;
       }
+      else if ( !onCommit && !entry.dropOnCommit && !useTransactions )
+      {
+        // Without transactions a file created during the now-aborted query was
+        // already written to disk (Berkeley DB cannot roll the creation back),
+        // so the orphan must be removed here. With transactions enabled
+        // Berkeley DB undoes the creation itself, so this branch is skipped.
+        Db* dbp = new Db( dbenv, DB_CXX_NO_EXCEPTIONS );
+        string file = ConstructFileName( entry.fileId );
+        rc = dbp->remove( file.c_str(), 0, 0 );
+        if ( rc != 0 && rc != ENOENT )
+        {
+          ok = false;
+          if ( !dontReportError )
+          {
+            SetBDBError( rc );
+          }
+        }
+        removed[entry.fileId] = true;
+        delete dbp;
+      }
 
     } else {
      //cerr << "Warning: File id = "
