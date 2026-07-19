@@ -280,19 +280,23 @@ class SmiDbHandleEntry
     inline int closeAndDeleteHandle(u_int32_t flag) {
 
         if(handle == nullptr) {
-          return 1;
+          // Nothing to do; not an error.
+          return 0;
         }
 
         if (inUse) {
-          std::cerr << "Error: Unable to delete DBHandle that is in use" 
+          std::cerr << "Error: Unable to delete DBHandle that is in use "
                << getFileName() << std::endl;
-          return 0;
+          // Refuse to delete a handle that is still in use. The handle is left
+          // intact, so the caller can detect this via hasHandle() and must not
+          // return the slot to the free list.
+          return EBUSY;
         }
-        
+
         int rc = handle->close(flag);
         delete handle;
         handle = nullptr;
-        return rc; 
+        return rc;
     }
 
 
