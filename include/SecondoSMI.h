@@ -1200,9 +1200,11 @@ Database names are *not* case sensitive.
 
 
 
-  static bool InitializeDatabase();
+  static bool InitializeDatabase(const bool isNewDatabase = false);
 /*
-Initializes a new database.
+Initializes a new database. ~isNewDatabase~ must be set by ~CreateDatabase~
+(and only by it) to seed the file-id sequence, since only there is the
+caller guaranteed to be the database's sole creator.
 
 */
   static bool RegisterDatabase( const std::string& dbname );

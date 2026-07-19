@@ -1760,7 +1760,7 @@ SmiEnvironment::CreateDatabase( const string& dbname )
   FileSystem::CreateFolder( database );
 
   // --- Initialize Database
-  if ( InitializeDatabase() )
+  if ( InitializeDatabase( true ) )
   {
     if ( RegisterDatabase( database ) )
     {
@@ -2152,7 +2152,7 @@ SmiEnvironment::AbortTransaction()
 }
 
 bool
-SmiEnvironment::InitializeDatabase()
+SmiEnvironment::InitializeDatabase(const bool isNewDatabase)
 {
   #ifdef THREAD_SAFE
      boost::lock_guard<boost::recursive_mutex> guard(env_mtx);
@@ -2224,6 +2224,56 @@ SmiEnvironment::InitializeDatabase()
       rc = dbctl->associate( 0, dbidx, getfilename,
                              Implementation::AutoCommitFlag );
       SetBDBError(rc);
+    }
+  }
+
+  // --- Seed the file-id sequence for a freshly created database
+  //
+  // CreateDatabase() guarantees exclusivity here via the DB_NOOVERWRITE
+  // insert into the "databases" catalog performed before InitializeDatabase
+  // is called, so the "sequences" queue file just created above is known to
+  // be empty. Seeding SMI_SEQUENCE_FILEID with 0 closes a race in
+  // GetFileId(): without a seeded record, the first GetFileId() call relies
+  // on interpreting DB_NOTFOUND as "no id issued yet" under a DB_RMW get,
+  // but Berkeley DB does not guarantee that DB_RMW locks a record that has
+  // never existed against a concurrent DB_RMW get from another process --
+  // two processes could both observe DB_NOTFOUND and hand out file id 1.
+  // Seeding removes the DB_NOTFOUND case for new databases entirely.
+  // DB_NOOVERWRITE makes this a no-op rather than an error if the record
+  // somehow already exists.
+  if ( rc == 0 && isNewDatabase )
+  {
+    db_recno_t seqno = SMI_SEQUENCE_FILEID;
+    SmiFileId  seed  = 0;
+    Dbt key( &seqno, sizeof(seqno) );
+    Dbt data( &seed, sizeof(seed) );
+
+    DbTxn* tid = 0;
+    if ( useTransactions )
+    {
+      rc = dbenv->txn_begin( 0, &tid, 0 );
+      SetBDBError(rc);
+    }
+
+    if ( rc == 0 )
+    {
+      rc = dbseq->put( tid, &key, &data, DB_NOOVERWRITE );
+      if ( rc != 0 && rc != DB_KEYEXIST )
+      {
+        SetBDBError(rc);
+      }
+      else
+      {
+        rc = 0;
+      }
+
+      if ( tid != 0 )
+      {
+        int rcTid = (rc == 0) ? tid->commit( 0 ) : tid->abort();
+        SetBDBError(rcTid);
+        if ( rc == 0 )
+          rc = rcTid;
+      }
     }
   }
 
