@@ -307,10 +307,17 @@ SmiEnvironment::Implementation::DeleteDbHandle( DbHandleIndex idx )
 
     int rc = instance.impl->dbHandles[idx].closeAndDeleteHandle( flag );
     SetBDBError(rc);
-    
-    instance.impl->dbHandles[idx].setNextFree(
-                                  instance.impl->firstFreeDbHandle);
-    instance.impl->firstFreeDbHandle = idx;
+
+    // Only return the slot to the free list if the handle was actually closed
+    // and deleted. A handle that is still in use keeps its slot; otherwise a
+    // later AllocateDbHandle could reuse the slot and overwrite the live
+    // handle.
+    if ( !instance.impl->dbHandles[idx].hasHandle() )
+    {
+      instance.impl->dbHandles[idx].setNextFree(
+                                    instance.impl->firstFreeDbHandle);
+      instance.impl->firstFreeDbHandle = idx;
+    }
 }
 
 void
@@ -1623,20 +1630,25 @@ Transactions, logging and locking are enabled.
       }
     }
   }
-  if (useTransactions) {
-    db_timeout_t microSeconds = 0;
+  // Only continue if the environment (and its database catalog) came up.
+  // Otherwise querying timeouts or creating the temporary environment would
+  // just pile confusing secondary errors on top of the real cause.
+  if (smiStarted) {
+    if (useTransactions) {
+      db_timeout_t microSeconds = 0;
 
-    rc = dbenv->get_timeout(&microSeconds, DB_SET_LOCK_TIMEOUT);
-    SetBDBError(rc);
-    cout << "Lock timeout: " << microSeconds << " microseconds" << endl;
+      rc = dbenv->get_timeout(&microSeconds, DB_SET_LOCK_TIMEOUT);
+      SetBDBError(rc);
+      cout << "Lock timeout: " << microSeconds << " microseconds" << endl;
 
-    rc = dbenv->get_timeout(&microSeconds, DB_SET_TXN_TIMEOUT);
-    SetBDBError(rc);
-    cout << "TXN  timeout: " << microSeconds << " microseconds" << endl;
+      rc = dbenv->get_timeout(&microSeconds, DB_SET_TXN_TIMEOUT);
+      SetBDBError(rc);
+      cout << "TXN  timeout: " << microSeconds << " microseconds" << endl;
+    }
+    // --- Create temporary Berkeley DB environment
+    rc = CreateTmpEnvironment(errStream);
+    smiStarted = smiStarted && (rc == 0);
   }
-  // --- Create temporary Berkeley DB environment
-  rc = CreateTmpEnvironment(errStream);
-  smiStarted = smiStarted && (rc == 0);
   if (GetNumOfErrors() > errors) {
     cout << "Some errors happend during startup!" << endl;
     string errorStack="";
