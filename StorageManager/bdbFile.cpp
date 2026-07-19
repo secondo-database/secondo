@@ -396,41 +396,65 @@ bool SmiFile::Create(const string &context /* = "Default" */,
 bool SmiFile::ReCreate(){
    uint16_t ps = GetPageSize();
 
-   DbEnv* env(0);
-   uint16_t closeFlags;
-   if(impl->isTemporaryFile){
-       env = SmiEnvironment::instance.impl->tmpEnv;
-       closeFlags = DB_NOSYNC;
-   } else {
-       env = SmiEnvironment::instance.impl->bdbEnv;
-       closeFlags = 0;
+   if( impl->isTemporaryFile ){
+      // A temporary file owns its Berkeley DB handle directly, so it can be
+      // closed, deleted and re-created in place.
+      DbEnv* env = SmiEnvironment::instance.impl->tmpEnv;
+
+      if(opened){
+        int rc = impl->bdbFile->close(DB_NOSYNC);
+        if(rc){
+           SmiEnvironment::SetBDBError( rc );
+           return false;
+        }
+        opened = false;
+        // after closing, the old db handle is invalid, create a new one
+        delete impl->bdbFile;
+        impl->bdbFile = new Db(env, DB_CXX_NO_EXCEPTIONS );
+      }
+
+      int rc = impl->bdbFile->remove(impl->bdbName.c_str(), 0, 0 );
+      if(rc){
+         SmiEnvironment::SetBDBError( rc );
+         return false;
+      }
+
+      // after removing, the old db handle is invalid, create a new one
+      delete impl->bdbFile;
+      impl->bdbFile = new Db(env, DB_CXX_NO_EXCEPTIONS );
+
+      return Create(fileName,fileContext, ps, true);
    }
+
+   // --- Non-temporary file ---
+   // The Berkeley DB handle is owned by the environment's handle registry and
+   // must not be closed/deleted directly here: the registry slot would keep a
+   // dangling pointer to the deleted handle and CloseDbHandles() would later
+   // close/delete it a second time. Instead, free the slot and let the
+   // registry close and delete the handle, then let Create() allocate a fresh
+   // one.
+   DbEnv* env = SmiEnvironment::instance.impl->bdbEnv;
 
    if(opened){
-     int rc = impl->bdbFile->close(closeFlags);
-     if(rc){
-        SmiEnvironment::SetBDBError( rc );
-        return false;
-     }
-     opened = false;
-     // after closing, the old db handle is invalid, create a new one
-     delete impl->bdbFile;
-     impl->bdbFile = new Db(env, DB_CXX_NO_EXCEPTIONS );
+      SmiEnvironment::Implementation::FreeDbHandle( impl->bdbHandle );
+      SmiEnvironment::Implementation::DeleteDbHandle( impl->bdbHandle );
+      impl->bdbFile = 0;
+      impl->noHandle = true;
+      opened = false;
    }
 
-
-
-   int rc = impl->bdbFile->remove(impl->bdbName.c_str(), 0, 0 );
+   // Remove the file from disk using a throwaway handle, as EraseFiles does.
+   Db* dbp = new Db(env, DB_CXX_NO_EXCEPTIONS );
+   int rc = dbp->remove(impl->bdbName.c_str(), 0, 0 );
+   delete dbp;
    if(rc){
       SmiEnvironment::SetBDBError( rc );
       return false;
    }
 
-   // after removing, the old db handle is invalid, create a new one
-   delete impl->bdbFile;
-   impl->bdbFile = new Db(env, DB_CXX_NO_EXCEPTIONS );
-
-   return  Create(fileName,fileContext, ps, true);
+   // Create() -> CheckDbHandles() allocates a fresh registry handle because
+   // noHandle is now true.
+   return Create(fileName,fileContext, ps, true);
 }
 
 
