@@ -1670,7 +1670,10 @@ bool PrefetchingIteratorImpl::RightBoundaryExceeded()
       return true;
 
     default:
+      // Unexpected state (e.g. INITIAL). Falling through would leave key==0
+      // and dereference a null pointer below, so stop the scan conservatively.
       assert(false);
+      return true;
   }
 
   /* This is analogous to SmiKey::operator> */
@@ -1784,7 +1787,12 @@ PrefetchingIteratorImpl::GetKeyAddressAndLength
 
       case INITIAL:
       case BROKEN:
+        // Unexpected state: return a defined empty key instead of leaving
+        // the out-parameters uninitialized in release builds.
         assert(false);
+        *addr = 0;
+        length = 0;
+        break;
     }
   }
   else
@@ -1860,7 +1868,6 @@ PrefetchingIteratorImpl::~PrefetchingIteratorImpl()
   delete[] bufferPtr;
   int rc = dbc->close();
   SmiEnvironment::SetBDBError(rc);
-  assert(rc != DB_LOCK_DEADLOCK);
 }
 
 bool PrefetchingIteratorImpl::Next()

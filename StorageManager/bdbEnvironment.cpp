@@ -178,7 +178,7 @@ SmiEnvironment::Implementation::~Implementation()
   if ( !envClosed )
   {
     //cerr << "SmiEnvironment::Implementation::~Implementation()"
-    //	   << " -> Closing Environments" << endl;
+    //        << " -> Closing Environments" << endl;
     CloseDbHandles();
     int rc = bdbEnv->close( 0 );
     SetBDBError(rc);
@@ -239,7 +239,7 @@ SmiEnvironment::Implementation::AllocateDbHandle()
 
 
 void SmiEnvironment::Implementation::SetAutoRemoveLogs(bool enable){
-#if DB_VERSION_REQUIRED(4,8)	
+#if DB_VERSION_REQUIRED(4,8)     
    if(bdbEnv){
       bdbEnv->log_set_config(DB_LOG_AUTO_REMOVE, enable?1:0);
    }
@@ -902,7 +902,7 @@ SmiEnvironment::Implementation::UpdateCatalog( bool onCommit )
       else
       {
         cerr << "SMI: Deleting "
-	     << it->first.c_str() << " from file Catalog" << endl;
+          << it->first.c_str() << " from file Catalog" << endl;
         ok = DeleteFromCatalog( it->second.entry, tid );
       }
     }
@@ -930,13 +930,13 @@ SmiEnvironment::Implementation::UpdateCatalog( bool onCommit )
       {
           SmiCatalogEntry x;
           const string n(it->second.entry.fileName);
-	  LookUpCatalog(n, x);
+       LookUpCatalog(n, x);
           cout << "Lookup string " << endl;
           cout << "x.fileId = " << x.fileId << endl;
           cout << "x.fileName = <" << x.fileName << ">" << endl;
 
           SmiCatalogEntry y;
-	  LookUpCatalog(it->second.entry.fileId, y);
+       LookUpCatalog(it->second.entry.fileId, y);
           cout << "Lookup fileId " << endl;
           cout << "x.fileId = " << x.fileId << endl;
           cout << "y.fileId = " << y.fileId << endl;
@@ -972,6 +972,7 @@ SmiEnvironment::Implementation::EraseFiles( bool onCommit,
   }
 
   int    rc = 0;
+  bool   ok = true;
   DbEnv* dbenv = instance.impl->bdbEnv;
 
   // SPM: For being able to finish a query without
@@ -988,18 +989,21 @@ SmiEnvironment::Implementation::EraseFiles( bool onCommit,
 
       if ( onCommit && entry.dropOnCommit )
       {
-	Db* dbp = new Db( dbenv, DB_CXX_NO_EXCEPTIONS );
+     Db* dbp = new Db( dbenv, DB_CXX_NO_EXCEPTIONS );
 
-	string file = ConstructFileName( entry.fileId );
-	//cerr << "Erasing file " << file << endl;
-	//cerr << "onCommit:" << onCommit << endl;
-	//cerr << "entry:" << entry.dropOnCommit << endl;
-	rc = dbp->remove( file.c_str(), 0, 0 );
-  if(rc!=0 && !dontReportError){
-    SetBDBError(rc);
+     string file = ConstructFileName( entry.fileId );
+     //cerr << "Erasing file " << file << endl;
+     //cerr << "onCommit:" << onCommit << endl;
+     //cerr << "entry:" << entry.dropOnCommit << endl;
+     rc = dbp->remove( file.c_str(), 0, 0 );
+  if(rc!=0){
+    ok = false;
+    if(!dontReportError){
+      SetBDBError(rc);
+    }
   }
-	removed[entry.fileId] = true;
-	delete dbp;
+     removed[entry.fileId] = true;
+     delete dbp;
       }
 
     } else {
@@ -1008,7 +1012,7 @@ SmiEnvironment::Implementation::EraseFiles( bool onCommit,
     }
     instance.impl->bdbFilesToDrop.pop();
   }
-  return (rc == 0);
+  return ok;
 }
 
 bool
@@ -1022,19 +1026,26 @@ SmiEnvironment::ListDatabases( string& dbname )
   {
     try {
       // Acquire a cursor for the table.
-      Dbc *dbcp;
+      Dbc *dbcp = 0;
       int rc = dbctl->cursor(NULL, &dbcp, 0);
-      SetBDBError(rc);
-      // Walk through the table, getting the key/data pairs.
-      Dbt key;
-      Dbt data;
-
-      while (dbcp->get(&key, &data, DB_NEXT) == 0) {
-        dbname += (char *)key.get_data();
-        dbname += "#";
+      if ( rc != 0 || dbcp == 0 )
+      {
+        SetBDBError(rc);
+        ok = false;
       }
-      rc = dbcp->close();
-      SetBDBError(rc);
+      else
+      {
+        // Walk through the table, getting the key/data pairs.
+        Dbt key;
+        Dbt data;
+
+        while (dbcp->get(&key, &data, DB_NEXT) == 0) {
+          dbname += (char *)key.get_data();
+          dbname += "#";
+        }
+        rc = dbcp->close();
+        SetBDBError(rc);
+      }
     }
     catch (DbException &dbe) {
       cerr << "Error: " << dbe.what() << "\n";
@@ -1117,21 +1128,28 @@ SmiEnvironment::Implementation::InsertDatabase( const string& dbname )
 
   Db*  dbctl = instance.impl->bdbDatabases;
 
-  int len;
-  char buf[MAX+1];
-  len = dbname.length();
+  if ( dbctl )
+  {
+    int len;
+    char buf[MAX+1];
+    len = dbname.length();
 
-  if (len > MAX)
-    len = MAX;
+    if (len > MAX)
+      len = MAX;
 
-  for (int i = 0; i < len; i++) buf[i] = dbname[i];
-  buf[len] = '\0';
-  Dbt key(buf, len + 1);
-  Dbt data(buf, len + 1);
-  rc = dbctl->put(0, &key, &data, DB_NOOVERWRITE | AutoCommitFlag);
-  SetBDBError( rc );
+    for (int i = 0; i < len; i++) buf[i] = dbname[i];
+    buf[len] = '\0';
+    Dbt key(buf, len + 1);
+    Dbt data(buf, len + 1);
+    rc = dbctl->put(0, &key, &data, DB_NOOVERWRITE | AutoCommitFlag);
+    SetBDBError( rc );
 
-  ok = (rc == 0);
+    ok = (rc == 0);
+  }
+  else
+  {
+    SetError( E_SMI_DB_NOTFOUND );
+  }
   return (ok);
 }
 
@@ -1197,7 +1215,7 @@ bool SmiEnvironment::correctFileId(){
 
 void
 SmiEnvironment::SetSmiError( const SmiError smiErr,
-		             const int sysErr, const string& file, int pos,
+                 const int sysErr, const string& file, int pos,
                  const string& desc )
 {
   if ( sysErr != 0 )
@@ -1589,7 +1607,7 @@ SmiEnvironment::ShutDown()
 
   if (traceDBHandles)
     cerr << "Closing Berkeley-DB environment "
-	 << instance.impl->bdbHome << endl;
+      << instance.impl->bdbHome << endl;
 
   rc = dbenv->close( 0 );
   SetBDBError( rc );
@@ -1602,9 +1620,9 @@ SmiEnvironment::ShutDown()
 
   if (!ok) throw
     SecondoException( "SMI Problems while closing "
-		      "the Berkeley-DB environment! "
+                "the Berkeley-DB environment! "
                       "Check the involved code parts of this session. "
-		      "All SMI files must be closed properly."   );
+                "All SMI files must be closed properly."   );
 
   return ok;
 }

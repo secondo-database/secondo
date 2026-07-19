@@ -206,8 +206,8 @@ class SmiDbHandleEntry
        if(!handle){
           return false;
        } else {
-          u_int32_t* flags(0);
-          return (handle->get_open_flags(flags)==0);
+          u_int32_t flags = 0;
+          return (handle->get_open_flags(&flags)==0);
        }
     }
 
