@@ -71,71 +71,6 @@ static void BdbInitCatalogEntry(SmiCatalogEntry& entry)
   memset(entry.fileName, 0, (2 * SMI_MAX_NAMELEN + 2));
 }
 
-namespace {
-
-/*
-~SysPageLock~ serializes the read-modify-write of the shared-process counter
-stored on a memory pool file's system page across processes. In the multi-user
-modes the Berkeley DB environment has its lock subsystem enabled
-(DB\_INIT\_LOCK), so a short exclusive lock on an object derived from the file
-name prevents concurrent ~RegisterInFile~ / ~UnRegisterInFile~ calls from
-different processes from losing an update. In single-user (private)
-environments there is a single process and no lock subsystem, so the guard is a
-no-op. Failing to obtain the lock is reported but non-fatal: the operation then
-proceeds unsynchronized, as it did before.
-
-*/
-class SysPageLock
-{
-  public:
-    SysPageLock(DbEnv* dbenv, bool active, const std::string& resource)
-      : env(active ? dbenv : 0), locker(0), haveLocker(false), held(false)
-    {
-      if (env == 0)
-        return;
-      int rc = env->lock_id(&locker);
-      if (rc != 0)
-        {
-          SmiEnvironment::SetBDBError(rc);
-          env = 0;
-          return;
-        }
-      haveLocker = true;
-      Dbt obj((void*) resource.data(), (u_int32_t) resource.size());
-      rc = env->lock_get(locker, 0, &obj, DB_LOCK_WRITE, &lock);
-      if (rc != 0)
-        SmiEnvironment::SetBDBError(rc);
-      else
-        held = true;
-    }
-
-    ~SysPageLock()
-    {
-      if (held)
-        {
-          int rc = env->lock_put(&lock);
-          SmiEnvironment::SetBDBError(rc);
-        }
-      if (haveLocker)
-        {
-          int rc = env->lock_id_free(locker);
-          SmiEnvironment::SetBDBError(rc);
-        }
-    }
-
-  private:
-    SysPageLock(const SysPageLock&);
-    SysPageLock& operator=(const SysPageLock&);
-
-    DbEnv*    env;
-    u_int32_t locker;
-    bool      haveLocker;
-    bool      held;
-    DbLock    lock;
-};
-
-}  // anonymous namespace
-
 /*
 
 2 Implementation of class SmiUpdateFile
@@ -198,7 +133,6 @@ bool SmiUpdateFile::Create(const string& context, uint16_t pageSize)
 
           if (rc == 0)
             {
-              RegisterInFile();
               opened = true;
               ctr++;
             }
@@ -313,11 +247,6 @@ create an empty Db handle bdbFile with SmiFile::Implementation.
 
           if (rc == 0)
             {
-              //Register this process in the environment,
-              //so that later processes can find how many
-              //processes are using this file.
-              RegisterInFile();
-
               //Register newly created file into the catalog
               //database directly, because other processes
               //can't access to the process-own catalog cache
@@ -431,7 +360,6 @@ bool SmiUpdateFile::Open(const SmiFileId _fID,
 
       if (rc == 0)
         {
-          RegisterInFile();
           opened = true;
           ctr++;
         }
@@ -453,9 +381,8 @@ bool SmiUpdateFile::Open(const SmiFileId _fID,
 
 2.4 Close the handle to the update file.
 
-Pages pinned by this process are always put back to the memory pool.
-If there is no more process sharing the file, the pool is additionally
-synchronized with the disk file.
+Pages pinned by this process are put back to the memory pool and the pool is
+synchronized with the disk file before the handle is released.
 
 */
 bool SmiUpdateFile::Close()
@@ -468,22 +395,18 @@ bool SmiUpdateFile::Close()
       ctr++;
       opened = false;
 
-      UnRegisterInFile();
-
-      // Pages pinned by this process must be put back regardless of whether
-      // any other process is still sharing the file: leaving them pinned
-      // across dbMpf->close() leaks the pin in the shared cache region and
-      // may drop their modifications.
+      // Pages pinned by this process must be put back before the handle is
+      // closed: leaving them pinned across dbMpf->close() leaks the pin in
+      // the shared cache region and may drop their modifications.
       PutBackAllPages();
 
-      int sharedBy = GetNumOfShareProcess();
-      if (sharedBy == 0)
-        {
-          //If there is no processes are sharing the file,
-          //synchronize the disk file with the pool.
-          int rcSync = dbMpf->sync();
-          SmiEnvironment::SetBDBError(rcSync);
-        }
+      // Synchronize this process's dirty pages to disk. memp_fsync flushes
+      // only this file's dirty pages from the shared pool and is safe to call
+      // while other processes still have the file open, so no cross-process
+      // "last one out" bookkeeping is needed.
+      int rcSync = dbMpf->sync();
+      SmiEnvironment::SetBDBError(rcSync);
+
       rc = dbMpf->close(0); //release the handle
       dbMpf = 0;
       SmiEnvironment::SetBDBError(rc);
@@ -557,110 +480,6 @@ bool SmiUpdateFile::InitializePoolFile()
   return (rc == 0);
 }
 
-int SmiUpdateFile::GetNumOfShareProcess()
-{
-  //assert(dbMpf != 0);
-
-  if (sysPageNum > 0)
-    {
-      db_pgno_t pageno = 0;
-      SmiUpdateSysPage sysPage;
-      void* sysPagePointer;
-      int rc = 0;
-
-      // Read the counter under the same lock used by Register/UnRegister so
-      // the returned value is a consistent snapshot with respect to concurrent
-      // updates from other processes.
-      SysPageLock sysLock(SmiEnvironment::instance.impl->bdbEnv,
-                          !SmiEnvironment::singleUserMode, fileName);
-
-#if DB_VERSION_REQUIRED(4,6)
-      DbTxn* tid = 0;
-      rc = dbMpf->get(&pageno, tid, 0, &sysPagePointer);
-#else
-      rc = dbMpf->get(&pageno, 0, &sysPagePointer);
-#endif
-      if (rc != 0)
-        {
-          // The page could not be pinned; sysPagePointer is undefined, so we
-          // must not dereference it. Report the error and give up.
-          SmiEnvironment::SetBDBError(rc);
-          return -1;
-        }
-      memcpy(&sysPage, sysPagePointer, sizeof(SmiUpdateSysPage));
-#if DB_VERSION_REQUIRED(4,6)
-      rc = dbMpf->put(sysPagePointer, DB_PRIORITY_DEFAULT, 0);
-#else
-      rc = dbMpf->put(sysPagePointer, 0);
-#endif
-      SmiEnvironment::SetBDBError(rc);
-
-      return sysPage.shareByNum;
-    }
-  else
-    return -1;
-}
-
-/*
-
-When there is a new process want to open a memory pool file,
-it will use register method to increase the counter in the
-systematic page. Conversely, when closing the file, then use
-unregister method to decrease the counter.
-
-*/
-bool SmiUpdateFile::RegisterInFile()
-{
-  //assert(dbMpf != 0);
-
-  db_pgno_t pageno = 0;
-  void* pagePointer;
-  int rc = 0;
-
-  if (sysPageNum > 0)
-    {
-      SmiUpdateSysPage sysPage;
-
-      // Serialize the counter update below against other processes for the
-      // whole get -> modify -> put critical section.
-      SysPageLock sysLock(SmiEnvironment::instance.impl->bdbEnv,
-                          !SmiEnvironment::singleUserMode, fileName);
-
-      // The system page is modified below, so it must be fetched dirty: since
-      // Berkeley DB 4.6 the dirty flag is requested at get time, not at put
-      // time.
-#if DB_VERSION_REQUIRED(4,6)
-      DbTxn* tid = 0;
-      rc = dbMpf->get(&pageno, tid, DB_MPOOL_DIRTY, &pagePointer);
-#else
-      rc = dbMpf->get(&pageno, 0, &pagePointer);
-#endif
-
-      if (rc != 0)
-        {
-          // The page could not be pinned; pagePointer is undefined. Report the
-          // error and give up instead of dereferencing it.
-          SmiEnvironment::SetBDBError(rc);
-          return false;
-        }
-
-      memcpy(&sysPage, pagePointer, sizeof(SmiUpdateSysPage));
-      sysPage.shareByNum++;
-      memcpy(pagePointer, &sysPage, sizeof(SmiUpdateSysPage));
-#if DB_VERSION_REQUIRED(4,6)
-      rc = dbMpf->put(pagePointer, DB_PRIORITY_DEFAULT, 0);
-#else
-      rc = dbMpf->put(pagePointer, DB_MPOOL_DIRTY);
-#endif
-      SmiEnvironment::SetBDBError(rc);
-    }
-
-  //Get exist page numbers inside this file
-  existPageNum = GetFactPageNum();
-
-  return (rc == 0);
-}
-
 int SmiUpdateFile::GetFactPageNum()
 {
   //assert(dbMpf != 0);
@@ -696,53 +515,6 @@ int SmiUpdateFile::GetFactPageNum()
       SmiEnvironment::SetBDBError(rc);
     }
   return factPageNum;
-}
-
-bool SmiUpdateFile::UnRegisterInFile()
-{
-  //assert(dbMpf != 0);
-
-  if (sysPageNum > 0)
-    {
-      db_pgno_t pageno = 0;
-      SmiUpdateSysPage sysPage;
-      void* sysPagePointer;
-      int rc = 0;
-
-      // Serialize the counter update below against other processes for the
-      // whole get -> modify -> put critical section.
-      SysPageLock sysLock(SmiEnvironment::instance.impl->bdbEnv,
-                          !SmiEnvironment::singleUserMode, fileName);
-
-      // The system page is modified below, so it must be fetched dirty (since
-      // Berkeley DB 4.6 the dirty flag is requested at get time).
-#if DB_VERSION_REQUIRED(4,6)
-      DbTxn* tid = 0;
-      rc = dbMpf->get(&pageno, tid, DB_MPOOL_DIRTY, &sysPagePointer);
-#else
-      rc = dbMpf->get(&pageno, 0, &sysPagePointer);
-#endif
-      if (rc != 0)
-        {
-          // The page could not be pinned; sysPagePointer is undefined. Report
-          // the error and give up instead of dereferencing it.
-          SmiEnvironment::SetBDBError(rc);
-          return false;
-        }
-      memcpy(&sysPage, sysPagePointer, sizeof(SmiUpdateSysPage));
-      sysPage.shareByNum--;
-      memcpy(sysPagePointer, &sysPage, sizeof(SmiUpdateSysPage));
-#if DB_VERSION_REQUIRED(4,6)
-      rc = dbMpf->put(sysPagePointer, DB_PRIORITY_DEFAULT, 0);
-#else
-      rc = dbMpf->put(sysPagePointer, DB_MPOOL_DIRTY);
-#endif
-      SmiEnvironment::SetBDBError(rc);
-
-      return (rc == 0);
-    }
-  else
-    return true;
 }
 
 SmiSize SmiUpdateFile::GetPoolPageSize()

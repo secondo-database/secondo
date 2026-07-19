@@ -875,9 +875,13 @@ memory pointer directly.
 struct SmiUpdateSysPage
 {
   SmiUpdateSysPage() :
-    shareByNum(0)
+    reserved(0)
   {}
-  int shareByNum; //count the number of processes sharing this file
+  // Physical page 0 of the pool file is reserved as a system page: it shifts
+  // all user page numbers by sysPageNum (see GetExistPageNum / GetPage /
+  // AppendNewPage) and is written on initialization. The page is kept for
+  // on-disk layout compatibility; the field is currently unused.
+  int reserved;
 };
 
 class SMI_EXPORT SmiUpdateFile : public SmiFile
@@ -922,12 +926,7 @@ private:
   bool  SyncFile();
   bool  PutBackAllPages();
   bool  InitializePoolFile();
-  int  GetNumOfShareProcess();
   int  GetFactPageNum();
-
-  //Get how many processes are sharing this file
-  bool  RegisterInFile();
-  bool  UnRegisterInFile();
 };
 
 
