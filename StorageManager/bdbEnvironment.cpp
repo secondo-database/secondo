@@ -1362,10 +1362,17 @@ SmiEnvironment::DeleteTmpEnvironment()
  // --- Remove the temporary environment
 
   DbEnv* dbtmp  = instance.impl->tmpEnv;
+  if ( dbtmp == 0 )
+  {
+    // Nothing to do: the temporary environment was never created or has
+    // already been removed.
+    return 0;
+  }
+
   int rc = dbtmp->close( 0 );
   SetBDBError( rc );
 
-  const string& tmpHome = instance.impl->tmpHome;
+  const string tmpHome = instance.impl->tmpHome;
   string bdbHome = instance.impl->bdbHome;
 
 
@@ -1375,12 +1382,17 @@ SmiEnvironment::DeleteTmpEnvironment()
          << "bdbHome = " << bdbHome << endl;
   }
 
-  string tmpDir("");
-  FileSystem::AppendItem(bdbHome, tmpHome);
-  FileSystem::EraseFolder( bdbHome );
+  // Only erase the temporary subdirectory. Without the guard an empty tmpHome
+  // would make AppendItem/EraseFolder target the whole database home.
+  if ( !tmpHome.empty() )
+  {
+    FileSystem::AppendItem(bdbHome, tmpHome);
+    FileSystem::EraseFolder( bdbHome );
+  }
 
   delete dbtmp;
   instance.impl->tmpEnv = 0;
+  instance.impl->tmpHome = "";
 
   return rc;
 }
