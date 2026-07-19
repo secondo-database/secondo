@@ -33,13 +33,6 @@ For a description of the public interface see the ~SocketIO~ header file.
 
 */
 
-// Uncomment the following line to apply Thomas Achmann's patch to handle
-// limited length of socket names.
-// On Linux64 palttform, this makes Secondo report errors and crash when
-// connecting in the client server mode.
-
-#define ACHMANNPATCH
-
 #include "SecondoConfig.h"
 #include "WinUnix.h"
 
@@ -62,21 +55,17 @@ For a description of the public interface see the ~SocketIO~ header file.
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/utsname.h>
+#include <sys/un.h>
 #ifndef offsetof
 #include <stddef.h>
 #endif
 
-#ifdef ACHMANNPATCH
-#include <sys/un.h>
-#endif
 
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <netinet/tcp.h>
 #include <unistd.h>
 #include <errno.h>
-
-//#include <sys/select.h>
 
 extern "C" {
 #include <netdb.h>
@@ -227,9 +216,7 @@ bool UnixSocket::Open( const int listenQueueSize,
   union
   {
     sockaddr    sock;
-#ifdef ACHMANNPATCH
     sockaddr_un sock_unix;
-#endif
     sockaddr_in sock_inet;
     char        name[MAX_HOST_NAME];
   } u;
@@ -250,19 +237,11 @@ bool UnixSocket::Open( const int listenQueueSize,
 
     if ( domain == SockLocalDomain )
     {
-#ifdef ACHMANNPATCH
       u.sock_unix.sun_family = AF_UNIX;
       sa_len = offsetof( sockaddr_un, sun_path ) +
                           sprintf( u.sock_unix.sun_path, "%s%s",
                           unixSocketDir.c_str(), hostAddress.c_str() );
       unlink( u.sock_unix.sun_path ); // remove file if existed
-#else
-      u.sock.sa_family = AF_UNIX;
-      sa_len = offsetof( sockaddr, sa_data ) +
-                          sprintf( u.sock.sa_data, "%s%s",
-                          unixSocketDir.c_str(), hostAddress.c_str() );
-      unlink( u.sock.sa_data ); // remove file if existed
-#endif
       createFile = true;
     }
     else
@@ -539,9 +518,7 @@ UnixSocket::Connect( int maxAttempts, time_t timeout )
   union
   {
     sockaddr    sock;
-#ifdef ACHMANNPATCH
     sockaddr_un sock_unix;
-#endif
     sockaddr_in sock_inet;
     char        name[MAX_HOST_NAME];
   } u;
@@ -553,19 +530,12 @@ UnixSocket::Connect( int maxAttempts, time_t timeout )
        (hostPort.length() == 0 || hostAddress == "localhost")) )
   {
     // connect UNIX socket
-#ifdef ACHMANNPATCH
     u.sock_unix.sun_family = AF_UNIX;
     sa_len = offsetof( sockaddr_un, sun_path ) +
              sprintf( u.sock_unix.sun_path, "%s%s",
                       unixSocketDir.c_str(), hostAddress.c_str() );
     //unlink( u.sock_unix.sun_path ); // remove file if existed
     //createFile = true;
-#else
-    u.sock.sa_family = AF_UNIX;
-    sa_len = offsetof( sockaddr, sa_data ) +
-             sprintf( u.sock.sa_data, "%s%s",
-             unixSocketDir.c_str(), hostAddress.c_str() );
-#endif
   }
   else
   {
