@@ -1040,12 +1040,24 @@ SmiEnvironment::ListDatabases( string& dbname )
         Dbt key;
         Dbt data;
 
-        while (dbcp->get(&key, &data, DB_NEXT) == 0) {
+        while ( (rc = dbcp->get(&key, &data, DB_NEXT)) == 0 ) {
           dbname += (char *)key.get_data();
           dbname += "#";
         }
+        // DB_NOTFOUND is the normal end of the scan; any other code (e.g. a
+        // lock timeout or deadlock under concurrency) means the returned list
+        // is incomplete and must be reported instead of silently truncated.
+        if ( rc != DB_NOTFOUND )
+        {
+          SetBDBError(rc);
+          ok = false;
+        }
         rc = dbcp->close();
         SetBDBError(rc);
+        if ( rc != 0 )
+        {
+          ok = false;
+        }
       }
     }
     catch (DbException &dbe) {
