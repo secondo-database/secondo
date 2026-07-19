@@ -445,6 +445,15 @@ catalog. The function returns "true"[4] if the deletion was successful.
 
 */
 
+  static void CloseDatabaseFiles();
+/*
+Closes and deallocates the per-database catalog files (~sequences~,
+~filecatalog~ and ~fileindex~) opened by ~InitializeDatabase~ and resets the
+corresponding handles. Used to undo a database open/create that could not be
+completed (e.g. when registering the database with the registrar failed).
+
+*/
+
   void SetAutoRemoveLogs(const bool enable);
 /*
 Enforces a deletion of non-longer required log files if enabled=true.

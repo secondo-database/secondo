@@ -1143,7 +1143,13 @@ SmiEnvironment::Implementation::InsertDatabase( const string& dbname )
     Dbt key(buf, len + 1);
     Dbt data(buf, len + 1);
     rc = dbctl->put(0, &key, &data, DB_NOOVERWRITE | AutoCommitFlag);
-    SetBDBError( rc );
+    // DB_KEYEXIST is an expected outcome (the database already exists) which
+    // the caller reports as E_SMI_DB_EXISTING; only flag genuine Berkeley DB
+    // errors here.
+    if ( rc != 0 && rc != DB_KEYEXIST )
+    {
+      SetBDBError( rc );
+    }
 
     ok = (rc == 0);
   }
@@ -1183,6 +1189,33 @@ SmiEnvironment::Implementation::DeleteDatabase( const string& dbname )
     ok = (rc == 0);
   }
   return (ok);
+}
+
+void
+SmiEnvironment::Implementation::CloseDatabaseFiles()
+{
+  int rc = 0;
+  if ( instance.impl->bdbSeq )
+  {
+    rc = instance.impl->bdbSeq->close( 0 );
+    SetBDBError( rc );
+    delete instance.impl->bdbSeq;
+    instance.impl->bdbSeq = 0;
+  }
+  if ( instance.impl->bdbCatalog )
+  {
+    rc = instance.impl->bdbCatalog->close( 0 );
+    SetBDBError( rc );
+    delete instance.impl->bdbCatalog;
+    instance.impl->bdbCatalog = 0;
+  }
+  if ( instance.impl->bdbCatalogIndex )
+  {
+    rc = instance.impl->bdbCatalogIndex->close( 0 );
+    SetBDBError( rc );
+    delete instance.impl->bdbCatalogIndex;
+    instance.impl->bdbCatalogIndex = 0;
+  }
 }
 
 SmiEnvironment::SmiEnvironment()
@@ -1642,47 +1675,60 @@ SmiEnvironment::CreateDatabase( const string& dbname )
     return (false);
   }
 
-  if ( SetDatabaseName( dbname ) )
+  if ( !SetDatabaseName( dbname ) )
   {
+    SetError( E_SMI_DB_INVALIDNAME );
+    return (false);
+  }
 
-    if ( !SmiEnvironment::Implementation::LookUpDatabase( database ) )
+  // --- Insert into the catalog of databases first. The DB_NOOVERWRITE put is
+  //     atomic across processes and is the authoritative arbiter deciding
+  //     which of several concurrent creators wins. This closes the
+  //     check-then-act race that a preceding LookUpDatabase would leave open,
+  //     where two creators both passed the lookup and the loser leaked the
+  //     catalog file handles opened by InitializeDatabase.
+  if ( !SmiEnvironment::Implementation::InsertDatabase( database ) )
+  {
+    // The insert failed: either the database already exists (we lost the race
+    // or it was there before) or a genuine error occurred.
+    if ( SmiEnvironment::Implementation::LookUpDatabase( database ) )
+      SetError( E_SMI_DB_EXISTING );
+    else
+      SetError( E_SMI_DB_CREATE );
+    return (false);
+  }
+
+  // --- Create directory for the new database
+  string oldHome = FileSystem::GetCurrentFolder();
+  FileSystem::SetCurrentFolder( instance.impl->bdbHome );
+  FileSystem::CreateFolder( database );
+
+  // --- Initialize Database
+  if ( InitializeDatabase() )
+  {
+    if ( RegisterDatabase( database ) )
     {
-      // --- Create directory for the new database
-      string oldHome = FileSystem::GetCurrentFolder();
-      FileSystem::SetCurrentFolder( instance.impl->bdbHome );
-      FileSystem::CreateFolder( database );
-
-      // --- Initialize Database
-      if ( InitializeDatabase() )
-      {
-        // --- Insert into Catalog of Databases
-        if ( SmiEnvironment::Implementation::InsertDatabase( database ) )
-        {
-          RegisterDatabase( database );
-          dbOpened = ok = true;
-          SetError( E_SMI_OK );
-        }
-        else
-        {
-          SetError( E_SMI_DB_CREATE );
-        }
-      }
-      else
-      {
-        SetError( E_SMI_DB_CREATE );
-        FileSystem::DeleteFileOrFolder( database );
-      }
-      FileSystem::SetCurrentFolder( oldHome );
+      dbOpened = ok = true;
+      SetError( E_SMI_OK );
     }
     else
     {
-      SetError( E_SMI_DB_EXISTING );
+      // The database was created on disk but could not be registered for this
+      // session. Close the catalog files again and leave it closed; the error
+      // was already recorded by RegisterDatabase.
+      SmiEnvironment::Implementation::CloseDatabaseFiles();
     }
   }
   else
   {
-    SetError( E_SMI_DB_INVALIDNAME );
+    // Initialization failed: roll back the catalog entry inserted above and
+    // remove the partially created database directory.
+    SetError( E_SMI_DB_CREATE );
+    SmiEnvironment::Implementation::DeleteDatabase( database );
+    FileSystem::DeleteFileOrFolder( database );
   }
+  FileSystem::SetCurrentFolder( oldHome );
+
   return (ok);
 }
 
@@ -1701,8 +1747,18 @@ SmiEnvironment::OpenDatabase( const string& dbname )
     {
       if ( InitializeDatabase() )
       {
-        RegisterDatabase( database );
-        dbOpened = true;
+        if ( RegisterDatabase( database ) )
+        {
+          dbOpened = true;
+        }
+        else
+        {
+          // Could not register the database for this session; undo the open by
+          // closing the catalog files again. RegisterDatabase already recorded
+          // the error.
+          SmiEnvironment::Implementation::CloseDatabaseFiles();
+          ok = ERR_SYSTEM_ERROR;
+        }
       }
       else
       {
