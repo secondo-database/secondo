@@ -538,6 +538,8 @@ SmiFile::Open( const string& name, const string& context /* = "Default" */ )
                SmiEnvironment::Implementation::GetDbHandle(impl->bdbHandle);
          SmiEnvironment::Implementation::SetUsed(impl->bdbHandle);
          opened = true;
+         fileName    = name;
+         fileContext = context;
          impl->isSystemCatalogFile = (fileContext == "SecondoCatalog");
          return true;
       }
