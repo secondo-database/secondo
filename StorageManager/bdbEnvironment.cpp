@@ -1737,6 +1737,7 @@ SmiEnvironment::CloseDatabase()
 
   string dbname = database;
   int    rc = 0;
+  bool   ok = true;
   Db*    dbseq = instance.impl->bdbSeq;
   Db*    dbctl = instance.impl->bdbCatalog;
   Db*    dbidx = instance.impl->bdbCatalogIndex;
@@ -1744,11 +1745,16 @@ SmiEnvironment::CloseDatabase()
   // --- Implicitly commit/abort transaction
   if (instance.impl->txnStarted)
   {
-    CommitTransaction();
+    ok = CommitTransaction();
   }
   else
   {
-    SmiEnvironment::Implementation::UpdateCatalog(true);
+    if ( !SmiEnvironment::Implementation::UpdateCatalog(true) )
+    {
+      SetError2( E_SMI_DB_UPDATE_CATALOG,
+                 "Updating the file catalog on close failed." );
+      ok = false;
+    }
     SmiEnvironment::Implementation::CloseDbHandles();
     //SmiEnvironment::Implementation::EraseFiles( rc == 0 );
   }
@@ -1809,7 +1815,7 @@ SmiEnvironment::CloseDatabase()
 
 
 
-  return (rc == 0);
+  return (rc == 0) && ok;
 }
 
 bool
@@ -1912,7 +1918,11 @@ SmiEnvironment::BeginTransaction()
 void
 SmiEnvironment::UpdateCatalog() {
 
-    SmiEnvironment::Implementation::UpdateCatalog( true );
+    if ( !SmiEnvironment::Implementation::UpdateCatalog( true ) )
+    {
+      SetError2( E_SMI_DB_UPDATE_CATALOG,
+                 "Updating the file catalog failed." );
+    }
     SmiEnvironment::Implementation::CloseDbHandles();
 }
 
@@ -1921,18 +1931,22 @@ bool
 SmiEnvironment::CommitTransaction(bool closeDBhandles)
 {
   int rc = 0;
-  // A commit forced into an abort (e.g. after a deadlock) did not persist the
-  // changes, even if the abort itself succeeds. Remember this so we can report
-  // the failure to the caller instead of a false success.
+  // A commit forced into an abort (e.g. after a deadlock, or because the
+  // catalog update failed) did not persist the changes, even if the abort
+  // itself succeeds. Remember this so we can report the failure to the caller
+  // instead of a false success.
   bool forcedAbort = false;
   if ( instance.impl->txnStarted )
   {
     // --- Close _all_ open cursors first!!!
 
-    SmiEnvironment::Implementation::UpdateCatalog( true );
+    // A failing catalog update leaves the data files without their catalog
+    // entries. Roll the whole transaction back in that case instead of
+    // committing an inconsistent state.
+    bool catalogOk = SmiEnvironment::Implementation::UpdateCatalog( true );
     if ( useTransactions )
     {
-      if ( instance.impl->txnMustAbort )
+      if ( instance.impl->txnMustAbort || !catalogOk )
       {
         forcedAbort = true;
         rc = instance.impl->usrTxn->abort();
@@ -1944,6 +1958,12 @@ SmiEnvironment::CommitTransaction(bool closeDBhandles)
       }
       SetBDBError( rc );
     }
+    else if ( !catalogOk )
+    {
+      // Without transactions there is nothing to roll back, but we still must
+      // not report a success to the caller.
+      forcedAbort = true;
+    }
 
     StopWatch closeTime; // measure time for closing DbHandles
     LOGMSG( "SMI:DbHandles",
@@ -1952,7 +1972,13 @@ SmiEnvironment::CommitTransaction(bool closeDBhandles)
 
     if(closeDBhandles){
        SmiEnvironment::Implementation::CloseDbHandles();
-       SmiEnvironment::Implementation::EraseFiles( rc == 0, rc != 0 );
+       bool erased =
+           SmiEnvironment::Implementation::EraseFiles( rc == 0, rc != 0 );
+       if ( rc == 0 && !forcedAbort && !erased )
+       {
+         cerr << "SMI: Warning - failed to erase dropped files after a "
+                 "successful commit." << endl;
+       }
     }
 
     LOGMSG( "SMI:DbHandles",
