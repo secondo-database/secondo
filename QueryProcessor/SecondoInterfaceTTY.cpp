@@ -433,6 +433,24 @@ SecondoInterfaceTTY::Initialize( const string& user,
     }
   }
 
+  if ( ok && RTFlag::isActive("SMI:NoTransactions") && multiUser )
+  {
+    // SMI:NoTransactions forces SingleUserSimple, which opens the Berkeley DB
+    // environment with DB_PRIVATE (private, unshared memory pool, no
+    // locking). That is incompatible with multi-user mode, where several
+    // server processes attach to the same database home concurrently: each
+    // would get its own private cache with no cross-process locking, a
+    // classic corruption scenario. There is no safe way to honor both, so
+    // refuse to start rather than silently running unsafely.
+    cerr << "Fatal Error: SMI:NoTransactions cannot be combined with "
+            "multi-user mode. DB_PRIVATE environments cannot be safely "
+            "shared across multiple server processes. Either disable "
+            "SMI:NoTransactions or run in single-user mode." << endl;
+    errorMsg += "SMI:NoTransactions cannot be combined with multi-user "
+                "mode.\n";
+    ok = false;
+  }
+
   if ( ok )
   {
     // --- Check storage management interface
