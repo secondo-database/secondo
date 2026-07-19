@@ -288,7 +288,14 @@ create an empty Db handle bdbFile with SmiFile::Implementation.
               ConstructFileName(fileId);
           fileName = bdbName;
 
-          u_int32_t flags = existing ? DB_CREATE : 0;
+          // DB_CREATE must not be passed to dbMpf->open() here: as noted in
+          // InitializePoolFile(), opening a not-yet-existing pool file with
+          // DB_CREATE leaves page 0 inaccessible. For a new (!existing)
+          // file the physical file therefore has to be pre-created by
+          // InitializePoolFile() before the memp open, exactly as Create()
+          // does; for an existing file the physical file is already there
+          // and no creation flag is needed either.
+          u_int32_t flags = 0;
           int mode = 0;
 
           //Open the memory pool file
@@ -296,12 +303,13 @@ create an empty Db handle bdbFile with SmiFile::Implementation.
           rc = dbenv->memp_fcreate(&dbMpf, 0);
           SmiEnvironment::SetBDBError(rc);
 
+          if (!existing)
+            InitializePoolFile();
+
           rc = dbMpf->open(fileName.c_str(), flags,
               mode, poolPageSize);
           SmiEnvironment::SetBDBError(rc);
-
-          if (!existing)
-            InitializePoolFile();
+          existPageNum = GetFactPageNum();
 
           if (rc == 0)
             {
