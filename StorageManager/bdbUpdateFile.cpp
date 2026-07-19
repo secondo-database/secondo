@@ -487,12 +487,18 @@ int SmiUpdateFile::GetNumOfShareProcess()
       int rc = 0;
 
 #if DB_VERSION_REQUIRED(4,6)
-		  DbTxn* tid = 0;
+      DbTxn* tid = 0;
       rc = dbMpf->get(&pageno, tid, 0, &sysPagePointer);
 #else
       rc = dbMpf->get(&pageno, 0, &sysPagePointer);
 #endif
-      SmiEnvironment::SetBDBError(rc);
+      if (rc != 0)
+        {
+          // The page could not be pinned; sysPagePointer is undefined, so we
+          // must not dereference it. Report the error and give up.
+          SmiEnvironment::SetBDBError(rc);
+          return -1;
+        }
       memcpy(&sysPage, sysPagePointer, sizeof(SmiUpdateSysPage));
 #if DB_VERSION_REQUIRED(4,6)
       rc = dbMpf->put(sysPagePointer, DB_PRIORITY_DEFAULT, 0);
@@ -528,19 +534,28 @@ bool SmiUpdateFile::RegisterInFile()
       SmiUpdateSysPage sysPage;
 
 #if DB_VERSION_REQUIRED(4,6)
-		  DbTxn* tid = 0;
+      DbTxn* tid = 0;
       rc = dbMpf->get(&pageno, tid, 0, &pagePointer);
 #else
       rc = dbMpf->get(&pageno, 0, &pagePointer);
 #endif
 
-      SmiEnvironment::SetBDBError(rc);
+      if (rc != 0)
+        {
+          // The page could not be pinned; pagePointer is undefined. Report the
+          // error and give up instead of dereferencing it.
+          SmiEnvironment::SetBDBError(rc);
+          return false;
+        }
+
+      // NOTE: this read-modify-write of the shared-process counter is not
+      // protected against concurrent access from other processes. Making the
+      // counter exact under contention would require a lock/latch around it.
       memcpy(&sysPage, pagePointer, sizeof(SmiUpdateSysPage));
       sysPage.shareByNum++;
       memcpy(pagePointer, &sysPage, sizeof(SmiUpdateSysPage));
 #if DB_VERSION_REQUIRED(4,6)
-      uint32_t flags = 0;
-      rc = dbMpf->put(pagePointer, DB_PRIORITY_DEFAULT, flags);
+      rc = dbMpf->put(pagePointer, DB_PRIORITY_DEFAULT, 0);
 #else
       rc = dbMpf->put(pagePointer, DB_MPOOL_DIRTY);
 #endif
@@ -567,12 +582,18 @@ int SmiUpdateFile::GetFactPageNum()
 
       //Get exist page numbers inside this file
 #if DB_VERSION_REQUIRED(4,6)
-		  DbTxn* tid = 0; 
+      DbTxn* tid = 0;
       rc = dbMpf->get(&pageno, tid, DB_MPOOL_LAST, &pagePointer);
 #else
       rc = dbMpf->get(&pageno, DB_MPOOL_LAST, &pagePointer);
 #endif
-      SmiEnvironment::SetBDBError(rc);
+      if (rc != 0)
+        {
+          // The page could not be pinned; pageno/pagePointer are undefined.
+          // Report the error and return 0 (no pages) rather than a bogus count.
+          SmiEnvironment::SetBDBError(rc);
+          return 0;
+        }
       factPageNum = pageno + 1;
 #if DB_VERSION_REQUIRED(4,6)
       rc = dbMpf->put(pagePointer, DB_PRIORITY_DEFAULT, 0);
@@ -596,12 +617,20 @@ bool SmiUpdateFile::UnRegisterInFile()
       int rc = 0;
 
 #if DB_VERSION_REQUIRED(4,6)
-		  DbTxn* tid = 0;
+      DbTxn* tid = 0;
       rc = dbMpf->get(&pageno, tid, 0, &sysPagePointer);
 #else
       rc = dbMpf->get(&pageno, 0, &sysPagePointer);
 #endif
-      SmiEnvironment::SetBDBError(rc);
+      if (rc != 0)
+        {
+          // The page could not be pinned; sysPagePointer is undefined. Report
+          // the error and give up instead of dereferencing it.
+          SmiEnvironment::SetBDBError(rc);
+          return false;
+        }
+      // NOTE: this read-modify-write of the shared-process counter is not
+      // protected against concurrent access from other processes.
       memcpy(&sysPage, sysPagePointer, sizeof(SmiUpdateSysPage));
       sysPage.shareByNum--;
       memcpy(sysPagePointer, &sysPage, sizeof(SmiUpdateSysPage));
@@ -642,12 +671,19 @@ bool SmiUpdateFile::AppendNewPage(SmiUpdatePage*& page)
     void *pgPt;
 
 #if DB_VERSION_REQUIRED(4,6)
-		  DbTxn* tid = 0;
+      DbTxn* tid = 0;
       rc = dbMpf->get(&realPageNo,tid, DB_MPOOL_NEW, &pgPt);
 #else
       rc = dbMpf->get(&realPageNo, DB_MPOOL_NEW, &pgPt);
 #endif
-    SmiEnvironment::SetBDBError(rc);
+    if (rc != 0)
+      {
+        // The new page could not be created; pgPt is undefined, so we must not
+        // memset through it. Report the error and give up.
+        SmiEnvironment::SetBDBError(rc);
+        page = 0;
+        return false;
+      }
     ctr++;
 
     page = new SmiUpdatePage();
@@ -689,18 +725,26 @@ bool SmiUpdateFile::GetPage(const db_pgno_t pageNo, SmiUpdatePage*& page)
     {
       //Get the page from the disk file
       void *pagePointer;
-      page = new SmiUpdatePage();
-      page->pageNo = pageNo;
-      page->pageSize = poolPageSize;
       db_pgno_t realPageNo = pageNo + sysPageNum - 1;
 
 #if DB_VERSION_REQUIRED(4,6)
-		  DbTxn* tid = 0;
+      DbTxn* tid = 0;
       rc = dbMpf->get(&realPageNo, tid, 0, &pagePointer);
 #else
       rc = dbMpf->get(&realPageNo, 0, &pagePointer);
 #endif
-      SmiEnvironment::SetBDBError(rc);
+      if (rc != 0)
+        {
+          // The page could not be pinned; pagePointer is undefined. Report the
+          // error and give up instead of handing out an invalid page.
+          SmiEnvironment::SetBDBError(rc);
+          page = 0;
+          return false;
+        }
+
+      page = new SmiUpdatePage();
+      page->pageNo = pageNo;
+      page->pageSize = poolPageSize;
       page->pagePt = pagePointer;
 
       gotPages.insert(pair<db_pgno_t, SmiUpdatePage*>(pageNo, page));
