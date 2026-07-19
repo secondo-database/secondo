@@ -938,25 +938,55 @@ SmiFile::Remove()
      cerr << endl << "Removing " << impl->bdbName << endl;
 
   int rc = 0;
-  if(opened){
-    if(! Close(false)){
-      return false;
+
+  if ( !impl->isTemporaryFile )
+  {
+    // For non-temporary files, Close() only frees the registry slot it
+    // does not actually close the Berkeley DB handle, since handles must
+    // stay open until CloseDbHandles() runs at the end of the enclosing
+    // transaction. Db::remove() requires the handle to not be open, so,
+    // as in ReCreate(), the registry handle must be released and actually
+    // closed here before removing, and the file removed with a throwaway
+    // handle afterwards.
+    if ( opened )
+    {
+      opened = false;
+      SmiEnvironment::Implementation::FreeDbHandle( impl->bdbHandle );
+      SmiEnvironment::Implementation::DeleteDbHandle( impl->bdbHandle );
+      impl->bdbFile = 0;
+      impl->noHandle = true;
+      impl->isSystemCatalogFile = false;
     }
+
+    Db* dbp = new Db( SmiEnvironment::instance.impl->bdbEnv,
+                      DB_CXX_NO_EXCEPTIONS );
+    rc = dbp->remove( impl->bdbName.c_str(), 0, 0 );
+    delete dbp;
+    SmiEnvironment::SetBDBError(rc);
   }
-
-  rc = impl->bdbFile->remove( impl->bdbName.c_str(), 0, 0 );
-
-  SmiEnvironment::SetBDBError(rc);
-  if ( rc == 0 ) {
-    if(impl->bdbFile){
-       delete impl->bdbFile;
-       impl->bdbFile = 0;
+  else
+  {
+    if(opened){
+      if(! Close(false)){
+        return false;
+      }
     }
+
+    rc = impl->bdbFile->remove( impl->bdbName.c_str(), 0, 0 );
+    SmiEnvironment::SetBDBError(rc);
+
+    // Per Berkeley DB semantics, a Db handle may not be accessed again after
+    // remove() is called, regardless of whether it succeeded. Replace it
+    // with a fresh handle -- as Close() does -- so this SmiFile instance
+    // remains usable for a subsequent Create().
+    delete impl->bdbFile;
+    impl->bdbFile = new Db( SmiEnvironment::instance.impl->tmpEnv,
+                            DB_CXX_NO_EXCEPTIONS );
   }
 
   if (trace)
      cerr << endl << "End removing " << impl->bdbName << endl;
-  
+
   return rc == 0;
 }
 
