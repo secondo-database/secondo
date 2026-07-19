@@ -738,10 +738,11 @@ SmiEnvironment::Implementation::LookUpCatalog( Dbt& key,
     }
     else // initialization of transaction failed
     {
-      if ( tid != 0 ) { // abort if necessary
-        rc = tid->abort();
-      }
       SetBDBError( rc );
+      if ( tid != 0 ) { // abort if necessary, keep the original error code
+        int rc_tid = tid->abort();
+        SetBDBError( rc_tid );
+      }
     }
   }
   else
@@ -1920,6 +1921,10 @@ bool
 SmiEnvironment::CommitTransaction(bool closeDBhandles)
 {
   int rc = 0;
+  // A commit forced into an abort (e.g. after a deadlock) did not persist the
+  // changes, even if the abort itself succeeds. Remember this so we can report
+  // the failure to the caller instead of a false success.
+  bool forcedAbort = false;
   if ( instance.impl->txnStarted )
   {
     // --- Close _all_ open cursors first!!!
@@ -1929,6 +1934,7 @@ SmiEnvironment::CommitTransaction(bool closeDBhandles)
     {
       if ( instance.impl->txnMustAbort )
       {
+        forcedAbort = true;
         rc = instance.impl->usrTxn->abort();
         // possibly DB_LOCK_DEADLOCK;
       }
@@ -1967,7 +1973,7 @@ SmiEnvironment::CommitTransaction(bool closeDBhandles)
     rc = E_SMI_TXN_NOTRUNNING;
     SetError( E_SMI_TXN_NOTRUNNING );
   }
-  return (rc == 0);
+  return (rc == 0 && !forcedAbort);
 }
 
 bool

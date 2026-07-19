@@ -957,7 +957,7 @@ SmiFile::GetPageSize() const
 {
   u_int32_t pageSize;
   int rc = impl->bdbFile->get_pagesize( &pageSize );
-  SmiEnvironment::SetError(rc);
+  SmiEnvironment::SetBDBError(rc);
   return pageSize;
 }
 
