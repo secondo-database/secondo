@@ -453,8 +453,9 @@ bool SmiUpdateFile::Open(const SmiFileId _fID,
 
 2.4 Close the handle to the update file.
 
-If there is no more process sharing the file, flush the pages pinned
-in the memory back to the disk file.
+Pages pinned by this process are always put back to the memory pool.
+If there is no more process sharing the file, the pool is additionally
+synchronized with the disk file.
 
 */
 bool SmiUpdateFile::Close()
@@ -468,12 +469,20 @@ bool SmiUpdateFile::Close()
       opened = false;
 
       UnRegisterInFile();
+
+      // Pages pinned by this process must be put back regardless of whether
+      // any other process is still sharing the file: leaving them pinned
+      // across dbMpf->close() leaks the pin in the shared cache region and
+      // may drop their modifications.
+      PutBackAllPages();
+
       int sharedBy = GetNumOfShareProcess();
       if (sharedBy == 0)
         {
           //If there is no processes are sharing the file,
           //synchronize the disk file with the pool.
-          SyncFile();
+          int rcSync = dbMpf->sync();
+          SmiEnvironment::SetBDBError(rcSync);
         }
       rc = dbMpf->close(0); //release the handle
       dbMpf = 0;
@@ -906,12 +915,16 @@ bool SmiUpdateFile::PutPage(const db_pgno_t pageNo,
 
 /*
 
-2.8 Synchronize method in SmiUpdateFile
+2.8 Put all pinned pages back to the memory pool
 
-Put all unput pages in the ~gotPages~ back to the source file.
+Puts back every page still held in ~gotPages~, without synchronizing the
+file. This must run unconditionally on ~Close~, regardless of whether this
+process is the last one sharing the file: a page left pinned when the mpool
+file handle is closed leaks its pin in the shared cache region and its
+modifications may never reach disk.
 
 */
-bool SmiUpdateFile::SyncFile()
+bool SmiUpdateFile::PutBackAllPages()
 {
   //assert(dbMpf != 0);
   int rc = 0;
@@ -934,10 +947,26 @@ bool SmiUpdateFile::SyncFile()
       ctr++;
     }
 
+  return (rc == 0);
+}
+
+/*
+
+2.9 Synchronize method in SmiUpdateFile
+
+Put all unput pages in the ~gotPages~ back to the source file and flush the
+file to disk.
+
+*/
+bool SmiUpdateFile::SyncFile()
+{
+   //assert(dbMpf != 0);
+   bool ok = PutBackAllPages();
+
    //Synchronize the file
-   rc = dbMpf->sync();
+   int rc = dbMpf->sync();
    SmiEnvironment::SetBDBError(rc);
-   return (rc == 0);
+   return ok && (rc == 0);
 }
 
 /*

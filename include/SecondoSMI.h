@@ -920,6 +920,7 @@ private:
   std::map<db_pgno_t, SmiUpdatePage*> gotPages;
 
   bool  SyncFile();
+  bool  PutBackAllPages();
   bool  InitializePoolFile();
   int  GetNumOfShareProcess();
   int  GetFactPageNum();
