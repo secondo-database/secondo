@@ -2230,10 +2230,16 @@ SmiEnvironment::InitializeDatabase()
   {
     // --- In case of an error delete the created files
 
+    // Remember the error that actually caused initialization to fail. The
+    // cleanup close() calls below reuse local variables and must not
+    // overwrite it, or a successful close after a failed open would make
+    // this function report success.
+    int rcOpen = rc;
+
     if ( dbseq )
     {
-      rc = dbseq->close( 0 );
-      SetBDBError(rc);
+      int rcClose = dbseq->close( 0 );
+      SetBDBError(rcClose);
       delete dbseq;
       instance.impl->bdbSeq = 0;
       // spm: Removing database files which could not be opened
@@ -2246,8 +2252,8 @@ SmiEnvironment::InitializeDatabase()
     }
     if ( dbctl )
     {
-      rc = dbctl->close( 0 );
-      SetBDBError(rc);
+      int rcClose = dbctl->close( 0 );
+      SetBDBError(rcClose);
       delete dbctl;
       instance.impl->bdbCatalog = 0;
       //Db* dbp = new Db( dbenv, DB_CXX_NO_EXCEPTIONS );
@@ -2256,14 +2262,16 @@ SmiEnvironment::InitializeDatabase()
     }
     if ( dbidx )
     {
-      rc = dbidx->close( 0 );
-      SetBDBError(rc);
+      int rcClose = dbidx->close( 0 );
+      SetBDBError(rcClose);
       delete dbidx;
       instance.impl->bdbCatalogIndex = 0;
       //Db* dbp = new Db( dbenv, DB_CXX_NO_EXCEPTIONS );
       //rc = dbp->remove( dbidxFileName.c_str(), 0, 0 );
       //delete dbp;
     }
+
+    rc = rcOpen;
   }
 
   TRACE_LEAVE
