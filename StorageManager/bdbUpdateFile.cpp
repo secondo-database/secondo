@@ -533,9 +533,12 @@ bool SmiUpdateFile::RegisterInFile()
     {
       SmiUpdateSysPage sysPage;
 
+      // The system page is modified below, so it must be fetched dirty: since
+      // Berkeley DB 4.6 the dirty flag is requested at get time, not at put
+      // time.
 #if DB_VERSION_REQUIRED(4,6)
       DbTxn* tid = 0;
-      rc = dbMpf->get(&pageno, tid, 0, &pagePointer);
+      rc = dbMpf->get(&pageno, tid, DB_MPOOL_DIRTY, &pagePointer);
 #else
       rc = dbMpf->get(&pageno, 0, &pagePointer);
 #endif
@@ -616,9 +619,11 @@ bool SmiUpdateFile::UnRegisterInFile()
       void* sysPagePointer;
       int rc = 0;
 
+      // The system page is modified below, so it must be fetched dirty (since
+      // Berkeley DB 4.6 the dirty flag is requested at get time).
 #if DB_VERSION_REQUIRED(4,6)
       DbTxn* tid = 0;
-      rc = dbMpf->get(&pageno, tid, 0, &sysPagePointer);
+      rc = dbMpf->get(&pageno, tid, DB_MPOOL_DIRTY, &sysPagePointer);
 #else
       rc = dbMpf->get(&pageno, 0, &sysPagePointer);
 #endif
@@ -727,9 +732,13 @@ bool SmiUpdateFile::GetPage(const db_pgno_t pageNo, SmiUpdatePage*& page)
       void *pagePointer;
       db_pgno_t realPageNo = pageNo + sysPageNum - 1;
 
+      // Fetch the page dirty: the caller may modify it and later have it
+      // written back via PutPage(isChanged=true). Since Berkeley DB 4.6 the
+      // dirty flag is requested at get time, not at put time, and PutPage
+      // can no longer mark the page dirty itself.
 #if DB_VERSION_REQUIRED(4,6)
       DbTxn* tid = 0;
-      rc = dbMpf->get(&realPageNo, tid, 0, &pagePointer);
+      rc = dbMpf->get(&realPageNo, tid, DB_MPOOL_DIRTY, &pagePointer);
 #else
       rc = dbMpf->get(&realPageNo, 0, &pagePointer);
 #endif
