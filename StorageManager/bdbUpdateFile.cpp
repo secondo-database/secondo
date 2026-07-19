@@ -510,7 +510,7 @@ bool SmiUpdateFile::InitializePoolFile()
   if (!isInitialized)
     {
       //Create memory pool disk file
-      const char *dbEnvPath = new char[updatePathLength];
+      const char *dbEnvPath = nullptr;
       SmiEnvironment::instance.impl->bdbEnv->get_home(&dbEnvPath);
       ostringstream absoluteFilePath;
       absoluteFilePath << dbEnvPath << PATH_SLASH << fileName;
