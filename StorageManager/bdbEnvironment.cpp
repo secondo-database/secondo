@@ -1877,6 +1877,7 @@ SmiEnvironment::CloseDatabase()
   {
     rc = dbseq->close( 0 );
     SetBDBError( rc );
+    ok = ok && (rc == 0);
     delete dbseq;
     dbseq = 0;
     instance.impl->bdbSeq = 0;
@@ -1888,6 +1889,7 @@ SmiEnvironment::CloseDatabase()
   {
     rc = dbctl->close( 0 );
     SetBDBError( rc );
+    ok = ok && (rc == 0);
     delete dbctl;
     dbctl = 0;
     instance.impl->bdbCatalog = 0;
@@ -1897,6 +1899,7 @@ SmiEnvironment::CloseDatabase()
   {
     rc = dbidx->close( 0 );
     SetBDBError( rc );
+    ok = ok && (rc == 0);
     delete dbidx;
     dbidx = 0;
     instance.impl->bdbCatalogIndex = 0;
@@ -1927,7 +1930,7 @@ SmiEnvironment::CloseDatabase()
 
 
 
-  return (rc == 0) && ok;
+  return ok;
 }
 
 bool
