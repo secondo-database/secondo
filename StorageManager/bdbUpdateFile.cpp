@@ -71,6 +71,71 @@ static void BdbInitCatalogEntry(SmiCatalogEntry& entry)
   memset(entry.fileName, 0, (2 * SMI_MAX_NAMELEN + 2));
 }
 
+namespace {
+
+/*
+~SysPageLock~ serializes the read-modify-write of the shared-process counter
+stored on a memory pool file's system page across processes. In the multi-user
+modes the Berkeley DB environment has its lock subsystem enabled
+(DB\_INIT\_LOCK), so a short exclusive lock on an object derived from the file
+name prevents concurrent ~RegisterInFile~ / ~UnRegisterInFile~ calls from
+different processes from losing an update. In single-user (private)
+environments there is a single process and no lock subsystem, so the guard is a
+no-op. Failing to obtain the lock is reported but non-fatal: the operation then
+proceeds unsynchronized, as it did before.
+
+*/
+class SysPageLock
+{
+  public:
+    SysPageLock(DbEnv* dbenv, bool active, const std::string& resource)
+      : env(active ? dbenv : 0), locker(0), haveLocker(false), held(false)
+    {
+      if (env == 0)
+        return;
+      int rc = env->lock_id(&locker);
+      if (rc != 0)
+        {
+          SmiEnvironment::SetBDBError(rc);
+          env = 0;
+          return;
+        }
+      haveLocker = true;
+      Dbt obj((void*) resource.data(), (u_int32_t) resource.size());
+      rc = env->lock_get(locker, 0, &obj, DB_LOCK_WRITE, &lock);
+      if (rc != 0)
+        SmiEnvironment::SetBDBError(rc);
+      else
+        held = true;
+    }
+
+    ~SysPageLock()
+    {
+      if (held)
+        {
+          int rc = env->lock_put(&lock);
+          SmiEnvironment::SetBDBError(rc);
+        }
+      if (haveLocker)
+        {
+          int rc = env->lock_id_free(locker);
+          SmiEnvironment::SetBDBError(rc);
+        }
+    }
+
+  private:
+    SysPageLock(const SysPageLock&);
+    SysPageLock& operator=(const SysPageLock&);
+
+    DbEnv*    env;
+    u_int32_t locker;
+    bool      haveLocker;
+    bool      held;
+    DbLock    lock;
+};
+
+}  // anonymous namespace
+
 /*
 
 2 Implementation of class SmiUpdateFile
@@ -486,6 +551,12 @@ int SmiUpdateFile::GetNumOfShareProcess()
       void* sysPagePointer;
       int rc = 0;
 
+      // Read the counter under the same lock used by Register/UnRegister so
+      // the returned value is a consistent snapshot with respect to concurrent
+      // updates from other processes.
+      SysPageLock sysLock(SmiEnvironment::instance.impl->bdbEnv,
+                          !SmiEnvironment::singleUserMode, fileName);
+
 #if DB_VERSION_REQUIRED(4,6)
       DbTxn* tid = 0;
       rc = dbMpf->get(&pageno, tid, 0, &sysPagePointer);
@@ -533,6 +604,11 @@ bool SmiUpdateFile::RegisterInFile()
     {
       SmiUpdateSysPage sysPage;
 
+      // Serialize the counter update below against other processes for the
+      // whole get -> modify -> put critical section.
+      SysPageLock sysLock(SmiEnvironment::instance.impl->bdbEnv,
+                          !SmiEnvironment::singleUserMode, fileName);
+
       // The system page is modified below, so it must be fetched dirty: since
       // Berkeley DB 4.6 the dirty flag is requested at get time, not at put
       // time.
@@ -551,9 +627,6 @@ bool SmiUpdateFile::RegisterInFile()
           return false;
         }
 
-      // NOTE: this read-modify-write of the shared-process counter is not
-      // protected against concurrent access from other processes. Making the
-      // counter exact under contention would require a lock/latch around it.
       memcpy(&sysPage, pagePointer, sizeof(SmiUpdateSysPage));
       sysPage.shareByNum++;
       memcpy(pagePointer, &sysPage, sizeof(SmiUpdateSysPage));
@@ -619,6 +692,11 @@ bool SmiUpdateFile::UnRegisterInFile()
       void* sysPagePointer;
       int rc = 0;
 
+      // Serialize the counter update below against other processes for the
+      // whole get -> modify -> put critical section.
+      SysPageLock sysLock(SmiEnvironment::instance.impl->bdbEnv,
+                          !SmiEnvironment::singleUserMode, fileName);
+
       // The system page is modified below, so it must be fetched dirty (since
       // Berkeley DB 4.6 the dirty flag is requested at get time).
 #if DB_VERSION_REQUIRED(4,6)
@@ -634,8 +712,6 @@ bool SmiUpdateFile::UnRegisterInFile()
           SmiEnvironment::SetBDBError(rc);
           return false;
         }
-      // NOTE: this read-modify-write of the shared-process counter is not
-      // protected against concurrent access from other processes.
       memcpy(&sysPage, sysPagePointer, sizeof(SmiUpdateSysPage));
       sysPage.shareByNum--;
       memcpy(sysPagePointer, &sysPage, sizeof(SmiUpdateSysPage));
