@@ -227,14 +227,26 @@ SmiKeyedFile::InsertRecord( const SmiKey& key, SmiRecord& record )
     }
     record.initialized = true;
   }
-  else if ( rc == DB_KEYEXIST )
-  {
-    SmiEnvironment::SetError( E_SMI_FILE_KEYEXIST );
-    record.initialized = false;
-  }
   else
   {
-    SmiEnvironment::SetBDBError( rc );
+    // The insert failed, so the cursor opened for the duplicate-key case is
+    // not handed over to the record. Close it here to avoid leaking an open
+    // cursor, which would keep its page locks for the rest of the
+    // transaction.
+    if ( dbc != 0 )
+    {
+      int rc2 = dbc->close();
+      SmiEnvironment::SetBDBError( rc2 );
+    }
+
+    if ( rc == DB_KEYEXIST )
+    {
+      SmiEnvironment::SetError( E_SMI_FILE_KEYEXIST );
+    }
+    else
+    {
+      SmiEnvironment::SetBDBError( rc );
+    }
     record.initialized = false;
   }
   return (record.initialized);
