@@ -366,6 +366,18 @@ SecondoMonitor::CheckConfiguration()
 {
   bool found = false;
   cout << "Checking configuration ..." << endl;
+
+  // The processes spawned below (Listener, Registrar, Checkpoint and the
+  // Secondo server itself) require SECONDO_BUILD_DIR to be set; without it
+  // they fail only after being started. Detect this here and fail fast so the
+  // error is reported by the monitor instead of the detached child processes.
+  const char* buildDir = getenv( "SECONDO_BUILD_DIR" );
+  if (buildDir == 0 || *buildDir == '\0') {
+    cerr << "Environment variable SECONDO_BUILD_DIR is not set. "
+         << "Terminating program." << endl;
+    return false;
+  }
+
   int pos = 1;
   string host, smi;
   while (pos < GetArgCount()) {
