@@ -1338,27 +1338,42 @@ int SecondoServerMode( const int argc, const char* argv[] )
 
   cout << "Redirecting server output to file " << msgfolder << endl;
 
-  streambuf* backup1 = cout.rdbuf();   // back up cout's streambuf
-  streambuf* backup2 = cerr.rdbuf();   
-  streambuf* backup3 = clog.rdbuf();   
+  // Redirect cout/cerr/clog into the per-server message file and restore them
+  // via RAII. The restore MUST be exception-safe. Restoring in the guard's
+  // destructor guarantees the standard streams point back at their original
+  // streambufs before the local fmsg is destroyed. Otherwise cout/cerr/clog
+  // would still reference the (now destroyed, stack-allocated) fmsg streambuf,
+  // and the C++ runtime's exit-time flush of the standard streams would
+  // dereference dangling memory and crash (SIGSEGV during __cxa_finalize).
+  struct StreamRedirectGuard {
+    streambuf* backup1;
+    streambuf* backup2;
+    streambuf* backup3;
+    StreamRedirectGuard(streambuf* target)
+      : backup1(cout.rdbuf()), backup2(cerr.rdbuf()), backup3(clog.rdbuf())
+    {
+      cout.rdbuf(target);
+      cerr.rdbuf(target);
+      clog.rdbuf(target);
+    }
+    ~StreamRedirectGuard()
+    {
+      cout.rdbuf(backup1);
+      cerr.rdbuf(backup2);
+      clog.rdbuf(backup3);
+    }
+  };
 
-  cout.rdbuf(fmsg.rdbuf());   // assign streambuf to cout and cerr
-  cerr.rdbuf(fmsg.rdbuf());
-  clog.rdbuf(fmsg.rdbuf());
+  // Constructed after fmsg so it is destroyed (streams restored) before fmsg.
+  StreamRedirectGuard redirectGuard(fmsg.rdbuf());
 
   freopen(msgfolder.c_str(),"a", stdout);
   freopen(msgfolder.c_str(),"a", stderr);
 
+  int rc = 0;
   SecondoServer* appPointer = new SecondoServer( argc, argv );
-  int rc = appPointer->Execute();
+  rc = appPointer->Execute();
   delete appPointer;
-
-  cout.rdbuf(backup1);
-  cerr.rdbuf(backup2);
-  clog.rdbuf(backup3);
-  fmsg.close();
-  fclose(stdout);
-  fclose(stderr);
 
   return (rc);
 }
