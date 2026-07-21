@@ -11,9 +11,7 @@ spatial, spatio-temporal, moving objects, graphs, and whatever you implement nex
 
 [Website](https://secondo-database.github.io/) ·
 [User Manual](https://secondo-database.github.io/files/Documentation/General/SecondoManual.pdf) ·
-[Programmer's Guide](Documents/ProgrammersGuide.pdf) ·
-[Wiki](https://github.com/secondo-database/secondo/wiki) ·
-[Issues](https://github.com/secondo-database/secondo/issues)
+[Programmer's Guide](Documents/ProgrammersGuide.pdf)
 
 </div>
 
