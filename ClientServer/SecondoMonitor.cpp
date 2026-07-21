@@ -650,7 +650,7 @@ int main( const int argc, const char* argv[] )
        cout << "Options:" << endl;
        cout << "   --help           Display this information and exit" << endl;
        cout << "   -s or --startup  Run Startup command automatically" << endl;
-       cout << "   -V or -version   Display version information and exit"
+       cout << "   -V or --version  Display version information and exit"
         << endl << endl;
        cout << "The following parameters may be combined with \"-s\":" << endl;
        cout << "   -c    Specify a configuration file" << endl;
@@ -660,7 +660,7 @@ int main( const int argc, const char* argv[] )
                "file)" << endl;
        done = true;
        execute = false;
-     } else if ((arg == "-V") || (arg == "-version")) {
+     } else if ((arg == "-V") || (arg == "--version")) {
        cout << argv[0] << " version " << VersionInfo << endl;
        execute = false;
        done = true;
