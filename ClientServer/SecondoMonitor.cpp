@@ -639,7 +639,7 @@ int main( const int argc, const char* argv[] )
   while(pos<argc && !done){ // start at 1, 0 is the program name
      string arg;
      arg = argv[pos];
-     if((arg=="-s") || (arg=="-startup")) {
+     if((arg=="-s") || (arg=="--startup")) {
         execute = true;
         autostartup = true;
         pos++;
@@ -648,10 +648,10 @@ int main( const int argc, const char* argv[] )
        cout << "Usage: " << argv[0]
             << " [option]. Combinations are not supported!" << endl;
        cout << "Options:" << endl;
-       cout << "   --help          Display this information and exit" << endl;
-       cout << "   -s or -startup  Run Startup command automatically" << endl;
-       cout << "   -V or -version  Display version information and exit" << endl
-            << endl;
+       cout << "   --help           Display this information and exit" << endl;
+       cout << "   -s or --startup  Run Startup command automatically" << endl;
+       cout << "   -V or -version   Display version information and exit"
+        << endl << endl;
        cout << "The following parameters may be combined with \"-s\":" << endl;
        cout << "   -c    Specify a configuration file" << endl;
        cout << "   -d    Specify a database directory (override setting from "
