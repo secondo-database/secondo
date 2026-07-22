@@ -109,6 +109,21 @@ int SecondoPLMode(TTYParameter &tp) {
       // end VTA
     }
 
+    // Preload library(error) before restricting autoloading below. SWI's
+    // listing.pl (pulled in while the optimizer loads) uses error:must_be/2 at
+    // term-expansion time; with autoloading restricted to the user module that
+    // predicate would otherwise fail to resolve and spam "exception handler
+    // failed to define error:must_be/2" errors during optimizer startup.
+    {
+      term_t errLib = PL_new_term_ref();
+      term_t errArg = PL_new_term_ref();
+      PL_put_atom_chars(errArg, "error");
+      if (PL_cons_functor(errLib, PL_new_functor(PL_new_atom("library"), 1),
+                          errArg)) {
+        predicate_t useModule = PL_predicate("use_module", 1, "");
+        PL_call_predicate(NULL, PL_Q_NORMAL, useModule, errLib);
+      }
+    }
 
 #if PLVERSION > 80000
     // Restrict autoloading for SWI-Prolog 8.x compatibility

@@ -1,0 +1,94 @@
+#!/bin/bash
+#
+# Regression test for the embedded-Prolog interface "SecondoPL".
+#
+# SecondoPL restricts Prolog's autoloading (set_prolog_flag(autoload, user))
+# for SWI-Prolog 8.x/9.x compatibility. If library(error) is not preloaded
+# before that restriction, SWI's listing.pl fails to resolve error:must_be/2
+# while the optimizer is loaded and spams
+#
+#   ERROR: [Thread 1]: exception handler failed to define error:must_be/2
+#   ERROR: term_expansion/2: Unknown procedure: error:must_be/2
+#
+# at startup. Simple queries still return results in that broken state, so a
+# purely functional check does NOT catch the regression -- this test asserts
+# that the error messages are absent AND that a query is answered.
+#
+# See UserInterfaces/SecondoPLMode.cpp (the library(error) preload) and
+# UserInterfaces/SecondoPL.cpp (initEmbeddedOptimizer, same fix).
+
+libFile="libutil.sh"
+buildDir=${SECONDO_BUILD_DIR}
+if [ -z "$buildDir" ]; then
+  printf "%s\n" "Error: SECONDO_BUILD_DIR is not set."
+  exit 1
+fi
+scriptDir=${buildDir}/CM-Scripts
+
+if ! source "${scriptDir}/${libFile}"; then exit 1; fi
+
+# A private database home, so we neither depend on nor disturb existing data.
+tempDir=$(mktemp -d)
+export SECONDO_PARAM_SecondoHome=$tempDir
+export SECONDO_CONFIG=$buildDir/bin/SecondoConfig.ini
+
+# Distinct names: run-tests.sh already redirects our stdout into
+# TestSecondoPLStartup.log, so keep our own diagnostics out of that file.
+logFile="${buildDir}/Optimizer/TestSecondoPLStartup.restore.log"
+plLog="${buildDir}/Optimizer/TestSecondoPLStartup.secondopl.log"
+: > "$logFile"
+printf "%s\n" "Restore log: $logFile"
+printf "%s\n" "SecondoPL log: $plLog"
+
+declare -i error=0
+
+# Restore the "opt" example database (ships as bin/opt) into the private home.
+# Each command must be on its own line (the TTY parser rejects several
+# commands joined by ';' on a single line).
+cd "$buildDir/bin" || exit 1
+./SecondoTTYBDB >> "$logFile" 2>&1 <<'EOF'
+create database opt;
+restore database opt from opt;
+close database;
+q;
+EOF
+# A successful restore materializes the database directory in the home.
+if [ ! -d "$tempDir/OPT" ]; then
+  printf "%s\n" "Restoring the opt database failed!"
+  rm -rf "$tempDir"
+  exit 1
+fi
+
+# Drive SecondoPL exactly as a user would: open the database and run an SQL
+# query through the optimizer. Capture stdout+stderr for inspection.
+cd "$buildDir/Optimizer" || exit 1
+./SecondoPL > "$plLog" 2>&1 <<'EOF'
+open database opt.
+sql select * from ten.
+halt.
+EOF
+
+cat "$plLog" >> "$logFile"
+
+# 1) The autoloading regression: these messages must not appear.
+if grep -qE "must_be/2|exception handler failed to define" "$plLog"; then
+  printf "%s\n" "FAILED: SecondoPL emitted the autoloading (must_be/2) errors."
+  grep -nE "must_be/2|exception handler failed to define" "$plLog" | head
+  let error++
+fi
+
+# 2) The query must actually be answered (tuples of relation "ten": No : 1..10).
+if ! grep -qE "^No : [0-9]+" "$plLog"; then
+  printf "%s\n" "FAILED: SecondoPL did not return the expected query result."
+  let error++
+fi
+
+rm -rf "$tempDir"
+
+if [ $error -gt 0 ]; then
+  printf "%s\n" "*** TestSecondoPLStartup: ${error} error(s), see ${plLog} ***"
+  exit 1
+fi
+
+printf "%s\n" "*** TestSecondoPLStartup: OK ***"
+exit 0
