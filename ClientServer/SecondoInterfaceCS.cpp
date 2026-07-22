@@ -90,6 +90,7 @@ SecondoInterfaceCS::SecondoInterfaceCS(bool isServer, /*= false*/
     user = "";
     pswd = "";
     multiUser = false;
+    sqlPlanOnly = false;
     traceSocketIn = 0;
     traceSocketOut = 0;
  }
@@ -514,9 +515,16 @@ For an explanation of the error codes refer to SecondoInterface.h
         cmdText = commandText;
         break;
       }
+      case 2:  // SQL dialect: forwarded verbatim to the server's optimizer
+      {
+        dwriter.write(debugSecondoMethod, cout, this, pid,
+                      "commandType 2 (sql)");
+        cmdText = commandText;
+        break;
+      }
       default:
       {
-        dwriter.write(debugSecondoMethod, cout, this, pid, 
+        dwriter.write(debugSecondoMethod, cout, this, pid,
                       "unknown commandType");
        // Command type not implemented
         errorCode = ERR_CMD_LEVEL_NOT_YET_IMPL;
@@ -560,7 +568,8 @@ For an explanation of the error codes refer to SecondoInterface.h
   dwriter.write(debugSecondoMethod, cout, this, pid, 
                 "try to find out kind of cmd");
 
-  if ( posDatabase != string::npos &&
+  if ( commandType != 2 &&
+       posDatabase != string::npos &&
        posSave     != string::npos &&
        posTo       != string::npos &&
        posSave < posDatabase && posDatabase < posTo )
@@ -639,7 +648,8 @@ For an explanation of the error codes refer to SecondoInterface.h
       errorCode = ERR_SYNTAX_ERROR;
     }
   }
-  else if ( posSave != string::npos && // save object to filename
+  else if ( commandType != 2 &&
+            posSave != string::npos && // save object to filename
             posTo   != string::npos &&
             posDatabase == string::npos &&
             posSave < posTo )
@@ -726,7 +736,8 @@ For an explanation of the error codes refer to SecondoInterface.h
     }
   }
 
-  else if ( posRestore  != string::npos &&
+  else if ( commandType != 2 &&
+            posRestore  != string::npos &&
             posDatabase == string::npos &&
             posFrom     != string::npos &&
             posRestore < posFrom )
@@ -802,7 +813,8 @@ For an explanation of the error codes refer to SecondoInterface.h
     }
   }
 
-  else if ( posDatabase != string::npos &&
+  else if ( commandType != 2 &&
+            posDatabase != string::npos &&
             posRestore  != string::npos &&
             posFrom     != string::npos &&
             posRestore < posDatabase && posDatabase < posFrom )
@@ -890,7 +902,11 @@ For an explanation of the error codes refer to SecondoInterface.h
                      " send command to server");
        iosock << "<Secondo>" << endl;
        dwriter.write(debugSecondoMethod, cout, this, pid, "<Secondo> send ");
-       iosock  << commandType << endl;
+       // The command level, optionally followed by per-command protocol flags.
+       // The server has always discarded the rest of this line, so a flag here
+       // is invisible to one that does not know it (and no flag at all is what
+       // every other client sends).
+       iosock  << commandType << (sqlPlanOnly ? " planonly" : "") << endl;
        dwriter.write(debugSecondoMethod, cout, this, pid, "CommandType send ");
        iosock <<  cmdText << endl;
        dwriter.write(debugSecondoMethod, cout, this, pid, "CommandText send ");
@@ -1238,6 +1254,75 @@ std::string SecondoInterfaceCS::getHome(){
    string line;
    getline(iosock,line);
    return line;
+}
+
+bool SecondoInterfaceCS::optimizerAvailable(){
+   if(!server){
+     return false;
+   }
+   iostream& iosock = server->GetSocketStream();
+   iosock << "<OptimizerAvailable/>" << endl;
+   iosock.flush();
+   string line;
+   getline(iosock,line);
+   stringutils::trim(line);
+   return line=="yes";
+}
+
+void SecondoInterfaceCS::SecondoSql(const std::string& sql,
+                                    const bool planOnly,
+                                    ListExpr& resultList,
+                                    int& errorCode,
+                                    int& errorPos,
+                                    std::string& errorMessage){
+   // Carry the flag through the one call that sends it, so it can never leak
+   // into an unrelated command.
+   ListExpr cmdList = nl->TheEmptyList();
+   sqlPlanOnly = planOnly;
+   Secondo( sql, cmdList, 2, false, false,
+            resultList, errorCode, errorPos, errorMessage );
+   sqlPlanOnly = false;
+}
+
+std::string SecondoInterfaceCS::optimizerCommand(const std::string& directive){
+   if(!server){
+     return "Error: not connected to a server.";
+   }
+   iostream& iosock = server->GetSocketStream();
+   iosock << "<OptimizerCommand>" << endl;
+   iosock << directive << endl;
+   iosock << "</OptimizerCommand>" << endl;
+   iosock.flush();
+
+   // Reply: a status line ("ok" / "ERR:<msg>") then a framed text block.
+   string status;
+   getline(iosock,status);
+   stringutils::trim(status);
+
+   string line, output = "";
+   getline(iosock,line);   // opening <OptimizerCommandResponse>
+   bool first = true;
+   while(getline(iosock,line)){
+      if(line == "</OptimizerCommandResponse>"){
+        break;
+      }
+      // Preserve the directive's own layout (showOptions relies on leading
+      // whitespace), so do not trim the content lines.
+      if(!first){
+        output += "\n";
+      }
+      output += line;
+      first = false;
+   }
+
+   if(status.compare(0,4,"ERR:")==0){
+      // A failing directive may still have printed something useful; prefer it.
+      if(!output.empty()){
+        return output;
+      }
+      return "Error: " + status.substr(4);
+   }
+   return output;
 }
 
 bool SecondoInterfaceCS::setHeartbeat(const int heart1, const int heart2){

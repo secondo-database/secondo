@@ -1,5 +1,0 @@
-#
-# Startup script for running SECONDOTTY in optimizer mode
-
-../bin/SecondoCS -pl $*
-

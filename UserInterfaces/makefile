@@ -28,7 +28,6 @@ include ../makefile.env
 LIBXML2 := 
 
 SECONDOPLMODE1 := SecondoPLMode
-SECONDOPLMODE2 := SecondoPLTTYMode
 
 APPLOBJECTS := \
 	SecondoTTY.$(OBJEXT) \
@@ -66,10 +65,8 @@ CCFLAGS += -DSECONDO_USE_ENTROPY
 endif
 
 ifeq ($(optimizer),"true")
-PLOBJ := SecondoPL.$(OBJEXT) $(SECONDOPLMODE1).$(OBJEXT) $(SECONDOPLMODE2).$(OBJEXT)
-PLCSOBJ := SecondoPLCS.$(OBJEXT) $(SECONDOPLMODE1).$(OBJEXT) $(SECONDOPLMODE2).$(OBJEXT)
+PLOBJ := SecondoPL.$(OBJEXT) $(SECONDOPLMODE1).$(OBJEXT)
 PL_OBJECTS := $(PLOBJ) $(ENTROPY_OBJ)
-PLCS_OBJECTS := $(PLCSOBJ)  $(ENTROPY_OBJ)
 APPLOBJECTS += $(PLOBJ)
 CCFLAGS += $(PLINCLUDEFLAGS) -DSECONDO_PL
 endif
@@ -120,7 +117,7 @@ entropy:
 
 .PHONY: clean
 clean:
-	$(RM) *.dep $(APPLOBJECTS) $(APPLICATIONS) $(ENTROPY_OBJ) $(DEP_FILES) $(PLCSOBJ)  $(CS_OBJECTS) 
+	$(RM) *.dep $(APPLOBJECTS) $(APPLICATIONS) $(ENTROPY_OBJ) $(DEP_FILES) $(CS_OBJECTS) SecondoPLCS.$(OBJEXT)
 	$(MAKE) -C InteractiveQueryEditor clean
 
 #
@@ -135,13 +132,19 @@ MainTTYCS.$(OBJEXT): MainTTY.cpp
 
 SecondoPL.$(OBJEXT): $(ENTROPY_OBJ)
 %.$(OBJEXT): %.cpp
-	$(CC) -c -o $@ $< $(CCFLAGS) $(JNIINCLUDE) $(CPPSTDOPTION) 
+	$(CC) -c -o $@ $< $(CCFLAGS) $(JNIINCLUDE) $(CPPSTDOPTION)
 
+# SecondoPLCS.o is SecondoPL compiled in client/server mode (SecondoInterfaceCS
+# instead of SecondoInterfaceTTY). No TTY client embeds the optimizer anymore,
+# so it is not part of this directory's own build; the sole consumer is the
+# external Java OptServer's JNI bridge, which builds it on demand via this rule
+# (see OptServer/makefile). The rule lives here because the source and the
+# correct compile flags do.
 SecondoPLCS.$(OBJEXT): SecondoPL.cpp
-	$(CC) -c -DSECONDO_CLIENT_SERVER -o $@ $< $(CCFLAGS)  $(CPPSTDOPTION) 
+	$(CC) -c -DSECONDO_CLIENT_SERVER -o $@ $< $(CCFLAGS) $(CPPSTDOPTION)
 
-SecondoTTYCS.$(OBJEXT): SecondoTTY.cpp 
-	$(CC) -c -DSECONDO_CLIENT_SERVER -o $@ $< $(CCFLAGS) $(CPPSTDOPTION) 
+SecondoTTYCS.$(OBJEXT): SecondoTTY.cpp
+	$(CC) -c -DSECONDO_CLIENT_SERVER -o $@ $< $(CCFLAGS) $(CPPSTDOPTION)
 
 TestRunnerCS.$(OBJEXT): TestRunner.cpp 
 	$(CC) -c -DSECONDO_CLIENT_SERVER -o $@ $< $(CCFLAGS)  $(CPPSTDOPTION)
@@ -161,7 +164,12 @@ $(BINDIR)/Secondo$(SMIUP)$(EXEEXT):  $(APP_LIB) $(ALG_LIST) $(FLOB) $(PL_OBJECTS
 # The TTY-Clients, they use special implementations of SecondoInterface and don't
 # need the algebra libs.
 # 
+# SecondoCS is a pure client/server TTY client. It does NOT embed the optimizer
+# (no -pl / -pltty); the SQL dialect is sent to the server's optimizer instead.
+# It always needs readline (for the interactive history); in optimizer builds
+# RL_LD_FLAG is empty because readline used to come in via the (now removed)
+# Prolog link flags, so link it explicitly here.
 $(BINDIR)/SecondoCS$(EXEEXT): $(SECLIBFILES) $(FLOB)
-$(BINDIR)/SecondoCS$(EXEEXT): $(CS_OBJECTS) $(APP_LIB) $(PLCS_OBJECTS) $(FLOB)
-	$(LD) $(EXEFLAGS) $(LDFLAGS) $(PROFILERFLAGS) -o $@ $(filter %.o, $^) -lappCommon -lsdbutils $(OPTLIB_LIBS)   $(LD_LINK_LIBS) $(RL_LD_FLAG) $(PLLDFLAGS) $(COMMON_LD_FLAGS)
+$(BINDIR)/SecondoCS$(EXEEXT): $(CS_OBJECTS) $(APP_LIB) $(FLOB)
+	$(LD) $(EXEFLAGS) $(LDFLAGS) $(PROFILERFLAGS) -o $@ $(filter %.o, $^) -lappCommon -lsdbutils $(OPTLIB_LIBS)   $(LD_LINK_LIBS) $(RL_LD_FLAG) -lreadline -lncurses $(COMMON_LD_FLAGS)
 

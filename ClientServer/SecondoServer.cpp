@@ -71,6 +71,11 @@ are implemented in class ~CSProtocol~ and can be used by inside the
 #include "CSProtocol.h"
 #include "NList.h"
 #include "satof.h"
+#include "ErrorCodes.h"
+
+#ifndef NO_OPTIMIZER
+#include "SecondoPL.h"
+#endif
 
 
 using namespace std;
@@ -144,24 +149,51 @@ class SecondoServer : public Application
   void CallGetCostFun();
   void CallCancelQuery();
   void CallHeartbeat();
-  
+  void CallOptimizerAvailable();
+  // Runs an optimizer control directive (e.g. showOptions, setOption(X),
+  // delOption(X), updateCatalog, resetKnowledgeDB) in the embedded optimizer
+  // and returns whatever the directive prints. Reached via the
+  // <OptimizerCommand> tag; the reply is a status line plus a framed text
+  // block.
+  void CallOptimizerCommand();
+
  private:
+
+  // Runs an SQL-dialect command (protocol command level 2): drives the
+  // embedded optimizer to obtain an executable plan and returns the list
+  // (plan result costs). With executePlan the plan is executed and its result
+  // returned; without it (the "planonly" protocol flag) the plan is only
+  // reported and result stays empty. Only reached when the optimizer is both
+  // compiled in and enabled for this server.
+  void CallSql(const string& sqlText, bool executePlan);
+  // True iff the optimizer is compiled in AND enabled for this server.
+  bool OptimizerAvailable();
+#ifndef NO_OPTIMIZER
+  // Bring the embedded optimizer up (lazily) and, if a database is open, make
+  // sure it tracks that database's schema. Shared by CallSql and
+  // CallOptimizerCommand. When requireDb is true (SQL: a plan needs a schema) a
+  // missing open database is an error; when false (global option directives
+  // such as showOptions/setOption) it is fine. Returns false with errMsg set
+  // when the optimizer cannot be made ready.
+  bool ensureOptimizerReady(string& errMsg, bool requireDb);
+#endif
 
   void CallRestore(const string& tag, bool database=false);
   void CallSave(const string& tag, bool database=false);
   string CreateTmpName(const string& prefix);
   bool WaitForRequest();
-  
+
   Socket*           client;
   SecondoInterface* si;
   NestedList*       nl;
   string            parmFile;
   string            dbDir;
-  string            port; 
+  string            port;
   bool              quit;
   string            registrar;
   string            user;
   string            pswd;
+  bool              sqlEnabled;
 
   CSProtocol* csp;
 };
@@ -197,7 +229,15 @@ SecondoServer::CallSecondo()
   int type=0;
   iosock >> type;
   debug_server(type);
-  csp->skipRestOfLine();
+  // The remainder of the level line carries per-command protocol flags. It was
+  // always skipped, so a client that sends none (all of them until now) is
+  // unaffected, and an unknown flag is simply ignored rather than breaking the
+  // framing. Currently only "planonly" is defined: optimize the SQL but do not
+  // execute the plan.
+  string flags = "";
+  getline( iosock, flags );
+  debug_server(flags);
+  bool planOnly = flags.find("planonly") != string::npos;
   csp->IgnoreMsg(false);
   bool ready=false;
   do
@@ -211,14 +251,212 @@ SecondoServer::CallSecondo()
     }
   }
   while (!ready && !iosock.fail());
+
+  // Command level 2 is the SQL dialect: it is not an executable command, so it
+  // is not passed to si->Secondo but handled here by the embedded optimizer.
+  // The "planonly" flag stops it after optimizing (the client wants the plan,
+  // not its result).
+  if ( type == 2 )
+  {
+    CallSql( cmdText, !planOnly );
+    return;
+  }
+
   ListExpr commandLE = nl->TheEmptyList();
   ListExpr resultList = nl->TheEmptyList();
   int errorCode=0, errorPos=0;
   string errorMessage="";
-  si->Secondo( cmdText, commandLE, type, true, false, 
+  si->Secondo( cmdText, commandLE, type, true, false,
                resultList, errorCode, errorPos, errorMessage );
   NList::setNLRef(nl);
   WriteResponse( errorCode, errorPos, errorMessage, resultList );
+}
+
+bool
+SecondoServer::OptimizerAvailable()
+{
+#ifdef NO_OPTIMIZER
+  return false;
+#else
+  return sqlEnabled;
+#endif
+}
+
+void
+SecondoServer::CallSql(const string& sqlText, bool executePlan)
+{
+  if ( !OptimizerAvailable() )
+  {
+    WriteResponse( ERR_OPTIMIZER_NOT_AVAILABLE, 0,
+                   "The optimizer (SQL dialect) is not available on "
+                   "this server.", nl->TheEmptyList() );
+    return;
+  }
+
+#ifndef NO_OPTIMIZER
+  // Bring the optimizer up (sharing this server's interface for its secondo/2
+  // catalog callbacks) and make sure it tracks the open database's schema.
+  {
+    string readyErr = "";
+    if ( !ensureOptimizerReady( readyErr, true ) )
+    {
+      NList::setNLRef(nl);
+      WriteResponse( ERR_OPTIMIZER_NOT_AVAILABLE, 0, readyErr,
+                     nl->TheEmptyList() );
+      return;
+    }
+  }
+
+  // Trim a trailing newline accumulated by the framing loop.
+  string sql = sqlText;
+  while ( !sql.empty() 
+    && (sql[sql.size()-1] == '\n' || sql[sql.size()-1] == '\r') )
+  {
+    sql.erase(sql.size()-1);
+  }
+
+  string plan, optErr;
+  double costs = 0.0;
+  bool alreadyExecuted = false;
+  bool ok = embeddedSqlToPlan( sql, plan, costs, optErr, alreadyExecuted );
+  NList::setNLRef(nl);
+  if ( !ok )
+  {
+    WriteResponse( ERR_OPTIMIZER_NOT_AVAILABLE, 0,
+                   "Optimization failed: " + optErr, nl->TheEmptyList() );
+    return;
+  }
+
+  ListExpr commandLE = nl->TheEmptyList();
+  ListExpr planResult = nl->TheEmptyList();
+  int errorCode=0, errorPos=0;
+  string errorMessage="";
+  if ( executePlan && !alreadyExecuted )
+  {
+    // Execute the generated executable plan (command level 1, text syntax).
+    si->Secondo( plan, commandLE, 1, true, false,
+                 planResult, errorCode, errorPos, errorMessage );
+    NList::setNLRef(nl);
+  }
+  // else: either the client asked for the plan only, or this was a create/drop
+  // the optimizer already carried out; "done" is returned as the plan. Either
+  // way the result stays empty.
+  //
+  // Note that "plan only" cannot suppress a create/drop: the optimizer's
+  // sqlToPlan executes those itself while translating, which is why the
+  // catalog refresh below is not conditional on executePlan.
+
+  // DDL run through the optimizer (create table/index, drop, let X = select)
+  // changes the catalog the optimizer has cached; refresh it so later queries
+  // on this connection are optimized against the new schema.
+  if ( errorCode == 0 && embeddedOptimizerSqlChangesCatalog( sql ) )
+  {
+    string refreshErr = "";
+    embeddedOptimizerRefreshCatalog( refreshErr );
+    NList::setNLRef(nl);
+  }
+
+  // Return (plan result costs): the generated executable plan, the query
+  // result, and the optimizer's cost estimate for the plan. Callers that opted
+  // into the SQL level (command level 2) unwrap this shape; level-0/1 clients
+  // never receive it. Costs is appended rather than inserted so that the first
+  // two elements keep their meaning and a client that does not care about the
+  // estimate can ignore the tail.
+  ListExpr planText = nl->TextAtom();
+  nl->AppendText( planText, plan );
+  ListExpr resultList = nl->ThreeElemList( planText, planResult,
+                                           nl->RealAtom( costs ) );
+  WriteResponse( errorCode, errorPos, errorMessage, resultList );
+#endif
+}
+
+#ifndef NO_OPTIMIZER
+bool
+SecondoServer::ensureOptimizerReady(string& errMsg, bool requireDb)
+{
+  // Bring up the optimizer lazily, sharing this server's interface for its
+  // secondo/2 catalog callbacks (no second SMI environment).
+  if ( !initEmbeddedOptimizer( si ) )
+  {
+    errMsg = "Could not initialize the optimizer.";
+    return false;
+  }
+
+  // The optimizer needs the schema of the open database. It only learns it
+  // when the database is opened through its own logic, so make sure it is
+  // loaded (the client opened the database directly at the kernel).
+  if ( SecondoSystem::GetInstance()->IsDatabaseOpen() )
+  {
+    string openDb = SecondoSystem::GetInstance()->GetDatabaseName();
+    if ( !embeddedOptimizerUseDatabase( openDb ) )
+    {
+      errMsg = "Could not load the database schema into the optimizer.";
+      return false;
+    }
+  }
+  else if ( requireDb )
+  {
+    errMsg = "No database is open; cannot use the optimizer.";
+    return false;
+  }
+  return true;
+}
+#endif
+
+void
+SecondoServer::CallOptimizerCommand()
+{
+  iostream& iosock = client->GetSocketStream();
+
+  // Read the directive text: lines up to the closing tag (framed like
+  // <Secondo>). The opening tag was already consumed by the dispatcher.
+  string line = "", directive = "";
+  bool ready = false;
+  do
+  {
+    getline( iosock, line );
+    debug_server(line);
+    ready = (line == "</OptimizerCommand>");
+    if ( !ready )
+    {
+      if ( !directive.empty() )
+      {
+        directive += "\n";
+      }
+      directive += line;
+    }
+  }
+  while ( !ready && !iosock.fail() );
+
+  string status = "ok";
+  string output = "";
+#ifdef NO_OPTIMIZER
+  status = "ERR:The optimizer is not available on this server.";
+#else
+  string errMsg = "";
+  if ( !OptimizerAvailable() )
+  {
+    status = "ERR:The optimizer (SQL dialect) is not available on this server.";
+  }
+  else if ( !ensureOptimizerReady( errMsg, false ) )
+  {
+    status = "ERR:" + errMsg;
+  }
+  else if ( !embeddedOptimizerRunGoal( directive, output, errMsg ) )
+  {
+    // A directive may fail in Prolog yet still have written a useful message,
+    // so keep whatever it printed (output) and report the failure.
+    status = "ERR:" + errMsg;
+  }
+#endif
+
+  // Reply: a status line, then the captured (possibly multi-line) output framed
+  // so the client can read it back verbatim.
+  iosock << status << endl;
+  iosock << "<OptimizerCommandResponse>" << endl;
+  iosock << output << endl;
+  iosock << "</OptimizerCommandResponse>" << endl;
+  iosock.flush();
 }
 
 void
@@ -1002,6 +1240,12 @@ void SecondoServer::CallServerPid(){
   iosock.flush();
 }
 
+void SecondoServer::CallOptimizerAvailable(){
+  iostream& iosock = client->GetSocketStream();
+  iosock << (OptimizerAvailable() ? "yes" : "no") << endl;
+  iosock.flush();
+}
+
 void 
 SecondoServer::CallRequestFile(){
   initTransferFolders();
@@ -1118,6 +1362,16 @@ int SecondoServer::Execute() {
 
   si = new SecondoInterfaceTTY(true);
 
+  // Whether this server accepts the SQL dialect (command level 2) and drives
+  // the embedded optimizer. Controlled per server via the config the monitor
+  // hands us; defaults to enabled. Only effective if the optimizer is also
+  // compiled in (NO_OPTIMIZER not set).
+  string enableOpt = SmiProfile::GetParameter( "Environment",
+                       "EnableOptimizer", "true", parmFile );
+  stringutils::toLower( enableOpt );
+  stringutils::trim( enableOpt );
+  sqlEnabled = !(enableOpt == "false" || enableOpt == "no" || enableOpt == "0");
+
   cout << "Initialize the secondo interface " << endl;
 
   map<string,ExecCommand> commandTable;
@@ -1152,7 +1406,11 @@ int SecondoServer::Execute() {
   commandTable["<CANCEL_QUERY>"] = &SecondoServer::CallCancelQuery;
   commandTable["<GET_HOME>"] = &SecondoServer::CallGetHome;
   commandTable["<HEARTBEAT>"] = &SecondoServer::CallHeartbeat;
-  
+  commandTable["<OptimizerAvailable/>"] =
+                                    &SecondoServer::CallOptimizerAvailable;
+  commandTable["<OptimizerCommand>"] =
+                                    &SecondoServer::CallOptimizerCommand;
+
   string logMsgList = SmiProfile::GetParameter( "Environment", 
                                                 "RTFlags", "", parmFile );
   RTFlag::initByString(logMsgList);

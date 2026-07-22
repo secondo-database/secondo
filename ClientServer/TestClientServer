@@ -8,7 +8,12 @@
 # access, and the shutdown of that whole process tree. This test does, by
 # starting a real SecondoMonitor on a private port and driving N real clients
 # (SecondoCS, i.e. the SecondoInterfaceCS path the WebUI and the Java GUI use)
-# against it concurrently.
+# against it concurrently. Two client workloads run: executable plans, and --
+# when the server was built with the optimizer -- the SQL dialect, which each
+# server optimizes in-process, so several embedded optimizers run at once. A
+# serial phase then covers SQL that is *not* a query: the CREATE/DROP TABLE
+# statements the optimizer executes itself, how a rejected query is reported,
+# and the "planonly" protocol flag.
 #
 # Modelled on Optimizer/TestOptServer, which is the other test here that starts
 # a live monitor.
@@ -40,6 +45,14 @@ DBNAME=cstest
 # Override to stress higher locally:
 #   SECONDO_CS_TEST_CLIENTS=50 ./TestClientServer
 NCLIENTS=${SECONDO_CS_TEST_CLIENTS:-25}
+
+# Concurrent clients for the SQL (optimizer) phase. Kept lower than NCLIENTS on
+# purpose: each SQL client makes its server load an in-process SWI-Prolog and the
+# optimizer, so this phase is far heavier (CPU and memory) than the plain-query
+# phase above. The point is still concurrency -- N servers optimizing at once --
+# just bounded so it does not exhaust a CI runner. Override with
+#   SECONDO_CS_TEST_SQL_CLIENTS=25 ./TestClientServer
+NSQLCLIENTS=${SECONDO_CS_TEST_SQL_CLIENTS:-10}
 
 home=$(mktemp -d "${TMPDIR:-/tmp}/TestClientServer.XXXXXX")
 export SECONDO_PARAM_SecondoHome="$home"
@@ -235,7 +248,268 @@ else
 fi
 
 #
-# Phase 3: graceful shutdown. Send the monitor a SIGTERM -- what a service
+# Phase 4: concurrent SQL optimization. The clients above ran executable plans;
+# here they send the SQL dialect (command level 2), which the server optimizes
+# in-process before executing. Each connection forks its own server, so this
+# runs N independent embedded optimizers against the one shared database at
+# once -- the concurrency the embedded optimizer must survive.
+#
+# Skipped, not failed, when the server was built without the optimizer: level 2
+# then returns ERR_OPTIMIZER_NOT_AVAILABLE ("... not available on this server").
+# A serial probe decides which case we are in before the fan-out, so a genuine
+# optimizer regression still fails rather than being mistaken for "not built".
+#
+echo "*** ClientServer test: SQL optimizer probe ***"
+cat >"$home/sqlprobe.sec" <<SQL
+open database $DBNAME;
+sql select * from ten;
+close database;
+q;
+SQL
+SecondoCS -h 127.0.0.1 -p "$SEC_PORT" -i "$home/sqlprobe.sec" \
+  >"$home/sqlprobe.log" 2>&1
+probeRc=$?
+
+# Set once the probe has shown the server really optimizes; the DDL phase below
+# reuses it instead of probing again.
+sqlEnabled=0
+
+if grep -q "not available on this server" "$home/sqlprobe.log"; then
+  echo "SKIP: server has no optimizer (non-optimizer build); skipping SQL phase"
+elif [ "$probeRc" -ne 0 ] \
+     || ! grep -q "successfully processed" "$home/sqlprobe.log" \
+     || ! grep -q "Optimized plan:" "$home/sqlprobe.log" \
+     || ! grep -q "Elem : 10" "$home/sqlprobe.log"; then
+  # The optimizer should be here (no "not available" message) but the probe did
+  # not produce an optimized plan and its result -- a real regression.
+  echo "FAIL: SQL optimizer probe did not return an optimized result"
+  tail -30 "$home/sqlprobe.log"
+  rc=1
+else
+  sqlEnabled=1
+  echo "*** ClientServer test: $NSQLCLIENTS parallel SQL (optimizer) clients ***"
+  declare -a spid src
+  for i in $(seq 1 "$NSQLCLIENTS"); do
+    cat >"$home/s$i.sec" <<SQL
+open database $DBNAME;
+sql select * from ten;
+close database;
+q;
+SQL
+    SecondoCS -h 127.0.0.1 -p "$SEC_PORT" -i "$home/s$i.sec" \
+      >"$home/s$i.log" 2>&1 &
+    spid[$i]=$!
+  done
+
+  for i in $(seq 1 "$NSQLCLIENTS"); do
+    wait "${spid[$i]}" 2>/dev/null
+    src[$i]=$?
+  done
+
+  # As in the plain phase, assert on both exit status and log. "Optimized plan:"
+  # proves the server actually optimized the SQL (not just executed a plan the
+  # client sent), and "Elem : 10" proves that optimized plan then ran and
+  # returned the whole relation.
+  sqlFailed=0
+  for i in $(seq 1 "$NSQLCLIENTS"); do
+    log="$home/s$i.log"
+    if [ "${src[$i]}" -ne 0 ]; then
+      echo "FAIL: SQL client $i exited with ${src[$i]}"
+      sqlFailed=$((sqlFailed + 1))
+    elif ! grep -q "successfully processed" "$log" 2>/dev/null; then
+      echo "FAIL: SQL client $i did not complete its command file"
+      sqlFailed=$((sqlFailed + 1))
+    elif grep -qE "SECONDO-000[0-9]|Error in Secondo|Errors during processing|not available on this server" "$log"; then
+      echo "FAIL: SQL client $i reported an error"
+      sqlFailed=$((sqlFailed + 1))
+    elif ! grep -q "Optimized plan:" "$log"; then
+      echo "FAIL: SQL client $i did not receive an optimized plan"
+      sqlFailed=$((sqlFailed + 1))
+    elif ! grep -q "Elem : 10" "$log"; then
+      echo "FAIL: SQL client $i did not return the expected query result"
+      sqlFailed=$((sqlFailed + 1))
+    fi
+  done
+
+  if [ "$sqlFailed" -gt 0 ]; then
+    echo "*** $sqlFailed/$NSQLCLIENTS SQL clients failed ***"
+    echo "=== first failing SQL client log ==="
+    for i in $(seq 1 "$NSQLCLIENTS"); do
+      if ! grep -q "Optimized plan:" "$home/s$i.log" 2>/dev/null; then
+        tail -30 "$home/s$i.log"; break
+      fi
+    done
+    echo "=== monitor log ==="
+    tail -30 "$home/monitor.log"
+    rc=1
+  else
+    echo "OK: $NSQLCLIENTS/$NSQLCLIENTS SQL clients optimized and ran concurrently"
+  fi
+fi
+
+#
+# Phase 5: SQL DDL round-trip through the optimizer. Deliberately serial and a
+# single client -- the concurrency this test exists for is covered by phase 4;
+# what is new here is the *shape* of the commands.
+#
+# "create table" and "drop table" are not optimized into a plan: the optimizer
+# carries them out itself and yields the sentinel "done" instead of a plan
+# (sqlToPlan2, Optimizer/optimizerNewProperties.pl), which the client reports as
+# "Executed by the optimizer (no plan to run)." Executing "done" as a query
+# ("query done") was a real bug, so assert the sentinel is honoured.
+#
+# The "select count(*)" in between is the point of the phase: it can only be
+# optimized if the optimizer re-read the catalog after the CREATE. The server
+# caches the schema and returns early when the database is already loaded, so
+# without the post-DDL refresh (embeddedOptimizerSqlChangesCatalog /
+# embeddedOptimizerRefreshCatalog) the new table is invisible and the
+# optimization fails.
+#
+if [ "$sqlEnabled" -eq 1 ]; then
+  echo "*** ClientServer test: SQL DDL round-trip (create/select/drop) ***"
+  cat >"$home/sqlddl.sec" <<SQL
+open database $DBNAME;
+create table tmptab columns [no: int, name: string];
+select count(*) from tmptab;
+drop table tmptab;
+close database;
+q;
+SQL
+  SecondoCS -h 127.0.0.1 -p "$SEC_PORT" -i "$home/sqlddl.sec" \
+    >"$home/sqlddl.log" 2>&1
+  ddlRc=$?
+
+  ddlFailed=0
+  if [ "$ddlRc" -ne 0 ]; then
+    echo "FAIL (ddl): client exited with $ddlRc"
+    ddlFailed=1
+  elif ! grep -q "successfully processed" "$home/sqlddl.log"; then
+    echo "FAIL (ddl): client did not complete its command file"
+    ddlFailed=1
+  elif grep -qE "SECONDO-000[0-9]|Error in Secondo|Errors during processing|not available on this server" "$home/sqlddl.log"; then
+    echo "FAIL (ddl): client reported an error"
+    ddlFailed=1
+  elif [ "$(grep -c "Executed by the optimizer" "$home/sqlddl.log")" -ne 2 ]; then
+    # Once for CREATE TABLE, once for DROP TABLE.
+    echo "FAIL (ddl): CREATE/DROP were not reported as executed by the optimizer"
+    ddlFailed=1
+  elif ! grep -qE "Optimized plan:.*Tmptab.*count" "$home/sqlddl.log"; then
+    # The plan must name the freshly created relation -- proof the optimizer's
+    # catalog picked the CREATE up.
+    echo "FAIL (ddl): SELECT on the new table was not optimized (stale catalog?)"
+    ddlFailed=1
+  elif ! grep -qE "^[[:space:]]*0[[:space:]]*$" "$home/sqlddl.log"; then
+    # "count(*)" on the empty table must return 0, i.e. the plan really ran.
+    echo "FAIL (ddl): SELECT did not return the expected count"
+    ddlFailed=1
+  fi
+
+  if [ "$ddlFailed" -ne 0 ]; then
+    tail -40 "$home/sqlddl.log"
+    rc=1
+  else
+    echo "OK (ddl): create table / select / drop table round-trip"
+  fi
+fi
+
+#
+# Phase 6: optimizer error reporting. A query the optimizer must reject has to
+# come back as a readable sentence, not as the raw Prolog encoding.
+#
+# The optimizer reports failures as "::ERROR::" plus the message written back as
+# a term (term_to_atom in sqlToPlan/3), i.e. quoted and escaped:
+#
+#   '\n\nSQL ERROR (usually a user error): Unknown symbol: \'x\' is not ...'
+#
+# The server decodes that (prologQuotedToPlain, UserInterfaces/SecondoPL.cpp) so
+# no client has to. Assert both halves: the sentence is there, and none of the
+# encoding survived -- a regression would still "surface an error", just an
+# unreadable one, which the presence check alone would not catch.
+#
+# Unlike the phases above this client is *expected* to fail its command file
+# (the rejected query makes the TTY exit non-zero), so only the log is asserted.
+#
+if [ "$sqlEnabled" -eq 1 ]; then
+  echo "*** ClientServer test: optimizer error reporting ***"
+  cat >"$home/sqlerr.sec" <<SQL
+open database $DBNAME;
+select nonexistingattr from ten;
+close database;
+q;
+SQL
+  SecondoCS -h 127.0.0.1 -p "$SEC_PORT" -i "$home/sqlerr.sec" \
+    >"$home/sqlerr.log" 2>&1
+
+  errFailed=0
+  if ! grep -q "Optimization failed:" "$home/sqlerr.log"; then
+    echo "FAIL (error): the rejected query did not report an optimizer error"
+    errFailed=1
+  elif ! grep -qF "SQL ERROR (usually a user error): Unknown symbol: 'nonexistingattr'" \
+                 "$home/sqlerr.log"; then
+    echo "FAIL (error): the optimizer error message is not the decoded text"
+    errFailed=1
+  elif grep "Optimization failed:" "$home/sqlerr.log" | grep -qF '\n'; then
+    # A literal backslash-n means the term_to_atom encoding was passed through.
+    echo "FAIL (error): the optimizer error message is still Prolog-escaped"
+    errFailed=1
+  fi
+
+  if [ "$errFailed" -ne 0 ]; then
+    grep -n "Optimization failed:" "$home/sqlerr.log" | head -5
+    tail -20 "$home/sqlerr.log"
+    rc=1
+  else
+    echo "OK (error): optimizer error reported as plain text"
+  fi
+fi
+
+#
+# Phase 7: plan-only. "optimizer <sql>" sends the same SQL with the "planonly"
+# protocol flag, so the server optimizes but does not execute.
+#
+# The oracle is the *same* query phase 4 runs: there it must produce "Elem : 10"
+# (the last tuple of ten), here that output must be absent while the plan is
+# still reported. A flag that silently did nothing would pass a plan check
+# alone, so the negative assertion is the one that matters.
+#
+if [ "$sqlEnabled" -eq 1 ]; then
+  echo "*** ClientServer test: plan-only (optimizer prefix) ***"
+  cat >"$home/sqlplan.sec" <<SQL
+open database $DBNAME;
+optimizer select * from ten;
+close database;
+q;
+SQL
+  SecondoCS -h 127.0.0.1 -p "$SEC_PORT" -i "$home/sqlplan.sec" \
+    >"$home/sqlplan.log" 2>&1
+  planRc=$?
+
+  planFailed=0
+  if [ "$planRc" -ne 0 ]; then
+    echo "FAIL (planonly): client exited with $planRc"
+    planFailed=1
+  elif ! grep -q "Optimized plan:" "$home/sqlplan.log"; then
+    echo "FAIL (planonly): no plan was reported"
+    planFailed=1
+  elif ! grep -q "Plan only" "$home/sqlplan.log"; then
+    echo "FAIL (planonly): the plan was not reported as unexecuted"
+    planFailed=1
+  elif grep -q "Elem : 10" "$home/sqlplan.log"; then
+    # The very output phase 4 requires -- here it means the plan ran anyway.
+    echo "FAIL (planonly): the plan was executed despite the planonly flag"
+    planFailed=1
+  fi
+
+  if [ "$planFailed" -ne 0 ]; then
+    tail -30 "$home/sqlplan.log"
+    rc=1
+  else
+    echo "OK (planonly): plan reported, query not executed"
+  fi
+fi
+
+#
+# Phase 8: graceful shutdown. Send the monitor a SIGTERM -- what a service
 # manager or a CTRL+C does -- and assert the whole tree comes down cleanly:
 #   * the monitor exits rather than hanging (it used to deadlock in BerkeleyDB
 #     teardown run from its signal handler, roughly two shutdowns in three),
@@ -278,7 +552,7 @@ else
 fi
 
 #
-# Phase 4: hard kill. A kill -9 of the monitor never runs Terminate(), so the
+# Phase 9: hard kill. A kill -9 of the monitor never runs Terminate(), so the
 # only thing that can bring its children down is PR_SET_PDEATHSIG, armed in each
 # child at spawn. Start a fresh monitor -- no clients needed, the registrar,
 # checkpoint and listener are what must not be orphaned -- SIGKILL it, and

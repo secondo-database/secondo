@@ -220,6 +220,29 @@ public:
 
    std::string getHome();
 
+   // Asks the connected server whether the optimizer (SQL dialect, command
+   // level 2) is available (compiled in and enabled for that server).
+   bool optimizerAvailable();
+
+   // Sends an SQL-dialect command (command level 2). The server optimizes it
+   // and answers with the list (plan result costs). With planOnly the
+   // "planonly" protocol flag is sent along and the server stops after
+   // optimizing: the plan and its costs come back, the result half is empty.
+   // (A create/drop is carried out by the optimizer while translating, so
+   // planOnly cannot suppress those.)
+   void SecondoSql( const std::string& sql,
+                    const bool planOnly,
+                    ListExpr& resultList,
+                    int& errorCode,
+                    int& errorPos,
+                    std::string& errorMessage );
+
+   // Runs an optimizer control directive (a Prolog goal such as "showOptions",
+   // "setOption(subqueries)", "delOption(...)", "updateCatalog") in the
+   // server's embedded optimizer and returns the text the directive prints.
+   // On error the returned string carries the server's error message.
+   std::string optimizerCommand(const std::string& directive);
+
    std::string getHost() const;
 
    std::string getConnectionInfo() const;
@@ -268,6 +291,10 @@ public:
      std::string user;
      std::string pswd;
      bool multiUser;
+     // Protocol flag for the command currently being sent: ask the server to
+     // optimize the SQL but not to execute the plan. Set and cleared by
+     // SecondoSql, never sticky.
+     bool sqlPlanOnly;
      std::vector<MessageHandler*> messageListener;
 
      std::ostream* traceSocketIn;

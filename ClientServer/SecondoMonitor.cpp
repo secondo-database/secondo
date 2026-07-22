@@ -643,6 +643,15 @@ int main( const int argc, const char* argv[] )
         execute = true;
         autostartup = true;
         pos++;
+#ifndef NO_OPTIMIZER
+     } else if (arg == "--no-optimizer") {
+        // Disable the server-side SQL optimizer for the servers this monitor
+        // forks. They read SECONDO_PARAM_EnableOptimizer (an env override of
+        // the config parameter Environment/EnableOptimizer) and inherit this
+        // monitor's environment.
+        setenv("SECONDO_PARAM_EnableOptimizer", "false", 1);
+        pos++;
+#endif
      } else if (arg == "--help") {
        // list allowed arguments
        cout << "Usage: " << argv[0]
@@ -650,6 +659,9 @@ int main( const int argc, const char* argv[] )
        cout << "Options:" << endl;
        cout << "   --help           Display this information and exit" << endl;
        cout << "   -s or --startup  Run Startup command automatically" << endl;
+       #ifndef NO_OPTIMIZER
+       cout << "   --no-optimizer  Disable the server-side optimizer " << endl;
+       #endif
        cout << "   -V or --version  Display version information and exit"
         << endl << endl;
        cout << "The following parameters may be combined with \"-s\":" << endl;
@@ -683,9 +695,19 @@ int main( const int argc, const char* argv[] )
   }
 
   if(execute){
-     SecondoMonitor* appPointer = new SecondoMonitor( argc, argv );
+     // Strip monitor-only flags handled above (via the environment) from the
+     // argv before it reaches the configuration parser (TTYParameter), which
+     // would otherwise reject them as invalid parameters.
+     const char** monArgv = new const char*[argc];
+     int monArgc = 0;
+     for (int i = 0; i < argc; i++) {
+       if (string(argv[i]) == "--no-optimizer") continue;
+       monArgv[monArgc++] = argv[i];
+     }
+     SecondoMonitor* appPointer = new SecondoMonitor( monArgc, monArgv );
      int rc = appPointer->Execute(autostartup);
      delete appPointer;
+     delete[] monArgv;
      return (rc);
   }else{
      return 0;

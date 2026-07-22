@@ -51,7 +51,12 @@ export OptMsg := "true"
 endif
 
 ifeq ($(optimizer),"true")
-OPTIMIZER_SERVER := optserver
+# When the optimizer is compiled in, the default build must also generate the
+# concatenated optimizer program (Optimizer/optimizer). It is consulted at
+# runtime -- not only by the OptServer, but now also by the kernel server and
+# the TTY, which embed the optimizer to run the SQL dialect. optimizer2 builds
+# it; optserver builds JPL and the (still optional) Java OptServer.
+OPTIMIZER_SERVER := optimizer2 optserver
 AUXLIBS := $(SECONDO_SDK)/auxtools/lib
 
 
