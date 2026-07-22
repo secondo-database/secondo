@@ -77,7 +77,8 @@ Without `--install-deps`, the build dependencies (the `Build-Depends` of
 Installs the package from `packaging/debian/out` in a pristine container and runs
 SECONDO in it as a normal user: it runs `secondo_installer.sh`, sources the
 generated `~/.secondorc`, and queries the shipped `opt` database through
-`SecondoTTYBDB` and through the optimizer (`SecondoPLTTY`).
+`SecondoTTYBDB` — both an executable-plan query and an SQL-dialect query, the
+latter optimized in-process by the embedded optimizer.
 
 The container has nothing but the package — no build tree, no build dependencies.
 Everything SECONDO needs the package has to bring itself or to declare in its

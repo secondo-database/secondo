@@ -69,10 +69,11 @@ count() { sed -n 's/^[[:space:]]*\([0-9][0-9]*\)[[:space:]]*$/\1/p' | tail -1; }
 echo "TTYBDB_COUNT=$(printf "restore database opt from '/opt/secondo/bin/opt';\nquery ten count;\nquit;\n" \
    | SecondoTTYBDB 2>&1 | count)"
 
-# The embedded SWI-Prolog optimizer. This is what breaks when the launchers do
-# not match the installed SWI-Prolog.
-echo "PLTTY_COUNT=$(printf "open database opt;\nselect count(*) from ten;\nquit.\n" \
-   | SecondoPLTTY 2>&1 | count)"
+# The embedded SWI-Prolog optimizer, now driven directly from the regular TTY:
+# a leading "select" (or "sql") is optimized in-process. This is what breaks
+# when the optimizer does not match the installed SWI-Prolog.
+echo "PLTTY_COUNT=$(printf "open database opt;\nselect count(*) from ten;\nquit;\n" \
+   | SecondoTTYBDB 2>&1 | count)"
 USER_TESTS
 
 result() { sed -n "s/^$1=//p" /tmp/user-tests.log | tail -1; }
@@ -84,7 +85,7 @@ check "~/.secondorc sources cleanly under set -e" "yes" \
 check "JPL library exists at the detected path" "yes" "$(result JPL_DLL_EXISTS)"
 check "Java GUI is shipped"                     "yes" "$(result JAVAGUI)"
 check "SecondoTTYBDB: query ten count"          "10"  "$(result TTYBDB_COUNT)"
-check "SecondoPLTTY: select count(*) from ten"  "10"  "$(result PLTTY_COUNT)"
+check "SecondoTTYBDB: select count(*) from ten (embedded optimizer)" "10" "$(result PLTTY_COUNT)"
 
 if [ "$failed" -ne 0 ]; then
    echo

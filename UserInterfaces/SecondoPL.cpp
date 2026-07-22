@@ -1371,3 +1371,552 @@ int registerSecondo(){
 }
 
 
+/*
+
+10. Embedding the optimizer into an already running SECONDO process
+
+The following functions let a server process (a forked ~SecondoBDB -srv~) run
+the optimizer in-process, so it can accept the SQL dialect over the network and
+turn it into an executable plan. In contrast to ~registerSecondo~ they do NOT
+create a second ~SecondoInterface~/SMI environment: the server hands us its own
+interface, which the optimizer's ~secondo/2~ callbacks then reuse for catalog
+and statistics access against the very database the plan will run on.
+
+*/
+
+static bool embeddedOptimizerInitialized = false;
+
+bool embeddedOptimizerReady() {
+  return embeddedOptimizerInitialized;
+}
+
+bool initEmbeddedOptimizer(SecondoInterface* serverSi) {
+  if ( embeddedOptimizerInitialized ) {
+    return true;
+  }
+  if ( serverSi == 0 ) {
+    return false;
+  }
+
+  // Reuse the server's interface for the optimizer's secondo/2 callbacks
+  // instead of opening a second SMI environment.
+  si = serverSi;
+  plnl = serverSi->GetNestedList();
+  NList::setNLRef(plnl);
+
+  // Register the foreign predicates (secondo/2, getCosts, ...).
+  PL_register_extensions(predicates);
+
+  // Start the Prolog engine once for this process.
+  char* plav[2];
+  plav[0] = (char*) "SecondoBDB";
+  plav[1] = NULL;
+  if ( !PL_initialise(1, plav) ) {
+    si = 0;
+    plnl = 0;
+    return false;
+  }
+
+  // Force the Prolog libraries to be loaded (see SecondoPLMode).
+  {
+    term_t t0 = PL_new_term_refs(2);
+    PL_put_atom_chars(t0, "x");
+    if ( !PL_put_list_chars(t0 + 1, "") ) {
+      cerr << "SecondoPL: problem initializing the prolog interface" << endl;
+    }
+    predicate_t p = PL_predicate("member", 2, "");
+    PL_call_predicate(NULL, PL_Q_NORMAL, p, t0);
+  }
+
+  // Preload library(error) before restricting autoloading below. SWI's
+  // listing.pl (pulled in while the optimizer loads) uses error:must_be/2 at
+  // term-expansion time; with autoloading restricted to the user module that
+  // predicate would otherwise fail to resolve and spam "exception handler
+  // failed to define error:must_be/2" errors during optimizer startup.
+  {
+    term_t errLib = PL_new_term_ref();
+    term_t errArg = PL_new_term_ref();
+    PL_put_atom_chars(errArg, "error");
+    if ( PL_cons_functor(errLib, PL_new_functor(PL_new_atom("library"), 1),
+                         errArg) ) {
+      predicate_t useModule = PL_predicate("use_module", 1, "");
+      PL_call_predicate(NULL, PL_Q_NORMAL, useModule, errLib);
+    }
+  }
+
+#if PLVERSION > 80000
+  // Restrict autoloading for SWI-Prolog 8.x/9.x compatibility.
+  {
+    term_t t = PL_new_term_refs(2);
+    PL_put_atom_chars(t, "autoload");
+    PL_put_atom_chars(t + 1, "user");
+    predicate_t p = PL_predicate("set_prolog_flag", 2, "");
+    PL_call_predicate(NULL, PL_Q_NORMAL, p, t);
+  }
+#endif
+
+  // The optimizer program lives in $SECONDO_BUILD_DIR/Optimizer and consults
+  // its parts relative to that directory. A forked server runs in bin/, so
+  // steer Prolog's working directory there (without changing the process CWD,
+  // which would disturb the storage manager).
+  const char* buildDir = getenv("SECONDO_BUILD_DIR");
+  if ( buildDir != 0 ) {
+    string optDir = string(buildDir) + "/Optimizer";
+    term_t t = PL_new_term_refs(2);
+    PL_put_variable(t);
+    PL_put_atom_chars(t + 1, optDir.c_str());
+    predicate_t p = PL_predicate("working_directory", 2, "");
+    PL_call_predicate(NULL, PL_Q_NORMAL, p, t);
+  }
+
+  // Load the optimizer.
+  {
+    term_t a0 = PL_new_term_refs(1);
+    predicate_t p = PL_predicate("consult", 1, "");
+    PL_put_atom_chars(a0, "auxiliary");
+    PL_call_predicate(NULL, PL_Q_NORMAL, p, a0);
+    PL_put_atom_chars(a0, "calloptimizer");
+    PL_call_predicate(NULL, PL_Q_NORMAL, p, a0);
+  }
+
+  embeddedOptimizerInitialized = true;
+  return true;
+}
+
+// Run the optimizer's own secondo/1 predicate (auxiliary.pl) with a single
+// command atom. Unlike the foreign secondo/2, this clause also maintains the
+// optimizer's databaseName fact and catalog on "open database" / "close
+// database". Returns true if the goal succeeded.
+static bool runOptimizerSecondo1(const string& command) {
+  fid_t fid = PL_open_foreign_frame();
+  term_t a = PL_new_term_refs(1);
+  PL_put_atom_chars(a, command.c_str());
+  predicate_t p = PL_predicate("secondo", 1, "");
+  int rc = PL_call_predicate(NULL, PL_Q_CATCH_EXCEPTION, p, a);
+  PL_discard_foreign_frame(fid);
+  return rc != 0;
+}
+
+// True if the optimizer already tracks database dbLower (its databaseName fact,
+// which it stores lower-cased).
+static bool optimizerHasDatabase(const string& dbLower) {
+  fid_t fid = PL_open_foreign_frame();
+  term_t a = PL_new_term_refs(1);
+  PL_put_atom_chars(a, dbLower.c_str());
+  predicate_t p = PL_predicate("databaseName", 1, "");
+  int rc = PL_call_predicate(NULL, PL_Q_CATCH_EXCEPTION, p, a);
+  PL_discard_foreign_frame(fid);
+  return rc != 0;
+}
+
+bool embeddedOptimizerUseDatabase(const string& dbName) {
+  if ( !embeddedOptimizerInitialized ) {
+    return false;
+  }
+  string dbLower = dbName;
+  for ( size_t i = 0; i < dbLower.size(); i++ ) {
+    dbLower[i] = tolower((unsigned char) dbLower[i]);
+  }
+  if ( optimizerHasDatabase(dbLower) ) {
+    return true;  // schema already loaded for this database
+  }
+  // The database is open at the kernel, but the optimizer has not loaded its
+  // schema. Drive the optimizer's open-database logic (which asserts
+  // databaseName and runs updateCatalog) exactly as the OptServer does: close
+  // the currently open database, then reopen it through the optimizer. The
+  // database ends up open again, transparently to the client.
+  runOptimizerSecondo1("close database");
+  runOptimizerSecondo1(string("open database ") + dbName);
+  return optimizerHasDatabase(dbLower);
+}
+
+/*
+SQL text normalization. The clients used to do this each for themselves (the
+JavaGUI in ~rewriteForOptimizer~/~varToLowerCase~/~replacePoint~), which made the
+accepted syntax depend on which client you used. Now that the SQL is optimized
+server side it belongs here, so every client -- TTY, GUI, WebUI, JDBC -- accepts
+the same input.
+
+*/
+
+static bool isIdentChar(char c) {
+  return isalnum((unsigned char) c) || c == '_';
+}
+
+// The optimizer turns identifiers into Prolog atoms, which must start lower
+// case. Lower-case the FIRST character of each identifier only (the rest is
+// left alone, exactly as the JavaGUI does). Quoted strings ("...") and text
+// constants ('...') are never touched.
+static string sqlIdentsToLower(const string& str) {
+  string buf;
+  buf.reserve(str.size());
+  int state = 0;   // 0 outside, 1 in "..", 2 in '..', 3 inside an identifier
+  for ( size_t i = 0; i < str.size(); i++ ) {
+    char c = str[i];
+    switch ( state ) {
+      case 1:
+        if ( c == '"' )  { state = 0; }
+        buf += c;
+        break;
+      case 2:
+        if ( c == '\'' ) { state = 0; }
+        buf += c;
+        break;
+      case 3:
+        if ( isIdentChar(c) ) {
+          buf += c;
+        } else {
+          buf += c;
+          if      ( c == '"' )  { state = 1; }
+          else if ( c == '\'' ) { state = 2; }
+          else                  { state = 0; }
+        }
+        break;
+      default:
+        if ( c == '"' )  { state = 1; buf += c; }
+        else if ( c == '\'' ) { state = 2; buf += c; }
+        else if ( isalpha((unsigned char) c) ) {
+          buf += (char) tolower((unsigned char) c);
+          state = 3;
+        }
+        else { buf += c; }
+        break;
+    }
+  }
+  return buf;
+}
+
+// Users commonly write attribute access as "r.name"; the SQL dialect spells it
+// "r:name". Replace a '.' that sits directly inside an identifier and is
+// followed by a letter -- so decimal numbers such as 3.14 stay untouched.
+static string sqlDotToColon(const string& str) {
+  string buf;
+  buf.reserve(str.size());
+  int state = 0;   // 0 outside, 1 in "..", 2 in '..', 3 inside an identifier
+  for ( size_t i = 0; i < str.size(); i++ ) {
+    char c = str[i];
+    switch ( state ) {
+      case 1:
+        if ( c == '"' )  { state = 0; }
+        buf += c;
+        break;
+      case 2:
+        if ( c == '\'' ) { state = 0; }
+        buf += c;
+        break;
+      case 3:
+        if ( isIdentChar(c) ) { buf += c; }
+        else if ( c == '"' )  { state = 1; buf += c; }
+        else if ( c == '\'' ) { state = 2; buf += c; }
+        else if ( c == '.' ) {
+          if ( i + 1 < str.size() && isalpha((unsigned char) str[i+1]) ) {
+            buf += ':';
+          } else {
+            buf += c;
+          }
+          state = 0;
+        }
+        else { buf += c; state = 0; }
+        break;
+      default:
+        if ( c == '"' )  { state = 1; buf += c; }
+        else if ( c == '\'' ) { state = 2; buf += c; }
+        else if ( isalpha((unsigned char) c) ) { state = 3; buf += c; }
+        else { buf += c; }
+        break;
+    }
+  }
+  return buf;
+}
+
+static string normalizeSqlText(const string& sql) {
+  return sqlDotToColon( sqlIdentsToLower( sql ) );
+}
+
+// Lower-cased first whitespace/'('-delimited token of cmd ("" if none).
+static string firstToken(const string& cmd) {
+  size_t s = cmd.find_first_not_of(" \t\n\r\f\v");
+  if ( s == string::npos ) {
+    return "";
+  }
+  size_t e = s;
+  while ( e < cmd.size() && isalpha((unsigned char) cmd[e]) ) {
+    e++;
+  }
+  string tok = cmd.substr(s, e - s);
+  for ( size_t i = 0; i < tok.size(); i++ ) {
+    tok[i] = tolower((unsigned char) tok[i]);
+  }
+  return tok;
+}
+
+// Recognize "let <ident> = <select|union|intersection> ...". Only the SQL
+// on the right-hand side can be optimized; the generated plan is re-wrapped
+// as "let <ident> = <plan>" afterwards. The identifier keeps its spelling
+// (it names the object being created), so it is split off before normalization.
+static bool splitLetPrefix(const string& sql, string& ident, string& rest) {
+  size_t p = sql.find_first_not_of(" \t\n\r\f\v");
+  if ( p == string::npos || sql.compare(p, 3, "let") != 0 ) {
+    return false;
+  }
+  size_t q = p + 3;
+  if ( q >= sql.size() || !isspace((unsigned char) sql[q]) ) {
+    return false;
+  }
+  q = sql.find_first_not_of(" \t\n\r\f\v", q);
+  if ( q == string::npos || !isalpha((unsigned char) sql[q]) ) {
+    return false;
+  }
+  size_t idStart = q;
+  while ( q < sql.size() && isIdentChar(sql[q]) ) {
+    q++;
+  }
+  string id = sql.substr(idStart, q - idStart);
+  q = sql.find_first_not_of(" \t\n\r\f\v", q);
+  if ( q == string::npos || sql[q] != '=' ) {
+    return false;
+  }
+  q = sql.find_first_not_of(" \t\n\r\f\v", q + 1);
+  if ( q == string::npos ) {
+    return false;
+  }
+  string tail = sql.substr(q);
+  string tok = firstToken(tail);
+  if ( tok != "select" && tok != "union" && tok != "intersection" ) {
+    return false;   // not an SQL right-hand side: leave it to the kernel
+  }
+  ident = id;
+  rest = tail;
+  return true;
+}
+
+bool embeddedOptimizerSqlChangesCatalog(const string& sql) {
+  string ident = "", rest = "";
+  if ( splitLetPrefix( sql, ident, rest ) ) {
+    return true;             // "let X = select ..." creates a new object
+  }
+  string first = firstToken( sql );
+  if ( first == "drop" ) {
+    return true;             // drop table/index
+  }
+  if ( first == "create" ) {
+    return true;             // create table/index
+  }
+  return false;
+}
+
+bool embeddedOptimizerRefreshCatalog(string& errMsg) {
+  string output = "";
+  return embeddedOptimizerRunGoal( "updateCatalog", output, errMsg );
+}
+
+/*
+~sqlToPlan/3~ reports a failure as the atom ~::ERROR::~ followed by the message
+*written back as a Prolog term* (~term\_to\_atom/2~), so what arrives here is
+quoted and escaped, e.g.
+
+----
+'\\n\\nSQL ERROR (usually a user error): Unknown symbol: \\'x\\' is not recognized!'
+----
+
+Undo that by reading the text back as a term and taking its text: that reverses
+~writeq~ exactly, whatever escapes it used. Only the Secondo Javagui ever
+decoded this (its ~formatOptimizerError~ hand-rolled four of the escapes), so
+every other client printed the raw form; doing it here gives all of them --
+GUI, JDBC, both TTYs -- a readable message and keeps the decoding in one place.
+
+*/
+static string prologQuotedToPlain(const string& quoted) {
+  string plain = quoted;
+
+  fid_t fid = PL_open_foreign_frame();
+  term_t t = PL_new_term_ref();
+  // PL_chars_to_term expects a term closed by a full stop, as in
+  // embeddedOptimizerRunGoal below.
+  string readable = quoted + " .";
+  char* text = 0;
+  if ( PL_chars_to_term( readable.c_str(), t )
+       && PL_get_chars( t, &text, CVT_ATOM | CVT_STRING ) ) {
+    plain = text;
+  } else {
+    // A syntax error leaves an exception pending; drop it so it cannot
+    // surface at the next Prolog call.
+    PL_clear_exception();
+  }
+  PL_discard_foreign_frame(fid);
+
+  size_t b = plain.find_first_not_of(" \t\r\n");
+  if ( b == string::npos ) {
+    return quoted;                     // nothing but whitespace: keep the raw
+  }
+  size_t e = plain.find_last_not_of(" \t\r\n");
+  return plain.substr(b, e - b + 1);
+}
+
+bool embeddedSqlToPlan(const string& sql, string& plan, double& costs,
+                       string& errMsg, bool& alreadyExecuted) {
+  plan = "";
+  costs = 0.0;
+  errMsg = "";
+  alreadyExecuted = false;
+  if ( !embeddedOptimizerInitialized ) {
+    errMsg = "optimizer not initialized";
+    return false;
+  }
+
+  // "let <ident> = <sql>": optimize only the right-hand side and re-wrap below.
+  string letIdent = "", sqlPart = sql;
+  bool isLet = splitLetPrefix( sql, letIdent, sqlPart );
+
+  string normalized = normalizeSqlText( sqlPart );
+
+  fid_t fid = PL_open_foreign_frame();
+  term_t a0 = PL_new_term_refs(3);      // a0 = sql, a0+1 = plan, a0+2 = costs
+  PL_put_atom_chars(a0, normalized.c_str());
+  predicate_t p = PL_predicate("sqlToPlan", 3, "");
+  bool ok = true;
+  // Decoded only after the query is closed, so the nested read stays
+  // outside it.
+  string rawError = "";
+  bool haveRawError = false;
+
+  try {
+    qid_t id = PL_open_query(NULL, PL_Q_CATCH_EXCEPTION, p, a0);
+    if ( PL_next_solution(id) ) {
+      char* res = 0;
+      if ( PL_get_atom_chars(a0 + 1, &res) ) {
+        string answer(res);
+        if ( answer.compare(0, 9, "::ERROR::") == 0 ) {
+          rawError = answer.substr(9);
+          haveRawError = true;
+          ok = false;
+        } else {
+          // sqlToPlan yields the estimate as a Prolog number -- an integer 0
+          // where it has none, a float otherwise -- and PL_get_float reads
+          // both. A non-number would be a contract violation; leave costs at
+          // 0.0 rather than failing the optimization over it.
+          double c = 0.0;
+          if ( PL_get_float(a0 + 2, &c) ) {
+            costs = c;
+          }
+          if ( answer == "done" ) {
+            // A create/drop command: the optimizer already executed it and
+            // there is no plan to run. Keep the sentinel for the wire.
+            plan = "done";
+            alreadyExecuted = true;
+          } else {
+            // sqlToPlan returns a bare plan expression; make it a command.
+            plan = isLet ? ("let " + letIdent + " = " + answer)
+                         : ("query " + answer);
+          }
+        }
+      } else {
+        errMsg = "optimization failed";
+        ok = false;
+      }
+    } else {
+      errMsg = "optimization failed (no plan found)";
+      ok = false;
+    }
+    PL_close_query(id);
+  } catch (...) {
+    errMsg = "exception during optimization";
+    ok = false;
+    haveRawError = false;
+  }
+
+  if ( haveRawError ) {
+    errMsg = prologQuotedToPlain( rawError );
+  }
+
+  PL_discard_foreign_frame(fid);
+  return ok;
+}
+
+bool embeddedOptimizerRunGoal(const string& goal, string& output,
+                              string& errMsg) {
+  output = "";
+  errMsg = "";
+  if ( !embeddedOptimizerInitialized ) {
+    errMsg = "optimizer not initialized";
+    return false;
+  }
+
+  // PL_chars_to_term expects a term closed by a full stop. Trim trailing
+  // whitespace and a single trailing '.'/';' (the TTY delimiter), then append
+  // the terminator ourselves so callers can pass "showOptions",
+  // "setOption(subqueries)", "showOptions." or "showOptions;" alike.
+  string goalText = goal;
+  while ( !goalText.empty()
+          && (goalText[goalText.size()-1] == '\n'
+              || goalText[goalText.size()-1] == '\r'
+              || goalText[goalText.size()-1] == '\t'
+              || goalText[goalText.size()-1] == ' ') ) {
+    goalText.erase(goalText.size()-1);
+  }
+  if ( !goalText.empty()
+       && (goalText[goalText.size()-1] == '.'
+           || goalText[goalText.size()-1] == ';') ) {
+    goalText.erase(goalText.size()-1);
+  }
+  if ( goalText.empty() ) {
+    errMsg = "empty optimizer directive";
+    return false;
+  }
+  goalText += " .";
+
+  fid_t fid = PL_open_foreign_frame();
+  bool ok = true;
+
+  try {
+    // Build with_output_to(string(S), Goal) so the directive's write/1 output
+    // (the showOptions listing, the setOption/delOption confirmation lines) is
+    // captured into S instead of going to the server/standalone stdout.
+    term_t args = PL_new_term_refs(2);   // args+0 = string(S), args+1 = Goal
+    term_t sVar = PL_new_term_ref();     // S (unbound; bound to the output)
+    if ( !PL_cons_functor(args, PL_new_functor(PL_new_atom("string"), 1),
+                          sVar) ) {
+      errMsg = "internal error building output sink";
+      PL_discard_foreign_frame(fid);
+      return false;
+    }
+    if ( !PL_chars_to_term(goalText.c_str(), args + 1) ) {
+      errMsg = "could not parse optimizer directive";
+      PL_discard_foreign_frame(fid);
+      return false;
+    }
+
+    predicate_t p = PL_predicate("with_output_to", 2, "");
+    qid_t id = PL_open_query(NULL, PL_Q_CATCH_EXCEPTION, p, args);
+    int rc = PL_next_solution(id);
+
+    // Read the captured output regardless of success/failure.
+    char* out = 0;
+    if ( PL_get_chars(sVar, &out, CVT_ALL) ) {
+      output = out;
+    }
+    if ( rc == 0 ) {
+      ok = false;
+      term_t ex = PL_exception(id);
+      if ( ex ) {
+        char* exChars = 0;
+        if ( PL_get_chars(ex, &exChars, CVT_WRITE) ) {
+          errMsg = exChars;
+        } else {
+          errMsg = "optimizer directive raised an exception";
+        }
+      } else if ( output.empty() ) {
+        errMsg = "optimizer directive failed";
+      }
+    }
+    PL_close_query(id);
+  } catch (...) {
+    errMsg = "exception during optimizer directive";
+    ok = false;
+  }
+
+  PL_discard_foreign_frame(fid);
+  return ok;
+}
+
+

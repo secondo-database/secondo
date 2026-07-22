@@ -106,6 +106,7 @@ makefile.algebras
 /OptParser/scanner.c
 /Optimizer/libregSecondo.so
 /Optimizer/libregSecondo.jnilib
+/Optimizer/optimizer
 /Optimizer/opsyntaxg.pl
 /Optimizer/tmp/
 /Optimizer/.secondopltty_history
@@ -126,6 +127,7 @@ makefile.algebras
 /Optimizer/TestOptimizer.log
 /OptimizerBasic/libregSecondo.so
 /OptimizerBasic/libregSecondo.jnilib
+/Optimizer/temp_nested_list/
 
 /bin/*.jpg
 /bin/*.dbf

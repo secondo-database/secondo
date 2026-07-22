@@ -9,7 +9,7 @@
 # build directory.
 #
 # This script is installed under the name of every optimizer tool (SecondoPL,
-# SecondoPLTTY, StartOptServer, ...). The name it is called by selects the
+# SecondoPLNT, StartOptServer, ...). The name it is called by selects the
 # launcher of the SECONDO sources that is executed -- those launchers know how
 # to start their tool (which SWI-Prolog stack options the installed swipl
 # understands, for example), and this script must not repeat that knowledge.

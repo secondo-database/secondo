@@ -35,8 +35,7 @@ DESTDIR := $(CURDIR)/debian/secondo
 PREFIX := $(DESTDIR)/opt/secondo
 
 # The tools of Optimizer/ that the package makes available in /opt/secondo/bin.
-OPTIMIZER_TOOLS := SecondoPL SecondoPLCS SecondoPLNT SecondoPLTTY \
-                   SecondoPLTTYCS SecondoPLTTYNT StartOptServer
+OPTIMIZER_TOOLS := SecondoPL SecondoPLNT StartOptServer
 
 %:
 	dh $@

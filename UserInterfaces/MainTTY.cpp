@@ -60,7 +60,6 @@ extern int SecondoTestRunner(const TTYParameter&);
 
 #ifndef NO_OPTIMIZER
 extern int SecondoPLMode(TTYParameter&);
-extern int SecondoPLTTYMode(TTYParameter&);
 #endif
 
 #ifndef SEC_TTYCS
@@ -141,15 +140,15 @@ main( const int argc, char* argv[] )
   ProgMesHandler* pmh = new ProgMesHandler();
   msg->AddHandler(pmh);
 
-#ifdef SECONDO_PL 
+// -pl starts the raw Prolog shell (used for optimizer development). It is only
+// meaningful for the standalone kernel binary; the client/server build
+// (SEC_TTYCS, i.e. SecondoCS) is a pure network client. The former -pltty
+// (mixed SQL + kernel TTY) mode has been retired: the regular TTY now runs the
+// SQL dialect directly, both embedded and over the network (see
+// SecondoTTY::CallSecondo).
+#if defined(SECONDO_PL) && !defined(SEC_TTYCS)
   if ( tp.isPLMode() )
     return SecondoPLMode(tp);
-#endif
-
-
-#ifdef SECONDO_PL 
-  if ( tp.isPLTTYMode() )
-    return SecondoPLTTYMode(tp);
 #endif
 
   cout << License::getStr() << endl;

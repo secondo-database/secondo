@@ -145,6 +145,9 @@ std::map<int,std::string> InitErrorMessages()
   errors[ERR_CMD_NOT_IMPL_AT_THIS_LEVEL]
    = "Command not yet implemented at this level.";
 
+  errors[ERR_OPTIMIZER_NOT_AVAILABLE]
+   = "The optimizer (SQL dialect) is not available on this server.";
+
 /*
 
 The parameters

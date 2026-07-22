@@ -97,6 +97,7 @@ const SI_Error ERR_IN_LIST_STRUCTURE_IN_FILE = 29;
 const SI_Error ERR_CMD_NOT_YET_IMPL = 30;
 const SI_Error ERR_CMD_LEVEL_NOT_YET_IMPL = 31;
 const SI_Error ERR_CMD_NOT_IMPL_AT_THIS_LEVEL = 32;
+const SI_Error ERR_OPTIMIZER_NOT_AVAILABLE = 33;
 
 /*
 The next error messages belong to five groups: 

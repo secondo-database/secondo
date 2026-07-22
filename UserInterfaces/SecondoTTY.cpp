@@ -103,6 +103,12 @@ then you will be prompted for the filename.
 #include "SecondoSMI.h"
 #include "NestedList.h"
 #include "DisplayTTY.h"
+#include "ErrorCodes.h"
+
+// The embedded build optimizes the SQL dialect in-process via these helpers.
+#ifndef NO_OPTIMIZER
+#include "SecondoPL.h"
+#endif
 #include "CharTransform.h"
 #include "LogMsg.h"
 #include "TTYParameter.h"
@@ -294,8 +300,14 @@ SecondoTTY::MatchQuery(string& cmdWord, istringstream& is) const
   size_t pos = cmd.find("query");
   size_t pos2 = cmd.find("querynt");
   size_t pos3 = cmd.find("pquery");
+  // The SQL dialect ("sql ..." or bare "select ...") produces a result to be
+  // displayed too.
+  size_t pos4 = cmd.find("sql");
+  size_t pos5 = cmd.find("select");
+  size_t pos6 = cmd.find("SELECT");
 
-  if ((pos == string::npos) && (pos2==string::npos) && (pos3==string::npos)){
+  if ((pos == string::npos) && (pos2==string::npos) && (pos3==string::npos)
+       && (pos4==string::npos) && (pos5==string::npos) && (pos6==string::npos)){
     return isQuery;
   }
 
@@ -305,7 +317,8 @@ SecondoTTY::MatchQuery(string& cmdWord, istringstream& is) const
      cmdWord = cmdWord.substr(1);
   }
 
-  if ( (cmdWord == "QUERY") || (cmdWord== "QUERYNT") || (cmdWord=="PQUERY") )
+  if ( (cmdWord == "QUERY") || (cmdWord== "QUERYNT") || (cmdWord=="PQUERY")
+       || (cmdWord=="SQL") || (cmdWord=="SELECT") )
   {
     isQuery = true;
   }
@@ -314,7 +327,8 @@ SecondoTTY::MatchQuery(string& cmdWord, istringstream& is) const
     if ( cmdWord == "" )
     {
       cmdWord = ReadCommand(is);
-      if((cmdWord == "QUERY") || (cmdWord == "QUERYNT") || (cmdWord=="PQUERY"))
+      if((cmdWord == "QUERY") || (cmdWord == "QUERYNT") || (cmdWord=="PQUERY")
+          || (cmdWord=="SQL") || (cmdWord=="SELECT"))
         isQuery = true;
       else
         isQuery = false;
@@ -542,6 +556,157 @@ SecondoTTY::ShowQueryResult( ListExpr list )
 
 
 /*
+10.1 Recognizing the SQL dialect
+
+Deciding whether a typed command belongs to the optimizer or to the kernel is
+not a matter of the first keyword alone: ~delete~, ~create~, ~update~ and ~let~
+exist in both languages and are told apart by the following token(s). The rule
+set below is the one the retired hybrid TTY (~SecondoPLTTYMode::isSqlCommand~)
+and the JavaGUI (~CommandPanel.optimize~) independently arrived at.
+
+Anything not recognized here falls through to the kernel -- the fallback is
+always the kernel, in every client.
+
+*/
+
+#if defined(SECONDO_CLIENT_SERVER) || !defined(NO_OPTIMIZER)
+
+// Split cmd into at most maxTok lower-cased tokens. The delimiter set matches
+// the JavaGUI's classifier, so that "let r5=select ..." and "create table t(a)"
+// tokenize identically there and here.
+static void sqlTokens(const std::string& cmd, std::vector<std::string>& toks,
+                      size_t maxTok)
+{
+  const string delims = " \t\n\r\f\v\b\a([{=.,;";
+  size_t pos = 0;
+  while ( toks.size() < maxTok )
+  {
+    size_t s = cmd.find_first_not_of(delims, pos);
+    if ( s == string::npos ) break;
+    size_t e = cmd.find_first_of(delims, s);
+    string t = cmd.substr(s, (e==string::npos) ? string::npos : e - s);
+    for ( size_t i = 0; i < t.size(); i++ )
+    {
+      t[i] = tolower((unsigned char) t[i]);
+    }
+    toks.push_back(t);
+    if ( e == string::npos ) break;
+    pos = e;
+  }
+}
+
+static bool looksLikeSql(const std::string& cmd)
+{
+  size_t s = cmd.find_first_not_of(" \t\n\r\f\v\b\a");
+  if ( s == string::npos ) return false;
+  // nested list command or command sequence: always the kernel
+  if ( cmd[s] == '(' || cmd[s] == '{' ) return false;
+
+  std::vector<std::string> t;
+  sqlTokens( cmd, t, 3 );
+  if ( t.empty() ) return false;
+
+  // unambiguous openers
+  if (    t[0] == "sql"   || t[0] == "select" || t[0] == "union"
+       || t[0] == "intersection" || t[0] == "drop" ) return true;
+
+  // ambiguous with kernel commands: need the second token
+  if ( t.size() < 2 ) return false;
+  if ( t[0] == "delete" && t[1] == "from" ) return true;
+  if ( t[0] == "insert" && t[1] == "into" ) return true;
+  if ( t[0] == "create" && (t[1] == "table" || t[1] == "index") ) return true;
+
+  // ... or the third
+  if ( t.size() < 3 ) return false;
+  if ( t[0] == "update" && t[2] == "set" ) return true;
+  // "let <ident> = select|union|intersection ...": an SQL right-hand side. The
+  // server splits the prefix off and re-wraps the generated plan.
+  if ( t[0] == "let" && (   t[2] == "select" || t[2] == "union"
+                         || t[2] == "intersection" ) ) return true;
+
+  return false;
+}
+
+/*
+Show the optimizer's cost estimate for the plan it just produced. Printed
+separately from the plan so both clients report it the same way, and skipped
+when there is no estimate (the optimizer yields 0 for a plan it did not cost,
+and for create/drop, which it executes itself).
+
+*/
+static void showCosts(double costs)
+{
+  if ( costs <= 0.0 ) return;
+  cout << color(blue) << "Estimated costs: " << costs
+       << color(normal) << endl;
+}
+
+/*
+Say that the plan was not run, so an empty result is not mistaken for a query
+that returned nothing.
+
+*/
+static void showPlanOnlyNote(bool planOnly)
+{
+  if ( !planOnly ) return;
+  cout << color(blue) << "Plan only -- not executed." << color(normal) << endl;
+}
+
+/*
+Strip a leading ~optimizer~ keyword (the prefix the JavaGUI uses to address the
+optimizer directly). Returns true and puts the remainder into ~rest~ if the
+prefix was there; otherwise returns false and leaves ~rest~ = ~cmd~.
+
+*/
+static bool stripOptimizerPrefix(const std::string& cmd, std::string& rest)
+{
+  rest = cmd;
+  size_t s = cmd.find_first_not_of(" \t\n\r\f\v\b\a");
+  if ( s == string::npos ) return false;
+
+  const string kw = "optimizer";
+  if ( cmd.size() - s < kw.size() + 1 ) return false;
+  for ( size_t i = 0; i < kw.size(); i++ )
+  {
+    if ( tolower((unsigned char) cmd[s+i]) != kw[i] ) return false;
+  }
+  // must be a whole word, and something has to follow it
+  size_t after = s + kw.size();
+  if ( !isspace((unsigned char) cmd[after]) ) return false;
+  size_t r = cmd.find_first_not_of(" \t\n\r\f\v\b\a", after);
+  if ( r == string::npos ) return false;
+
+  rest = cmd.substr(r);
+  return true;
+}
+
+// The optimizer control directives the TTY routes to the directive channel
+// when they are typed bare. With an explicit "optimizer " prefix any non-SQL
+// text is treated as a directive, so this list is only the convenience case.
+static bool isBareOptimizerDirective(const std::string& cmd)
+{
+  size_t s = cmd.find_first_not_of(" \n\r\t\v\b\a\f");
+  if ( s == string::npos ) return false;
+  size_t nameEnd = cmd.find_first_of(" \n\r\t\v\b\a\f(", s);
+  string name = cmd.substr(s, (nameEnd==string::npos) ? string::npos
+                                                      : nameEnd - s);
+  // The directive names are Prolog atoms, matched case-sensitively; the
+  // argument (if any) starts at the '('.
+  static const char* const directives[] = {
+    "setOption", "delOption", "showOptions",
+    "loadOptions", "saveOptions", "defaultOptions",
+    "updateCatalog", "resetKnowledgeDB",
+    "helpMe" };   // advertised by the showOptions listing itself
+  for ( size_t i = 0; i < sizeof(directives)/sizeof(directives[0]); i++ )
+  {
+    if ( name == directives[i] ) return true;
+  }
+  return false;
+}
+
+#endif
+
+/*
 11 CallSecondo
 
 This function gives a query to secondo and receives the result from secondo.
@@ -558,7 +723,195 @@ SecondoTTY::CallSecondo()
   string errorMessage = "";
   string errorText = "";
 
-  if ( cmd[cmd.find_first_not_of(" \n\r\t\v\b\a\f")] == '(' )
+  size_t cmdStart = cmd.find_first_not_of(" \n\r\t\v\b\a\f");
+
+  // An explicit "optimizer " prefix addresses the optimizer directly -- the
+  // same prefix the JavaGUI offers. What follows decides what it means:
+  //   optimizer <sql>        optimize only, show the plan, do NOT run it
+  //   optimizer <goal>       run an optimizer control directive
+  // Without the prefix, SQL is optimized *and* executed, which is the common
+  // case and what a bare "select ..." does.
+  //
+  // optCmd is the command with the prefix removed; it is what gets sent, so
+  // the optimizer never sees the keyword itself.
+  string optCmd = cmd;
+  bool optPrefix = false;
+#if defined(SECONDO_CLIENT_SERVER) || !defined(NO_OPTIMIZER)
+  optPrefix = stripOptimizerPrefix( cmd, optCmd );
+#endif
+
+  // Detect a leading "sql" or "select" token: the SQL dialect. Both forms are
+  // accepted (the "sql" prefix is optional), case insensitively. In the
+  // client/server build it is sent to the server (command level 2, or level 3
+  // when only the plan is wanted) and optimized there; in the embedded build it
+  // is optimized in-process. The detection is only active where an optimizer is
+  // reachable.
+  bool isSql = false;
+#if defined(SECONDO_CLIENT_SERVER) || !defined(NO_OPTIMIZER)
+  isSql = looksLikeSql( optCmd );
+#endif
+
+  // "optimizer <sql>": stop after optimizing and report the plan.
+  bool planOnly = optPrefix && isSql;
+
+  // Detect an optimizer control directive (setOption(X), delOption(X),
+  // showOptions, updateCatalog, ...). Like the SQL detection above this is only
+  // active where an optimizer is reachable, and it is routed to the optimizer's
+  // directive channel below (over the network in SecondoCS, in-process in the
+  // standalone SecondoBDB).
+  //
+  // Bare, the known directive names are recognized. After an explicit
+  // "optimizer " prefix anything that is not SQL is a directive, so arbitrary
+  // optimizer goals can be run -- which is what the prefix does in the JavaGUI.
+  bool isOptDirective = false;
+#if defined(SECONDO_CLIENT_SERVER) || !defined(NO_OPTIMIZER)
+  if ( !isSql && cmdStart != string::npos )
+  {
+    isOptDirective = optPrefix ? true : isBareOptimizerDirective( cmd );
+  }
+#endif
+
+  if ( isSql )
+  {
+#ifdef SECONDO_CLIENT_SERVER
+    // Client/server: send the SQL to the server, which optimizes it and
+    // returns the list (optimizedPlan result costs). With planOnly ("optimizer
+    // <sql>") the server stops after optimizing and the result half comes back
+    // empty.
+    ((SecondoInterfaceCS*) si)->SecondoSql( optCmd, planOnly, outList,
+                                            errorCode, errorPos, errorMessage );
+    NList::setNLRef(nl);
+    // Accept any length from two upwards: costs was appended to the original
+    // (plan result) shape, so a server that does not send it still works.
+    if ( errorCode == 0 && nl->ListLength( outList ) >= 2 )
+    {
+      string planStr = "";
+      if ( nl->AtomType( nl->First( outList )) == TextType )
+      {
+        nl->Text2String( nl->First( outList ), planStr );
+      }
+      if ( planStr == "done" )
+      {
+        // create/drop: the server's optimizer carried the command out itself
+        // (same wording as the standalone build, see the embedded branch).
+        cout << endl << color(blue)
+             << "Executed by the optimizer (no plan to run)."
+             << color(normal) << endl;
+      }
+      else
+      {
+        cout << endl << color(blue) << "Optimized plan: " << planStr
+             << color(normal) << endl;
+        if ( nl->ListLength( outList ) >= 3
+             && nl->AtomType( nl->Third( outList )) == RealType )
+        {
+          showCosts( nl->RealValue( nl->Third( outList )) );
+        }
+        showPlanOnlyNote( planOnly );
+      }
+      outList = nl->Second( outList );
+    }
+#elif !defined(NO_OPTIMIZER)
+    // Embedded: run the optimizer in-process to turn the SQL into an
+    // executable plan, then execute the plan.
+    if ( !initEmbeddedOptimizer( si ) )
+    {
+      errorCode = ERR_OPTIMIZER_NOT_AVAILABLE;
+      errorMessage = "Could not initialize the optimizer.";
+    }
+    else
+    {
+      if ( SecondoSystem::GetInstance()->IsDatabaseOpen() )
+      {
+        embeddedOptimizerUseDatabase(
+            SecondoSystem::GetInstance()->GetDatabaseName() );
+      }
+      string plan = "", optErr = "";
+      double costs = 0.0;
+      bool alreadyExecuted = false;
+      if ( embeddedSqlToPlan( optCmd, plan, costs, optErr, alreadyExecuted ) )
+      {
+        if ( alreadyExecuted )
+        {
+          // create/drop: the optimizer carried the command out itself.
+          cout << endl << color(blue)
+               << "Executed by the optimizer (no plan to run)."
+               << color(normal) << endl;
+        }
+        else
+        {
+          cout << endl << color(blue) << "Optimized plan: " << plan
+               << color(normal) << endl;
+          showCosts( costs );
+          showPlanOnlyNote( planOnly );
+          if ( !planOnly )
+          {
+            si->Secondo( plan, cmdList, 1, false, false,
+                         outList, errorCode, errorPos, errorMessage );
+            NList::setNLRef(nl);
+          }
+        }
+        // DDL run through the optimizer changes the catalog it has cached;
+        // refresh it so later queries see the new schema. Not conditional on
+        // planOnly: sqlToPlan carries create/drop out while translating, so
+        // "plan only" cannot keep them from changing the catalog.
+        if ( errorCode == 0 && embeddedOptimizerSqlChangesCatalog( optCmd ) )
+        {
+          string refreshErr = "";
+          embeddedOptimizerRefreshCatalog( refreshErr );
+          NList::setNLRef(nl);
+        }
+      }
+      else
+      {
+        errorCode = ERR_OPTIMIZER_NOT_AVAILABLE;
+        errorMessage = "Optimization failed: " + optErr;
+      }
+    }
+#else
+    // Should be unreachable: isSql is only set when an optimizer is reachable.
+    errorCode = ERR_OPTIMIZER_NOT_AVAILABLE;
+    errorMessage = "SQL is not available (optimizer not compiled in).";
+#endif
+  }
+  else if ( isOptDirective )
+  {
+#ifdef SECONDO_CLIENT_SERVER
+    // Client/server (SecondoCS): run the directive on the server's embedded
+    // optimizer via the <OptimizerCommand> channel and print what it wrote.
+    string out = ((SecondoInterfaceCS*)si)->optimizerCommand( optCmd );
+    cout << endl << out << endl;
+#elif !defined(NO_OPTIMIZER)
+    // Standalone (SecondoBDB): run the directive in the in-process optimizer.
+    if ( !initEmbeddedOptimizer( si ) )
+    {
+      errorCode = ERR_OPTIMIZER_NOT_AVAILABLE;
+      errorMessage = "Could not initialize the optimizer.";
+    }
+    else
+    {
+      if ( SecondoSystem::GetInstance()->IsDatabaseOpen() )
+      {
+        embeddedOptimizerUseDatabase(
+            SecondoSystem::GetInstance()->GetDatabaseName() );
+      }
+      string out = "", optErr = "";
+      if ( embeddedOptimizerRunGoal( optCmd, out, optErr ) )
+      {
+        cout << endl << out << endl;
+      }
+      else
+      {
+        // A failing directive may still have printed something useful.
+        cout << endl << (out.empty() ? optErr : out) << endl;
+      }
+    }
+#else
+    errorCode = ERR_OPTIMIZER_NOT_AVAILABLE;
+    errorMessage = "The optimizer is not available (not compiled in).";
+#endif
+  }
+  else if ( cmdStart != string::npos && cmd[cmdStart] == '(' )
   {
     if ( nl->ReadFromString( cmd, cmdList ) )
     {
@@ -710,8 +1063,16 @@ SecondoTTY::Execute()
 
     if ( isStdInput )
     {
-      cout << endl << "Secondo TTY ready for operation." << endl
-           << "Type 'HELP' to get a list of available commands." << endl;
+      cout << endl << "Secondo TTY ready for operation." << endl;
+#ifdef SECONDO_CLIENT_SERVER
+      cout << "Optimizer (SQL dialect): "
+           << (((SecondoInterfaceCS*)si)->optimizerAvailable()
+                 ? "available" : "not available")
+           << " on the connected server." << endl;
+#elif !defined(NO_OPTIMIZER)
+      cout << "Optimizer (SQL dialect): available (in-process)." << endl;
+#endif
+      cout << "Type 'HELP' to get a list of available commands." << endl;
       ProcessCommands( false, false);
     }
     else

@@ -64,6 +64,9 @@ jsrc:
 regSecondo.o: regSecondo.c
 	$(CC) -c -fPIC -g -ggdb -o $@ $(INCLUDEFLAGS) $<
 
+$(SECONDOPL_DIR)/SecondoPLCS.o:
+	$(MAKE) -C $(SECONDOPL_DIR) SecondoPLCS.o
+
 LINKFILES += $(PL_DLL)
 
 ifeq ($(platform),win32)
