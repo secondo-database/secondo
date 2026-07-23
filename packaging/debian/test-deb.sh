@@ -57,9 +57,8 @@ printf '\n\n' | /opt/secondo/bin/secondo_installer.sh
 # shell of every user of the package with it.
 source ~/.secondorc
 
-echo "PL_VERSION=$PL_VERSION"
-echo "JPL_DLL=$JPL_DLL"
-[ -f "$JPL_DLL" ] && echo "JPL_DLL_EXISTS=yes" || echo "JPL_DLL_EXISTS=no"
+echo "SECONDO_BUILD_DIR=$SECONDO_BUILD_DIR"
+echo "SWI_HOME_DIR=$SWI_HOME_DIR"
 [ -f /opt/secondo/bin/javagui/Javagui.jar ] && echo "JAVAGUI=yes" || echo "JAVAGUI=no"
 
 # The kernel, Berkeley DB and the 'opt' database shipped in the package.
@@ -81,8 +80,7 @@ result() { sed -n "s/^$1=//p" /tmp/user-tests.log | tail -1; }
 echo
 echo "### Results"
 check "~/.secondorc sources cleanly under set -e" "yes" \
-      "$([ -n "$(result PL_VERSION)" ] && echo yes || echo no)"
-check "JPL library exists at the detected path" "yes" "$(result JPL_DLL_EXISTS)"
+      "$([ -n "$(result SECONDO_BUILD_DIR)" ] && echo yes || echo no)"
 check "Java GUI is shipped"                     "yes" "$(result JAVAGUI)"
 check "SecondoTTYBDB: query ten count"          "10"  "$(result TTYBDB_COUNT)"
 check "SecondoTTYBDB: select count(*) from ten (embedded optimizer)" "10" "$(result PLTTY_COUNT)"

@@ -7,7 +7,6 @@
 
 BIN=$SECONDO_BUILD_DIR/bin
 LOGFILEMON=$BIN/TotalTest.monitor.log
-LOGFILEOPT=$BIN/TotalTest.optserver.log
 LOGFILE=$BIN/TotalTest.log
 
 PID=$$
@@ -93,18 +92,7 @@ fi
 echo "Monitor is running"
 sleep 5
 
-echo "StartOptServer"
-
-#start OptServer
-cd $SECONDO_BUILD_DIR/Optimizer
-StartOptServer -q -t  >$LOGFILEOPT 2>&1 &
-
-
-echo "Optimizer server is running"
-
-sleep 3
-
-echo "Start Tests" 
+echo "Start Tests"
 
 
 declare -i err=0
@@ -138,7 +126,6 @@ else
 fi
 
 
-echo "Terminate OptServer"
 echo "Terminate Monitor"
 kill -SIGTERM $mon 2>/dev/null 
 

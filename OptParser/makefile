@@ -28,8 +28,6 @@ parser.h: parser.c
 parser.c: OptParser.y OptSecUtils.h Types.h
 	$(YACC)  -d  -o parser.c OptParser.y
 
-LINKFILES := $(SECONDO_BUILD_DIR)/UserInterfaces/cmsg.o $(SECONDOPL_DIR)/SecondoPL.o $(LIBDIR)/SecondoInterface.o $(LIBDIR)/SecondoInterfaceGeneral.o $(LIBDIR)/libappCommon.a 
-
 .PHONY: clean
 clean:
 	rm -f parser.c parser.h scanner.c scanner.o parser.o $(LIBDIR)/liboptparser.a OptChecker.o OptSecUtils.o Types.o parser.output

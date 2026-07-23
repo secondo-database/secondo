@@ -1522,9 +1522,9 @@ bool embeddedOptimizerUseDatabase(const string& dbName) {
   }
   // The database is open at the kernel, but the optimizer has not loaded its
   // schema. Drive the optimizer's open-database logic (which asserts
-  // databaseName and runs updateCatalog) exactly as the OptServer does: close
-  // the currently open database, then reopen it through the optimizer. The
-  // database ends up open again, transparently to the client.
+  // databaseName and runs updateCatalog): close the currently open database,
+  // then reopen it through the optimizer. The database ends up open again,
+  // transparently to the client.
   runOptimizerSecondo1("close database");
   runOptimizerSecondo1(string("open database ") + dbName);
   return optimizerHasDatabase(dbLower);

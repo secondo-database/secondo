@@ -109,7 +109,7 @@ the full list:
 | Target | Builds |
 | --- | --- |
 | `make TTY` | Kernel and the single-user shell interface only |
-| `make optimizer` | `SecondoPL`, `SecondoPLCS` and `OptServer` |
+| `make optimizer` | `SecondoPL` and the embedded optimizer engine |
 | `make java` | The Java GUI |
 | `make runtests` | The automatic test suite |
 | `make clean` | All objects, libraries and applications |
@@ -173,9 +173,12 @@ The GUI is a client, so a server has to be running first:
 
 ```bash
 cd bin && ./SecondoMonitor -s          # start the database server
-cd Optimizer && ./StartOptServer       # optional: SQL support in the GUI
 cd Javagui && ./sgui                   # start the GUI
 ```
+
+SQL support in the GUI no longer needs a separate optimizer server: the kernel server
+runs the optimizer itself. Enable it with `ENABLE_OPTIMIZER` in `Javagui/gui.cfg` (or via
+the GUI's Optimizer ▸ Enable menu).
 
 `Javagui` shows query results in viewers — including a spatial viewer that renders points,
 lines and regions, and animates moving objects.
@@ -270,7 +273,6 @@ The full walk-through, including the GUI steps and the display styles to pick, i
 | `SecondoTTYBDB` | `bin/` | single user | Textual shell linked directly against the kernel. |
 | `SecondoTTYCS` | `bin/` | client | Same shell, but talks to `SecondoMonitor` over TCP/IP. |
 | `SecondoPL` | `Optimizer/` | single user | Prolog shell with SQL-like queries and the optimizer. |
-| `SecondoPLCS` | `Optimizer/` | client | Client version of `SecondoPL`. |
 | `Javagui` (`sgui`) | `Javagui/` | client | Graphical interface with pluggable viewers. |
 | `TestRunner` | `bin/` | — | Runs `.test` scripts and checks expected results. |
 

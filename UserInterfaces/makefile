@@ -117,7 +117,7 @@ entropy:
 
 .PHONY: clean
 clean:
-	$(RM) *.dep $(APPLOBJECTS) $(APPLICATIONS) $(ENTROPY_OBJ) $(DEP_FILES) $(CS_OBJECTS) SecondoPLCS.$(OBJEXT)
+	$(RM) *.dep $(APPLOBJECTS) $(APPLICATIONS) $(ENTROPY_OBJ) $(DEP_FILES) $(CS_OBJECTS)
 	$(MAKE) -C InteractiveQueryEditor clean
 
 #
@@ -133,15 +133,6 @@ MainTTYCS.$(OBJEXT): MainTTY.cpp
 SecondoPL.$(OBJEXT): $(ENTROPY_OBJ)
 %.$(OBJEXT): %.cpp
 	$(CC) -c -o $@ $< $(CCFLAGS) $(JNIINCLUDE) $(CPPSTDOPTION)
-
-# SecondoPLCS.o is SecondoPL compiled in client/server mode (SecondoInterfaceCS
-# instead of SecondoInterfaceTTY). No TTY client embeds the optimizer anymore,
-# so it is not part of this directory's own build; the sole consumer is the
-# external Java OptServer's JNI bridge, which builds it on demand via this rule
-# (see OptServer/makefile). The rule lives here because the source and the
-# correct compile flags do.
-SecondoPLCS.$(OBJEXT): SecondoPL.cpp
-	$(CC) -c -DSECONDO_CLIENT_SERVER -o $@ $< $(CCFLAGS) $(CPPSTDOPTION)
 
 SecondoTTYCS.$(OBJEXT): SecondoTTY.cpp
 	$(CC) -c -DSECONDO_CLIENT_SERVER -o $@ $< $(CCFLAGS) $(CPPSTDOPTION)
