@@ -70,7 +70,8 @@ SecondoInterfaceCS::SecondoInterfaceCS(bool isServer, /*= false*/
     server = 0;
     csp=0;
     externalNL = _nl!=0;
-    maxAttempts = DEFAULT_CONNECT_MAX_ATTEMPTS;
+    // Fail fast when no server is listening.
+    maxAttempts = 1;
     timeout = DEFAULT_RECONNECT_TIMEOUT;
     server_pid = -1;
     debugSecondoMethod = false;
@@ -83,8 +84,6 @@ SecondoInterfaceCS::SecondoInterfaceCS(bool isServer, /*= false*/
     multiUser = false;
     traceSocketIn = 0;
     traceSocketOut = 0;
-    
-
  }
 
 
@@ -99,6 +98,34 @@ SecondoInterfaceCS::~SecondoInterfaceCS()
 
 
 int SecondoInterfaceCS::initNo = 0;
+
+
+string
+SecondoInterfaceCS::serverDescription() const
+{
+  return "host '" + secHost + "' on port " + secPort;
+}
+
+
+string
+SecondoInterfaceCS::unexpectedResponse( iostream& iosock,
+                                        const string& received,
+                                        const string& expected ) const
+{
+  if ( received.empty() && !iosock.good() )
+  {
+    // the peer accepted the connection but closed it without a greeting
+    return "No answer from the Secondo server at " + serverDescription() +
+           ": the connection was closed before a greeting was received.\n"
+           "Please check whether a SecondoMonitor is listening on that "
+           "port.\n";
+  }
+  return "Unexpected answer from the Secondo server at " +
+         serverDescription() + ": '" + received + "'\n" +
+         "Expected was " + expected + ".\n" +
+         "Please check whether client and server use the same Secondo "
+         "version.\n";
+}
 
 
 bool
@@ -208,16 +235,8 @@ SecondoInterfaceCS::Initialize( const string& user, const string& pswd,
              << secPort << " ..." << endl;
       }
       server = Socket::Connect( secHost, secPort, Socket::SockGlobalDomain,
-                                maxAttempts, timeout, 
+                                maxAttempts, timeout,
                                 traceSocketIn, traceSocketOut, false );
-
-      if(!server) {
-         cout << "Socket::Connect failed" << endl;
-      }
-      if( server && !server->IsOk()){
-         cout << "got a server but the server is not ok" << endl;
-      }
-
 
       if ( server != 0 && server->IsOk() )
       {
@@ -225,7 +244,8 @@ SecondoInterfaceCS::Initialize( const string& user, const string& pswd,
         try{
            iosock.clear();
         } catch(const ios_base::failure &ex){
-           cout << "probem during clear " << ex.what() << endl;
+           errorMsg += "Could not reset the state of the connection to " +
+                       serverDescription() + ": " + ex.what() + "\n";
         }
         if(csp!=0){
           delete csp;
@@ -259,30 +279,42 @@ SecondoInterfaceCS::Initialize( const string& user, const string& pswd,
             else if ( line == "<SecondoError>" )
             {
               getline( iosock, line );
-              cout << "Server-Error: " << line << endl;
+              errorMsg += "The Secondo server at " + serverDescription() +
+                          " rejected the connection: " + line + "\n" +
+                          "Please check the user name and the password.\n";
               getline( iosock, line );
             }
             else
             {
-              cout << "Unidentifiable response from server: " << line << endl;
-              cout << "accepted are <SecondoIntro>" << endl;
-              cout << "         and <SecondoError>" << endl;
+              errorMsg += unexpectedResponse( iosock, line,
+                                              "<SecondoIntro> or "
+                                              "<SecondoError>" );
             }
           }
           else if ( line == "<SecondoError>" ) {
             getline( iosock, line );
-            cout << "Server-Error: " << line << endl;
+            errorMsg += "The Secondo server at " + serverDescription() +
+                        " reported an error: " + line + "\n";
             getline( iosock, line );
           } else {
-            cout << "Unidentifiable response from server: " << line << endl;
-            cout << "accepted are <SecondoOk/>" << endl;
-            cout << "         and <SecondoError>" << endl;
+            errorMsg += unexpectedResponse( iosock, line,
+                                            "<SecondoOk/> or <SecondoError>" );
           }
+        } catch(const exception& e){
+           errorMsg += "An exception occurred while connecting to " +
+                       serverDescription() + ": " + e.what() + "\n";
         } catch(...){
-           cout << "some exception occurred" << endl;
+           errorMsg += "An unknown exception occurred while connecting to " +
+                       serverDescription() + "\n";
         }
       } else {
-        cout << "connect failed." << endl;
+        // Socket::Connect always returns a socket object; if the connection
+        // could not be established, the object carries the reason.
+        string reason = (server != 0) ? server->GetErrorText()
+                                      : string("the socket could not be "
+                                               "created");
+        errorMsg += "Could not connect to the Secondo server at " +
+                    serverDescription() + ": " + reason + "\n";
       }
       if ( !initialized && server != 0) {
         server->Close();
@@ -292,8 +324,11 @@ SecondoInterfaceCS::Initialize( const string& user, const string& pswd,
     }
     else
     {
-      cout << "Invalid or missing host (" << secHost << ") and/or port ("
-           << secPort << ")." << endl;
+      errorMsg += "Invalid or missing host (" + secHost + ") and/or port (" +
+                  secPort + ").\n" +
+                  "Please specify the server by the options -h and -p or by "
+                  "the entries SecondoHost and SecondoPort in the "
+                  "configuration file.\n";
     }
   }
   if(initialized){

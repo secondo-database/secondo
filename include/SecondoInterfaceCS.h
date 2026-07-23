@@ -273,7 +273,15 @@ public:
      std::ostream* traceSocketIn;
      std::ostream* traceSocketOut;
 
-     SecondoInterfaceCS() ; 
+     SecondoInterfaceCS() ;
+
+     // "host 'localhost' on port 1234", used for error messages
+     std::string serverDescription() const;
+
+     // describes a greeting from the server that could not be understood
+     std::string unexpectedResponse(std::iostream& iosock,
+                                    const std::string& received,
+                                    const std::string& expected) const;
 
      static int initNo; // counter for initialize calls
 

@@ -96,7 +96,8 @@ class UnixSocket : public Socket
     EC_CONNECTION_FAILED   = -3,
     EC_BROKEN_PIPE         = -4,
     EC_INVALID_ACCESS_MODE = -5,
-    EC_MESSAGE_TRUNCATED   = -6
+    EC_MESSAGE_TRUNCATED   = -6,
+    EC_UNKNOWN_HOST        = -7
   };
 
   private:

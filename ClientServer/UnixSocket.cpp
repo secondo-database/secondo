@@ -313,7 +313,10 @@ UnixSocket::GetErrorText()
       msg = "Socket not opened";
       break;
     case EC_BAD_ADDRESS:
-      msg = "Bad address";
+      msg = "Bad address (invalid host name or port number)";
+      break;
+    case EC_UNKNOWN_HOST:
+      msg = "Unknown host (the host name could not be resolved)";
       break;
     case EC_CONNECTION_FAILED:
       msg = "Connection failed";
@@ -548,7 +551,7 @@ UnixSocket::Connect( int maxAttempts, time_t timeout )
       if ( (hp = gethostbyname( hostAddress.c_str() )) == NULL ||
             hp->h_addrtype != AF_INET )
       {
-        lastError = EC_BAD_ADDRESS;
+        lastError = EC_UNKNOWN_HOST;
         return (false);
       }
       memcpy( &u.sock_inet.sin_addr, hp->h_addr, sizeof(u.sock_inet.sin_addr) );
@@ -610,7 +613,13 @@ UnixSocket::Connect( int maxAttempts, time_t timeout )
       return (true);
     }
   }
-  lastError = EC_CONNECTION_FAILED;
+  // the loop above is left only after all connection attempts have failed;
+  // keep the errno of the last attempt (e.g. ECONNREFUSED) so that
+  // GetErrorText reports the real reason instead of a generic message
+  if ( lastError == EC_OK )
+  {
+    lastError = EC_CONNECTION_FAILED;
+  }
   return (false);
 }
 

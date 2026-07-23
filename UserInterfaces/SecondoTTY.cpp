@@ -673,13 +673,7 @@ SecondoTTY::Execute()
   si = new SecondoInterfaceTTY(false);
   #elif defined(SECONDO_CLIENT_SERVER)
 
-  cout << "create a new SecondoInterfaceCS " << endl;
-  //SecondoInterfaceCS* si1 = new SecondoInterfaceCS(true,0,true);
-  //si = si1;
   si = new SecondoInterfaceCS(true,0,true);
-
-  cout << "finished creation of SecondoInterfaceCS" << endl;
-
 
   #elif defined(REPLAY)
   si = new SecondoInterfaceREPLAY(true);
@@ -734,7 +728,11 @@ SecondoTTY::Execute()
     }
     DisplayTTY::Finish();
   } else {
-    cerr << "Error in initializing the secondo system: "
+    if ( errorMsg.empty() )
+    {
+      errorMsg = "No further information available.";
+    }
+    cerr << endl << "Error in initializing the Secondo system:" << endl
          << errorMsg << endl;
     rc = 1;
   }
