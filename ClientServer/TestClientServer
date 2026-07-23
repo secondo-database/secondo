@@ -15,8 +15,8 @@
 # statements the optimizer executes itself, how a rejected query is reported,
 # and the "planonly" protocol flag.
 #
-# Modelled on Optimizer/TestOptServer, which is the other test here that starts
-# a live monitor.
+# Modelled on the former Optimizer/TestOptServer (the retired JPL optimizer
+# server's test); this is now the test here that starts a live monitor.
 #
 # Assertions check the client's exit status *and* its log. Both are needed: the
 # exit status catches a failed command file (2) or a failed connect (1), while
@@ -34,9 +34,9 @@ fi
 export SECONDO_CONFIG=${SECONDO_CONFIG:-$buildDir/bin/SecondoConfig.ini}
 export PATH="$buildDir/bin:$PATH"
 
-# A private port keeps this off 1234, so it neither collides with a developer's
-# running Secondo nor with Optimizer/TestOptServer. It also gives the registrar
-# its own socket name (SmiProfile::GetUniqueSocketName keys on the port).
+# A private port keeps this off 1234, so it does not collide with a developer's
+# running Secondo. It also gives the registrar its own socket name
+# (SmiProfile::GetUniqueSocketName keys on the port).
 SEC_PORT=${SECONDO_CS_TEST_PORT:-12234}
 DBNAME=cstest
 

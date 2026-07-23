@@ -151,16 +151,14 @@ done
 
 #
 # Optimizer tests (skippable via SECONDO_SKIP_OPTIMIZER_TESTS, e.g. when the
-# optimizer and the JPL optimizer server were not built). TestOptimizer drives
-# the optimizer through the embedded Prolog interface; TestOptServer exercises
-# the JPL optimizer server (OptServer) over its socket protocol.
+# optimizer was not built). TestOptimizer drives the optimizer through the
+# embedded Prolog interface.
 #
 if [ "${SECONDO_SKIP_OPTIMIZER_TESTS:-}" == "true" ]; then
   echo "*** Skipping optimizer tests (SECONDO_SKIP_OPTIMIZER_TESTS=true) ***"
 else
   echo "*** Executing optimizer tests ***"
   runTest ${buildDir}/Optimizer "TestOptimizer" "time TestOptimizer" $timeOutMax
-  runTest ${buildDir}/Optimizer "TestOptServer" "time TestOptServer" $timeOutMax
   # Guards against the SecondoPL autoloading regression (must_be/2 spam at
   # optimizer startup); see Optimizer/TestSecondoPLStartup.
   runTest ${buildDir}/Optimizer "TestSecondoPLStartup" \

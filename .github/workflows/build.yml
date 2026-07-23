@@ -198,11 +198,11 @@ jobs:
           cat "${RUNNER_TEMP}/webui-backend.log" 2>/dev/null || true
 
    build-macos:
-    # Builds the C++ kernel + TTY, the Java GUI, the embedded-Prolog optimizer
-    # engine and the JPL optimizer server (OptServer), then runs the full test
-    # suite including the optimizer test. The optimizer test drives SecondoBDB in
-    # "-pl" mode (embeds libswipl, no JPL); OptServer uses JPL, which is why the
-    # Install step rebuilds swi-prolog from source with the Java package on.
+    # Builds the C++ kernel + TTY, the Java GUI and the embedded-Prolog
+    # optimizer engine, then runs the full test suite including the optimizer
+    # test. The optimizer test drives SecondoBDB in "-pl" mode, which embeds
+    # libswipl from the stock swi-prolog bottle -- no JPL, so no custom Prolog
+    # build is needed.
     strategy:
       fail-fast: false
       matrix:
@@ -222,57 +222,11 @@ jobs:
       - name: Install Homebrew packages
         run: |
           brew update
-          # Build tools + the external components the SDK used to provide.
+          # Build tools + the external components the SDK used to provide. The
+          # embedded optimizer links libswipl from the stock swi-prolog bottle;
+          # no JPL and no custom Prolog build are needed anymore.
           brew install flex bison berkeley-db gsl jpeg-turbo boost gmp \
-                       libxml2 readline nlohmann-json
-          # JPL is built against openjdk@21 -- the SAME major version as the
-          # Temurin JDK below that compiles OptimizerServer.java.
-          brew install openjdk@21
-          # swi-prolog's own dependencies come from bottles and are cheap; only
-          # the keg itself is expensive to build, and that one is cached below.
-          brew install --only-dependencies swi-prolog
-          # The Cellar path is /opt/homebrew on arm64 and /usr/local on Intel.
-          echo "SWIPL_CELLAR=$(brew --cellar)/swi-prolog" >> "$GITHUB_ENV"
-          echo "SWIPL_VERSION=$(brew info --json=v2 swi-prolog |
-                jq -r '.formulae[0].versions.stable')" >> "$GITHUB_ENV"
-
-      # Building swi-prolog from source takes several minutes, so keep the
-      # finished keg.
-      - name: Cache swi-prolog (built with JPL)
-        id: swipl-cache
-        uses: actions/cache@v6
-        with:
-          path: ${{ env.SWIPL_CELLAR }}
-          key: swipl-jpl-${{ matrix.os }}-${{ runner.arch }}-${{ env.SWIPL_VERSION }}-v1
-
-      - name: Build swi-prolog with JPL
-        if: steps.swipl-cache.outputs.cache-hit != 'true'
-        run: |
-          # The stock swi-prolog bottle is built with -DSWIPL_PACKAGES_JAVA=OFF,
-          # so it ships no jpl.jar / libjpl.dylib which the JPL optimizer
-          # server (OptServer) needs. Editing the formula requires the real
-          # homebrew/core tap rather than the API.
-          export HOMEBREW_NO_INSTALL_FROM_API=1
-          brew tap homebrew/core
-          formula="$(brew formula swi-prolog)"
-          echo "Editing formula: $formula"
-          sed -i '' 's/-DSWIPL_PACKAGES_JAVA=OFF/-DSWIPL_PACKAGES_JAVA=ON/' "$formula"
-          sed -i '' 's/^  def install/  depends_on "openjdk@21" => :build\n  def install/' "$formula"
-          grep -nE 'SWIPL_PACKAGES_JAVA|openjdk' "$formula"
-          brew install --build-from-source swi-prolog
-
-      - name: Link cached swi-prolog
-        if: steps.swipl-cache.outputs.cache-hit == 'true'
-        run: |
-          # The cache restores the keg, but not its symlinks into the prefix.
-          brew link --overwrite swi-prolog
-
-      - name: Verify that JPL is present
-        run: |
-          # Guards both the fresh build and a stale/corrupt cache entry.
-          plbase="$(swipl --dump-runtime-variables | sed -n 's/^PLBASE="\(.*\)";/\1/p')"
-          ls -l "$plbase/lib/jpl.jar"
-          find "$plbase" -name 'libjpl.*' -print
+                       libxml2 readline nlohmann-json swi-prolog
 
       - name: Install Temurin JDK
         uses: actions/setup-java@v5

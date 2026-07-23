@@ -294,9 +294,10 @@ leaves the view exactly where you put it. Use the `⤢` button to re-fit on dema
 
 - Streaming large results over the WebSocket (`/api/stream`) and query-history
   persistence.
-- Include the optimizer (add it to the REST backend, implement the port), allow
-  to run SQL-line queries from the WebUI. In the existing UI, you need to start
-  the OptServer for that.
+- Include the optimizer (add it to the REST backend), allow to run SQL-like
+  queries from the WebUI. The kernel server now runs the optimizer itself
+  (command level 2), so the backend can send SQL over its existing connection
+  instead of talking to a separate server.
 - Additional projections beyond BerlinMOD as needed.
 - Remaining long-tail types (network/JNet, precise geometry, raster) still fall
   back to the textual nested-list view, as `DsplGeneric` does in the Java GUI.

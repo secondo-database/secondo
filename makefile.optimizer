@@ -53,10 +53,9 @@ endif
 ifeq ($(optimizer),"true")
 # When the optimizer is compiled in, the default build must also generate the
 # concatenated optimizer program (Optimizer/optimizer). It is consulted at
-# runtime -- not only by the OptServer, but now also by the kernel server and
-# the TTY, which embed the optimizer to run the SQL dialect. optimizer2 builds
-# it; optserver builds JPL and the (still optional) Java OptServer.
-OPTIMIZER_SERVER := optimizer2 optserver
+# runtime by the kernel server and the TTY, which embed the optimizer to run
+# the SQL dialect. optimizer2 builds it.
+OPTIMIZER_SERVER := optimizer2
 AUXLIBS := $(SECONDO_SDK)/auxtools/lib
 
 
@@ -77,10 +76,7 @@ endif
 platform2 := $(subst 64,,$(platform))
 ifeq ($(platform2),linux)
   ifndef GMP_LIB
-    PLVER := $(shell if [ $(PL_VERSION) -lt 50600 ]; then  echo "5x"; else echo "6x"; fi)
-    ifeq ($(PLVER), 6x)
-      LD_GMP := -lgmpxx -lgmp
-    endif  
+    LD_GMP := -lgmpxx -lgmp
   else
     LD_GMP := -l$(GMP_LIB)
   endif
@@ -101,45 +97,5 @@ PLLDFLAGS :=   $(STDPLLDFLAGS) $(MAC_READLINE)  -lncurses -lm
 endif
 
 PLLDFLAGS += -loptparser
-
-# define directories for using jpl
-
-ifndef PL_VERSION
-JPLVER=10
-else
-
-ifeq ($(shell test $(PL_VERSION) -lt 50200; echo $$?),0)
-   JPLVER=10
-endif
-ifeq ($(shell test $(PL_VERSION) -lt 70000; echo $$?),0)
-   JPLVER=30
-endif
-ifeq ($(shell test $(PL_VERSION) -lt 80200; echo $$?),0)
-   JPLVER=70
-endif
-ifeq ($(shell test $(PL_VERSION) -ge 80200; echo $$?),0)
-   JPLVER=82
-endif
-
-endif 
-
-ifeq ($(JPLVER),10)
-JPL_HEADER=jpl_fli_Prolog.h
-else
-JPL_HEADER=jpl.h
-endif
-
-JPL_ROOT := $(BUILDDIR)/Jpl
-JPL_LIB  := $(JPL_ROOT)/lib
-JPL_CLASS_TARGET := $(JPL_LIB)/classes
-JPL_JAVA_SOURCES := $(JPL_ROOT)/jsrc/$(JPLVER)
-JPL_DOC_TARGET := $(JPL_ROOT)/doc
-JPL_CLASSPATH := .:$(JPL_CLASS_TARGET)
-ifdef SECONDO_JAVART
-  JPL_CLASSPATH := $(JPL_CLASSPATH):$(SECONDO_JAVART)
-endif
-JPL_SRC := $(JPL_ROOT)/src
-# directory which contains SecondoPl.o
-SECONDOPL_DIR := $(BUILDDIR)/UserInterfaces
 
 endif

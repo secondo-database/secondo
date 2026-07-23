@@ -22,16 +22,6 @@ secondo_realpath() {
   ( cd "$(dirname "$p")" 2>/dev/null && printf '%s/%s\n' "$(pwd)" "$(basename "$p")" )
 }
 
-# Map a Prolog version number (e.g. 90209) to the JPL binding directory that
-# OptServer/OptParser/Jpl build (10/30/70/82). Mirrors makefile.optimizer.
-secondo_jplver() {
-  local v=${1:-0}
-  if   [ "$v" -lt 50200 ] 2>/dev/null; then echo 10
-  elif [ "$v" -lt 70000 ] 2>/dev/null; then echo 30
-  elif [ "$v" -lt 80200 ] 2>/dev/null; then echo 70
-  else echo 82; fi
-}
-
 secondo_detect() {
   local os machine cand jc jvmdir opener
   os=$(uname -s); machine=$(uname -m)
@@ -58,34 +48,20 @@ secondo_detect() {
   export SECONDO_PLATFORM
 
   # --- Prolog (single source of truth: the swipl binary itself) ------------
-  # `swipl --dump-runtime-variables` reports version AND lib dir together, so
-  # the JPL binding directory can never drift from the linked libswipl.
+  # `swipl --dump-runtime-variables` reports the lib/include dirs together, so
+  # they can never drift from the linked libswipl. The embedded optimizer links
+  # libswipl in -pl mode; it needs no JPL (that was only the retired OptServer).
   local swipl=${SECONDO_SWIPL:-$(command -v swipl 2>/dev/null || command -v pl 2>/dev/null)}
   SECONDO_PL_FOUND=no
   if [ -n "$swipl" ] && "$swipl" --dump-runtime-variables >/dev/null 2>&1; then
     # sets PLBASE, PLLIBDIR, PLVERSION, PLARCH, PLSOEXT, ... as shell vars
     eval "$("$swipl" --dump-runtime-variables)"
-    : "${PL_VERSION:=$PLVERSION}"
     : "${SWI_HOME_DIR:=$PLBASE}"
     : "${PL_LIB_DIR:=$PLLIBDIR}"
     : "${PL_DLL_DIR:=$PLLIBDIR}"
     : "${PL_INCLUDE_DIR:=$PLBASE/include}"
     : "${PL_LIB:=swipl}"
-    : "${JPL_JAR:=$PLBASE/lib/jpl.jar}"
-    # The JPL library is libjpl.so on Linux but libjpl.dylib on macOS, while
-    # swipl reports PLSOEXT=so on BOTH. Probe for the file that is really there
-    # rather than deriving its name from PLSOEXT.
-    if [ -z "${JPL_DLL:-}" ]; then
-      for _jpl in "$PLLIBDIR/libjpl.$PLSOEXT" "$PLLIBDIR/libjpl.dylib" \
-                  "$PLLIBDIR/libjpl.so"; do
-        if [ -f "$_jpl" ]; then JPL_DLL=$_jpl; break; fi
-      done
-      # Nothing found: keep the conventional name so --check can report it.
-      : "${JPL_DLL:=$PLLIBDIR/libjpl.$PLSOEXT}"
-      unset _jpl
-    fi
-    export PL_VERSION SWI_HOME_DIR PL_LIB_DIR PL_DLL_DIR PL_INCLUDE_DIR
-    export PL_LIB JPL_JAR JPL_DLL
+    export SWI_HOME_DIR PL_LIB_DIR PL_DLL_DIR PL_INCLUDE_DIR PL_LIB
     SECONDO_PL_FOUND=yes
   fi
 
@@ -194,7 +170,7 @@ secondo_detect() {
     [ -n "${LIBRARY_PATH:-}" ] && export LIBRARY_PATH
   fi
 
-  # --- JVM runtime dir (only the optimizer / JPL / JNI need libjvm) ---------
+  # --- JVM runtime dir (only the JNI-based algebras need libjvm) -----------
   # libdb_cxx and libswipl resolve on the default loader path; libjvm never
   # does, so this is the single directory the runtime linker actually needs.
   jvmdir=""
@@ -246,48 +222,31 @@ secondo_detect() {
 # Warn about drift/mismatch cases that used to fail silently.
 # Returns non-zero if anything was flagged.
 secondo_env_warnings() {
-  local w=0 live_swipl live_ver
+  local w=0
   if [ "${SECONDO_PL_FOUND:-no}" != yes ]; then
     echo "  ! swipl not found -> optimizer disabled (install swi-prolog, or set SECONDO_SWIPL)"; w=1
   fi
   if [ -z "${J2SDK_ROOT:-}" ] || [ ! -e "${J2SDK_ROOT:-/nonexistent}" ]; then
-    echo "  ! JDK not found -> Java GUI / optimizer server will not build (set J2SDK_ROOT)"; w=1
+    echo "  ! JDK not found -> Java GUI will not build (set J2SDK_ROOT)"; w=1
   fi
   if [ ! -f "${BERKELEY_DB_DIR:-/nonexistent}/include/db_cxx.h" ]; then
     echo "  ! db_cxx.h not under ${BERKELEY_DB_DIR:-?} (set BERKELEY_DB_DIR)"; w=1
-  fi
-  # OptServer/OptTest link against libjpl; without it they fail late, at link
-  # time. A swipl built without the Java package ships no JPL at all.
-  if [ "${SECONDO_PL_FOUND:-no}" = yes ] && [ ! -f "${JPL_DLL:-/nonexistent}" ]; then
-    echo "  ! JPL library not found at ${JPL_DLL:-?} -> optimizer server will not link"
-    echo "    (swi-prolog must be built with the Java package, see the macOS install guide)"
-    w=1
-  fi
-  # exported PL_VERSION vs the swipl actually on PATH now (stale shell / upgrade)
-  live_swipl=${SECONDO_SWIPL:-$(command -v swipl 2>/dev/null || command -v pl 2>/dev/null)}
-  if [ -n "$live_swipl" ] && [ -n "${PL_VERSION:-}" ]; then
-    live_ver=$("$live_swipl" --dump-runtime-variables 2>/dev/null \
-               | sed -n 's/^PLVERSION="\([0-9]*\)".*/\1/p')
-    if [ -n "$live_ver" ] && [ "$live_ver" != "$PL_VERSION" ]; then
-      echo "  ! PL_VERSION=$PL_VERSION but $live_swipl reports $live_ver -> re-source your .secondorc"; w=1
-    fi
   fi
   return $w
 }
 
 # One-line summary (+ warnings). This is what the build prints once per run.
 secondo_env_summary() {
-  local jplver pl
-  jplver=$(secondo_jplver "${PL_VERSION:-0}")
-  if [ "${SECONDO_PL_FOUND:-no}" = yes ]; then pl="${PL_VERSION} -> JPL/${jplver}"; else pl="none"; fi
+  local pl
+  if [ "${SECONDO_PL_FOUND:-no}" = yes ]; then pl="${SWI_HOME_DIR:-found}"; else pl="none"; fi
   printf 'secondo env: platform %s | swipl %s | jdk %s | bdb %s\n' \
     "${SECONDO_PLATFORM:-?}" "$pl" "${J2SDK_ROOT:-MISSING}" "${BERKELEY_DB_DIR:-MISSING}"
   secondo_env_warnings
 }
 
 # The variables that make/runtime care about, in one place.
-SECONDO_VARS='SECONDO_BUILD_DIR SECONDO_PLATFORM PL_VERSION SWI_HOME_DIR PL_LIB_DIR
-  PL_DLL_DIR PL_INCLUDE_DIR PL_LIB JPL_JAR JPL_DLL J2SDK_ROOT SECONDO_JAVA
+SECONDO_VARS='SECONDO_BUILD_DIR SECONDO_PLATFORM SWI_HOME_DIR PL_LIB_DIR
+  PL_DLL_DIR PL_INCLUDE_DIR PL_LIB J2SDK_ROOT SECONDO_JAVA
   BERKELEY_DB_DIR BERKELEY_DB_LIB SECONDO_READLINE_DIR SECONDO_JPEG_DIR
   SECONDO_FLEX_DIR SECONDO_LIBXML2_DIR SECONDO_JVM_LIB_DIR SECONDO_CONFIG
   PD_HEADER PD_DVI_VIEWER PD_PS_VIEWER'

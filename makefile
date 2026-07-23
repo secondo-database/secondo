@@ -189,38 +189,11 @@ endif
 
 
 .PHONY: optimizer
-optimizer: optimizer2 optserver update-config
+optimizer: optimizer2 update-config
 
 .PHONY: optimizer2
 optimizer2: makedirs buildlibs buildAlgebras
 	$(MAKE) -C Optimizer optimizer
-
-
-.PHONY: optserver
-optserver: makedirs buildlibs buildAlgebras buildapps
-ifeq ($(compileJava),"true")
-ifeq ($(optimizer),"true")
-ifeq ($(j2sdkIsPresent),"true")
-	@echo; echo  " *** Building JPL and the optimizer server *** "; echo
-	$(MAKE) -C Jpl all
-	$(MAKE) -C OptServer all
-	@chmod ugo+x Optimizer/StartOptServer
-endif
-endif
-endif
-
-.PHONY: optsrv-msg
-optsrv-msg:
-ifeq ($(compileJava),"true")
-ifeq ($(j2sdkIsPresent),"false")
-	@echo ; echo "JPL and the optimizer server were not compiled!"
-	$(j2sdk-msg)
-endif
-else
-	@echo ; echo  "JPL and the optimizer server were not compiled!"
-	$(javac-msg)
-endif
-
 
 
 .PHONY: buildapps
@@ -251,9 +224,7 @@ clean:
 	$(MAKE) -C Algebras clean
 	$(MAKE) -C QueryProcessor clean
 	$(MAKE) -C UserInterfaces clean
-	$(MAKE) -C Jpl clean
 	$(MAKE) -C Javagui clean
-	$(MAKE) -C OptServer clean
 	$(MAKE) -C OptParser clean
 	$(MAKE) -C Optimizer clean
 	$(MAKE) -C apis clean
@@ -297,7 +268,7 @@ include ./makefile.cm
 ######################################################
 
 .PHONY: update-config 
-update-config: config optsrv-msg showjni Documents/.Secondo-News.txt
+update-config: config showjni Documents/.Secondo-News.txt
 
 .PHONY: showjni
 showjni:
@@ -356,7 +327,7 @@ help:
 	@echo "*** ---------------------------------------------------------------------"
 	@echo "*** TTY       : Compile only a single user version of Secondo."
 	@echo "*** android   : Compile android version of Secondo."
-	@echo "*** optimizer : Create only SecondoPL, SecondoPLCS and OptServer." 
+	@echo "*** optimizer : Create only SecondoPL and the embedded optimizer."
 	@echo "*** java      : The Java-GUI will be created."
 	@echo "*** TestRunner: Compile only the TestRunner, a tool to automate tests."
 	@echo "*** "

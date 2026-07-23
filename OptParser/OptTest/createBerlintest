@@ -1,6 +1,0 @@
-#!/bin/bash
-
-cp 30/berlintest.tspec $HOME/secondo/OptParser/OptTest
-cd $HOME/secondo/OptParser/OptTest
-make
-StartTest -c berlintest.tspec
