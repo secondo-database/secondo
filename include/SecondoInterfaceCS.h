@@ -224,7 +224,24 @@ public:
    // level 2) is available (compiled in and enabled for that server).
    bool optimizerAvailable();
 
-   // Sends an SQL-dialect command (command level 2). The server optimizes it
+   // Sends a command without saying which language it is written in: the
+   // server classifies it (see SQLLanguage.h) and reports in resolvedLevel
+   // what it decided, which tells the caller how to read the answer --
+   // CMD_LEVEL_SQL means the list (plan result costs), CMD_LEVEL_OPT_DIRECTIVE
+   // the text an optimizer goal printed, CMD_LEVEL_NESTED_LIST/_TEXT an
+   // ordinary result. With optimizerAddressed the "optimizer" protocol flag is
+   // sent along, saying the user wrote the "optimizer " prefix: SQL is then
+   // only optimized, not executed, and anything else is taken to be a
+   // directive.
+   void SecondoAuto( const std::string& command,
+                     const bool optimizerAddressed,
+                     int& resolvedLevel,
+                     ListExpr& resultList,
+                     int& errorCode,
+                     int& errorPos,
+                     std::string& errorMessage );
+
+   // Sends an SQL command (command level 2). The server optimizes it
    // and answers with the list (plan result costs). With planOnly the
    // "planonly" protocol flag is sent along and the server stops after
    // optimizing: the plan and its costs come back, the result half is empty.
@@ -241,6 +258,9 @@ public:
    // "setOption(subqueries)", "delOption(...)", "updateCatalog") in the
    // server's embedded optimizer and returns the text the directive prints.
    // On error the returned string carries the server's error message.
+   // This is the way in for a caller that already knows it wants a directive
+   // (the JavaGUI's Optimizer menu uses it); a caller that just passes on what
+   // the user typed uses SecondoAuto and lets the server recognize it.
    std::string optimizerCommand(const std::string& directive);
 
    std::string getHost() const;
@@ -295,6 +315,16 @@ public:
      // optimize the SQL but not to execute the plan. Set and cleared by
      // SecondoSql, never sticky.
      bool sqlPlanOnly;
+     // Protocol flag for the command currently being sent: the user addressed
+     // the optimizer explicitly. Set and cleared by SecondoAuto.
+     bool sqlOptimizerAddressed;
+     // The level the server resolved the last command to. Only meaningful
+     // after a command sent at one of the auto levels; otherwise it is the
+     // level that was sent. Read out by SecondoAuto.
+     int resolvedCmdLevel;
+     // Reads "<CommandLevel>n</CommandLevel>"; falls back to CMD_LEVEL_TEXT
+     // when the line is not the expected echo.
+     static int parseCommandLevelEcho(const std::string& line);
      std::vector<MessageHandler*> messageListener;
 
      std::ostream* traceSocketIn;

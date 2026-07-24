@@ -93,18 +93,38 @@ Afterwards the Client can send one of the requests explained below.
 The most interesting one is to send a Secondo command to the server.
 
 ----
-    <Secondo>\n 
-    cmdLevel\n 
-    line1\n  
+    <Secondo>\n
+    cmdLevel[ flag]...\n
+    line1\n
     ...
     lineN\n
     </Secondo>\n
 ----
 
-"cmdLevel" is an integer, it values could be 0 (list-syntax) or 1 (SOS-syntax).
-The command itself can be wrapped into several lines. Every command which is
-known by the SecondoInterface (see "SecondoInterface.h") can be used. Note: The
-command cannot contain the line "</Secondo>".
+"cmdLevel" is an integer: 0 (list syntax), 1 (SOS syntax) or 2 (SQL, which the
+server hands to its embedded optimizer). The command itself can be wrapped into
+several lines. Every command which is known by the SecondoInterface (see
+"SecondoInterface.h") can be used. Note: The command cannot contain the line
+"</Secondo>".
+
+The rest of the level line carries per-command protocol flags, a part the
+server has always discarded, so a flag is invisible to a peer that does not
+know it. Two are defined (see "SQLLanguage.h"): "planonly" stops an SQL command
+after optimizing, and "optimizer" says the user addressed the optimizer
+explicitly.
+
+A client that does not want to decide which of the three languages a typed
+command is written in sends the level -1 instead and lets the server classify
+it. The server then answers with the level it resolved to, ahead of everything
+else:
+
+----
+    <CommandLevel>level</CommandLevel>\n
+----
+
+where "level" is 0, 1, 2 or 3 (an optimizer control goal, whose result is the
+text it printed). This line is written only for a client that asked, so the
+protocol is unchanged for one sending an explicit level.
 
 The response will be a list which may be returned in text or binary
 representation.

@@ -16,6 +16,12 @@
 #
 # See UserInterfaces/SecondoPLMode.cpp (the library(error) preload) and
 # UserInterfaces/SecondoPL.cpp (initEmbeddedOptimizer, same fix).
+#
+# The second half of the test covers the standalone TTY (SecondoBDB) on the same
+# database. That binary is the one client with no server to ask which of the
+# three input languages a typed command is written in, so it applies the shared
+# rules (include/SQLLanguage.h) itself -- which makes it the place where a
+# misrouted command shows up first.
 
 libFile="libutil.sh"
 buildDir=${SECONDO_BUILD_DIR}
@@ -36,9 +42,11 @@ export SECONDO_CONFIG=$buildDir/bin/SecondoConfig.ini
 # TestSecondoPLStartup.log, so keep our own diagnostics out of that file.
 logFile="${buildDir}/Optimizer/TestSecondoPLStartup.restore.log"
 plLog="${buildDir}/Optimizer/TestSecondoPLStartup.secondopl.log"
+ttyLog="${buildDir}/Optimizer/TestSecondoPLStartup.tty.log"
 : > "$logFile"
 printf "%s\n" "Restore log: $logFile"
 printf "%s\n" "SecondoPL log: $plLog"
+printf "%s\n" "SecondoTTYBDB log: $ttyLog"
 
 declare -i error=0
 
@@ -83,10 +91,96 @@ if ! grep -qE "^No : [0-9]+" "$plLog"; then
   let error++
 fi
 
+# ---------------------------------------------------------------------------
+# The standalone TTY: language routing and the optimizer's cost estimate.
+# ---------------------------------------------------------------------------
+#
+# Everything below is typed the way a user types it -- no "sql" prefix, no
+# command level -- so it is the routing itself that is under test. Note that
+# "delete database opt" is a *kernel* command even though it starts with a word
+# the optimizer also uses; it must reach the kernel and be told that a database
+# is still open, not be handed to the optimizer.
+cd "$buildDir/bin" || exit 1
+./SecondoTTYBDB > "$ttyLog" 2>&1 <<'EOF'
+open database opt;
+query ten count;
+(list databases);
+select * from ten;
+select * from ten as t where [t.No > 5];
+showOptions;
+optimizer select * from ten;
+delete database opt;
+drop database opt;
+close database;
+q;
+EOF
+
+cat "$ttyLog" >> "$logFile"
+
+# 3) A plain kernel command in text syntax still runs at the kernel.
+if ! grep -qE "^10$" "$ttyLog"; then
+  printf "%s\n" "FAILED: 'query ten count' did not return 10."
+  let error++
+fi
+
+# 4) A command in nested list syntax still parses as a list.
+if ! grep -q "OPT" "$ttyLog"; then
+  printf "%s\n" "FAILED: '(list databases)' did not list the opt database."
+  let error++
+fi
+
+# 5) SQL is recognized without any prefix: the plan is reported and executed.
+if ! grep -q "Optimized plan: query ten  feed consume" "$ttyLog"; then
+  printf "%s\n" "FAILED: 'select * from ten' was not optimized."
+  let error++
+fi
+if ! grep -qE "^No : 10$" "$ttyLog"; then
+  printf "%s\n" "FAILED: 'select * from ten' did not return the ten tuples."
+  let error++
+fi
+
+# 6) The optimizer's cost estimate reaches the user. "select * from ten" alone
+#    is not enough: the optimizer costs a plain scan at 0, which is suppressed.
+#    A query with a predicate has a real estimate, so this is what proves the
+#    costs element of the answer is carried through and displayed.
+if ! grep -qE "Estimated costs: [0-9]+(\.[0-9]+)?" "$ttyLog"; then
+  printf "%s\n" "FAILED: no cost estimate for 'select * from ten as t where [t.No > 5]'."
+  let error++
+fi
+
+# 7) A bare optimizer directive is routed to the optimizer, not to the kernel.
+if ! grep -q "Optimizer options (and sub-options):" "$ttyLog"; then
+  printf "%s\n" "FAILED: 'showOptions' did not reach the optimizer."
+  let error++
+fi
+
+# 8) The "optimizer " prefix in front of SQL optimizes without executing.
+if ! grep -q "Plan only -- not executed." "$ttyLog"; then
+  printf "%s\n" "FAILED: 'optimizer select ...' did not stop after optimizing."
+  let error++
+fi
+
+# 9) Dropping a database is the kernel's business, but both spellings a user
+#    reaches for start with a word the optimizer also uses ("delete from ...",
+#    "drop table ..."). A classifier that looks only at that first word hands
+#    them to the optimizer, and the user gets "no plan found" or "no database is
+#    open; cannot use the optimizer" instead of the real answer. So: the kernel
+#    must report the open database, and nothing here may produce an optimizer
+#    error -- every command above is either a kernel command or valid SQL.
+if ! grep -q "A database is open." "$ttyLog"; then
+  printf "%s\n" "FAILED: 'delete database opt' did not reach the kernel."
+  let error++
+fi
+if grep -qE "cannot use the optimizer|Optimization failed" "$ttyLog"; then
+  printf "%s\n" "FAILED: a kernel command was routed to the optimizer."
+  grep -nE "cannot use the optimizer|Optimization failed" "$ttyLog" | head
+  let error++
+fi
+
 rm -rf "$tempDir"
 
 if [ $error -gt 0 ]; then
-  printf "%s\n" "*** TestSecondoPLStartup: ${error} error(s), see ${plLog} ***"
+  printf "%s\n" "*** TestSecondoPLStartup: ${error} error(s), see ${plLog} and ${ttyLog} ***"
   exit 1
 fi
 

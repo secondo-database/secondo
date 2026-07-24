@@ -97,6 +97,7 @@ This is the test enviroment for Secondo. The code is derived from SecondoTTY.
 #include "LogMsg.h"
 #include "ExampleReader.h"
 #include "TTYParameter.h"
+#include "SQLLanguage.h"
 
 using namespace std;
 
@@ -1275,7 +1276,7 @@ TestRunner::CallSecondo()
     {
       if ( nl->ReadFromString( cmd, cmdList ) )
       {
-        si->Secondo( cmd, cmdList, 0, false, false,
+        si->Secondo( cmd, cmdList, CMD_LEVEL_NESTED_LIST, false, false,
                     outList, errorCode, errorPos, errorMessage );
       }
       else
@@ -1286,7 +1287,7 @@ TestRunner::CallSecondo()
     else
     {
       cout << cmd << endl;
-      si->Secondo( cmd, cmdList, 1, false, false,
+      si->Secondo( cmd, cmdList, CMD_LEVEL_TEXT, false, false,
                   outList, errorCode, errorPos, errorMessage );
     }
   }

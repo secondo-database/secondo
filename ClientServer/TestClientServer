@@ -509,6 +509,90 @@ SQL
 fi
 
 #
+# Phase 7b: language routing. The client no longer decides which of the three
+# input languages a typed command is written in -- it sends the auto command
+# level and the server answers with the level it resolved to (SQLLanguage.h).
+# So the routing itself is now a server behaviour, and this is where it is
+# pinned down.
+#
+# Everything below is typed the way a user types it, with no prefix and no
+# level. Two of them are traps: "delete database X" and "drop database X" begin
+# with words the optimizer also uses ("delete from ...", "drop table ..."), and
+# a rule that looks only at the first word hands them to the optimizer -- the
+# user then gets "no plan found" or "no database is open; cannot use the
+# optimizer" instead of being told that a database is still open.
+#
+# The save/restore pair is the other thing worth guarding: those two are
+# carried out by the *client* (it holds the file), so the client has to keep
+# recognizing them even though it no longer classifies anything else. They run
+# on a database of their own, so the shared test database survives.
+#
+if [ "$sqlEnabled" -eq 1 ]; then
+  echo "*** ClientServer test: language routing (server-side detection) ***"
+  cat >"$home/route.sec" <<SQL
+open database $DBNAME;
+query ten feed count;
+(list databases);
+select * from ten;
+showOptions;
+delete database $DBNAME;
+drop database $DBNAME;
+save database to csdump;
+close database;
+restore database ${DBNAME}restored from csdump;
+close database;
+open database ${DBNAME}restored;
+query ten feed count;
+close database;
+delete database ${DBNAME}restored;
+q;
+SQL
+  SecondoCS -h 127.0.0.1 -p "$SEC_PORT" -i "$home/route.sec" \
+    >"$home/route.log" 2>&1
+
+  routeFailed=0
+  if ! grep -qE "^10$" "$home/route.log"; then
+    echo "FAIL (routing): a plain kernel command did not return its result"
+    routeFailed=1
+  elif ! grep -q "$(echo $DBNAME | tr a-z A-Z)" "$home/route.log"; then
+    echo "FAIL (routing): a nested list command did not list the databases"
+    routeFailed=1
+  elif ! grep -q "Optimized plan:" "$home/route.log"; then
+    echo "FAIL (routing): SQL was not recognized without a prefix"
+    routeFailed=1
+  elif ! grep -q "Elem : 10" "$home/route.log"; then
+    echo "FAIL (routing): the optimized plan did not run"
+    routeFailed=1
+  elif ! grep -q "Optimizer options (and sub-options):" "$home/route.log"; then
+    echo "FAIL (routing): a bare optimizer directive did not reach the optimizer"
+    routeFailed=1
+  elif ! grep -q "A database is open." "$home/route.log"; then
+    echo "FAIL (routing): 'delete database' did not reach the kernel"
+    routeFailed=1
+  elif grep -qE "cannot use the optimizer|Optimization failed" "$home/route.log"; then
+    echo "FAIL (routing): a kernel command was routed to the optimizer"
+    routeFailed=1
+  elif [ ! -f "$home/csdump" ]; then
+    # The client writes this file itself; if it were sent to the server as an
+    # ordinary command instead, no file would appear here.
+    echo "FAIL (routing): 'save database' did not transfer the dump to the client"
+    routeFailed=1
+  elif [ "$(grep -cE "^10$" "$home/route.log")" -lt 2 ]; then
+    echo "FAIL (routing): the restored database did not answer the query"
+    routeFailed=1
+  fi
+
+  if [ "$routeFailed" -ne 0 ]; then
+    grep -nE "cannot use the optimizer|Optimization failed|Error" \
+         "$home/route.log" | head -5
+    tail -30 "$home/route.log"
+    rc=1
+  else
+    echo "OK (routing): each language reached the right interpreter"
+  fi
+fi
+
+#
 # Phase 8: graceful shutdown. Send the monitor a SIGTERM -- what a service
 # manager or a CTRL+C does -- and assert the whole tree comes down cleanly:
 #   * the monitor exits rather than hanging (it used to deadlock in BerkeleyDB

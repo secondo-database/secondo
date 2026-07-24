@@ -4,6 +4,7 @@ import java.sql.SQLException;
 import tools.Reporter;
 //import Verbindungstest.Declarations;
 import sj.lang.ESInterface;
+import sj.lang.SecondoInterface;
 import sj.lang.ListExpr;
 import sj.lang.IntByReference;
 /**
@@ -206,15 +207,16 @@ public class CommunicationInterface {
 	/**
 	 * <b> Task of this method </b> <br/>
 	 * Sends an SQL command to the Secondo server, which optimizes it itself
-	 * (command level 2) and answers with the list (plan result costs).
-	 * @param command the command in the SQL dialect
+	 * and answers with the list (plan result costs).
+	 * @param command the command in SQL
 	 * @param planOnly if true the server stops after optimizing and executes
 	 * nothing, so only the plan and its costs come back
 	 * @return the answer list, or null if the command could not be optimized
 	 */
 	private ListExpr sqlCommand(String command, boolean planOnly) {
 		ListExpr answer = new ListExpr();
-		SI.secondo(command, answer, ErrCode, ErrPos, ErrMess, 2, planOnly);
+		SI.secondo(command, answer, ErrCode, ErrPos, ErrMess,
+				SecondoInterface.SQL_COMMAND_LEVEL, planOnly);
 		if (ErrCode.value != 0) {
 			Reporter.writeError(ErrMess.toString());
 			return null;

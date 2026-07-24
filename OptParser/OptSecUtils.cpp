@@ -45,6 +45,7 @@ is in kind data). At this place these checks are not nessecary.
 #include "SecondoInterface.h"
 #include "SecondoInterfaceTTY.h"
 #include "OptSecUtils.h"
+#include "SQLLanguage.h"
 #include <algorithm>
 #include <string>
 
@@ -133,7 +134,7 @@ bool isDatabaseOpen(string& name, string& errorMsg)
   int errorCode = 0;
   int errorPos = 0;
 
-  si->Secondo(command, plnl->TheEmptyList(), 1, // command level
+  si->Secondo(command, plnl->TheEmptyList(), CMD_LEVEL_TEXT,
       true, // command as text
       false, // result as text
       result1, errorCode, errorPos, errorMsg);
@@ -433,7 +434,7 @@ bool isObject(const string& name, string& realName, ListExpr& type)
   int errorPos = 0;
   string errorMsg;
   // query the database for every object in the database and test if it
-  si->Secondo(command, plnl->TheEmptyList(), 1, // command level
+  si->Secondo(command, plnl->TheEmptyList(), CMD_LEVEL_TEXT,
       true, // command as text
       false, // result as text
       result1, errorCode, errorPos, errorMsg);
@@ -569,7 +570,7 @@ bool isValidID(const string& id)
   int errorCode = 0;
   int errorPos = 0;
   string errorMsg;
-  si->Secondo(command, plnl->TheEmptyList(), 1, // command level
+  si->Secondo(command, plnl->TheEmptyList(), CMD_LEVEL_TEXT,
       true, // command as text
       false, // result as text
       result1, errorCode, errorPos, errorMsg);
@@ -612,7 +613,7 @@ bool checkKind(const string& type, const string& kind)
   int errorCode = 0;
   int errorPos = 0;
   string errorMsg;
-  si->Secondo(command, plnl->TheEmptyList(), 1, // command level
+  si->Secondo(command, plnl->TheEmptyList(), CMD_LEVEL_TEXT,
       true, // command as text
       false, // result as text
       result1, errorCode, errorPos, errorMsg);
@@ -655,7 +656,7 @@ void getDatabaseObjectNames(set<string>& names)
   int errorCode = 0;
   int errorPos = 0;
   string errorMsg;
-  si->Secondo(command, plnl->TheEmptyList(), 1, // command level
+  si->Secondo(command, plnl->TheEmptyList(), CMD_LEVEL_TEXT,
       true, // command as text
       false, // result as text
       result1, errorCode, errorPos, errorMsg);
@@ -712,7 +713,7 @@ bool checkOperator(string op, list<string>& parameters)
   int errorCode = 0;
   int errorPos = 0;
   string errorMsg;
-  si->Secondo(command, plnl->TheEmptyList(), 1, // command level
+  si->Secondo(command, plnl->TheEmptyList(), CMD_LEVEL_TEXT,
       true, // command as text
       false, // result as text
       result1, errorCode, errorPos, errorMsg);
@@ -753,7 +754,7 @@ string getOperatorType(string operatorname, list<string>& parameters)
     int errorCode = 0;
     int errorPos = 0;
     string errorMsg;
-    si->Secondo(command, plnl->TheEmptyList(), 1, // command level
+    si->Secondo(command, plnl->TheEmptyList(), CMD_LEVEL_TEXT,
         true, // command as text
         false, // result as text
         result1, errorCode, errorPos, errorMsg);
@@ -801,7 +802,7 @@ string getAttributeType(string attribute, string relation)
   int errorCode = 0;
   int errorPos = 0;
   string errorMsg;
-  si->Secondo(command, plnl->TheEmptyList(), 1, // command level
+  si->Secondo(command, plnl->TheEmptyList(), CMD_LEVEL_TEXT,
       true, // command as text
       false, // result as text
       result1, errorCode, errorPos, errorMsg);
@@ -858,7 +859,7 @@ bool isOperator(string operatorname)
   int errorCode = 0;
   int errorPos = 0;
   string errorMsg;
-  si->Secondo(command, plnl->TheEmptyList(), 1, // command level
+  si->Secondo(command, plnl->TheEmptyList(), CMD_LEVEL_TEXT,
       true, // command as text
       false, // result as text
       result1, errorCode, errorPos, errorMsg);

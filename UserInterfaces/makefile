@@ -36,7 +36,8 @@ APPLOBJECTS := \
 	MainTTY.$(OBJEXT) \
 	cmsg.$(OBJEXT) \
 	MainTTYCS.$(OBJEXT) \
-  getCommand.$(OBJEXT)
+  getCommand.$(OBJEXT) \
+  SQLLanguage.$(OBJEXT)
 
 APPLICATIONS := $(BINDIR)/Secondo$(SMIUP) \
 		$(BINDIR)/SecondoCS \

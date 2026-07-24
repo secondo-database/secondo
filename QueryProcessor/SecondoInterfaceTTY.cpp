@@ -143,6 +143,7 @@ transactions of errorneous queries were not aborted.
 #include "Counter.h"
 #include "DerivedObj.h"
 #include "NList.h"
+#include "SQLLanguage.h"
 
 #include "CharTransform.h"
 #include "version.h"
@@ -817,7 +818,7 @@ Command\_<name>.
 
   switch (commandLevel)
   {
-    case 0:  // executable, list form
+    case CMD_LEVEL_NESTED_LIST:  // executable, list form
     {
       if ( commandAsText )
       {
@@ -832,7 +833,7 @@ Command\_<name>.
       }
       break;
     }
-    case 1:  // executable, text form
+    case CMD_LEVEL_TEXT:  // executable, text form
     {
       SecParser sp;            // translates SECONDO syntax into nested list
       USE_AUTO_BUFFER = RTFlag::isActive("SI:AUTO_BUFFER");

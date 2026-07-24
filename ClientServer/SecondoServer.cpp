@@ -72,6 +72,7 @@ are implemented in class ~CSProtocol~ and can be used by inside the
 #include "NList.h"
 #include "satof.h"
 #include "ErrorCodes.h"
+#include "SQLLanguage.h"
 
 #ifndef NO_OPTIMIZER
 #include "SecondoPL.h"
@@ -166,6 +167,13 @@ class SecondoServer : public Application
   // reported and result stays empty. Only reached when the optimizer is both
   // compiled in and enabled for this server.
   void CallSql(const string& sqlText, bool executePlan);
+  // Runs an optimizer control directive reached over the <Secondo> framing,
+  // i.e. one the server itself recognized while resolving CMD_LEVEL_AUTO.
+  // The text the directive prints is returned as a single text atom, so the
+  // answer fits the ordinary response shape. (The <OptimizerCommand> tag above
+  // is the other way in: it is what a client uses when it knows it wants a
+  // directive.)
+  void CallOptimizerDirective(const string& goal);
   // True iff the optimizer is compiled in AND enabled for this server.
   bool OptimizerAvailable();
 #ifndef NO_OPTIMIZER
@@ -233,11 +241,14 @@ SecondoServer::CallSecondo()
   // always skipped, so a client that sends none (all of them until now) is
   // unaffected, and an unknown flag is simply ignored rather than breaking the
   // framing. Currently only "planonly" is defined: optimize the SQL but do not
-  // execute the plan.
+  // execute the plan. "optimizer" says the user addressed the optimizer
+  // explicitly (the "optimizer " prefix) and is only meaningful together with
+  // the auto level below.
   string flags = "";
   getline( iosock, flags );
   debug_server(flags);
   bool planOnly = flags.find("planonly") != string::npos;
+  bool optimizerAddressed = flags.find("optimizer") != string::npos;
   csp->IgnoreMsg(false);
   bool ready=false;
   do
@@ -252,13 +263,43 @@ SecondoServer::CallSecondo()
   }
   while (!ready && !iosock.fail());
 
-  // Command level 2 is the SQL dialect: it is not an executable command, so it
+  // The auto level is a client asking the server which language the command is
+  // written in, instead of classifying it itself (see SQLLanguage.h). The
+  // level it resolves to is echoed back before anything else is written, so
+  // the client knows how to read the answer -- a level 2 answer is the list
+  // (plan result costs), a directive answer is the text the goal printed, and
+  // a level 0/1 answer is an ordinary result. The echo is written only for a
+  // client that asked, so clients sending an explicit level see the protocol
+  // exactly as before.
+  if ( type == CMD_LEVEL_AUTO )
+  {
+    // With the "optimizer" flag the user addressed the optimizer explicitly
+    // ("optimizer <text>"): SQL is then optimized but not executed, and
+    // anything else is a directive rather than a kernel command.
+    type = resolveCommandLevel( cmdText, optimizerAddressed );
+    if ( optimizerAddressed && type == CMD_LEVEL_SQL )
+    {
+      planOnly = true;
+    }
+    iosock << "<CommandLevel>" << type << "</CommandLevel>" << endl;
+    iosock.flush();
+  }
+
+  // Command level 2 is SQL: it is not an executable command, so it
   // is not passed to si->Secondo but handled here by the embedded optimizer.
   // The "planonly" flag stops it after optimizing (the client wants the plan,
   // not its result).
-  if ( type == 2 )
+  if ( type == CMD_LEVEL_SQL )
   {
     CallSql( cmdText, !planOnly );
+    return;
+  }
+
+  // An optimizer control goal. Only reachable through the auto level above:
+  // no client sends this level, the server resolves to it.
+  if ( type == CMD_LEVEL_OPT_DIRECTIVE )
+  {
+    CallOptimizerDirective( cmdText );
     return;
   }
 
@@ -333,8 +374,8 @@ SecondoServer::CallSql(const string& sqlText, bool executePlan)
   string errorMessage="";
   if ( executePlan && !alreadyExecuted )
   {
-    // Execute the generated executable plan (command level 1, text syntax).
-    si->Secondo( plan, commandLE, 1, true, false,
+    // Execute the generated executable plan (text syntax).
+    si->Secondo( plan, commandLE, CMD_LEVEL_TEXT, true, false,
                  planResult, errorCode, errorPos, errorMessage );
     NList::setNLRef(nl);
   }
@@ -402,6 +443,58 @@ SecondoServer::ensureOptimizerReady(string& errMsg, bool requireDb)
   return true;
 }
 #endif
+
+void
+SecondoServer::CallOptimizerDirective(const string& goal)
+{
+  // Trim the trailing newline the framing loop accumulated; a Prolog goal must
+  // not carry it.
+  string directive = goal;
+  while ( !directive.empty()
+          && (directive[directive.size()-1] == '\n'
+              || directive[directive.size()-1] == '\r') )
+  {
+    directive.erase(directive.size()-1);
+  }
+
+  if ( !OptimizerAvailable() )
+  {
+    WriteResponse( ERR_OPTIMIZER_NOT_AVAILABLE, 0,
+                   "The optimizer is not available on this server.",
+                   nl->TheEmptyList() );
+    return;
+  }
+
+#ifndef NO_OPTIMIZER
+  // A directive is a global optimizer goal (showOptions, setOption, ...), so
+  // an open database is not required.
+  string errMsg = "";
+  if ( !ensureOptimizerReady( errMsg, false ) )
+  {
+    NList::setNLRef(nl);
+    WriteResponse( ERR_OPTIMIZER_NOT_AVAILABLE, 0, errMsg,
+                   nl->TheEmptyList() );
+    return;
+  }
+
+  string output = "";
+  bool ok = embeddedOptimizerRunGoal( directive, output, errMsg );
+  NList::setNLRef(nl);
+  if ( !ok )
+  {
+    // A directive may fail in Prolog yet still have written a useful message;
+    // prefer that over the bare exception text.
+    WriteResponse( ERR_OPTIMIZER_NOT_AVAILABLE, 0,
+                   output.empty() ? errMsg : output, nl->TheEmptyList() );
+    return;
+  }
+
+  // What a directive produces is the text it printed, so that is its result.
+  ListExpr outText = nl->TextAtom();
+  nl->AppendText( outText, output );
+  WriteResponse( 0, 0, "", outText );
+#endif
+}
 
 void
 SecondoServer::CallOptimizerCommand()
@@ -1013,7 +1106,7 @@ SecondoServer::CallSave(const string& tag, bool database /*=false*/)
   if (errorCode == ERR_NO_ERROR)
   {
    
-    si->Secondo( cmdText, commandLE, 0, true, false, 
+    si->Secondo( cmdText, commandLE, CMD_LEVEL_NESTED_LIST, true, false,
                  resultList, errorCode, errorPos, errorMessage );
     NList::setNLRef(nl); 
 
@@ -1083,7 +1176,7 @@ SecondoServer::CallRestore(const string& tag, bool database/*=false*/)
                " from " + serverFileName + ")";
     } 
     
-    si->Secondo( cmdText, commandLE, 0, true, false, 
+    si->Secondo( cmdText, commandLE, CMD_LEVEL_NESTED_LIST, true, false,
                  resultList, errorCode, errorPos, errorMessage );
     NList::setNLRef(nl);
   }
