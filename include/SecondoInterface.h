@@ -138,6 +138,9 @@ in the treatment of the database state in database commands.
 #include "NestedList.h"
 #include "StopWatch.h"
 #include "CSProtocol.h"
+// The command levels the Secondo procedure below takes, and the rules that
+// decide which one a typed command belongs to.
+#include "SQLLanguage.h"
 
 
 
@@ -251,14 +254,24 @@ The command is one of a set of "Secondo"[3] commands described below. The
 parameters have the following meaning.
 
 A "Secondo"[3] command can be given at various ~levels~; parameter
-~commandLevel~ indicates the level of the current command. The levels
-are defined as follows:
+~commandLevel~ indicates the level of the current command. The levels are named
+in ~SQLLanguage.h~ -- use the constants, not the numbers -- and are defined as
+follows:
 
-  * 0 -- "Secondo"[3] executable command in nested list syntax (~list~)
+  * "CMD\_LEVEL\_NESTED\_LIST" (0) -- executable command in nested list syntax
+    (~list~)
 
-  * 1 -- "Secondo"[3] executable command in SOS syntax (~text~)
+  * "CMD\_LEVEL\_TEXT" (1) -- executable command in SOS syntax (~text~)
 
-If the command is given in ~text~ syntax (command level 1),
+  * "CMD\_LEVEL\_SQL" (2) -- SQL, which is not executable: only a client/server
+    connection accepts it, and the server hands it to its embedded optimizer
+    (see "SecondoInterfaceCS::SecondoSql")
+
+A client that does not want to decide which of these a typed command is written
+in sends "CMD\_LEVEL\_AUTO" instead and lets the server classify it; that is a
+protocol level, not one this procedure executes.
+
+If the command is given in ~text~ syntax ("CMD\_LEVEL\_TEXT"),
 then the text string must be placed in ~commandText~. If the command is
 given in ~list~ syntax, it can be passed either as a text string in
 ~commandText~, in which case ~commandAsText~ must be "true"[4], or as a list

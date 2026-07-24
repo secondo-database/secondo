@@ -148,9 +148,10 @@ public class ESInterface extends SecondoInterface implements UpdateInterface{
               terminate();
      }
 
-  /** calls super.secondo with an explicit command level (2 = SQL dialect)
-    * and the optional "planonly" protocol flag; behaves like the five
-    * argument version on a lost connection
+  /** calls super.secondo with an explicit command level (2 = SQL, or
+    * AUTO_COMMAND_LEVEL to let the server classify the command) and the
+    * optional "planonly" protocol flag; behaves like the five argument version
+    * on a lost connection
     */
     public void secondo(String command,
                         ListExpr resultList,
@@ -160,8 +161,25 @@ public class ESInterface extends SecondoInterface implements UpdateInterface{
                         int commandLevel,
                         boolean planOnly){
 
+          secondo(command,resultList,errorCode,errorPos,errorMessage,
+                  commandLevel,planOnly,false);
+     }
+
+  /** calls super.secondo with the "optimizer" protocol flag in addition: the
+    * user addressed the optimizer explicitly, so on the auto level SQL is only
+    * optimized and anything else is run as an optimizer directive
+    */
+    public void secondo(String command,
+                        ListExpr resultList,
+                        IntByReference errorCode,
+                        IntByReference errorPos,
+                        StringBuffer errorMessage,
+                        int commandLevel,
+                        boolean planOnly,
+                        boolean optimizerAddressed){
+
           super.secondo(command,resultList,errorCode,errorPos,errorMessage,
-                        commandLevel,planOnly);
+                        commandLevel,planOnly,optimizerAddressed);
           if(errorCode.value==81)
               terminate();
      }

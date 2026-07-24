@@ -614,8 +614,28 @@ not accessible by the user code.
 
 */
 
-/** command level to be derived from the command text itself */
-public static final int DERIVE_COMMAND_LEVEL = -1;
+/* The command levels, the Java side of include/SQLLanguage.h.
+ * 0, 1 and 2 are the levels a command is executed at. AUTO_COMMAND_LEVEL is the
+ * sentinel sent to ask the server which language the command is written in; it
+ * answers with the level it resolved to, which getResolvedCommandLevel()
+ * reports. OPT_DIRECTIVE_COMMAND_LEVEL only ever comes back in such an answer,
+ * it is never sent.
+ */
+public static final int NESTED_LIST_COMMAND_LEVEL   =  0;
+public static final int TEXT_COMMAND_LEVEL          =  1;
+public static final int SQL_COMMAND_LEVEL           =  2;
+public static final int OPT_DIRECTIVE_COMMAND_LEVEL =  3;
+
+public static final int AUTO_COMMAND_LEVEL          = -1;
+
+/** command level to be derived from the command text itself, without asking
+  * the server: a leading "(" is a nested list, anything else is text. Never
+  * written to the wire.
+  */
+public static final int DERIVE_COMMAND_LEVEL = -3;
+
+/** the level the server resolved the last auto-level command to */
+private int resolvedCommandLevel = TEXT_COMMAND_LEVEL;
 
 protected void secondo(String command,
                     ListExpr resultList,
@@ -626,11 +646,23 @@ protected void secondo(String command,
            DERIVE_COMMAND_LEVEL, false);
 }
 
+/** Reports the command level the server resolved the last command sent at
+  * AUTO_COMMAND_LEVEL to. It tells the caller
+  * how to read the answer: SQL_COMMAND_LEVEL means the list
+  * (plan result costs), OPT_DIRECTIVE_COMMAND_LEVEL the text an optimizer goal
+  * printed, and 0/1 an ordinary result. After a command sent at an explicit
+  * level it is that level.
+  */
+public int getResolvedCommandLevel(){
+   return resolvedCommandLevel;
+}
+
 /** Sends a command at an explicitly given command level.
-  * The levels are 0 (nested list), 1 (SOS text) and 2 (SQL dialect: the
-  * server optimizes the command itself and answers with the list
+  * The levels are 0 (nested list), 1 (SOS text) and 2 (SQL: the server
+  * optimizes the command itself and answers with the list
   * (plan result costs)). DERIVE_COMMAND_LEVEL picks 0 or 1 from the command
-  * text, as the five argument version has always done.
+  * text, as the five argument version has always done; AUTO_COMMAND_LEVEL
+  * leaves the choice to the server (see getResolvedCommandLevel).
   * With planOnly the "planonly" protocol flag is written behind the level;
   * the server then stops after optimizing, so the plan and its costs come
   * back and nothing is executed. It is meaningful for level 2 only.
@@ -642,6 +674,24 @@ protected void secondo(String command,
                     StringBuffer errorMessage,
                     int commandLevel,
                     boolean planOnly){
+   secondo(command, resultList, errorCode, errorPos, errorMessage,
+           commandLevel, planOnly, false);
+}
+
+/** Sends a command, saying in addition that the user addressed the optimizer
+  * explicitly (the "optimizer " prefix). That is written as the "optimizer"
+  * protocol flag and is meaningful on the auto level only: the server then
+  * optimizes SQL without executing it, and runs anything else as an optimizer
+  * directive.
+  */
+protected void secondo(String command,
+                    ListExpr resultList,
+                    IntByReference errorCode,
+                    IntByReference errorPos,
+                    StringBuffer errorMessage,
+                    int commandLevel,
+                    boolean planOnly,
+                    boolean optimizerAddressed){
    // write command to console if desired
 
  if(Environment.SHOW_COMMAND){
@@ -663,15 +713,19 @@ protected void secondo(String command,
   // check for restore command
   command=command.trim();
   if(commandLevel==DERIVE_COMMAND_LEVEL){
-     commandLevel = command.startsWith("(")?0:1;
+     commandLevel = command.startsWith("(") ? NESTED_LIST_COMMAND_LEVEL
+                                            : TEXT_COMMAND_LEVEL;
   }
   try{
      // The restore/save interception below rewrites the command; it must not
      // touch SQL, which only the server can interpret. The C++ client guards
-     // this the same way (SecondoInterfaceCS.cpp, commandType != 2).
-     if(commandLevel==2){
-        sendCommand(command, commandLevel, planOnly, resultList, errorCode,
-                    errorPos, errorMessage);
+     // this the same way (SecondoInterfaceCS.cpp, specialCmdLevel != 2).
+     // The AUTO levels do pass through it: save and restore are kernel
+     // commands, never SQL, and it is the client that holds the file, so it
+     // has to recognize them itself whoever classifies the rest.
+     if(commandLevel==SQL_COMMAND_LEVEL){
+        sendCommand(command, commandLevel, planOnly, optimizerAddressed,
+                    resultList, errorCode, errorPos, errorMessage);
         return;
      }
      if(command.startsWith("restore ")){
@@ -693,8 +747,8 @@ protected void secondo(String command,
      }
  
       // not a special command
-      sendCommand(command, commandLevel, planOnly, resultList, errorCode,
-                  errorPos, errorMessage);
+      sendCommand(command, commandLevel, planOnly, optimizerAddressed,
+                  resultList, errorCode, errorPos, errorMessage);
   } catch(IOException e){
      errorCode.value=81;
      return;
@@ -709,16 +763,51 @@ protected void secondo(String command,
 private void sendCommand(String command,
                          int commandLevel,
                          boolean planOnly,
+                         boolean optimizerAddressed,
                          ListExpr resultList,
                          IntByReference errorCode,
                          IntByReference errorPos,
                          StringBuffer errorMessage) throws IOException {
    outSocketStream.write( "<Secondo>\n");
-   outSocketStream.write( commandLevel + (planOnly?" planonly":"") + "\n" );
+   outSocketStream.write( commandLevel + (planOnly?" planonly":"")
+                                       + (optimizerAddressed?" optimizer":"")
+                                       + "\n" );
    outSocketStream.write(command);
    outSocketStream.write("\n</Secondo>\n" );
    outSocketStream.flush();
+   // A server that was asked to classify the command answers with the level it
+   // resolved to, ahead of everything else. It writes that line only for a
+   // client that asked, so the protocol is unchanged for everyone sending an
+   // explicit level.
+   resolvedCommandLevel = commandLevel;
+   if(commandLevel<0){
+      resolvedCommandLevel = parseCommandLevelEcho(inSocketStream.readLine());
+   }
    receiveResponse(resultList, errorCode, errorPos, errorMessage);
+}
+
+/** Reads the "&lt;CommandLevel&gt;n&lt;/CommandLevel&gt;" line the server
+  * answers an auto level with. Falls back to the text level when the line is
+  * not the expected echo -- the connection is then out of step with the
+  * server, which the response reader reports.
+  */
+private static int parseCommandLevelEcho(String line){
+   if(line==null){
+      return TEXT_COMMAND_LEVEL;
+   }
+   line = line.trim();
+   String open = "<CommandLevel>";
+   String close = "</CommandLevel>";
+   if(!line.startsWith(open) || !line.endsWith(close)
+      || line.length() <= open.length()+close.length()){
+      return TEXT_COMMAND_LEVEL;
+   }
+   try{
+      return Integer.parseInt(
+                line.substring(open.length(), line.length()-close.length()));
+   } catch(NumberFormatException e){
+      return TEXT_COMMAND_LEVEL;
+   }
 }
 
 public boolean setHeartbeat(int heart1, int heart2){

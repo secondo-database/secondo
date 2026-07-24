@@ -55,6 +55,7 @@ provides functions useful for the client and for the server implementation.
 #include "CSProtocol.h"
 #include "StringUtils.h"
 #include "satof.h"
+#include "SQLLanguage.h"
 
 
 using namespace std;
@@ -91,6 +92,8 @@ SecondoInterfaceCS::SecondoInterfaceCS(bool isServer, /*= false*/
     pswd = "";
     multiUser = false;
     sqlPlanOnly = false;
+    sqlOptimizerAddressed = false;
+    resolvedCmdLevel = CMD_LEVEL_TEXT;
     traceSocketIn = 0;
     traceSocketOut = 0;
  }
@@ -487,7 +490,7 @@ For an explanation of the error codes refer to SecondoInterface.h
   } else {
     switch (commandType)
     {
-      case 0:  // list form
+      case CMD_LEVEL_NESTED_LIST:  // list form
       {
         dwriter.write(debugSecondoMethod, cout, this, pid, "commandType = 0");
         if ( commandAsText )
@@ -509,16 +512,23 @@ For an explanation of the error codes refer to SecondoInterface.h
         break;
       }
 
-      case 1:  // text form
+      case CMD_LEVEL_TEXT:  // text form
       {
         dwriter.write(debugSecondoMethod, cout, this, pid, "commandType 1");
         cmdText = commandText;
         break;
       }
-      case 2:  // SQL dialect: forwarded verbatim to the server's optimizer
+      case CMD_LEVEL_SQL:  // forwarded verbatim to the server's optimizer
       {
         dwriter.write(debugSecondoMethod, cout, this, pid,
                       "commandType 2 (sql)");
+        cmdText = commandText;
+        break;
+      }
+      case CMD_LEVEL_AUTO:  // the server classifies the command
+      {
+        dwriter.write(debugSecondoMethod, cout, this, pid,
+                      "commandType auto");
         cmdText = commandText;
         break;
       }
@@ -560,6 +570,16 @@ For an explanation of the error codes refer to SecondoInterface.h
     return;
   }
 
+  // save/restore are carried out by the client -- it is the client that holds
+  // the file -- so they have to be recognized here even when the server was
+  // asked to classify the command (a negative level, see SQLLanguage.h). They
+  // are kernel commands in list or text syntax, never SQL, so deriving 0 vs 1
+  // for them is the same "leading ( ?" test the server would apply and not a
+  // second copy of the language detection.
+  const int specialCmdLevel = (commandType < 0)
+                              ? deriveKernelCommandLevel( cmdText )
+                              : commandType;
+
   string::size_type posDatabase = cmdText.find( "database " );
   string::size_type posSave     = cmdText.find( "save " );
   string::size_type posRestore  = cmdText.find( "restore " );
@@ -568,13 +588,13 @@ For an explanation of the error codes refer to SecondoInterface.h
   dwriter.write(debugSecondoMethod, cout, this, pid, 
                 "try to find out kind of cmd");
 
-  if ( commandType != 2 &&
+  if ( specialCmdLevel != CMD_LEVEL_SQL &&
        posDatabase != string::npos &&
        posSave     != string::npos &&
        posTo       != string::npos &&
        posSave < posDatabase && posDatabase < posTo )
   {
-    if ( commandType == 1 )
+    if ( specialCmdLevel == CMD_LEVEL_TEXT )
     {
       cmdText = string( "(" ) + commandText + ")";
     }
@@ -648,7 +668,7 @@ For an explanation of the error codes refer to SecondoInterface.h
       errorCode = ERR_SYNTAX_ERROR;
     }
   }
-  else if ( commandType != 2 &&
+  else if ( specialCmdLevel != CMD_LEVEL_SQL &&
             posSave != string::npos && // save object to filename
             posTo   != string::npos &&
             posDatabase == string::npos &&
@@ -657,7 +677,7 @@ For an explanation of the error codes refer to SecondoInterface.h
    dwriter.write(debugSecondoMethod, cout, this, pid, "check for save obj");
 
 
-    if ( commandType == 1 )
+    if ( specialCmdLevel == CMD_LEVEL_TEXT )
     {
       cmdText = string( "(" ) + commandText + ")";
     }
@@ -736,14 +756,14 @@ For an explanation of the error codes refer to SecondoInterface.h
     }
   }
 
-  else if ( commandType != 2 &&
+  else if ( specialCmdLevel != CMD_LEVEL_SQL &&
             posRestore  != string::npos &&
             posDatabase == string::npos &&
             posFrom     != string::npos &&
             posRestore < posFrom )
   {
     dwriter.write(debugSecondoMethod, cout, this, pid, "check for restore db");
-    if ( commandType == 1 )
+    if ( specialCmdLevel == CMD_LEVEL_TEXT )
     {
       cmdText = string( "(" ) + commandText + ")";
     }
@@ -813,7 +833,7 @@ For an explanation of the error codes refer to SecondoInterface.h
     }
   }
 
-  else if ( commandType != 2 &&
+  else if ( specialCmdLevel != CMD_LEVEL_SQL &&
             posDatabase != string::npos &&
             posRestore  != string::npos &&
             posFrom     != string::npos &&
@@ -821,7 +841,7 @@ For an explanation of the error codes refer to SecondoInterface.h
   {
     dwriter.write(debugSecondoMethod, cout, this, pid, "check for restore db");
 
-    if ( commandType == 1 )
+    if ( specialCmdLevel == CMD_LEVEL_TEXT )
     {
       cmdText = string( "(" ) + commandText + ")";
     }
@@ -906,14 +926,31 @@ For an explanation of the error codes refer to SecondoInterface.h
        // The server has always discarded the rest of this line, so a flag here
        // is invisible to one that does not know it (and no flag at all is what
        // every other client sends).
-       iosock  << commandType << (sqlPlanOnly ? " planonly" : "") << endl;
+       iosock  << commandType << (sqlPlanOnly ? " planonly" : "")
+                              << (sqlOptimizerAddressed ? " optimizer" : "")
+                              << endl;
        dwriter.write(debugSecondoMethod, cout, this, pid, "CommandType send ");
        iosock <<  cmdText << endl;
        dwriter.write(debugSecondoMethod, cout, this, pid, "CommandText send ");
        iosock << "</Secondo>" << endl;
-       dwriter.write(debugSecondoMethod, cout, this, pid, 
+       dwriter.write(debugSecondoMethod, cout, this, pid,
                      "command transmitted completely, read response");
- 
+
+       // When the server was asked to classify the command it answers with
+       // the level it resolved to, ahead of everything else -- that is how the
+       // caller knows whether the result is an ordinary one, the SQL triple
+       // (plan result costs) or the text an optimizer directive printed. It is
+       // written only for a client that asked, so the protocol is unchanged
+       // for everyone sending an explicit level.
+       resolvedCmdLevel = commandType;
+       if ( commandType < 0 )
+       {
+         string levelLine = "";
+         getline( iosock, levelLine );
+         dwriter.write(debugSecondoMethod, cout, this, pid, levelLine);
+         resolvedCmdLevel = parseCommandLevelEcho( levelLine );
+       }
+
        // Receive result
        errorCode = csp->ReadResponse( resultList,
                                    errorCode, errorPos,
@@ -1269,6 +1306,41 @@ bool SecondoInterfaceCS::optimizerAvailable(){
    return line=="yes";
 }
 
+int SecondoInterfaceCS::parseCommandLevelEcho(const std::string& line){
+   const string open = "<CommandLevel>";
+   const string close = "</CommandLevel>";
+   string l = line;
+   stringutils::trim(l);
+   if(   l.size() <= open.size() + close.size()
+      || l.compare(0, open.size(), open) != 0
+      || l.compare(l.size()-close.size(), close.size(), close) != 0){
+     // Not the expected echo: the connection is out of step with the server.
+     return CMD_LEVEL_TEXT;
+   }
+   string digits = l.substr(open.size(),
+                            l.size() - open.size() - close.size());
+   bool correct = false;
+   int level = stringutils::str2int<int>(digits, correct);
+   return correct ? level : CMD_LEVEL_TEXT;
+}
+
+void SecondoInterfaceCS::SecondoAuto(const std::string& command,
+                                     const bool optimizerAddressed,
+                                     int& resolvedLevel,
+                                     ListExpr& resultList,
+                                     int& errorCode,
+                                     int& errorPos,
+                                     std::string& errorMessage){
+   // Carry the flag through the one call that sends it, so it can never leak
+   // into an unrelated command.
+   ListExpr cmdList = nl->TheEmptyList();
+   sqlOptimizerAddressed = optimizerAddressed;
+   Secondo( command, cmdList, CMD_LEVEL_AUTO, false, false,
+            resultList, errorCode, errorPos, errorMessage );
+   sqlOptimizerAddressed = false;
+   resolvedLevel = resolvedCmdLevel;
+}
+
 void SecondoInterfaceCS::SecondoSql(const std::string& sql,
                                     const bool planOnly,
                                     ListExpr& resultList,
@@ -1279,7 +1351,7 @@ void SecondoInterfaceCS::SecondoSql(const std::string& sql,
    // into an unrelated command.
    ListExpr cmdList = nl->TheEmptyList();
    sqlPlanOnly = planOnly;
-   Secondo( sql, cmdList, 2, false, false,
+   Secondo( sql, cmdList, CMD_LEVEL_SQL, false, false,
             resultList, errorCode, errorPos, errorMessage );
    sqlPlanOnly = false;
 }

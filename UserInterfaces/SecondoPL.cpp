@@ -73,6 +73,7 @@ support for calling Secondo from PROLOG.
 #include "License.h"
 #include "TTYParameter.h"
 #include "NList.h"
+#include "SQLLanguage.h"
 
 #include "../OptParser/OptimizerChecker.h"
 
@@ -581,13 +582,13 @@ pl_call_secondo(term_t command, term_t result)
     error = false;
     commandStr = commandCStr;
     /* executable command in text syntax */
-    commandLevel = 1;
+    commandLevel = CMD_LEVEL_TEXT;
   }
   else
   {
     commandLE = TermToListExpr(command, plnl, error);
     /* executable command in nested list syntax */
-    commandLevel = 0;
+    commandLevel = CMD_LEVEL_NESTED_LIST;
     if (error)
     {
       cerr << "SecondoPL: TermToListExpr() failed." << endl; 

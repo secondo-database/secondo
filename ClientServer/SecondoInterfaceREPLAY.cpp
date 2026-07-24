@@ -39,6 +39,7 @@ February 2016 Matthias Kunsmann, ReplayVersion of the ~SecondoInterfaceCS~
 
 #include "LogMsg.h"
 #include "SecondoInterfaceREPLAY.h"
+#include "SQLLanguage.h"
 #include "SocketIO.h"
 #include "Profiles.h"
 #include "CSProtocol.h"
@@ -2579,7 +2580,7 @@ transfer it to the node and restore (import) it
 
 bool
 SecondoInterfaceREPLAY::importAllImgOnNode(const unsigned int nodeNo,
-			                   std::vector<string> imageList,
+                        std::vector<string> imageList,
                                            std::vector<int> numberer,
                                            const string relName) {
 /*
@@ -2970,7 +2971,7 @@ For an explanation of the error codes refer to SecondoInterface.h
   {
     switch (commandType)
     {
-      case 0:  // list form
+      case CMD_LEVEL_NESTED_LIST:  // list form
       {
         if ( commandAsText )
         {
@@ -2986,7 +2987,7 @@ For an explanation of the error codes refer to SecondoInterface.h
         }
         break;
       }
-      case 1:  // text form
+      case CMD_LEVEL_TEXT:  // text form
       {
         cmdText = commandText;
         break;
@@ -3025,7 +3026,7 @@ For an explanation of the error codes refer to SecondoInterface.h
        posTo       != string::npos &&
        posSave < posDatabase && posDatabase < posTo )
   {
-    if ( commandType == 1 )
+    if ( commandType == CMD_LEVEL_TEXT )
     {
       cmdText = string( "(" ) + commandText + ")";
     }
@@ -3077,7 +3078,7 @@ For an explanation of the error codes refer to SecondoInterface.h
             posDatabase == string::npos &&
             posSave < posTo )
   {
-    if ( commandType == 1 )
+    if ( commandType == CMD_LEVEL_TEXT )
     {
       cmdText = string( "(" ) + commandText + ")";
     }
@@ -3137,7 +3138,7 @@ For an explanation of the error codes refer to SecondoInterface.h
             posFrom     != string::npos &&
             posRestore < posFrom )
   {
-    if ( commandType == 1 )
+    if ( commandType == CMD_LEVEL_TEXT )
     {
       cmdText = string( "(" ) + commandText + ")";
     }
@@ -3195,7 +3196,7 @@ For an explanation of the error codes refer to SecondoInterface.h
             posFrom     != string::npos &&
             posRestore < posDatabase && posDatabase < posFrom )
   {
-    if ( commandType == 1 )
+    if ( commandType == CMD_LEVEL_TEXT )
     {
       cmdText = string( "(" ) + commandText + ")";
     }

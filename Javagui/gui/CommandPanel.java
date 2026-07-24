@@ -306,191 +306,6 @@ public class CommandPanel extends JScrollPane {
      SystemArea.setCaretPosition(aktPos);;
   }
 
-  private boolean isWhiteSpace(char c){
-    return c==' ' || c=='\n' || c=='\t' || c=='\r' ;
-  }
-
-  private boolean isWordSep(char c){
-    return isWhiteSpace(c) || c=='('  || c==')' || c=='[' || c==']' || c=='+'; // .... 
-  }
-
-  private boolean isSymbolStart(char c){
-     return    (c>='a' && c<='z') 
-            || (c>='A' && c<='Z')
-            || (c=='_'); 
-  }
-
-  private boolean isSymbolElement(char c){
-     return isSymbolStart(c) || (c>='0' && c<='9');
-  }
-
-
-
-
-  private char toLower(char c){
-     if(c>='A' && c<='Z'){
-        return (char)(c - 'A' + 'a'); 
-     }
-     return c;
-  }
-
-  private boolean isLetter(char c){
-     return ((c>='A') && (c<='Z') ) || ((c>='a' && c<='z'));
-  }
-
-  private boolean isUpperCase(char c){
-     return (c>='A') && (c<='Z');
-  }
-
-
-  private boolean isDigit(char c){
-    return c>='0' && c <= '9';
-  }
-
-  private boolean isIdentChar(char c){
-    return isLetter(c) || isDigit(c) || (c == '_');
-  }
-
-  /*
-   Changes the first letter of symbols outside quotes starting with an upper case 
-   to lower case. Words insie quotes or words starting with a lower case
-   are keept as there are.
-
-  */
-
-  private static char getClosing(char bracket){
-     if(bracket=='(') return ')';
-     if(bracket=='{') return '}';
-     if(bracket=='[') return ']';
-     return bracket;
-  }
-
-
-  private boolean checkBrackets(String str, StringBuffer errMsg){
-    Stack<Character> stack = new Stack<Character>();
-    int state = 0; // 0 : normal, 1 : double quoted string, 2: single quoted string
-    int line = 1;
-    int pos = 0; // pos within line
-    for(int i=0;i<str.length();i++){
-       char c =  str.charAt(i);
-       pos++;
-       if(c=='\n'){
-         line++;
-         pos = 0;
-       } 
-       switch(state){
-         case 0 : 
-           if(c == '"'){
-             state = 1;
-           } else if (c== '\''){
-             state = 2;
-           } else if ( c == '(' || c == '{' || c == '['){
-             stack.push(getClosing(c));
-           } else if ( c == ')' || c == '}' || c == ']'){
-             if(stack.empty()){
-                errMsg.append("In line " +line + " at position " + pos +
-                              " is a closing bracket '" + c + "' that is not " +
-                              "opened before");
-                return false;
-             }
-             char t = stack.pop().charValue();
-             if(t!=c){
-                errMsg.append("In line " + line + " at position " + pos +
-                         " a '" + c + "' is found but '"+t + " is expected");
-                return false;
-             } 
-           }
-           break;
-         case 1 : {
-             if( c == '"'){
-                state = 0;
-             }
-           }
-           break;
-         case 2 : {
-             if( c == '\''){
-                state = 0;
-             }
-           }
-           break;
-       }
-    }
-    if(!stack.empty()){
-       errMsg.append("There are unclosed brackets");
-       return false;
-    }
-    if(state != 0){
-      errMsg.append("Unclosed string");
-      return false;
-    }
-    return true;
-  }
-
-
-  /** Splits a command into at most maxTok lower cased tokens.
-    * The delimiter set is shared with the TTY clients
-    * (SecondoTTY.cpp, sqlTokens), so that "let r5=select ..." and
-    * "create table t(a)" tokenize identically here and there.
-    */
-  private String[] sqlTokens(String command, int maxTok){
-     StringTokenizer st = new StringTokenizer(command, " \t\n\r\f\u000b\b([{=.,;");
-     Vector toks = new Vector();
-     while(st.hasMoreTokens() && toks.size()<maxTok){
-        toks.add(st.nextToken().toLowerCase());
-     }
-     return (String[]) toks.toArray(new String[toks.size()]);
-  }
-
-
-  /** Tells whether a command is written in the SQL dialect and therefore has
-    * to be optimized by the server (command level 2) instead of being
-    * interpreted by the kernel directly.
-    * Deciding this is not a matter of the first keyword alone: "delete",
-    * "create", "update" and "let" exist in both languages and are told apart
-    * by the following token(s). Anything not recognized here falls through to
-    * the kernel -- the fallback is the kernel in every client, so the same
-    * typed command behaves the same in the GUI and in SecondoTTY/SecondoCS.
-    * The rule set is the one of SecondoTTY.cpp, looksLikeSql.
-    */
-  private boolean isSqlCommand(String command){
-     command = command.trim();
-     // nested list command or command sequence: always the kernel
-     if(command.startsWith("(") || command.startsWith("{")){
-        return false;
-     }
-     String[] t = sqlTokens(command,3);
-     if(t.length==0){
-        return false;
-     }
-     // unambiguous openers
-     if(   t[0].equals("sql") || t[0].equals("select") || t[0].equals("union")
-        || t[0].equals("intersection") || t[0].equals("drop")){
-        return true;
-     }
-     // ambiguous with kernel commands: need the second token
-     if(t.length<2){
-        return false;
-     }
-     if(t[0].equals("delete") && t[1].equals("from")) return true;
-     if(t[0].equals("insert") && t[1].equals("into")) return true;
-     if(t[0].equals("create") && (t[1].equals("table") || t[1].equals("index"))){
-        return true;
-     }
-     // ... or the third
-     if(t.length<3){
-        return false;
-     }
-     if(t[0].equals("update") && t[2].equals("set")) return true;
-     // "let <ident> = select|union|intersection ...": an SQL right hand side.
-     // The server splits the prefix off and re-wraps the generated plan.
-     if(t[0].equals("let") && (   t[2].equals("select") || t[2].equals("union")
-                               || t[2].equals("intersection"))){
-        return true;
-     }
-     return false;
-  }
-
-
   /** Unwraps the answer of a level 2 (SQL) command, the list
     * (plan result costs), and returns the half to be rendered.
     * The generated plan is echoed when the user asked for it or when only the
@@ -530,27 +345,38 @@ public class CommandPanel extends JScrollPane {
   }
 
 
-  /** Checks the preconditions for sending an SQL command and reports the
-    * reason it cannot be sent. Returns true if it may be sent.
+  /** The command level a typed command is sent at.
+    * With the optimizer switched on the server is asked which of the three
+    * input languages the command is written in -- it is the server that
+    * interprets them, so it is the server that knows, and no client has to
+    * carry a copy of the rules (see include/SQLLanguage.h). With the optimizer
+    * switched off SQL is not on offer at all, and the level is derived from
+    * the command text as it always was.
     */
-  private boolean canSendSql(String command){
-     if(!useOptimizer()){
-        appendText("\noptimizer not available");
-        showPrompt();
-        return false;
+  private int commandLevel(){
+     return useOptimizer() ? SecondoInterface.AUTO_COMMAND_LEVEL
+                           : SecondoInterface.DERIVE_COMMAND_LEVEL;
+  }
+
+
+  /** Turns the answer of the command just sent into the list to be rendered,
+    * according to the level the server resolved that command to. An SQL answer
+    * is the triple (plan result costs), an optimizer directive answers with the
+    * text it printed, and an ordinary command answers with its result.
+    */
+  private ListExpr unwrapAnswer(ListExpr answer, boolean optimizerAddressed){
+     int level = Secondointerface.getResolvedCommandLevel();
+     if(level==SecondoInterface.SQL_COMMAND_LEVEL){
+        // The "optimizer " prefix means plan only: the server stopped after
+        // optimizing, so there is no result half to render.
+        return unwrapSqlAnswer(answer,optimizerAddressed);
      }
-     if(OpenedDatabase.length()==0){
-        appendText("\nno database open");
-        showPrompt();
-        return false;
+     if(level==SecondoInterface.OPT_DIRECTIVE_COMMAND_LEVEL){
+        appendText("\n"+(answer.atomType()==ListExpr.TEXT_ATOM
+                           ? answer.textValue() : answer.toString()));
+        return ListExpr.theEmptyList();
      }
-     StringBuffer buf = new StringBuffer();
-     if(!checkBrackets(command,buf)){
-        appendText("\n\n"+buf.toString());
-        showPrompt();
-        return false;
-     }
-     return true;
+     return answer;
   }
 
 
@@ -623,8 +449,9 @@ public class CommandPanel extends JScrollPane {
 		}
 
   
-    // A command addressed to the optimizer explicitly. What follows the
-    // prefix decides what it means, exactly as in the TTY clients:
+    // A command addressed to the optimizer explicitly. What follows the prefix
+    // decides what it means -- and the server decides that, exactly as it does
+    // for a command without the prefix:
     //   "optimizer <sql>"  -> optimize only, report the plan, execute nothing
     //   "optimizer <goal>" -> run an optimizer control directive
     if(command.startsWith(OptString)){
@@ -637,39 +464,9 @@ public class CommandPanel extends JScrollPane {
              return !success;
           }
        }
-       String optCommand = command.substring(OptString.length()).trim();
-
-       if(isSqlCommand(optCommand)){
-          return execServerCommand(optCommand,true,isTest,success,epsilon,
-                                   isAbsolute,expectedResult);
-       }
-
-       long starttime=0;
-       if(tools.Environment.MEASURE_TIME)
-          starttime = System.currentTimeMillis();
-
-       String answer = sendToOptimizer(optCommand);
-
-       if(tools.Environment.MEASURE_TIME)
-          Reporter.writeInfo("used time for optimizing: "+(System.currentTimeMillis()-starttime)+" ms");
-
-       if(answer==null){
-          appendText("\nerror in optimizer command");
-          showPrompt();
-          if(!isTest){
-              return  false;
-          } else{
-              return !success;
-          }
-       } else {
-          appendText("\n"+answer);
-          showPrompt();
-          if(!isTest){
-             return true;
-          }else{
-             return success;
-          }
-       }
+       return execServerCommand(command.substring(OptString.length()).trim(),
+                                true,isTest,success,epsilon,isAbsolute,
+                                expectedResult);
     }
 
     return execServerCommand(command,false,isTest,success,epsilon,isAbsolute,
@@ -678,13 +475,15 @@ public class CommandPanel extends JScrollPane {
 
 
   /** Sends one command to the connected server and processes its result.
-    * An SQL command (auto detected) is optimized by the server at command
-    * level 2; anything else is sent unchanged at level 0/1. With planOnly the
-    * server stops after optimizing, so the plan is reported and nothing runs.
+    * The server is asked which language the command is written in and answers
+    * with what it decided, so the same typed command routes the same way here
+    * and in the TTY clients. With optimizerAddressed the user wrote the
+    * "optimizer " prefix: SQL is then only optimized and the plan reported,
+    * anything else is run as an optimizer directive.
     * @see #execUserCommand(String,boolean,boolean,double,boolean,ListExpr)
     */
   private boolean execServerCommand (String command,
-                                     boolean planOnly,
+                                     boolean optimizerAddressed,
                                      boolean isTest,
                                      boolean success,
                                      double epsilon,
@@ -702,17 +501,6 @@ public class CommandPanel extends JScrollPane {
     // Executes the remote command.
     if(Secondointerface.isInitialized()){
 
-         int commandLevel = SecondoInterface.DERIVE_COMMAND_LEVEL;
-         if(isSqlCommand(command)){
-            if(!canSendSql(command)){
-               if(!isTest){
-                 return false;
-               } else{
-                  return !success;
-               }
-            }
-            commandLevel = 2;   // SQL dialect: the server optimizes it
-         }
           appendText("\n" + command + "...");
           long starttime=0;
           if(tools.Environment.MEASURE_TIME){
@@ -724,12 +512,13 @@ public class CommandPanel extends JScrollPane {
                                    errorCode,
                                    errorPos,
                                    errorMessage,
-                                   commandLevel,
-                                   planOnly);
+                                   commandLevel(),
+                                   false,
+                                   optimizerAddressed);
 
-           if(commandLevel==2 && errorCode.value==0){
-              // the answer is (plan result costs); render the result half
-              resultList.setValueTo(unwrapSqlAnswer(resultList,planOnly));
+           if(errorCode.value==0){
+              resultList.setValueTo(
+                    unwrapAnswer(resultList,optimizerAddressed));
            }
 
            if(tools.Environment.MEASURE_TIME){
@@ -814,36 +603,26 @@ public class CommandPanel extends JScrollPane {
                 return false;
         }
         IntByReference errorPos=new IntByReference();
-        if(!sendCommandToServer(cmd,resultList,errorCode,errorPos,errorMessage)){
-           return false;
-        }
+        sendCommandToServer(cmd,resultList,errorCode,errorPos,errorMessage);
         return errorCode.value==0;
   }
 
 
-  /** Sends a command to the server at the level it belongs to: an SQL command
-    * (auto detected) is optimized by the server at command level 2, anything
-    * else is sent unchanged. A level 2 answer is unwrapped to its result half,
-    * so the caller sees the same shape as for a kernel command.
-    * Returns false when an SQL command could not be sent at all; the reason
-    * has then been written to the panel.
+  /** Sends a command to the server at the level it belongs to: which language
+    * it is written in is decided by the server, and its answer is unwrapped
+    * accordingly, so the caller always sees the same shape as for a kernel
+    * command.
     */
-  private boolean sendCommandToServer(String command,
-                                      ListExpr resultList,
-                                      IntByReference errorCode,
-                                      IntByReference errorPos,
-                                      StringBuffer errorMessage){
-     boolean isSql = isSqlCommand(command);
-     if(isSql && !canSendSql(command)){
-        return false;
-     }
+  private void sendCommandToServer(String command,
+                                   ListExpr resultList,
+                                   IntByReference errorCode,
+                                   IntByReference errorPos,
+                                   StringBuffer errorMessage){
      Secondointerface.secondo(command,resultList,errorCode,errorPos,errorMessage,
-                              isSql?2:SecondoInterface.DERIVE_COMMAND_LEVEL,
-                              false);
-     if(isSql && errorCode.value==0){
-        resultList.setValueTo(unwrapSqlAnswer(resultList,false));
+                              commandLevel(), false);
+     if(errorCode.value==0){
+        resultList.setValueTo(unwrapAnswer(resultList,false));
      }
-     return true;
   }
 
 
@@ -865,9 +644,7 @@ public class CommandPanel extends JScrollPane {
         starttime = System.currentTimeMillis();
 
      // Executes the remote command.
-    if(!sendCommandToServer(command,resultList,errorCode,errorPos,errorMessage)){
-       return -1;
-    }
+    sendCommandToServer(command,resultList,errorCode,errorPos,errorMessage);
     if(tools.Environment.MEASURE_TIME){
        Reporter.writeInfo("used time for query: "+(System.currentTimeMillis()-starttime)+" ms");
     }
@@ -902,9 +679,7 @@ public class CommandPanel extends JScrollPane {
        starttime = System.currentTimeMillis();
 
     // Executes the remote command.
-    if(!sendCommandToServer(command,resultList,errorCode,errorPos,errorMessage)){
-       return null;
-    }
+    sendCommandToServer(command,resultList,errorCode,errorPos,errorMessage);
     if(tools.Environment.MEASURE_TIME){
        Reporter.writeInfo("used time for query: "+(System.currentTimeMillis()-starttime)+" ms");
     }
