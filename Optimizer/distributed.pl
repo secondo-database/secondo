@@ -1358,8 +1358,14 @@ Removes the suffix '\_d' from ~DRel~ indicating a distributed relation. If the
 relation is not listed in SEC2DISTRIBUTED the unchanged name is returned in
 Variable ~ORel~
 
-*/  
+The first clause requires a bound argument. Without that test an unbound
+~DRel~ unifies with the pattern of the clause head again and again, so that a
+relation name the caller could not resolve ends in a stack overflow instead of
+in the ``Unknown relation'' message of ~lookupRel/2~.
+
+*/
 removeDistributedSuffix(DRel as _, ORel) :-
+    nonvar(DRel),
     removeDistributedSuffix(DRel, ORel),!.
 
 removeDistributedSuffix(DRel, ORel) :-

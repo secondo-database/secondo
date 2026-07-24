@@ -1119,7 +1119,87 @@ initializeOptions :-
 
 
 /*
-6 Shortcuts and Aliases
+6 Normalizing SQL Identifiers Typed at the Prolog Toplevel
+
+The interactive SecondoPL shell is the plain Prolog toplevel, so a capitalized
+identifier within an SQL query is read as a Prolog variable and not as the name
+of a relation or an attribute. A query such as
+
+----  sql select count(*) from Trains where Trip passes mehringdamm.
+----
+
+therefore used to reach the optimizer with an unbound relation instead of
+~trains~.
+
+The other interfaces (the TTY, the client/server protocol and the JavaGUI) all
+down-case the first character of every identifier before the query text is
+handed to the optimizer. Because the toplevel reader has already turned the
+identifiers into variables, we do the same one step later: the toplevel hook
+~expand\_query/4~ reports the variable names, and every named variable
+occurring in the SQL part of the goal is bound to the atom the user meant.
+
+Only the argument holding the SQL query is treated this way, so output
+arguments such as the plan and the cost of ~optimize/3~, the object name of a
+~let~ and the executable rest of ~sql/2~ keep their spelling. Variables whose
+name starts with an underscore are not reported by the reader and hence stay
+free -- that is the escape hatch for an SQL argument that really should contain
+a Prolog variable.
+
+*/
+
+% Position of the SQL query within the goals that can be typed at the toplevel.
+sqlGoalArg(sql,             1, 1).
+sqlGoalArg(sql,             2, 1).
+sqlGoalArg(optimize,        1, 1).
+sqlGoalArg(optimize,        3, 1).
+sqlGoalArg(streamOptimize,  3, 1).
+sqlGoalArg(mOptimize,       3, 1).
+sqlGoalArg(mStreamOptimize, 3, 1).
+sqlGoalArg(let,             2, 2).
+sqlGoalArg(let,             3, 2).
+
+% Down-case the first character only, exactly as the C++ interfaces do.
+downcaseFirstChar(Name, Ident) :-
+  atom_chars(Name, [First | Rest]),
+  downcase_atom(First, Lower),
+  atom_chars(Ident, [Lower | Rest]).
+
+identicalMember(X, [Y | _]) :-
+  X == Y, !.
+
+identicalMember(X, [_ | Ys]) :-
+  identicalMember(X, Ys).
+
+/*
+Bind those toplevel variables that occur in the SQL part of the goal. The
+bindings of all other variables are passed on, so that the toplevel still
+reports them.
+
+*/
+
+bindSqlIdentifiers([], _, []).
+
+bindSqlIdentifiers([Name = Var | Bindings], SqlVars, Rest) :-
+  var(Var),
+  identicalMember(Var, SqlVars), !,
+  downcaseFirstChar(Name, Ident),
+  Var = Ident,
+  bindSqlIdentifiers(Bindings, SqlVars, Rest).
+
+bindSqlIdentifiers([Binding | Bindings], SqlVars, [Binding | Rest]) :-
+  bindSqlIdentifiers(Bindings, SqlVars, Rest).
+
+user:expand_query(Goal, Goal, Bindings, Rest) :-
+  Bindings \= [],
+  functor(Goal, Functor, Arity),
+  sqlGoalArg(Functor, Arity, ArgNo),
+  arg(ArgNo, Goal, Sql),
+  term_variables(Sql, SqlVars),
+  SqlVars \= [],
+  bindSqlIdentifiers(Bindings, SqlVars, Rest).
+
+/*
+7 Shortcuts and Aliases
 
 */
 
@@ -1134,7 +1214,7 @@ quit :- halt. % aliasing 'halt/0' in conformity to the Secondo system
 
 
 /*
-7 Testing
+8 Testing
 
 */
 
