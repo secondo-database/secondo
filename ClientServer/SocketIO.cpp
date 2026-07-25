@@ -143,7 +143,8 @@ SocketBuffer::underflow()
     // make return value unsigned to be different from EOF
     return ((unsigned char) *gptr());
   }
-  int rlen = socketHandle->Read( inBuffer, 1, bufferSize );
+  int rlen = socketHandle->Read( inBuffer, 1, bufferSize,
+                                  socketHandle->GetReadTimeout() );
   if ( rlen <= 0 )
   {
     return (EOF);

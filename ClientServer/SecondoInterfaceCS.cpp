@@ -60,6 +60,14 @@ provides functions useful for the client and for the server implementation.
 using namespace std;
 
 
+// Maximum time (in seconds) to wait for the initial greeting from the
+// Secondo server. Bounds the case where some other process accepts the
+// connection on the configured host/port but never sends anything, which
+// would otherwise block the client forever in getline(). Regular query
+// traffic is unaffected: the read timeout is reset to WAIT_FOREVER once
+// the greeting has been received (see Initialize()).
+static const time_t GREETING_TIMEOUT = 30;
+
 DebugWriter dwriter;
 
 SecondoInterfaceCS::SecondoInterfaceCS(bool isServer, /*= false*/
@@ -114,9 +122,11 @@ SecondoInterfaceCS::unexpectedResponse( iostream& iosock,
 {
   if ( received.empty() && !iosock.good() )
   {
-    // the peer accepted the connection but closed it without a greeting
+    // the peer accepted the connection but either closed it or never sent
+    // anything (the latter surfaces as a read timeout, see GREETING_TIMEOUT)
     return "No answer from the Secondo server at " + serverDescription() +
-           ": the connection was closed before a greeting was received.\n"
+           ": no greeting was received before the connection was closed "
+           "or the wait for it timed out.\n"
            "Please check whether a SecondoMonitor is listening on that "
            "port.\n";
   }
@@ -252,6 +262,12 @@ SecondoInterfaceCS::Initialize( const string& user, const string& pswd,
         }
         csp = new CSProtocol(nl, iosock);
 
+        // Bound reads while waiting for the greeting: a peer that accepts
+        // the connection but never sends anything must not block the
+        // client forever. Restored to WAIT_FOREVER below before any
+        // regular query traffic happens.
+        server->SetReadTimeout( GREETING_TIMEOUT );
+
         try{
           getline( iosock, line );
           if ( line == "<SecondoOk/>" )
@@ -273,8 +289,18 @@ SecondoInterfaceCS::Initialize( const string& user, const string& pswd,
                   }
                 }
               }
-              while (line != "</SecondoIntro>");
-              initialized = true;
+              // stop retrying once the stream is no longer good (e.g. the
+              // greeting timeout expired) instead of spinning on getline
+              while (line != "</SecondoIntro>" && iosock.good());
+              if ( line == "</SecondoIntro>" )
+              {
+                initialized = true;
+              }
+              else
+              {
+                errorMsg += unexpectedResponse( iosock, line,
+                                                "</SecondoIntro>" );
+              }
             }
             else if ( line == "<SecondoError>" )
             {
@@ -307,6 +333,10 @@ SecondoInterfaceCS::Initialize( const string& user, const string& pswd,
            errorMsg += "An unknown exception occurred while connecting to " +
                        serverDescription() + "\n";
         }
+
+        // Greeting handshake is over (successfully or not); go back to
+        // blocking reads for the regular query protocol.
+        server->SetReadTimeout( WAIT_FOREVER );
       } else {
         // Socket::Connect always returns a socket object; if the connection
         // could not be established, the object carries the reason.

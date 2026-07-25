@@ -496,6 +496,21 @@ An I/O stream is available only for sockets created by the methods
                          std::ostream* traceOutStream,
                          bool destroyStreams)=0;
 
+  void SetReadTimeout( const time_t newTimeout ) { readTimeout = newTimeout; }
+/*
+Sets the timeout (in seconds) used by reads through the ~iostream~ returned
+by ~GetSocketStream~ (e.g. by ~SocketBuffer::underflow~). Defaults to
+~WAIT\_FOREVER~, i.e. blocking reads, which is what all regular query
+traffic relies on. Only change this temporarily, e.g. while waiting for a
+peer's initial greeting, and restore ~WAIT\_FOREVER~ once the greeting has
+been received.
+
+*/
+  time_t GetReadTimeout() const { return readTimeout; }
+/*
+Returns the timeout currently set via ~SetReadTimeout~.
+
+*/
 
  protected:
   enum { SS_OPEN, SS_SHUTDOWN, SS_CLOSE } state;
@@ -505,6 +520,7 @@ Defines the socket state.
 */
    SocketBuffer* ioSocketBuffer = nullptr;  // Socket stream buffer
    std::iostream* ioSocketStream = nullptr; // Socket I/O stream
+   time_t readTimeout = WAIT_FOREVER; // timeout for iostream-based reads
 };
 
 extern std::string GetProcessName();
