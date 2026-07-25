@@ -9,15 +9,18 @@ import {
 import type { PickingInfo } from "@deck.gl/core";
 import {
   GeoJsonLayer,
+  IconLayer,
   PathLayer,
   PolygonLayer,
   ScatterplotLayer,
+  TextLayer,
 } from "@deck.gl/layers";
 import { TripsLayer } from "@deck.gl/geo-layers";
 import { Map as BaseMap } from "react-map-gl/maplibre";
 import "maplibre-gl/dist/maplibre-gl.css";
 import type { MovingRegion, Trip } from "../api/client";
-import type { Layer } from "../layers/useLayers";
+import type { Layer, RGB } from "../layers/useLayers";
+import { iconAtlas } from "../layers/icons";
 import {
   projectBBox,
   projectGeoJSON,
@@ -95,6 +98,83 @@ function facesAt(region: MovingRegion, t: number): [number, number][][][] | null
     }
   }
   return null;
+}
+
+// Where a feature's label goes: the point itself, or the mean of a line's or
+// region's vertices -- the same "middle of the thing" the HoeseViewer writes a
+// region's label at. Good enough for a label; not a true area centroid.
+function labelAnchor(geometry: {
+  coordinates?: unknown;
+}): [number, number] | null {
+  let sx = 0;
+  let sy = 0;
+  let n = 0;
+  const walk = (c: unknown) => {
+    if (
+      Array.isArray(c) &&
+      c.length >= 2 &&
+      typeof c[0] === "number" &&
+      typeof c[1] === "number"
+    ) {
+      sx += c[0];
+      sy += c[1];
+      n++;
+    } else if (Array.isArray(c)) {
+      for (const x of c) walk(x);
+    }
+  };
+  walk(geometry?.coordinates);
+  return n > 0 ? [sx / n, sy / n] : null;
+}
+
+// Labels have to stay readable on the dark Cartesian canvas *and* on the light
+// OSM basemap, and a saturated layer colour manages neither at this size.
+// Lightening it most of the way to white keeps a hint of the layer's hue --
+// enough to tell two layers' labels apart -- while the plate behind the text
+// does the contrast work.
+function labelColor([r, g, b]: RGB): [number, number, number] {
+  const lift = (v: number) => Math.round(v + (255 - v) * 0.8);
+  return [lift(r), lift(g), lift(b)];
+}
+
+// Shared by the static and the moving-object labels, which otherwise drift
+// apart.
+//
+// Deliberately *not* SDF text with an outline, which is what this used to be.
+// deck renders SDF glyphs from a distance-field atlas, and at label sizes the
+// field is too coarse to reconstruct 13px letterforms: the strokes come out
+// eroded and the tops of the letters sheared off, which is what made these
+// labels look eaten away. Raising fontSettings.buffer/radius does not fix it.
+// Plain bitmap glyphs are exact at this size.
+//
+// Losing the outline means losing what kept text legible over a busy basemap,
+// so the contrast comes from a translucent plate instead. On the dark canvas it
+// disappears into the background; over the OSM tiles it is what separates a
+// SECONDO label from the dozen OSM ones around it.
+const LABEL_TEXT = {
+  getSize: 13,
+  sizeUnits: "pixels" as const,
+  getTextAnchor: "middle" as const,
+  getAlignmentBaseline: "top" as const,
+  // SECONDO data is Latin-1: without an automatic character set the umlauts in
+  // street and restaurant names come out as placeholders.
+  characterSet: "auto" as const,
+  background: true,
+  getBackgroundColor: [10, 12, 16, 190] as [number, number, number, number],
+  backgroundPadding: [4, 1, 4, 1] as [number, number, number, number],
+  backgroundBorderRadius: 2,
+};
+
+interface LabelDatum {
+  position: [number, number];
+  text: string;
+}
+
+// A moving object's exact position at the current instant, plus the tuple it
+// came from so picking and labelling still have the attributes.
+interface PositionDatum {
+  position: [number, number];
+  properties: unknown;
 }
 
 function unionBBox(layers: Layer[]): BBox | undefined {
@@ -271,6 +351,33 @@ export function MapView({
     return m;
   }, [layersToRender, globalT0]);
 
+  // Label text and anchors per layer, computed once rather than per frame: the
+  // map re-renders on every animation tick, and walking each feature's
+  // coordinates there would be wasted work. Anchors come from the *projected*
+  // geometry, so labels follow the data into geographic mode.
+  const labelsById = useMemo(() => {
+    const m = new Map<string, LabelDatum[]>();
+    for (const l of layersToRender) {
+      // An attribute if one was chosen, otherwise the caption typed for a layer
+      // that has no attributes to offer (an individual object).
+      const attr = l.style.label;
+      const fixed = l.style.labelText;
+      if ((!attr && !fixed) || !l.geojson) continue;
+      const data: LabelDatum[] = [];
+      for (const f of l.geojson.features as {
+        properties?: Record<string, unknown>;
+        geometry?: { coordinates?: unknown };
+      }[]) {
+        const value = attr ? f.properties?.[attr] : fixed;
+        if (value === undefined || value === null || value === "") continue;
+        const at = f.geometry ? labelAnchor(f.geometry) : null;
+        if (at) data.push({ position: at, text: String(value) });
+      }
+      if (data.length > 0) m.set(l.id, data);
+    }
+    return m;
+  }, [layersToRender]);
+
   const combinedDuration = useMemo(() => {
     let span = 0;
     for (const l of layersToRender)
@@ -285,6 +392,29 @@ export function MapView({
     const [r, g, b] = layer.style.color;
     const s = layer.style;
 
+    // Only touched when the layer actually wants an icon, so a session that
+    // never assigns one never builds the atlas. And never ask deck for icons
+    // without one: IconLayer would fall back to auto-packing, and that throws,
+    // since getIcon hands it an id rather than the {url} auto-packing expects.
+    const atlas = s.icon ? iconAtlas() : null;
+    const icon = atlas ? s.icon : null;
+    // The point slider stays the single size control. A glyph needs more room
+    // than a disc to read, and the atlas insets it inside its cell, so the icon
+    // box is ~4x the circle radius: the default r=4 gives a 16px box holding a
+    // 13px glyph.
+    const iconPx = Math.max(12, s.pointRadius * 4);
+    // How far below a symbol its label sits: a circle's extent is its radius,
+    // an icon's is half its square cell.
+    const labelDrop = (icon ? iconPx / 2 : s.pointRadius) + 8;
+    // Typed up front: inside a conditional spread the literal has no
+    // contextual type to widen against deck's Color.
+    const iconColor: [number, number, number, number] = [
+      r,
+      g,
+      b,
+      Math.round(s.opacity * 255),
+    ];
+
     if (layer.geojson) {
       deckLayers.push(
         new GeoJsonLayer({
@@ -297,9 +427,20 @@ export function MapView({
           highlightColor: [255, 255, 255, 90],
           stroked: true,
           filled: s.filled,
-          pointType: "circle",
+          // Only point geometry is affected; lines and polygons render the
+          // same either way. The circle props below stay in place so clearing
+          // the icon restores the old look with no further state.
+          pointType: icon ? "icon" : "circle",
           getPointRadius: s.pointRadius,
           pointRadiusUnits: "pixels",
+          ...(icon && {
+            iconAtlas: atlas!.url,
+            iconMapping: atlas!.mapping,
+            getIcon: icon,
+            getIconSize: iconPx,
+            iconSizeUnits: "pixels" as const,
+            getIconColor: iconColor,
+          }),
           getLineWidth: s.lineWidth,
           lineWidthUnits: "pixels",
           getFillColor: [r, g, b, Math.round(s.opacity * 150)],
@@ -309,6 +450,32 @@ export function MapView({
             getLineColor: [r, g, b, s.opacity],
             getPointRadius: s.pointRadius,
             getLineWidth: s.lineWidth,
+            getIcon: icon,
+            getIconSize: iconPx,
+            getIconColor: [r, g, b, s.opacity],
+          },
+        })
+      );
+    }
+
+    // The chosen attribute, written just below each feature so it never covers
+    // the geometry it names.
+    const labels = labelsById.get(layer.id);
+    if (labels) {
+      deckLayers.push(
+        new TextLayer<LabelDatum>({
+          id: `${layer.id}-labels`,
+          data: labels,
+          coordinateSystem,
+          ...LABEL_TEXT,
+          getPosition: (d) => d.position,
+          getText: (d) => d.text,
+          getColor: [...labelColor(layer.style.color), 255],
+          // Push the text below the symbol rather than on top of it.
+          getPixelOffset: [0, labelDrop],
+          updateTriggers: {
+            getColor: layer.style.color,
+            getPixelOffset: labelDrop,
           },
         })
       );
@@ -347,6 +514,40 @@ export function MapView({
             },
           })
         );
+
+        // Labelled like everything else -- the text sits in the middle of the
+        // face and is rebuilt with it, so it moves as the region does.
+        const attr = s.label;
+        const fixed = s.labelText;
+        if (attr || fixed) {
+          const texts: LabelDatum[] = [];
+          for (const p of polys) {
+            const value = attr
+              ? (p.properties as Record<string, unknown> | undefined)?.[attr]
+              : fixed;
+            if (value === undefined || value === null || value === "") continue;
+            const at = labelAnchor({ coordinates: p.polygon });
+            if (at) texts.push({ position: at, text: String(value) });
+          }
+          if (texts.length > 0) {
+            deckLayers.push(
+              new TextLayer<LabelDatum>({
+                id: `${layer.id}-mregion-labels`,
+                data: texts,
+                coordinateSystem,
+                ...LABEL_TEXT,
+                getPosition: (d) => d.position,
+                getText: (d) => d.text,
+                getColor: [...labelColor(s.color), 255],
+                getPixelOffset: [0, labelDrop],
+                updateTriggers: {
+                  getColor: s.color,
+                  getPixelOffset: labelDrop,
+                },
+              })
+            );
+          }
+        }
       }
     }
 
@@ -394,28 +595,93 @@ export function MapView({
       if (showPoints) {
         // Exact current positions of each moving object; pointRadius controls
         // the dot size. Recomputed each frame as currentTime advances.
-        const positions = [];
+        const positions: PositionDatum[] = [];
         for (const trip of trips) {
           const pos = positionAt(trip, currentTime);
           if (pos) positions.push({ position: pos, properties: trip.properties });
         }
+        // The two classes must not share an id. deck matches layers across
+        // renders by id alone and transfers the old layer's state to the new
+        // instance without checking the class, so a Scatterplot->Icon swap on
+        // one id hands the IconLayer state that has no icon manager in it.
+        // Picking is unaffected: it takes the id up to the first dash.
         deckLayers.push(
-          new ScatterplotLayer({
-            id: `${layer.id}-pos`,
-            data: positions,
-            coordinateSystem,
-            pickable: true,
-            getPosition: (d: { position: [number, number] }) => d.position,
-            getFillColor: [r, g, b],
-            getRadius: s.pointRadius,
-            radiusUnits: "pixels",
-            radiusMinPixels: s.pointRadius,
-            stroked: true,
-            lineWidthMinPixels: 1,
-            getLineColor: [255, 255, 255, 220],
-            updateTriggers: { getFillColor: [r, g, b], getRadius: s.pointRadius },
-          })
+          icon
+            ? new IconLayer<PositionDatum>({
+                id: `${layer.id}-pos-icon`,
+                data: positions,
+                coordinateSystem,
+                pickable: true,
+                iconAtlas: atlas!.url,
+                iconMapping: atlas!.mapping,
+                getPosition: (d) => d.position,
+                // IconLayer types getIcon as an accessor function only (unlike
+                // GeoJsonLayer's, which takes the id directly).
+                getIcon: () => icon,
+                getSize: iconPx,
+                sizeUnits: "pixels",
+                getColor: iconColor,
+                updateTriggers: {
+                  getIcon: icon,
+                  getSize: iconPx,
+                  getColor: iconColor,
+                },
+              })
+            : new ScatterplotLayer<PositionDatum>({
+                id: `${layer.id}-pos`,
+                data: positions,
+                coordinateSystem,
+                pickable: true,
+                getPosition: (d) => d.position,
+                getFillColor: [r, g, b],
+                getRadius: s.pointRadius,
+                radiusUnits: "pixels",
+                radiusMinPixels: s.pointRadius,
+                stroked: true,
+                lineWidthMinPixels: 1,
+                getLineColor: [255, 255, 255, 220],
+                updateTriggers: {
+                  getFillColor: [r, g, b],
+                  getRadius: s.pointRadius,
+                },
+              })
         );
+
+        // A moving object carries its tuple's attributes too, so it is labelled
+        // the same way -- the label travels with the dot. The positions are
+        // already computed for the dots above, so this costs only the text.
+        // A lone mpoint (`query train7`) has no attributes and rides its typed
+        // caption instead.
+        const attr = layer.style.label;
+        const fixed = layer.style.labelText;
+        if (attr || fixed) {
+          const moving: LabelDatum[] = [];
+          for (const p of positions) {
+            const value = attr
+              ? (p.properties as Record<string, unknown> | undefined)?.[attr]
+              : fixed;
+            if (value === undefined || value === null || value === "") continue;
+            moving.push({ position: p.position, text: String(value) });
+          }
+          if (moving.length > 0) {
+            deckLayers.push(
+              new TextLayer<LabelDatum>({
+                id: `${layer.id}-pos-labels`,
+                data: moving,
+                coordinateSystem,
+                ...LABEL_TEXT,
+                getPosition: (d) => d.position,
+                getText: (d) => d.text,
+                getColor: [...labelColor(layer.style.color), 255],
+                getPixelOffset: [0, labelDrop],
+                updateTriggers: {
+                  getColor: layer.style.color,
+                  getPixelOffset: labelDrop,
+                },
+              })
+            );
+          }
+        }
       }
     }
   }

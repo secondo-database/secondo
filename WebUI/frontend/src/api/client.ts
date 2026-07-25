@@ -50,6 +50,15 @@ export interface QueryResponse {
   text: string;
   geojson: FeatureCollection | null;
   temporal: TemporalPayload | null;
+  // Optimizer fields; absent for an ordinary kernel command. The server decides
+  // which language a command is in and reports the level it resolved it to:
+  // 2 = SQL (plan + costs), 3 = an optimizer directive (message).
+  level?: number | null;
+  plan?: string | null;
+  costs?: number | null;
+  message?: string | null;
+  plan_only?: boolean;
+  executed_by_optimizer?: boolean;
 }
 
 // Parse a response body defensively: a failing backend may return a non-JSON
@@ -108,7 +117,13 @@ export function runQuery(command: string): Promise<QueryResponse> {
   return post<QueryResponse>("/api/query", { command });
 }
 
-export async function listDatabases(): Promise<{ databases: string[]; open: string | null }> {
+export async function listDatabases(): Promise<{
+  databases: string[];
+  open: string | null;
+  // Whether the connected server can run SQL. A property of that server, so it
+  // comes with the session state rather than being remembered by the UI.
+  optimizer: boolean;
+}> {
   return get("/api/databases");
 }
 

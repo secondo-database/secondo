@@ -16,7 +16,11 @@ interface Props {
   refreshKey: number;
   // The catalog owns the authoritative database state (it is what queries the
   // backend); it reports it up so the rest of the UI doesn't fetch it twice.
-  onState?: (state: { open: string | null; databases: string[] }) => void;
+  onState?: (state: {
+    open: string | null;
+    databases: string[];
+    optimizer: boolean;
+  }) => void;
   // Collapse the whole catalog to a rail, giving the space to the map.
   onCollapse?: () => void;
 }
@@ -47,7 +51,11 @@ export function Catalog({ onRun, refreshKey, onState, onCollapse }: Props) {
       if (seq !== seqRef.current) return;
       setDatabases(dbs.databases);
       setOpen(dbs.open);
-      onStateRef.current?.({ open: dbs.open, databases: dbs.databases });
+      onStateRef.current?.({
+        open: dbs.open,
+        databases: dbs.databases,
+        optimizer: dbs.optimizer,
+      });
       if (dbs.open) {
         setLoadingObjects(true);
         const objs = await listObjects();

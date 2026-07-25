@@ -1,6 +1,8 @@
 import { useState } from "react";
 import type { Layer, LayerStyle, RGB, TemporalMode } from "./useLayers";
 import { downloadGeoJSON } from "./exportGeoJSON";
+import { labelCandidates } from "./labels";
+import { ICON_NAMES, iconPathData, type IconName } from "./icons";
 
 const toHex = ([r, g, b]: RGB): string =>
   "#" + [r, g, b].map((v) => v.toString(16).padStart(2, "0")).join("");
@@ -11,11 +13,49 @@ const fromHex = (h: string): RGB => [
   parseInt(h.slice(5, 7), 16),
 ];
 
+// The auto-name is the query text, which is rarely what belongs on a legend.
+// Renaming lives in the style editor rather than on the row so a click on the
+// row keeps its one meaning (open the editor).
+//
+// The field holds its own draft rather than reading layer.name directly: an
+// empty value means "back to the auto-name", so binding the input to the store
+// would refill it with query text the moment you cleared it, and you could
+// never type a fresh name. The draft is seeded when the editor opens -- it only
+// renders for the expanded layer, so switching layers remounts it.
+function NameField({
+  layer,
+  onRename,
+}: {
+  layer: Layer;
+  onRename: (id: string, name: string) => void;
+}) {
+  const [draft, setDraft] = useState(layer.name);
+  return (
+    <label>
+      name
+      <input
+        className="lp-rename"
+        type="text"
+        value={draft}
+        placeholder={layer.command}
+        onChange={(e) => {
+          setDraft(e.target.value);
+          onRename(layer.id, e.target.value);
+        }}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") e.currentTarget.blur();
+        }}
+      />
+    </label>
+  );
+}
+
 interface Props {
   layers: Layer[];
   onToggle: (id: string) => void;
   onRemove: (id: string) => void;
   onMove: (id: string, dir: "up" | "down") => void;
+  onRename: (id: string, name: string) => void;
   onStyle: (id: string, patch: Partial<LayerStyle>) => void;
   onClear: () => void;
 }
@@ -25,6 +65,7 @@ export function LayersPanel({
   onToggle,
   onRemove,
   onMove,
+  onRename,
   onStyle,
   onClear,
 }: Props) {
@@ -116,6 +157,7 @@ export function LayersPanel({
 
               {open && (
                 <div className="lp-style">
+                  <NameField layer={layer} onRename={onRename} />
                   <label>
                     color
                     <input
@@ -125,6 +167,42 @@ export function LayersPanel({
                         onStyle(layer.id, { color: fromHex(e.target.value) })
                       }
                     />
+                  </label>
+                  {/* Symbol for point geometry -- colour and icon are the two
+                      identity controls, so they sit together. The preview
+                      shows the glyph in the layer's own colour, since the
+                      names alone are a poor clue as to what it looks like. */}
+                  <label className="lp-check">
+                    icon
+                    <select
+                      className="lp-icon"
+                      value={layer.style.icon ?? ""}
+                      onChange={(e) =>
+                        onStyle(layer.id, {
+                          icon: (e.target.value || null) as IconName | null,
+                        })
+                      }
+                    >
+                      <option value="">circle</option>
+                      {ICON_NAMES.map((n) => (
+                        <option key={n} value={n}>
+                          {n}
+                        </option>
+                      ))}
+                    </select>
+                    {layer.style.icon && (
+                      <svg
+                        className="lp-icon-preview"
+                        viewBox="0 0 15 15"
+                        style={{ color: toHex(layer.style.color) }}
+                        aria-hidden
+                      >
+                        <path
+                          d={iconPathData(layer.style.icon)}
+                          fill="currentColor"
+                        />
+                      </svg>
+                    )}
                   </label>
                   <label>
                     opacity
@@ -175,11 +253,63 @@ export function LayersPanel({
                     />
                     fill regions
                   </label>
+                  {/* Write one of the tuple's attributes next to each feature.
+                      Off by default; the candidates are ordered so the most
+                      label-like attribute is the first one on offer. */}
+                  {(() => {
+                    const candidates = labelCandidates(
+                      layer.geojson,
+                      layer.temporal
+                    );
+                    // An individual object rather than a relation: it carries no
+                    // attributes to label with, so offer a caption to type
+                    // instead. Still opt-in -- the box starts empty and an empty
+                    // box draws nothing, which is what the placeholder says; the
+                    // layer's name is not a caption anyone asked for.
+                    if (candidates.length === 0) {
+                      return (
+                        <label className="lp-check">
+                          label
+                          <input
+                            className="lp-label-text"
+                            type="text"
+                            value={layer.style.labelText ?? ""}
+                            placeholder="none"
+                            onChange={(e) =>
+                              onStyle(layer.id, {
+                                labelText: e.target.value || null,
+                              })
+                            }
+                          />
+                        </label>
+                      );
+                    }
+                    return (
+                      <label className="lp-check">
+                        label
+                        <select
+                          className="lp-label"
+                          value={layer.style.label ?? ""}
+                          onChange={(e) =>
+                            onStyle(layer.id, { label: e.target.value || null })
+                          }
+                        >
+                          <option value="">none</option>
+                          {candidates.map((c) => (
+                            <option key={c} value={c}>
+                              {c}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                    );
+                  })()}
                   {/* Trail/positions only apply to moving points. */}
                   {layer.temporal && layer.temporal.trips.length > 0 && (
                     <label className="lp-check">
                       moving
                       <select
+                        className="lp-moving"
                         value={layer.style.temporalMode}
                         onChange={(e) =>
                           onStyle(layer.id, {

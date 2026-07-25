@@ -48,9 +48,9 @@ try {
   page.on("pageerror", (e) => console.log("  [pageerror]", e.message));
 
   async function runCmd(command) {
-    await page.click(".input input");
-    await page.$eval(".input input", (el) => (el.value = ""));
-    await page.type(".input input", command);
+    await page.click(".input textarea");
+    await page.$eval(".input textarea", (el) => (el.value = ""));
+    await page.type(".input textarea", command);
     await page.keyboard.press("Enter");
   }
 

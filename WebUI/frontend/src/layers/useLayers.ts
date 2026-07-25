@@ -1,5 +1,6 @@
 import { useCallback, useRef, useState } from "react";
 import type { FeatureCollection, TemporalPayload } from "../api/client";
+import type { IconName } from "./icons";
 
 export type RGB = [number, number, number];
 
@@ -12,6 +13,17 @@ export interface LayerStyle {
   lineWidth: number; // px (also the moving-object trail width)
   filled: boolean;
   temporalMode: TemporalMode; // how moving objects render
+  // Attribute written next to each feature. Null (no labels) unless chosen in
+  // the layers panel; see ./labels for how the candidates are ranked.
+  label: string | null;
+  // A fixed caption for the whole layer, for results that carry no attributes
+  // to label with -- an individual object such as `query Train7`. Null unless
+  // typed in the layers panel; `label` (an attribute) wins when both are set.
+  labelText: string | null;
+  // Symbol drawn for point geometry and for moving-object current positions.
+  // Null -- the default -- keeps the plain circle; a name indexes the icon
+  // atlas in ./icons.
+  icon: IconName | null;
 }
 
 export interface Layer {
@@ -24,9 +36,11 @@ export interface Layer {
   style: LayerStyle;
 }
 
+// The layer's name is deliberately *not* copied in here: it can be renamed
+// while the details panel is open, and a snapshot would go stale. Callers
+// resolve the name from `layers` by id at render time.
 export interface Selection {
   layerId: string;
-  layerName: string;
   properties: Record<string, unknown>;
 }
 
@@ -82,6 +96,11 @@ export function useLayers() {
             lineWidth: 1.5,
             filled: true,
             temporalMode: "both",
+            // Labelling is opt-in: a fresh layer draws no text until an
+            // attribute is chosen -- or a caption typed -- in the layers panel.
+            label: null,
+            labelText: null,
+            icon: null,
           },
         };
         return [...prev, layer];
@@ -114,6 +133,18 @@ export function useLayers() {
     });
   }, []);
 
+  // The auto-derived name is query text, which is rarely what belongs on a
+  // legend. `command` stays untouched -- it is the layer's identity and still
+  // what the row's tooltip shows. Clearing the name falls back to the derived
+  // one, so "reset to default" needs no extra state.
+  const rename = useCallback((id: string, name: string) => {
+    setLayers((prev) =>
+      prev.map((l) =>
+        l.id === id ? { ...l, name: name.trim() || deriveName(l.command) } : l
+      )
+    );
+  }, []);
+
   const setStyle = useCallback((id: string, patch: Partial<LayerStyle>) => {
     setLayers((prev) =>
       prev.map((l) =>
@@ -133,6 +164,7 @@ export function useLayers() {
     remove,
     toggle,
     move,
+    rename,
     setStyle,
     clear,
     selected,

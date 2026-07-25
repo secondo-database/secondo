@@ -101,6 +101,64 @@ top layer, and clicking a region shows its `Name`.
   verified against SECONDO's own `val(… atinstant …)` to the 8th decimal.
   Objects with no geometry (e.g. `mreal5000`) plot without touching the map.
 
+**Milestone 7 (SQL via the optimizer) — done & verified end-to-end.**
+The console now takes SQL as well as executable commands:
+
+```
+select * from kinos
+select [id, trip] from trains where id < 5
+create table sqltest columns [a: int]
+```
+
+The WebUI does **not** decide what is SQL. It sends what the user typed without
+a language label (command level `-1`) and the *server* classifies it
+(`include/SQLLanguage.h`) and reports which of the three input languages it
+resolved to — the same thing the JavaGUI and the TTY do, so the rules exist in
+exactly one place and no client carries a copy that can drift. What comes back
+depends on that level:
+
+- **SQL (level 2)** answers with `(plan result costs)`. The console shows the
+  generated executable plan and its estimated costs; the *result half* is
+  byte-identical to what running that plan yourself would produce, so it feeds
+  the existing GeoJSON/temporal pipeline unchanged — an optimized query draws
+  on the map and animates on the timeline exactly like a kernel query.
+- **An optimizer directive (level 3)** — `showOptions`, `setOption(subqueries)`,
+  `updateCatalog` — answers with the text the Prolog goal printed.
+- The **`optimizer ` prefix** means "optimize but do not execute" for SQL, and
+  "run this as a directive" for anything else.
+- For a `create`/`drop` the optimizer does the work itself while translating and
+  answers with the atom `"done"`; the console says so instead of showing a plan,
+  and the catalog refreshes.
+
+There is no separate optimizer server any more: the kernel server runs the
+optimizer in-process (the retired `OptServer` and the WebGui's port-1304 socket
+client are gone), so SQL travels the connection the session already has.
+
+**Milestone 8 (attribute labels) — done & verified end-to-end.**
+Each layer can write one of its tuple's non-spatial attributes next to the
+geometry it belongs to — the restaurant's `Name` under its point, a district's
+name inside its region, a train's `Id` travelling with its dot. This is
+**opt-in**: a layer starts unlabelled and the layers panel offers a `label`
+dropdown listing the attributes, ordered so the most label-like one comes first
+(`layers/labels.ts` scores names, text, and how distinct and short the values
+are; a join's `Name_r` is recognised past the alias suffix the optimizer adds).
+Text is drawn just below the symbol so it never covers it, on a translucent dark
+plate so it reads on both the dark Cartesian canvas and the light OSM basemap.
+(The plate replaced an SDF outline: deck's distance-field glyphs are too coarse
+to reconstruct 13px letterforms and came out eroded and sheared off at the top,
+so the labels use plain bitmap text — see `LABEL_TEXT` in `map/MapView.tsx`.)
+
+An **individual object** carries no attributes to pick from — `query train7` is
+one mpoint, not a tuple — so for those the same `label` row offers a **caption to
+type** instead of a list to choose from (`style.labelText`). It is opt-in in
+exactly the same way: the box starts empty and an empty box draws nothing. A caption rides a moving object as an attribute label does, and moving
+*regions* are labelled too (they previously rendered no text at all).
+Verified
+in a headless browser (`npm run e2e -- labels`): the candidates are offered with
+an explicit "none" selected, choosing one adds drawn pixels, and clearing it
+returns the canvas to exactly its previous state; for a single object the typed
+caption does the same.
+
 ### A note on coordinates & the basemap
 
 SECONDO spatial values carry coordinates in the dataset's *own* world system
@@ -116,8 +174,14 @@ below.
 - A built SECONDO tree with the environment sourced (`source ~/.secondorc`, which
   sets `SECONDO_BUILD_DIR`, `SECONDO_PLATFORM`, `BERKELEY_DB_DIR`).
 - The prebuilt client lib `apis/api_cpp/cs/lib/libsecondo.a` (built via
-  `cd apis/api_cpp/cs && make`).
+  `cd apis/api_cpp/cs && make`). Rebuild it before `make -C native` after
+  updating the tree: it now also carries the SQL language rules
+  (`UserInterfaces/SQLLanguage.o`), which the native module links against.
 - Python 3.11+ and Node 20.19+ (required by Vite 8).
+- **For SQL:** a tree built with SWI-Prolog (without `PL_INCLUDE_DIR` the kernel
+  is compiled `-DNO_OPTIMIZER`) and `[Environment] EnableOptimizer` not turned
+  off in `bin/SecondoConfig.ini`. Everything else works without it; the console
+  then shows `sql: off` and only takes executable commands.
 
 ## Build & run
 
@@ -132,10 +196,29 @@ pip install -r requirements.txt
 # Build the pybind11 wrapper over libsecondo.a
 make -C native
 
-# Run the bridge (reads SECONDO_HOST/PORT/CONFIG from env; defaults to
-# 127.0.0.1:1234 and $SECONDO_BUILD_DIR/bin/SecondoConfig.ini)
+# Run the bridge (reads SECONDO_HOST/PORT/CONFIG from env; the server defaults
+# to 127.0.0.1:1234, the config to $SECONDO_BUILD_DIR/bin/SecondoConfig.ini)
 uvicorn app.main:app --host 127.0.0.1 --port 8000
 ```
+
+**`source ~/.secondorc` matters for `uvicorn` too, not just for the build.**
+The bridge refuses to open a connection it cannot configure — `503` with the
+reason, an error line at startup, and `/api/health` reporting `"status":
+"misconfigured"` plus the resolved path. That path is never guessed:
+`SECONDO_CONFIG`, else `$SECONDO_BUILD_DIR/bin/SecondoConfig.ini`, else an
+error.
+
+This started as a *dead API*: `/api/health` answered while every other endpoint
+hung forever. The cause was not the bridge. A SECONDO client takes
+`Server:BinaryTransfer` from its own configuration and the server takes it from
+its own, with nothing on the wire to agree on it — and a disagreement did not
+fail, it deadlocked, the client blocking in a socket read (no timeout) for a
+text end tag while the server had sent a binary list. A bridge started without
+`SECONDO_CONFIG` had no flags at all and hit exactly that. **The server now
+announces the mode in its connect handshake** (`BinaryTransfer=YES|NO` in
+`<SecondoIntro>`, documented in `include/CSProtocol.h`) and every client — the
+C++ one behind this bridge, and the Java one behind the GUI — adopts it instead
+of consulting its own configuration.
 
 ### 2. A running SecondoMonitor
 
@@ -161,6 +244,15 @@ query BGrenzenLine     # district boundaries (line)
 query thecenter        # a region
 query Flaechen feed head[5] consume            # a relation of regions
 query Trains feed head[3] project[Id, Trip] consume   # moving points -> animated
+```
+
+The same console takes SQL, if the server has the optimizer:
+
+```
+select * from kinos                        # optimized, then drawn on the map
+select [id, trip] from trains where id < 5 # animated on the timeline
+optimizer select * from kinos              # show the plan, do not run it
+showOptions                                # an optimizer directive
 ```
 
 ## Tests
@@ -205,6 +297,7 @@ frontend/
   src/api/       bridge client + types
   src/catalog/   database + object browser
   src/console/   command console (history recall, focus retention)
+                 + history.ts: recalled commands persisted in localStorage
   src/layers/    useLayers state + LayersPanel (style/reorder) + GeoJSON export
   src/map/       deck.gl MapView (Cartesian OR geographic MapLibre + OSM)
                  + projection (Berlin2WGS)
@@ -232,16 +325,38 @@ those.
 
 ## Layout
 
-The map is the product, so the layout defaults to giving it the space:
+The map is the product, so the layout gives it the space:
 
-- **Console docked to the bottom** by default (the map keeps the full width) and
-  kept short. Toggle it to the left with `⇦ left` / `⇩ bottom`.
+- **Console docked under the map**, across the full width and kept short. (It
+  used to be dockable to the left as well; that only narrowed the map for no
+  gain, so there is one layout.)
 - **Query history collapses** (`▾ history`) to leave just the command input as a
   slim bar — the history is rarely needed at length, and the map takes the
   freed height.
 - **Catalog collapses** to a thin rail (`◂` / `▸`), handing its width to the map.
 - **All panels are drag-resizable** via the splitters between them.
-- Layout, sizes and collapse state persist in `localStorage`.
+- **Theme**: dark by default, switchable to a light grey one with `☀ light` /
+  `☾ dark` in the console header. The whole UI is drawn from CSS custom
+  properties (`src/styles.css`), so a theme is one palette block; the choice is
+  applied as `data-theme` on `<html>` before the first render.
+- Panel sizes, collapse state and theme persist in `localStorage`.
+
+**The query box grows with the query.** It is a textarea sized to its content
+(`src/console/Console.tsx`), so a long `select … from … where …` is readable
+while it is written instead of scrolling sideways in a one-line slit; past
+~11rem it stops growing and scrolls. `⏎` runs the command as it always did and
+`⇧⏎` breaks a line; the line breaks are folded back to single spaces on the way
+to the server, so the log stays one line per command while `↑` brings the query
+back formatted. `↑`/`↓` recall from the first/last line, so in a multi-line query
+the arrows move the caret first.
+
+**The command history survives a reload.** The last 200 typed commands are kept
+in `localStorage` (`src/console/history.ts`), so `↑`/`↓` still walks back into
+what earlier sessions asked — a history file, as SecondoTTY keeps one in
+`.secondo_history`. Only the commands are stored, not their answers: a result
+belongs to the session that ran it (its geometry is on a map that a reload drops
+anyway). `⌫ clear` in the console header empties the log on screen and forgets
+the remembered commands.
 
 Note that the map only auto-fits when new data arrives or the projection
 changes — editing a layer's style, toggling visibility or removing a layer
@@ -255,6 +370,21 @@ leaves the view exactly where you put it. Use the `⤢` button to re-fit on dema
   position — clearer when many objects move at once), or `both`. The layer's
   **point radius** sizes the position dots and **line width** sizes the trail,
   so those style controls now affect moving objects too, not just static ones.
+- **Layer name** (per layer, in the style editor): a layer is auto-named after
+  the query that produced it, which is provenance rather than a legend. The
+  `name` field renames it; the original command stays as the row's tooltip, and
+  clearing the field restores the auto-name. The new name follows the layer
+  everywhere — the row, the selection details header, the value plots and the
+  `_layer` stamp in a GeoJSON export.
+- **Point icon** (per layer, in the style editor): points and moving-object
+  positions draw as a circle by default; the `icon` dropdown swaps in a symbol
+  (`bus`, `rail`, `car`, `restaurant`, …) tinted with the layer's colour, so a
+  trains layer and a buses layer are distinguishable by shape and not by colour
+  alone. The **point radius** still sizes them. The icons are
+  [Maki](https://github.com/mapbox/maki) (CC0-1.0, drawn for cartography at
+  small sizes); `layers/icons.ts` rasterises the offered subset into one PNG
+  atlas at first use and hands it to deck.gl, and offering another of Maki's 215
+  icons is one import plus one entry there.
 - Internal keys (`_attr`, `_layer`) are hidden from the map tooltip and the
   selection details panel.
 - **View fitting & zoom controls:** the map view is controlled and auto-fits to
@@ -286,20 +416,35 @@ leaves the view exactly where you put it. Use the `⤢` button to re-fit on dema
     never reaping one that is mid-command;
   - all sessions are closed on shutdown.
 - **The native binding must never hold the GIL during server I/O.**
-  `Connection`'s connect/terminate/`secondo` all release it. A connect that
-  hangs (slow or wedged SECONDO) would otherwise freeze the whole Python
-  process — including endpoints that never touch SECONDO.
+  `Connection`'s connect/terminate/`secondo`/`secondo_auto` all release it. A
+  connect that hangs (slow or wedged SECONDO) would otherwise freeze the whole
+  Python process — including endpoints that never touch SECONDO.
+- **The language rules are never reimplemented, only linked.** The backend does
+  not guess what is SQL and does not own a regex for the `optimizer ` prefix: it
+  calls `stripOptimizerPrefix` from `libsecondo.a` and lets the server classify
+  the rest. This is the same principle as never reimplementing the wire
+  protocol, applied one level up.
+- **Whether SQL is on offer is a property of the connected server**, so it is
+  probed once per session at connect (`<OptimizerAvailable/>`) and never cached
+  beyond it. It rides along on `/api/databases`, which is the session-state
+  endpoint the catalog polls anyway.
+- **The optimizer's catalog is kept in step.** It only rereads the schema when
+  the database changes, so after a kernel `let`/`create`/`delete`/`update` the
+  backend sends `updateCatalog` (as the JavaGUI does). Disable with
+  `SECONDO_AUTO_UPDATE_CATALOG=false`.
 
 ## Roadmap (next)
 
-- Streaming large results over the WebSocket (`/api/stream`) and query-history
-  persistence.
-- Include the optimizer (add it to the REST backend), allow to run SQL-like
-  queries from the WebUI. The kernel server now runs the optimizer itself
-  (command level 2), so the backend can send SQL over its existing connection
-  instead of talking to a separate server.
+- Streaming large results over the WebSocket (`/api/stream`).
 - Additional projections beyond BerlinMOD as needed.
 - Remaining long-tail types (network/JNet, precise geometry, raster) still fall
   back to the textual nested-list view, as `DsplGeneric` does in the Java GUI.
 - Implement a regular table view that also allows updates (like the UpdateViewer
   in the Java GUI).
+- Kernel follow-ups surfaced while wiring up SQL, all pre-existing:
+  `SecondoInterfaceCS::Secondo` assigns `resolvedCmdLevel` only on its "usual
+  command" branch, so after a client-intercepted `save`/`restore` it reports the
+  *previous* command's level (harmless only because every client also checks the
+  answer's shape); `save`/`restore` typed into a browser writes into the
+  *backend's* working directory, not the user's machine; and `Connection.secondo`
+  decodes Latin-1 coming back but does not encode it going out.

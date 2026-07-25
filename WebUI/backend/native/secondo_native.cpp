@@ -32,10 +32,78 @@ in Python, where it is easy to fixture-test.
 
 #include "SecondoInterface.h"
 #include "SecondoInterfaceCS.h"
+#include "SQLLanguage.h"
 #include "NestedList.h"
 #include "NList.h"
 
 namespace py = pybind11;
+
+// SECONDO stores strings in Latin-1 (ISO-8859-1), so any text coming back from
+// the server may contain bytes (e.g. 0xfc for 'u"'/umlaut) that are invalid
+// UTF-8. pybind11's default std::string -> str conversion assumes UTF-8 and
+// would raise UnicodeDecodeError on such results (Kinos, WFlaechen, ...).
+// Decoding Latin-1 explicitly is lossless for any byte and yields correct
+// Unicode. Only for text the *server* produced -- a string that came in from
+// Python is already UTF-8 and must not be run through this.
+static py::str latin1(const std::string& s)
+{
+  return py::reinterpret_steal<py::str>(
+      PyUnicode_DecodeLatin1(s.data(), s.size(), "replace"));
+}
+
+// Everything one command produced, filled while the GIL is released and turned
+// into Python objects afterwards.
+struct AutoResult
+{
+  int level = CMD_LEVEL_TEXT;
+  std::string text;        // the result nested list, as text
+  std::string plan;        // level 2: the plan the optimizer generated
+  std::string message;     // level 3: what the directive printed
+  double costs = 0.0;      // level 2: estimated costs
+  bool hasPlan = false;
+  bool hasCosts = false;
+  bool hasMessage = false;
+  int errCode = 0;
+  int errPos = 0;
+  std::string errMsg;
+};
+
+static std::string trimmed(const std::string& s)
+{
+  const std::string ws = " \t\n\r\f\v";
+  const size_t b = s.find_first_not_of(ws);
+  if (b == std::string::npos) return "";
+  return s.substr(b, s.find_last_not_of(ws) - b + 1);
+}
+
+// An error the SECONDO server reported. Surfaces in Python as
+// secondo_native.SecondoError, which derives from RuntimeError so that every
+// existing "except RuntimeError" keeps catching it.
+struct SecondoCommandError : public std::runtime_error
+{
+  SecondoCommandError(int code, int pos, const std::string& msg,
+                      const std::string& plan)
+    : std::runtime_error("SECONDO error " + std::to_string(code) +
+                         " (pos " + std::to_string(pos) + "): " + msg),
+      code(code), pos(pos), plan(plan)
+  {}
+
+  int code;
+  int pos;
+  // The generated plan, when an SQL command failed while *executing* it. The
+  // server sends the plan alongside the error; empty otherwise.
+  std::string plan;
+};
+
+static SecondoCommandError secondoError(int code, int pos,
+                                        const std::string& msg,
+                                        const std::string& plan)
+{
+  return SecondoCommandError(code, pos, msg, plan);
+}
+
+// The registered Python exception type, set up in PYBIND11_MODULE.
+static py::handle secondoErrorType;
 
 // One SECONDO client session. Not thread-safe on its own: callers must
 // serialize access to a single Connection (the FastAPI layer keeps one
@@ -75,14 +143,13 @@ class Connection
 
   ~Connection() { close(); }
 
-  // Run one SECONDO command and return the result nested list as text.
-  // Raises RuntimeError on a SECONDO error (non-zero error code).
+  // Run one SECONDO command at the level derived from its text (nested list or
+  // SOS text) and return the result nested list as text. Raises RuntimeError on
+  // a SECONDO error (non-zero error code).
   //
-  // SECONDO stores strings in Latin-1 (ISO-8859-1), so the nested-list text
-  // may contain bytes (e.g. 0xfc for 'u"'/umlaut) that are invalid UTF-8.
-  // pybind11's default std::string -> str conversion assumes UTF-8 and would
-  // raise UnicodeDecodeError on such results (Kinos, WFlaechen, ...). Decode
-  // Latin-1 explicitly: it is lossless for any byte and yields correct Unicode.
+  // This is the path for commands the *backend* issues itself ("list
+  // databases", "list objects"): they are kernel commands and must never
+  // involve the optimizer. What the user types goes through secondo_auto.
   py::str secondo(const std::string& command)
   {
     if (!si) {
@@ -90,19 +157,109 @@ class Connection
     }
     ListExpr res = nl->TheEmptyList();
     SecErrInfo err;
+    std::string out;
     {
       // The call blocks on network I/O; let other Python threads run.
       py::gil_scoped_release release;
       si->Secondo(command, res, err);
+      if (err.code == 0) {
+        out = nl->ToString(res);
+      }
     }
     if (err.code != 0) {
-      throw std::runtime_error("SECONDO error " + std::to_string(err.code) +
-                               " (pos " + std::to_string(err.pos) + "): " +
-                               err.msg);
+      throw secondoError(err.code, err.pos, err.msg, "");
     }
-    std::string out = nl->ToString(res);
-    return py::reinterpret_steal<py::str>(
-        PyUnicode_DecodeLatin1(out.data(), out.size(), "replace"));
+    return latin1(out);
+  }
+
+  // Asks the connected server whether it can run the SQL dialect (the optimizer
+  // is compiled in and enabled). A property of *that server*, so the answer
+  // must not be cached beyond the life of this connection.
+  bool optimizer_available()
+  {
+    if (!si) {
+      throw std::runtime_error("connection is closed");
+    }
+    py::gil_scoped_release release;
+    return si->optimizerAvailable();
+  }
+
+  // Run one command without saying which language it is written in: the server
+  // classifies it (see include/SQLLanguage.h) and reports back what it decided.
+  // This is what the JavaGUI and the TTY do, so that the rules live in exactly
+  // one place and no client carries a copy of them.
+  //
+  // Returns a dict:
+  //   level    the level the server resolved the command to (0/1/2/3)
+  //   text     the *result* nested list as text -- for SQL the result half of
+  //            the answer, so it is byte-identical to what the same query would
+  //            produce at level 1 and the GeoJSON/temporal conversion in Python
+  //            works on it unchanged
+  //   plan     level 2 only: the plan the optimizer generated, raw, including
+  //            the literal "done" the server sends when it carried the command
+  //            out itself while translating (a create/drop). Interpreting that
+  //            sentinel is left to Python, where it is easy to fixture-test.
+  //   costs    level 2 only, and only when the server appended them
+  //   message  level 3 only: the text an optimizer directive printed
+  //
+  // With optimizer_addressed the "optimizer" protocol flag is sent along,
+  // saying the user wrote the "optimizer " prefix: SQL is then only optimized
+  // and not executed, and anything else is taken to be a directive.
+  py::dict secondo_auto(const std::string& command,
+                        const bool optimizer_addressed)
+  {
+    if (!si) {
+      throw std::runtime_error("connection is closed");
+    }
+    AutoResult r;
+    {
+      // Both the call and the nested-list extraction are pure C++, so the GIL
+      // stays released for all of it.
+      py::gil_scoped_release release;
+      ListExpr res = nl->TheEmptyList();
+      si->SecondoAuto(command, optimizer_addressed, r.level, res,
+                      r.errCode, r.errPos, r.errMsg);
+      if (r.errCode == 0) {
+        extract(res, r);
+      } else if (r.level == CMD_LEVEL_SQL && nl->ListLength(res) >= 2) {
+        // A plan that failed to execute still comes back with the answer; every
+        // other client throws it away. Carry it on the exception so the console
+        // can show what actually ran.
+        r.plan = planOf(nl->First(res));
+        r.hasPlan = true;
+      }
+    }
+    if (r.errCode != 0) {
+      throw secondoError(r.errCode, r.errPos, r.errMsg,
+                         r.hasPlan ? r.plan : "");
+    }
+
+    py::dict out;
+    out["level"] = r.level;
+    out["text"] = latin1(r.text);
+    out["plan"] = r.hasPlan ? py::object(latin1(r.plan))
+                            : py::object(py::none());
+    out["costs"] = r.hasCosts ? py::object(py::cast(r.costs))
+                              : py::object(py::none());
+    out["message"] = r.hasMessage ? py::object(latin1(r.message))
+                                  : py::object(py::none());
+    return out;
+  }
+
+  // Run an optimizer control directive (a Prolog goal such as "showOptions" or
+  // "setOption(subqueries)") and return the text it printed. Never raises: a
+  // server-side failure comes back as the message text.
+  py::str optimizer_command(const std::string& directive)
+  {
+    if (!si) {
+      throw std::runtime_error("connection is closed");
+    }
+    std::string out;
+    {
+      py::gil_scoped_release release;
+      out = si->optimizerCommand(directive);
+    }
+    return latin1(out);
   }
 
   void close()
@@ -120,6 +277,50 @@ class Connection
   }
 
  private:
+  // Splits the answer into the pieces Python needs, according to the level the
+  // server resolved the command to.
+  void extract(ListExpr res, AutoResult& r) const
+  {
+    const int len = nl->ListLength(res);
+    if (r.level == CMD_LEVEL_SQL && len >= 2) {
+      // The SQL answer is the list (plan result costs). Testing the length
+      // rather than the level alone is the guard the JavaGUI uses too
+      // (CommandPanel.unwrapSqlAnswer): an answer that is not of that shape is
+      // passed through unchanged. It also covers a trap -- SecondoInterfaceCS
+      // assigns resolvedCmdLevel only on its "usual command" branch, so a
+      // save/restore that the client carries out itself reports the *previous*
+      // command's level together with an empty result list.
+      r.plan = planOf(nl->First(res));
+      r.hasPlan = true;
+      r.text = nl->ToString(nl->Second(res));
+      // The costs were appended to the answer, so a server that does not send
+      // them still works.
+      if (len >= 3 && nl->AtomType(nl->Third(res)) == RealType) {
+        r.costs = nl->RealValue(nl->Third(res));
+        r.hasCosts = true;
+      }
+      return;
+    }
+    if (r.level == CMD_LEVEL_OPT_DIRECTIVE) {
+      // A directive answers with the text it printed; there is no result.
+      r.message = nl->AtomType(res) == TextType ? nl->Text2String(res)
+                                                : nl->ToString(res);
+      r.hasMessage = true;
+      r.text = "()";
+      return;
+    }
+    r.text = nl->ToString(res);
+  }
+
+  // The plan half of an SQL answer. The server builds it as a text atom, so
+  // ToString would yield "<text>...</text--->" instead of the plan itself.
+  std::string planOf(ListExpr planExpr) const
+  {
+    return trimmed(nl->AtomType(planExpr) == TextType
+                     ? nl->Text2String(planExpr)
+                     : nl->ToString(planExpr));
+  }
+
   SecondoInterfaceCS* si = nullptr;
   NestedList* nl = nullptr;
 };
@@ -127,6 +328,44 @@ class Connection
 PYBIND11_MODULE(secondo_native, m)
 {
   m.doc() = "Thin pybind11 wrapper over the SECONDO C++ client (libsecondo.a)";
+
+  static py::exception<SecondoCommandError> secErr(m, "SecondoError",
+                                                PyExc_RuntimeError);
+  secondoErrorType = secErr;
+  py::register_exception_translator([](std::exception_ptr p) {
+    try {
+      if (p) std::rethrow_exception(p);
+    } catch (const SecondoCommandError& e) {
+      // Raise SecondoError with the server's own numbers attached, so a caller
+      // that wants them does not have to parse the message back apart.
+      py::object err = py::reinterpret_steal<py::object>(
+          PyObject_CallFunction(secondoErrorType.ptr(), "s", e.what()));
+      if (err) {
+        err.attr("code") = e.code;
+        err.attr("pos") = e.pos;
+        err.attr("plan") = e.plan.empty() ? py::object(py::none())
+                                          : py::object(latin1(e.plan));
+        PyErr_SetObject(secondoErrorType.ptr(), err.ptr());
+      }
+    }
+  });
+
+  // The rule for the "optimizer " prefix the user may type, taken from the
+  // kernel (include/SQLLanguage.h) rather than copied into Python: what follows
+  // the prefix decides what it means, and that decision belongs to the one
+  // place that defines the input languages. Returns (had_prefix, remainder).
+  m.def(
+      "strip_optimizer_prefix",
+      [](const std::string& command) {
+        std::string rest;
+        const bool had = stripOptimizerPrefix(command, rest);
+        // The remainder is a substring of what Python just handed in, so it
+        // goes back through the default (UTF-8) conversion -- decoding it as
+        // Latin-1 would mangle any non-ASCII the user typed.
+        return py::make_tuple(had, rest);
+      },
+      py::arg("command"),
+      "Strip a leading \"optimizer \" keyword; returns (had_prefix, rest).");
 
   py::class_<Connection>(m, "Connection")
       .def(py::init<const std::string&, const std::string&,
@@ -140,5 +379,14 @@ PYBIND11_MODULE(secondo_native, m)
            "Open a client-server connection to a running SecondoMonitor.")
       .def("secondo", &Connection::secondo, py::arg("command"),
            "Execute a SECONDO command; return the result nested list as text.")
+      .def("optimizer_available", &Connection::optimizer_available,
+           "Whether this server can run the SQL dialect (optimizer).")
+      .def("secondo_auto", &Connection::secondo_auto, py::arg("command"),
+           py::arg("optimizer_addressed") = false,
+           "Execute a command the server classifies itself; returns a dict "
+           "with level/text/plan/costs/message.")
+      .def("optimizer_command", &Connection::optimizer_command,
+           py::arg("directive"),
+           "Run an optimizer control directive; return the text it printed.")
       .def("close", &Connection::close, "Close the connection.");
 }

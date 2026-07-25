@@ -16,3 +16,7 @@ frontend/.vite/
 
 # Local logs
 *.log
+
+# The persistent nested list drops its temp files into the backend's working
+# directory.
+backend/temp_nested_list/

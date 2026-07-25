@@ -1,6 +1,76 @@
+/* The whole UI is drawn from these tokens, so a theme is one palette swap.
+   Dark is the default (no data-theme attribute needed); `data-theme="light"`
+   on <html> switches to the light grey palette -- see src/theme.ts. */
 :root {
-  color-scheme: light dark;
+  color-scheme: dark;
+
+  --bg: #0f1115;         /* app background */
+  --bg-deep: #0b0d11;    /* the map canvas, one step darker than the app */
+  --surface: #171a21;    /* inputs, hovers, code blocks */
+  --surface-2: #12151b;  /* nested surface (layer style editor) */
+  --raised: #1c2028;     /* splitters, chips, hairlines inside panels */
+  --border: #262a33;
+  --border-strong: #3a3f4b;
+
+  --text: #e6e6e6;
+  --text-2: #cbd5e1;
+  --muted: #9aa4b2;
+  --faint: #6b7280;
+
+  --accent: #60a5fa;       /* focus/hover accent, prompt */
+  --accent-strong: #3b82f6;
+  --accent-solid: #2563eb; /* filled buttons */
+  --accent-on: #ffffff;    /* text on --accent-solid */
+  --accent-soft: #93c5fd;  /* plan text */
+  --ok: #34d399;
+  --err: #f87171;
+  --err-text: #fca5a5;
+  --teal: #7fd1b9;         /* database / geometry hints */
+  --spatial: #7fb3e6;      /* catalog icon: spatial type */
+  --temporal: #fd805d;     /* catalog icon: temporal type, timeline accent */
+  --on-temporal: #101216;  /* text on the timeline play button */
+
+  /* Floating panels over the map: same ink, translucent. */
+  --overlay: rgba(15, 17, 21, 0.92);
+  --overlay-2: rgba(23, 26, 33, 0.9);
+
   font-family: ui-sans-serif, system-ui, sans-serif;
+}
+
+/* Light grey: paper-grey app, near-white panels, ink-dark text. Accents are
+   darkened so they carry contrast against a light background instead of
+   glowing on a dark one. */
+:root[data-theme="light"] {
+  color-scheme: light;
+
+  --bg: #eceef2;
+  --bg-deep: #e2e5ea;
+  --surface: #f7f8fa;
+  --surface-2: #e9ebef;
+  --raised: #dfe2e8;
+  --border: #cdd2da;
+  --border-strong: #aeb5c0;
+
+  --text: #14171c;
+  --text-2: #384150;
+  --muted: #5b6472;
+  --faint: #808896;
+
+  --accent: #2563eb;
+  --accent-strong: #3b82f6;
+  --accent-solid: #2563eb;
+  --accent-on: #ffffff;
+  --accent-soft: #1d4ed8;
+  --ok: #059669;
+  --err: #dc2626;
+  --err-text: #b91c1c;
+  --teal: #0f766e;
+  --spatial: #2f6fae;
+  --temporal: #c2410c;
+  --on-temporal: #fff7ed;
+
+  --overlay: rgba(247, 248, 250, 0.93);
+  --overlay-2: rgba(247, 248, 250, 0.92);
 }
 
 * {
@@ -9,39 +79,27 @@
 
 body {
   margin: 0;
-  background: #0f1115;
-  color: #e6e6e6;
+  background: var(--bg);
+  color: var(--text);
 }
 
+/* Catalog on the left, and the console under the map across the rest of the
+   width. The console used to be dockable to the left as well; that only made
+   the map narrower for no gain, so there is one layout now. */
 .app {
   display: grid;
   height: 100vh;
-}
-
-/* Console docked to the left of the map (default). */
-.app.side {
-  grid-template-columns: var(--cat) 5px var(--con) 5px 1fr;
-  grid-template-rows: 1fr;
-}
-.app.side .catalog-pane { grid-column: 1; grid-row: 1; }
-.app.side .split-a { grid-column: 2; grid-row: 1; cursor: col-resize; }
-.app.side .console-pane { grid-column: 3; grid-row: 1; }
-.app.side .split-b { grid-column: 4; grid-row: 1; cursor: col-resize; }
-.app.side .map-pane { grid-column: 5; grid-row: 1; }
-
-/* Console docked under the map. */
-.app.bottom {
   grid-template-columns: var(--cat) 5px 1fr;
   grid-template-rows: 1fr 5px var(--conh);
 }
-.app.bottom .catalog-pane { grid-column: 1; grid-row: 1 / -1; }
-.app.bottom .split-a { grid-column: 2; grid-row: 1 / -1; cursor: col-resize; }
-.app.bottom .map-pane { grid-column: 3; grid-row: 1; }
-.app.bottom .split-b { grid-column: 3; grid-row: 2; cursor: row-resize; }
-.app.bottom .console-pane { grid-column: 3; grid-row: 3; }
+.app .catalog-pane { grid-column: 1; grid-row: 1 / -1; }
+.app .split-a { grid-column: 2; grid-row: 1 / -1; cursor: col-resize; }
+.app .map-pane { grid-column: 3; grid-row: 1; }
+.app .split-b { grid-column: 3; grid-row: 2; cursor: row-resize; }
+.app .console-pane { grid-column: 3; grid-row: 3; }
 
 /* Collapsed console = header + input only, so the map takes the rest. */
-.app.bottom.con-collapsed {
+.app.con-collapsed {
   grid-template-rows: 1fr 5px min-content;
 }
 
@@ -60,39 +118,39 @@ body {
   height: 2.2rem;
   background: none;
   border: none;
-  border-bottom: 1px solid #262a33;
-  color: #9aa4b2;
+  border-bottom: 1px solid var(--border);
+  color: var(--muted);
   cursor: pointer;
   font-size: 0.85rem;
 }
 
 .rail-btn:hover {
-  color: #e6e6e6;
-  background: #171a21;
+  color: var(--text);
+  background: var(--surface);
 }
 
 .cat-collapse {
   margin-left: auto;
   background: none;
   border: none;
-  color: #6b7280;
+  color: var(--faint);
   cursor: pointer;
   font-size: 0.85rem;
   padding: 0 0.2rem;
 }
 
 .cat-collapse:hover {
-  color: #e6e6e6;
+  color: var(--text);
 }
 
 .split {
-  background: #1c2028;
+  background: var(--raised);
   transition: background 0.12s;
 }
 
 .split:hover,
 body.dragging .split {
-  background: #3b82f6;
+  background: var(--accent-strong);
 }
 
 /* Keep the pointer consistent and prevent text selection while dragging. */
@@ -117,7 +175,7 @@ body.dragging {
   display: flex;
   align-items: center;
   gap: 0.4rem;
-  color: #9aa4b2;
+  color: var(--muted);
   font-size: 0.72rem;
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -126,7 +184,7 @@ body.dragging {
 
 .cat-count {
   margin-left: auto;
-  background: #1c2028;
+  background: var(--raised);
   border-radius: 10px;
   padding: 0 0.4rem;
   font-size: 0.68rem;
@@ -139,9 +197,9 @@ body.dragging {
 }
 
 .cat-db {
-  background: #171a21;
-  border: 1px solid #262a33;
-  color: #cbd5e1;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text-2);
   border-radius: 5px;
   padding: 0.2rem 0.45rem;
   font-size: 0.72rem;
@@ -149,12 +207,12 @@ body.dragging {
 }
 
 .cat-db.active {
-  border-color: #60a5fa;
-  color: #fff;
+  border-color: var(--accent);
+  color: var(--text);
 }
 
 .cat-db.pending {
-  border-color: #60a5fa;
+  border-color: var(--accent);
 }
 
 .cat-db:disabled {
@@ -171,8 +229,8 @@ body.dragging {
 .cat-spin {
   width: 11px;
   height: 11px;
-  border: 2px solid #3a3f4b;
-  border-top-color: #60a5fa;
+  border: 2px solid var(--border-strong);
+  border-top-color: var(--accent);
   border-radius: 50%;
   display: inline-block;
   animation: spin 0.7s linear infinite;
@@ -183,15 +241,15 @@ body.dragging {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  color: #9aa4b2;
+  color: var(--muted);
   font-size: 0.75rem;
   padding: 0.3rem;
 }
 
 .cat-filter {
-  background: #171a21;
-  border: 1px solid #262a33;
-  color: #e6e6e6;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
   border-radius: 5px;
   padding: 0.3rem 0.45rem;
   font-size: 0.75rem;
@@ -211,7 +269,7 @@ body.dragging {
   width: 100%;
   background: none;
   border: none;
-  color: #e6e6e6;
+  color: var(--text);
   padding: 0.22rem 0.3rem;
   border-radius: 4px;
   cursor: pointer;
@@ -220,21 +278,21 @@ body.dragging {
 }
 
 .cat-obj:hover {
-  background: #171a21;
+  background: var(--surface);
 }
 
 .cat-ic {
   width: 1rem;
   text-align: center;
-  color: #6b7280;
+  color: var(--faint);
 }
 
 .cat-obj.kind-spatial .cat-ic {
-  color: #7fb3e6;
+  color: var(--spatial);
 }
 
 .cat-obj.kind-temporal .cat-ic {
-  color: #fd805d;
+  color: var(--temporal);
 }
 
 .cat-oname {
@@ -246,7 +304,7 @@ body.dragging {
 }
 
 .cat-otype {
-  color: #6b7280;
+  color: var(--faint);
   font-size: 0.68rem;
 }
 
@@ -257,7 +315,7 @@ body.dragging {
 }
 
 .map-pane {
-  background: #0b0d11;
+  background: var(--bg-deep);
 }
 
 .mapview {
@@ -271,7 +329,7 @@ body.dragging {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #6b7280;
+  color: var(--faint);
   pointer-events: none;
 }
 
@@ -283,9 +341,9 @@ body.dragging {
 }
 
 .projection-ctl select {
-  background: rgba(23, 26, 33, 0.9);
-  color: #e6e6e6;
-  border: 1px solid #262a33;
+  background: var(--overlay-2);
+  color: var(--text);
+  border: 1px solid var(--border);
   border-radius: 6px;
   padding: 0.25rem 0.45rem;
   font-size: 0.75rem;
@@ -309,9 +367,9 @@ body.dragging {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(23, 26, 33, 0.9);
-  color: #e6e6e6;
-  border: 1px solid #262a33;
+  background: var(--overlay-2);
+  color: var(--text);
+  border: 1px solid var(--border);
   border-radius: 6px;
   font-size: 1.1rem;
   line-height: 1;
@@ -320,7 +378,7 @@ body.dragging {
 }
 
 .zoom-ctl button:hover {
-  border-color: #60a5fa;
+  border-color: var(--accent);
 }
 
 .zoom-ctl .zoom-fit {
@@ -337,9 +395,9 @@ body.dragging {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  background: rgba(15, 17, 21, 0.92);
-  border: 1px solid #262a33;
-  color: #cbd5e1;
+  background: var(--overlay);
+  border: 1px solid var(--border);
+  color: var(--text-2);
   padding: 0.35rem 0.8rem;
   border-radius: 999px;
   font-size: 0.78rem;
@@ -349,8 +407,8 @@ body.dragging {
 .spinner {
   width: 14px;
   height: 14px;
-  border: 2px solid #3a3f4b;
-  border-top-color: #60a5fa;
+  border: 2px solid var(--border-strong);
+  border-top-color: var(--accent);
   border-radius: 50%;
   animation: spin 0.7s linear infinite;
 }
@@ -361,10 +419,11 @@ body.dragging {
   }
 }
 
-.lp-check select {
-  background: #171a21;
-  color: #e6e6e6;
-  border: 1px solid #3a3f4b;
+.lp-check select,
+.lp-check input[type="text"] {
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border-strong);
   border-radius: 4px;
   margin-left: 0.4rem;
   font-size: 0.72rem;
@@ -376,7 +435,7 @@ body.dragging {
 }
 
 .geohint {
-  color: #7fd1b9;
+  color: var(--teal);
   font-size: 0.75rem;
   margin-bottom: 0.2rem;
 }
@@ -387,8 +446,8 @@ body.dragging {
   right: 0.5rem;
   z-index: 2;
   width: 240px;
-  background: rgba(15, 17, 21, 0.92);
-  border: 1px solid #262a33;
+  background: var(--overlay);
+  border: 1px solid var(--border);
   border-radius: 8px;
   backdrop-filter: blur(4px);
   font-size: 0.8rem;
@@ -400,8 +459,8 @@ body.dragging {
   justify-content: space-between;
   align-items: center;
   padding: 0.45rem 0.6rem;
-  border-bottom: 1px solid #262a33;
-  color: #cbd5e1;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-2);
   font-weight: 600;
 }
 
@@ -427,19 +486,19 @@ body.dragging {
 }
 
 .lp-collapse:hover {
-  color: #e6e6e6;
+  color: var(--text);
 }
 
 .lp-chevron {
   display: inline-block;
   width: 0.7rem;
-  color: #9aa4b2;
+  color: var(--muted);
   font-size: 0.7rem;
 }
 
 .lp-count {
-  background: #262a33;
-  color: #9aa4b2;
+  background: var(--border);
+  color: var(--muted);
   border-radius: 999px;
   padding: 0 0.35rem;
   font-size: 0.7rem;
@@ -448,8 +507,8 @@ body.dragging {
 
 .lp-clear {
   background: none;
-  border: 1px solid #3a3f4b;
-  color: #9aa4b2;
+  border: 1px solid var(--border-strong);
+  color: var(--muted);
   border-radius: 5px;
   font-size: 0.72rem;
   padding: 0.1rem 0.4rem;
@@ -465,7 +524,7 @@ body.dragging {
 }
 
 .lp-item {
-  border-bottom: 1px solid #1c2028;
+  border-bottom: 1px solid var(--raised);
 }
 
 .lp-row {
@@ -487,7 +546,7 @@ body.dragging {
   text-align: left;
   background: none;
   border: none;
-  color: #e6e6e6;
+  color: var(--text);
   cursor: pointer;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -499,7 +558,7 @@ body.dragging {
 .lp-mini {
   background: none;
   border: none;
-  color: #9aa4b2;
+  color: var(--muted);
   cursor: pointer;
   padding: 0 0.15rem;
   font-size: 0.8rem;
@@ -511,7 +570,7 @@ body.dragging {
 }
 
 .lp-x:hover {
-  color: #f87171;
+  color: var(--err);
 }
 
 .lp-style {
@@ -520,25 +579,53 @@ body.dragging {
   gap: 0.3rem 0.5rem;
   align-items: center;
   padding: 0.4rem 0.6rem 0.6rem;
-  background: #12151b;
+  background: var(--surface-2);
 }
 
 .lp-style label {
   display: contents;
-  color: #9aa4b2;
+  color: var(--muted);
 }
 
 .lp-style input[type="range"] {
   width: 100%;
-  accent-color: #60a5fa;
+  accent-color: var(--accent);
 }
 
 .lp-style input[type="color"] {
   width: 100%;
   height: 1.4rem;
   background: none;
-  border: 1px solid #3a3f4b;
+  border: 1px solid var(--border-strong);
   border-radius: 4px;
+}
+
+/* The rename field and the typed label. Monospace because the rename field's
+   default value is query text; `min-width` keeps either from widening the
+   panel. */
+.lp-style input[type="text"] {
+  width: 100%;
+  min-width: 0;
+  padding: 0.1rem 0.3rem;
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border-strong);
+  border-radius: 4px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.72rem;
+}
+
+/* 34 options, the longest of which would otherwise widen the whole panel. */
+.lp-icon {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Shows which glyph "rail-metro" actually is, in the layer's own colour. */
+.lp-icon-preview {
+  width: 15px;
+  height: 15px;
+  flex: none;
 }
 
 .lp-check {
@@ -556,8 +643,8 @@ body.dragging {
   max-width: 320px;
   max-height: 40vh;
   overflow: auto;
-  background: rgba(15, 17, 21, 0.92);
-  border: 1px solid #262a33;
+  background: var(--overlay);
+  border: 1px solid var(--border);
   border-radius: 8px;
   backdrop-filter: blur(4px);
 }
@@ -568,8 +655,8 @@ body.dragging {
   align-items: center;
   gap: 1rem;
   padding: 0.4rem 0.6rem;
-  border-bottom: 1px solid #262a33;
-  color: #7fd1b9;
+  border-bottom: 1px solid var(--border);
+  color: var(--teal);
   font-size: 0.8rem;
   font-weight: 600;
 }
@@ -577,7 +664,7 @@ body.dragging {
 .details-head button {
   background: none;
   border: none;
-  color: #9aa4b2;
+  color: var(--muted);
   cursor: pointer;
 }
 
@@ -593,12 +680,12 @@ body.dragging {
 }
 
 .details .dk {
-  color: #9aa4b2;
+  color: var(--muted);
   font-family: ui-monospace, Menlo, monospace;
 }
 
 .details .dv {
-  color: #e6e6e6;
+  color: var(--text);
   word-break: break-word;
 }
 
@@ -608,8 +695,8 @@ body.dragging {
   left: 0.75rem;
   bottom: 4.2rem;
   z-index: 3;
-  background: rgba(15, 17, 21, 0.92);
-  border: 1px solid #262a33;
+  background: var(--overlay);
+  border: 1px solid var(--border);
   border-radius: 8px;
   backdrop-filter: blur(4px);
   padding: 0.4rem 0.55rem 0.5rem;
@@ -622,7 +709,7 @@ body.dragging {
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  color: #9aa4b2;
+  color: var(--muted);
   font-size: 0.7rem;
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -632,14 +719,14 @@ body.dragging {
 .plots-toggle {
   background: none;
   border: none;
-  color: #9aa4b2;
+  color: var(--muted);
   cursor: pointer;
   font-size: 0.75rem;
 }
 
 .plot + .plot {
   margin-top: 0.5rem;
-  border-top: 1px solid #1c2028;
+  border-top: 1px solid var(--raised);
   padding-top: 0.4rem;
 }
 
@@ -658,7 +745,7 @@ body.dragging {
 }
 
 .plot-label {
-  color: #cbd5e1; /* text ink, not the series colour */
+  color: var(--text-2); /* text ink, not the series colour */
   font-family: ui-monospace, Menlo, monospace;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -667,7 +754,7 @@ body.dragging {
 
 .plot-value {
   margin-left: auto;
-  color: #e6e6e6;
+  color: var(--text);
   font-family: ui-monospace, Menlo, monospace;
   font-variant-numeric: tabular-nums;
 }
@@ -677,12 +764,12 @@ body.dragging {
 }
 
 .plot-axis {
-  stroke: #262a33;
+  stroke: var(--border);
   stroke-width: 1;
 }
 
 .plot-cursor {
-  stroke: #6b7280;
+  stroke: var(--faint);
   stroke-width: 1;
   stroke-dasharray: 2 2;
 }
@@ -690,7 +777,7 @@ body.dragging {
 .plot-range {
   display: flex;
   justify-content: space-between;
-  color: #6b7280;
+  color: var(--faint);
   font-size: 0.62rem;
   font-variant-numeric: tabular-nums;
 }
@@ -705,15 +792,15 @@ body.dragging {
   align-items: center;
   gap: 0.6rem;
   padding: 0.5rem 0.75rem;
-  background: rgba(15, 17, 21, 0.9);
-  border: 1px solid #262a33;
+  background: var(--overlay);
+  border: 1px solid var(--border);
   border-radius: 8px;
   backdrop-filter: blur(4px);
 }
 
 .tl-play {
-  background: #fd805d;
-  color: #101216;
+  background: var(--temporal);
+  color: var(--on-temporal);
   border: none;
   width: 2rem;
   height: 2rem;
@@ -726,20 +813,20 @@ body.dragging {
 .tl-clock {
   font-family: ui-monospace, Menlo, monospace;
   font-size: 0.78rem;
-  color: #cbd5e1;
+  color: var(--text-2);
   min-width: 4.5rem;
   text-align: center;
 }
 
 .tl-range {
   flex: 1;
-  accent-color: #fd805d;
+  accent-color: var(--temporal);
 }
 
 .tl-speed {
-  background: #171a21;
-  color: #e6e6e6;
-  border: 1px solid #262a33;
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
   border-radius: 6px;
   padding: 0.25rem 0.4rem;
   font-size: 0.78rem;
@@ -757,32 +844,43 @@ body.dragging {
   align-items: baseline;
   gap: 1rem;
   padding: 0.75rem 1rem;
-  border-bottom: 1px solid #262a33;
+  border-bottom: 1px solid var(--border);
 }
 
 .console header .db {
-  color: #7fd1b9;
+  color: var(--teal);
   font-size: 0.85rem;
 }
 
 .dock-btn {
-  margin-left: auto;
-  background: #171a21;
-  border: 1px solid #262a33;
-  color: #9aa4b2;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--muted);
   border-radius: 5px;
   padding: 0.15rem 0.45rem;
   font-size: 0.72rem;
   cursor: pointer;
 }
 
-.dock-btn:hover {
-  border-color: #60a5fa;
-  color: #e6e6e6;
+/* The first button of the header group pushes itself (and the rest) right. */
+.dock-btn.first {
+  margin-left: auto;
+}
+
+.dock-btn:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--text);
+}
+
+.dock-btn:disabled {
+  opacity: 0.45;
+  cursor: default;
 }
 
 .log {
   flex: 1;
+  /* Yield height to a grown query box instead of pushing it out of the pane. */
+  min-height: 0;
   overflow-y: auto;
   padding: 1rem;
   font-family: ui-monospace, "SF Mono", Menlo, monospace;
@@ -794,12 +892,12 @@ body.dragging {
 }
 
 .cmd {
-  color: #cbd5e1;
+  color: var(--text-2);
   margin-bottom: 0.25rem;
 }
 
 .prompt {
-  color: #60a5fa;
+  color: var(--accent);
   user-select: none;
 }
 
@@ -809,40 +907,65 @@ pre {
   word-break: break-word;
   padding: 0.5rem 0.75rem;
   border-radius: 6px;
-  background: #171a21;
+  background: var(--surface);
 }
 
 pre.ok {
-  border-left: 3px solid #34d399;
+  border-left: 3px solid var(--ok);
 }
 
 pre.err {
-  border-left: 3px solid #f87171;
-  color: #fca5a5;
+  border-left: 3px solid var(--err);
+  color: var(--err-text);
+}
+
+/* The executable plan the optimizer generated for an SQL command: shown above
+   the result, in the accent colour the prompt uses, so it reads as machinery
+   rather than as the answer. */
+pre.plan {
+  border-left: 3px solid var(--accent);
+  color: var(--accent-soft);
+  margin-bottom: 0.3rem;
+}
+
+.optnote {
+  color: var(--muted);
+  font-size: 0.75rem;
+  margin-bottom: 0.2rem;
 }
 
 .input {
   display: flex;
-  align-items: center;
+  /* The prompt and the Run button stay level with the last line as the box
+     grows, rather than floating in the middle of a tall query. */
+  align-items: flex-end;
   gap: 0.5rem;
   padding: 0.75rem 1rem;
-  border-top: 1px solid #262a33;
+  border-top: 1px solid var(--border);
 }
 
-.input input {
+/* Height is set from the content in Console.tsx; this caps how far that can go
+   and hands over to a scrollbar past the cap. `resize` is off because a drag
+   handle would only fight the automatic sizing. */
+.input textarea {
   flex: 1;
-  background: #171a21;
-  border: 1px solid #262a33;
-  color: #e6e6e6;
+  min-height: 0;
+  max-height: min(11rem, 35vh);
+  resize: none;
+  overflow-y: auto;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
   padding: 0.55rem 0.7rem;
   border-radius: 6px;
   font-family: ui-monospace, Menlo, monospace;
   font-size: 0.85rem;
+  line-height: 1.4;
 }
 
 .input button {
-  background: #2563eb;
-  color: white;
+  background: var(--accent-solid);
+  color: var(--accent-on);
   border: none;
   padding: 0.55rem 1.1rem;
   border-radius: 6px;

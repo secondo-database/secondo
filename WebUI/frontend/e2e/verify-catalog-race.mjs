@@ -1,6 +1,8 @@
 // Verifies the catalog open/refresh race is fixed: clicking a database as soon
 // as the page loads (before the session cookie settles) still fills the object
 // list, and a loading spinner shows while objects are fetched.
+//
+// Needs only berlintest: any other database on the server is incidental.
 import { createRequire } from "module";
 const require = createRequire(import.meta.url);
 const puppeteer = require("puppeteer-core");
@@ -29,10 +31,10 @@ try {
     // Load without waiting for network idle, then click ASAP.
     await page.goto(URL, { waitUntil: "domcontentloaded" });
     await page.waitForSelector(".cat-db", { timeout: 8000 });
-    // Click SYMTRAJSMALL the instant the button exists (races the cookie).
+    // Click the database the instant the button exists (races the cookie).
     await page.evaluate(() => {
       const b = [...document.querySelectorAll(".cat-db")]
-        .find((x) => x.textContent.includes("SYMTRAJSMALL"));
+        .find((x) => x.textContent.includes("BERLINTEST"));
       b && b.click();
     });
     try {

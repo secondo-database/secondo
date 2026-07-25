@@ -9,28 +9,23 @@ import { useLayers } from "./layers/useLayers";
 import { LayersPanel } from "./layers/LayersPanel";
 import { PlotPanel, type PlotEntry } from "./plots/PlotPanel";
 import { PROJECTION_LABEL, type Projection } from "./map/projection";
+import { applyTheme, loadTheme, type Theme } from "./theme";
 
 const DB_CMD = /^\s*(open|close|create|delete|restore)\s+database/i;
 
-type Layout = "side" | "bottom";
-
 // Persisted panel geometry.
 interface Geometry {
-  layout: Layout;
   catalogW: number;
-  consoleW: number;
   consoleH: number;
   catalogCollapsed: boolean;
   consoleCollapsed: boolean;
 }
 const GEO_KEY = "secondo.webui.geometry";
-// The map is the product, so it gets the space by default: the console is
-// docked to the bottom (map keeps full width) and kept short, since the query
-// history is rarely needed at length. Both side panels collapse away.
+// The map is the product, so it gets the space: the console is docked under it
+// across the full width and kept short, since the query history is rarely
+// needed at length. The catalog collapses away, and so does the history.
 const DEFAULT_GEO: Geometry = {
-  layout: "bottom",
   catalogW: 210,
-  consoleW: 430,
   consoleH: 220,
   catalogCollapsed: false,
   consoleCollapsed: false,
@@ -75,6 +70,7 @@ export function App() {
     remove,
     toggle,
     move,
+    rename,
     setStyle,
     clear,
     selected,
@@ -85,9 +81,16 @@ export function App() {
   const [busy, setBusy] = useState(false);
   // Authoritative database state comes from the catalog (see Catalog.onState).
   const [openDb, setOpenDb] = useState<string | null>(null);
+  // Whether the connected server runs SQL; null until the catalog has asked.
+  const [optimizer, setOptimizer] = useState<boolean | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
   const [projection, setProjection] = useState<Projection>("none");
   const [geo, setGeo] = useState<Geometry>(loadGeometry);
+  const [theme, setTheme] = useState<Theme>(loadTheme);
+
+  useEffect(() => {
+    applyTheme(theme);
+  }, [theme]);
 
   useEffect(() => {
     try {
@@ -118,11 +121,24 @@ export function App() {
         const temp = res.temporal ?? null;
         setHistory((h) => [
           ...h,
-          { command, result: res.text, hasGeometry: !!fc, hasMotion: !!temp },
+          {
+            command,
+            result: res.text,
+            hasGeometry: !!fc,
+            hasMotion: !!temp,
+            plan: res.plan ?? undefined,
+            costs: res.costs ?? undefined,
+            message: res.message ?? undefined,
+            planOnly: res.plan_only,
+            executedByOptimizer: res.executed_by_optimizer,
+          },
         ]);
         if (fc || temp) add(command, fc, temp);
         // The catalog refreshes on this and reports the new database state back.
-        if (DB_CMD.test(command)) setRefreshKey((k) => k + 1);
+        // `create table`, `drop table` and `let x = select ...` never match
+        // DB_CMD: they arrive as commands the optimizer executed itself.
+        if (DB_CMD.test(command) || res.executed_by_optimizer)
+          setRefreshKey((k) => k + 1);
         return true;
       } catch (e) {
         setHistory((h) => [
@@ -173,14 +189,13 @@ export function App() {
   return (
     <div
       className={
-        `app ${geo.layout}` +
+        "app" +
         (geo.catalogCollapsed ? " cat-collapsed" : "") +
         (geo.consoleCollapsed ? " con-collapsed" : "")
       }
       style={
         {
           "--cat": geo.catalogCollapsed ? `${RAIL}px` : `${geo.catalogW}px`,
-          "--con": `${geo.consoleW}px`,
           "--conh": `${geo.consoleH}px`,
         } as React.CSSProperties
       }
@@ -198,7 +213,10 @@ export function App() {
           <Catalog
             onRun={run}
             refreshKey={refreshKey}
-            onState={({ open }) => setOpenDb(open)}
+            onState={({ open, optimizer }) => {
+              setOpenDb(open);
+              setOptimizer(optimizer);
+            }}
             onCollapse={() => setGeo((g) => ({ ...g, catalogCollapsed: true }))}
           />
         )}
@@ -221,32 +239,30 @@ export function App() {
           history={history}
           busy={busy}
           openDb={openDb}
-          layout={geo.layout}
+          optimizer={optimizer}
           collapsed={geo.consoleCollapsed}
+          theme={theme}
+          onToggleTheme={() => setTheme((t) => (t === "dark" ? "light" : "dark"))}
+          onClearHistory={() => setHistory([])}
           onToggleCollapse={() =>
             setGeo((g) => ({ ...g, consoleCollapsed: !g.consoleCollapsed }))
-          }
-          onToggleLayout={() =>
-            setGeo((g) => ({ ...g, layout: g.layout === "side" ? "bottom" : "side" }))
           }
           onSubmit={run}
         />
       </div>
 
-      {/* Console | map splitter: horizontal drag when side-docked, vertical when
-          bottom-docked. Collapsed console is input-height only, so no resize. */}
+      {/* Map | console splitter. A collapsed console is input-height only, so
+          there is nothing to resize then. */}
       <div
         className="split split-b"
         onMouseDown={(e) =>
           geo.consoleCollapsed
             ? undefined
-            : geo.layout === "side"
-              ? startDrag(e, geo.consoleW, (start, dx) =>
-                  setGeo((g) => ({ ...g, consoleW: clamp(start + dx, 240, 900) }))
-                )
-              : startDrag(e, geo.consoleH, (start, _dx, dy) =>
-                  setGeo((g) => ({ ...g, consoleH: clamp(start - dy, 120, 640) }))
-                )
+            : startDrag(e, geo.consoleH, (start, _dx, dy) =>
+                // The floor leaves room for a fully grown query box: this row
+                // is a fixed height, so a taller box would be clipped by it.
+                setGeo((g) => ({ ...g, consoleH: clamp(start - dy, 200, 640) }))
+              )
         }
       />
 
@@ -281,10 +297,8 @@ export function App() {
               object &&
               (object as { properties?: Record<string, unknown> }).properties;
             if (layerId && props) {
-              const layer = layers.find((l) => l.id === layerId);
               setSelected({
                 layerId,
-                layerName: layer?.name ?? layerId,
                 properties: props as Record<string, unknown>,
               });
             } else {
@@ -298,6 +312,7 @@ export function App() {
           onToggle={toggle}
           onRemove={remove}
           onMove={move}
+          onRename={rename}
           onStyle={setStyle}
           onClear={clear}
         />
@@ -305,7 +320,12 @@ export function App() {
         {selected && (
           <div className="details">
             <div className="details-head">
-              <span>{selected.layerName}</span>
+              {/* Resolved live rather than snapshotted, so a rename while the
+                  panel is open is reflected here too. */}
+              <span>
+                {layers.find((l) => l.id === selected.layerId)?.name ??
+                  selected.layerId}
+              </span>
               <button onClick={() => setSelected(null)} title="Close">
                 ✕
               </button>

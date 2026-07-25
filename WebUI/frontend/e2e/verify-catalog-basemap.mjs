@@ -1,5 +1,7 @@
 // Verifies Milestone 5: catalog DB/object browser, geographic MapLibre + OSM
 // basemap for lon/lat data, and GeoJSON export.
+//
+// Needs only berlintest: any other database on the server is incidental.
 import { createRequire } from "module";
 import { mkdirSync } from "fs";
 import { dirname } from "path";
@@ -38,25 +40,35 @@ try {
   await page.goto(URL, { waitUntil: "networkidle0" });
   await new Promise((r) => setTimeout(r, 800));
 
-  // 1) Catalog lists databases.
+  // 1) Catalog lists databases. berlintest is the one fixture every SECONDO
+  //    installation restores, so it is the only one this suite may depend on --
+  //    whatever else the server happens to hold is incidental.
   const dbs = await page.$$eval(".cat-db", (els) => els.map((e) => e.textContent));
-  check(dbs.includes("SYMTRAJSMALL"), `catalog lists databases (${dbs.join(",")})`);
+  check(dbs.includes("BERLINTEST"), `catalog lists databases (${dbs.join(",")})`);
 
-  // 2) Open SYMTRAJSMALL from the catalog -> object list appears.
+  // 2) Open it from the catalog -> object list appears.
   const target = await page.evaluateHandle(() =>
-    [...document.querySelectorAll(".cat-db")].find((b) => b.textContent === "SYMTRAJSMALL"));
+    [...document.querySelectorAll(".cat-db")].find((b) => b.textContent === "BERLINTEST"));
   await target.asElement().click();
   await page.waitForSelector(".cat-obj", { timeout: 8000 });
   const objNames = await page.$$eval(".cat-obj .cat-oname", (els) =>
     els.map((e) => e.textContent));
-  check(objNames.includes("EdgesExtDo"),
+  check(objNames.includes("BGrenzenLine"),
         `objects listed after open (${objNames.length} objects)`);
 
-  // 3) Click EdgesExtDo (lon/lat sline) -> geographic mode + OSM basemap.
-  const edges = await page.evaluateHandle(() =>
+  // 3) Click a spatial object, then project it. berlintest is in BBBike
+  //    coordinates, which are deliberately *not* treated as lon/lat, so the
+  //    basemap only comes up once the BerlinMOD projection converts them --
+  //    which is the same path a user takes with this data.
+  const line = await page.evaluateHandle(() =>
     [...document.querySelectorAll(".cat-obj")].find((b) =>
-      b.textContent.includes("EdgesExtDo")));
-  await edges.asElement().click();
+      b.textContent.includes("BGrenzenLine")));
+  await line.asElement().click();
+  await page.waitForFunction(
+    () => document.querySelectorAll(".lp-item").length > 0, { timeout: 10000 });
+  check((await page.$eval(".mapview", (e) => e.dataset.geographic)) === "false",
+        "BBBike coordinates stay flat until projected");
+  await page.select(".projection-ctl select", "berlinmod");
   await page.waitForSelector(".maplibregl-map", { timeout: 10000 });
   check((await page.$eval(".mapview", (e) => e.dataset.geographic)) === "true",
         "geographic mode activated (MapLibre basemap present)");

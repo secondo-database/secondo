@@ -31,9 +31,9 @@ try {
   page.on("pageerror", (e) => console.log("[pageerror]", e.message));
 
   async function runCmd(cmd) {
-    await page.click(".input input");
-    await page.$eval(".input input", (el) => (el.value = ""));
-    await page.type(".input input", cmd);
+    await page.click(".input textarea");
+    await page.$eval(".input textarea", (el) => (el.value = ""));
+    await page.type(".input textarea", cmd);
     await page.keyboard.press("Enter");
     await new Promise((r) => setTimeout(r, 700));
   }
@@ -50,7 +50,9 @@ try {
       return n;
     });
   async function setMode(mode) {
-    await page.select(".lp-style select", mode);
+    // Target the moving-mode select by name: the style block holds several
+    // dropdowns, so "the first select" silently picks the wrong one.
+    await page.select(".lp-style .lp-moving", mode);
     await new Promise((r) => setTimeout(r, 500));
   }
 
@@ -72,7 +74,7 @@ try {
 
   // Expand the layer style; the moving-mode <select> must be present.
   await page.click(".lp-name");
-  await page.waitForSelector(".lp-style select", { timeout: 3000 });
+  await page.waitForSelector(".lp-style .lp-moving", { timeout: 3000 });
   check(true, "moving-mode selector shown for temporal layer");
 
   await setMode("trail");

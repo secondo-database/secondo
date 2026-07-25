@@ -24,9 +24,9 @@ try {
   page.on("pageerror", (e) => errors.push(e.message));
 
   async function runCmd(cmd) {
-    await page.click(".input input");
-    await page.$eval(".input input", (el) => (el.value = ""));
-    await page.type(".input input", cmd);
+    await page.click(".input textarea");
+    await page.$eval(".input textarea", (el) => (el.value = ""));
+    await page.type(".input textarea", cmd);
     await page.keyboard.press("Enter");
     await new Promise((r) => setTimeout(r, 700));
   }

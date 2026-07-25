@@ -25,6 +25,7 @@ CSLIBS+=$(BD)/Tools/NestedLists/NestedList.o
 CSLIBS+=$(BD)/Tools/Utilities/WinUnix.o
 CSLIBS+=$(BD)/Tools/Utilities/Environment.o
 CSLIBS+=$(BD)/UserInterfaces/cmsg.o
+CSLIBS+=$(BD)/UserInterfaces/SQLLanguage.o
 CSLIBS+=$(BD)/Tools/NestedLists/NList.o
 CSLIBS+=$(BD)/Tools/Utilities/FileSystem.o
 CSLIBS+=$(BD)/Tools/Utilities/UtilFunctions.o

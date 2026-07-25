@@ -33,9 +33,9 @@ try {
   await page.evaluateOnNewDocument(() => localStorage.clear());
 
   async function runCmd(cmd) {
-    await page.click(".input input");
-    await page.$eval(".input input", (el) => (el.value = ""));
-    await page.type(".input input", cmd);
+    await page.click(".input textarea");
+    await page.$eval(".input textarea", (el) => (el.value = ""));
+    await page.type(".input textarea", cmd);
     await page.keyboard.press("Enter");
     await new Promise((r) => setTimeout(r, 800));
   }
@@ -123,10 +123,16 @@ try {
   const catalogDbs = await page.$$eval(".cat-db", (els) => els.length);
   check(catalogDbs >= 3, `catalog is the single place listing databases (${catalogDbs})`);
 
-  // --- 3) Default layout gives the map the full width (console bottom-docked) ---
+  // --- 3) The layout gives the map the full width (console under it) ---
   const con0 = await rect(".console-pane");
   const map0 = await rect(".map-pane");
-  check(con0.y > map0.y, `console is bottom-docked by default (map on top)`);
+  check(con0.y > map0.y, `console is docked under the map (map on top)`);
+  check(Math.abs(con0.w - map0.w) < 2,
+        `console spans the map's width (${con0.w} vs ${map0.w})`);
+  const dockBtns = await page.$$eval(".dock-btn", (els) =>
+    els.map((b) => b.textContent.trim()));
+  check(!dockBtns.some((t) => /left|bottom/.test(t)),
+        `no dock-to-the-left button any more (${dockBtns.join(" | ")})`);
 
   // --- 4) Resizable panels ---
   const catBefore = (await rect(".catalog-pane")).w;
@@ -160,7 +166,7 @@ try {
   check(mapTaller.h > mapWider.h + 100,
         `map gains the freed height (${mapWider.h} -> ${mapTaller.h})`);
   // The command input must remain usable while history is hidden.
-  check(!!(await page.$(".input input")), `query input still available when collapsed`);
+  check(!!(await page.$(".input textarea")), `query input still available when collapsed`);
   await page.screenshot({ path: `${OUT}/layout-max-map.png` });
 
   // Restore the catalog from the rail.
@@ -169,13 +175,12 @@ try {
   const catBack = await rect(".catalog-pane");
   check(catBack.w > 100, `catalog restores from the rail (${catBack.w})`);
 
-  // --- 6) Docking back to the left still works ---
-  const dockBtn = await page.evaluateHandle(() =>
-    [...document.querySelectorAll(".dock-btn")].find((b) => /left|bottom/.test(b.textContent)));
-  await dockBtn.asElement().click();
+  // --- 6) Showing the history again gives the console its height back ---
+  await histBtn.asElement().click();
   await new Promise((r) => setTimeout(r, 300));
-  const back = await rect(".console-pane");
-  check(back.y < 60, `console docks to the left on demand`);
+  const conBack = await rect(".console-pane");
+  check(conBack.h > conSlim.h + 100,
+        `history comes back (${conSlim.h} -> ${conBack.h})`);
 } finally {
   await browser.close();
 }
