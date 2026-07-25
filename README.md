@@ -146,16 +146,16 @@ Secondo => query Kinos feed filter[.GeoData inside thecenter] project[Name] cons
 
 Commands end with `;` or an empty line, `?` shows the interface commands, and `q` quits.
 
-### 5. Query in SQL via the optimizer
+### 5. Write SQL queries
 
-Your can also run queries in SQL, via the integrated optimizer:
+You can also run queries in SQL via the integrated optimizer:
 
 ```sql
 Secondo => select * from ten;
 Secondo => select * from ten as t where [ t.No > 5 ];
 ```
 
-You can also just run the optimizer to get query plan without executing it:
+You can also just run the optimizer to get the query plan without executing it:
 
 ```sql
 Secondo => optimizer select * from ten as t where [ t.No > 5 ];
