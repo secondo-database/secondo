@@ -148,24 +148,23 @@ Commands end with `;` or an empty line, `?` shows the interface commands, and `q
 
 ### 5. Query in SQL via the optimizer
 
-The optimizer runs inside SWI-Prolog and turns SQL-like queries into query plans:
+Your can also run queries in SQL, via the integrated optimizer:
 
-```bash
-cd Optimizer
-./SecondoPL
+```sql
+Secondo => select * from ten;
+Secondo => select * from ten as t where [ t.No > 5 ];
 ```
 
-```prolog
-?- open database berlintest.
-?- sql select [sname, bev] from staedte where bev > 500000.
+You can also just run the optimizer to get query plan without executing it:
+
+```sql
+Secondo => optimizer select * from ten as t where [ t.No > 5 ];
+
+Optimized plan: query ten  feed{t} filter[(.No_t > 5)]{0.4995, 7.5} consume
+Estimated costs: 75.0261
 ```
 
-The optimizer prints the plan it chose, executes it, and shows the result. Relation and
-attribute names are written in lower case here (capitalized words are Prolog variables); the
-optimizer recovers the real spelling from the kernel. Quit with `quit.` or `halt.`
-
-On the first run, a few error messages about missing files appear — they are harmless, the
-optimizer generates those files as it goes.
+To get more details about the optimizer, run `helpMe` or `showOptions`.
 
 ### 6. Start the GUI
 
@@ -175,10 +174,6 @@ The GUI is a client, so a server has to be running first:
 cd bin && ./SecondoMonitor -s          # start the database server
 cd Javagui && ./sgui                   # start the GUI
 ```
-
-SQL support in the GUI no longer needs a separate optimizer server: the kernel server
-runs the optimizer itself. Enable it with `ENABLE_OPTIMIZER` in `Javagui/gui.cfg` (or via
-the GUI's Optimizer ▸ Enable menu).
 
 `Javagui` shows query results in viewers — including a spatial viewer that renders points,
 lines and regions, and animates moving objects.
@@ -228,7 +223,7 @@ Secondo => query trajectory(train7);
 Secondo => query distance(train7, mehringdamm);
 ```
 
-The same questions in SQL, via the optimizer (`SecondoPL` or the GUI with the optimizer enabled):
+The same questions in SQL, via the optimizer:
 
 ```prolog
 ?- sql select count(*) from trains where trip passes mehringdamm.
