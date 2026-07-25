@@ -138,7 +138,6 @@ public PDFRelCreator(){
   si.setUserName("");
   si.setPassWd("");
 
-  si.useBinaryLists(true); 
 
   tools.Environment.MEASURE_TIME=false; // supress some messages
   if(!si.connect()){

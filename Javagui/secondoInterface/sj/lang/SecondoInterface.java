@@ -107,11 +107,19 @@ not accessible by the user code.
   // to be "SecondoResult".
   private static final String SECONDO_RESULT_FILE = "SecondoResult";
 
+  // How the server announces its list transfer mode in the <SecondoIntro>
+  // block: "BinaryTransfer=YES" or "BinaryTransfer=NO". The C++ side has the
+  // same constant in include/CSProtocol.h (csp::BINARY_TRANSFER_TAG), where
+  // the protocol is documented.
+  private static final String BINARY_TRANSFER_TAG = "BinaryTransfer=";
+
   // Flag indicating if a connection with a Secondo server exists.
   protected boolean initialized;
   // Socket connected to the Secondo Server
   protected Socket serverSocket;
-  // flag for binary reading lists from Server
+  // Whether this connection's server sends lists in binary form. Not a
+  // setting: the server announces it during the intro (see BINARY_TRANSFER_TAG
+  // and the handshake in initialize) and this side follows.
   private boolean binaryLists = false;
   // Connection's input reader (from secondoServerSocket).
   private MyDataInputStream inSocketStream;
@@ -136,14 +144,6 @@ not accessible by the user code.
   }
 
 
-  /* switch for using binary or textual list format */
-  public void useBinaryLists(boolean ubl){
-     binaryLists=ubl;
-     if(ubl)
-        Reporter.writeInfo("use binary lists");
-     else
-        Reporter.writeInfo("use textual lists");
-  }
 
   public boolean initialize( String user, String pswd,
                              String host, int port )
@@ -201,18 +201,42 @@ not accessible by the user code.
                 return false;
               }
               if ( line.equals( "<SecondoIntro>" ) ) {
+                boolean transferNegotiated = false;
                 do {
                   line = inSocketStream.readLine();
                   if(line==null){
                      initialized = false;
 										Reporter.writeError("Could not read data from server.");
                      return false;
-                  } 
+                  }
                   if ( !line.equals( "</SecondoIntro>" ) ) {
-                     Reporter.writeInfo( line );
+                     // The server states whether it sends lists in binary form
+                     // or as text. Both sides used to be configured by hand
+                     // (USE_BINARY_LISTS here, Server:BinaryTransfer there)
+                     // with nothing on the wire to agree on it, and a
+                     // disagreement did not fail -- it hung on the first
+                     // command. Take the server's word for it; this line is
+                     // protocol, so it is consumed rather than reported.
+                     if ( line.startsWith( BINARY_TRANSFER_TAG ) ) {
+                        binaryLists = line.substring(
+                                        BINARY_TRANSFER_TAG.length() ).equals( "YES" );
+                        transferNegotiated = true;
+                     } else {
+                        Reporter.writeInfo( line );
+                     }
                   }
                 } while ( !line.equals( "</SecondoIntro>" ) );
+                if ( !transferNegotiated ) {
+                   // A server that does not announce it predates this protocol;
+                   // guessing would deadlock on the first command instead of
+                   // failing, so refuse the connection while we still can.
+                   Reporter.writeError( "The Secondo server did not announce how it "
+                     + "transfers lists (BinaryTransfer in <SecondoIntro>). "
+                     + "It predates this protocol version; please upgrade it." );
+                   initialized = false;
+                } else {
                    initialized = true;
+                }
               } else if ( line.equals("<SecondoError>") ) {
                 initialized = false;
                 do{

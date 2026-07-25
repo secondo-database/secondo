@@ -137,7 +137,6 @@ public class SecondoConnection {
 		
 		
 
-		secondoInterface.useBinaryLists(true);
 
 		// Connect, if not already connected
 		log4j.debug("Check if Connection is already available...");

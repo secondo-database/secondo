@@ -69,8 +69,14 @@ Server:
 ----
     <SecondoIntro>\n
     You are connected with a Secondo server.\n
+    BinaryTransfer=YES|NO\n
     </SecondoIntro>\n
 ----
+
+The ~BinaryTransfer~ line states whether this server transfers lists in binary
+form or as text (see ~csp::BINARY\_TRANSFER\_TAG~ below); the client adopts it
+instead of consulting its own configuration, and refuses a server that omits
+it. Any other line is informational.
 
 or returns an error, which will be sent in a single line. In the future there
 could be send more specific information about a server. The error message does
@@ -493,6 +499,19 @@ namespace csp {
 
 void
 sendList(std::iostream& iosock, NestedList* nl, ListExpr list);
+
+/*
+How the server announces its list transfer mode in the ~<SecondoIntro>~ block:
+the line is ~BinaryTransfer=YES~ or ~BinaryTransfer=NO~. The server writes it
+(SecondoServer.cpp), the client reads it and adopts it in place of its own
+Server:BinaryTransfer setting (SecondoInterfaceCS.cpp). Both sides used to take
+that setting from their own configuration file with nothing on the wire to
+agree on it, and a disagreement did not fail -- it deadlocked, each side
+waiting for the other. The client requires the line, so a server that does not
+send it is refused rather than hung on.
+
+*/
+const std::string BINARY_TRANSFER_TAG = "BinaryTransfer=";
 
 } // end of namespace
 

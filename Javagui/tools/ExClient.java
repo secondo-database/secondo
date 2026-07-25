@@ -65,7 +65,6 @@ public static void main(String[] args){
   si.setUserName("");
   si.setPassWd("");
 
-  si.useBinaryLists(true); 
 
   tools.Environment.MEASURE_TIME=false; // supress some messages
 

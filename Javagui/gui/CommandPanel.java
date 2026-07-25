@@ -289,12 +289,6 @@ public class CommandPanel extends JScrollPane {
     History.clear();
   }
 
-  /* use binary list for client server communication */
-  public void useBinaryLists(boolean ubl){
-    Secondointerface.useBinaryLists(ubl);
-  }
-
-
 
   /** make clean the TextArea and the History */
   public void clear(){

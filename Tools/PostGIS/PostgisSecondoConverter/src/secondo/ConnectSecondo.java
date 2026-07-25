@@ -48,9 +48,6 @@ public class ConnectSecondo
     
     this.si.setUserName(this.msbUser.toString());
     this.si.setPassWd(this.msbPwd.toString());
-    
-    this.si.useBinaryLists(this.mbUseBinaryList);
-    
     tools.Environment.MEASURE_TIME = false;
     if (!this.si.connect())
     {

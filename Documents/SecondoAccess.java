@@ -17,7 +17,6 @@ private static boolean query(ListExpr resultList)
   ESInterface SecondoInterface = new ESInterface();
   SecondoInterface.setPort(1234);
   SecondoInterface.setHostname("localhost");
-  SecondoInterface.useBinaryLists(true);
   
   boolean ok = SecondoInterface.connect();
   if (!ok)

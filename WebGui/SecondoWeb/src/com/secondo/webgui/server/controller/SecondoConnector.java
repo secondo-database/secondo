@@ -96,7 +96,6 @@ public class SecondoConnector {
 		this.secondoresult = "";
 		ListExpr resultList = new ListExpr();
 
-		secondoInterface.useBinaryLists(true);
 
 		if (!secondoInterface.isConnected()) { 
 			this.connect();
@@ -141,7 +140,6 @@ public class SecondoConnector {
 
 		ListExpr Databases = new ListExpr();
 
-		secondoInterface.useBinaryLists(true);
 		
 		//close connection to old secondo server
 		if (secondoInterface.isConnected()) {
@@ -200,7 +198,6 @@ public class SecondoConnector {
 		//database name has to be lower case for secondo system, thats why its been changed here
 		String lcdatabase = database.toLowerCase();
 
-		secondoInterface.useBinaryLists(true);
 
 		if (!secondoInterface.isConnected()) {
 			this.connect();
@@ -243,7 +240,6 @@ public class SecondoConnector {
 		
 		ListExpr resultList = new ListExpr();
 		
-		secondoInterface.useBinaryLists(true);
 
 		if (!secondoInterface.isConnected()) {
 			this.connect();

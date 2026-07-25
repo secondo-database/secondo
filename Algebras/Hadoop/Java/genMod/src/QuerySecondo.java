@@ -40,7 +40,6 @@ public class QuerySecondo {
     
     SecondoInterface.setPort(port);
     SecondoInterface.setHostname(servHostName);
-    SecondoInterface.useBinaryLists(true);
     
     boolean ok = false;
     int connCounter = 0;

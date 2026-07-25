@@ -157,7 +157,9 @@ SecondoInterfaceCS::Initialize( const string& user, const string& pswd,
   secPort = port;
   secConfig = parmFile;
   string line = "";
-  server_pid = -1; 
+  server_pid = -1;
+  // Whether the server told us how it transfers lists (see the intro loop).
+  bool transferNegotiated = false;
 
   if ( !initialized )
   {
@@ -170,7 +172,7 @@ SecondoInterfaceCS::Initialize( const string& user, const string& pswd,
        InitRTFlags(parmFile);
     }
 
-    
+
     debugSecondoMethod = RTFlag::isActive("SI:DebugSecondoMethod");
 
     string traceIn = SmiProfile::GetParameter("Environment", "TraceClientIn",
@@ -288,7 +290,32 @@ SecondoInterfaceCS::Initialize( const string& user, const string& pswd,
                 getline( iosock, line );
                 if ( line != "</SecondoIntro>" )
                 {
-                  if(verbose){
+                  // The server states how it transfers lists; take its word
+                  // for it rather than this side's configuration, which is
+                  // what the two used to disagree about (see below). Consumed
+                  // rather than printed: it is protocol, not a greeting.
+                  if ( line.compare(0, csp::BINARY_TRANSFER_TAG.size(),
+                                    csp::BINARY_TRANSFER_TAG) == 0 )
+                  {
+                    const bool binary =
+                        line.substr(csp::BINARY_TRANSFER_TAG.size()) == "YES";
+                    // Only touched when it actually differs, so the usual case
+                    // -- a configuration that already agrees -- stays silent.
+                    if ( RTFlag::isActive("Server:BinaryTransfer") != binary )
+                    {
+                      if ( !RTFlag::empty() )
+                      {
+                        cerr << "Note: the Secondo server at "
+                             << serverDescription() << " transfers lists "
+                             << (binary ? "in binary form" : "as text")
+                             << ", overriding this client's configuration."
+                             << endl;
+                      }
+                      RTFlag::setFlag("Server:BinaryTransfer", binary);
+                    }
+                    transferNegotiated = true;
+                  }
+                  else if(verbose){
                     cout << line << endl;
                   }
                 }
@@ -336,6 +363,24 @@ SecondoInterfaceCS::Initialize( const string& user, const string& pswd,
         } catch(...){
            errorMsg += "An unknown exception occurred while connecting to " +
                        serverDescription() + "\n";
+        }
+
+        // The transfer mode is not optional: without it the client would be
+        // back to guessing from its own configuration, and a wrong guess does
+        // not fail, it deadlocks -- the first command blocks in getline()
+        // waiting for an end tag that never comes, on a socket whose read
+        // timeout is WAIT_FOREVER by then. A server that does not announce it
+        // is older than this protocol; refuse it while saying so is still
+        // possible, rather than hanging on the first command.
+        if ( initialized && !transferNegotiated )
+        {
+          errorMsg += "The Secondo server at " + serverDescription() +
+                      " did not announce how it transfers lists "
+                      "(BinaryTransfer in <SecondoIntro>).\n"
+                      "It predates this protocol: client and server would not "
+                      "agree on Server:BinaryTransfer and the first command "
+                      "would block forever. Upgrade the server.\n";
+          initialized = false;
         }
 
         // Greeting handshake is over (successfully or not); go back to

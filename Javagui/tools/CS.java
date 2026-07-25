@@ -47,6 +47,14 @@ private OutputStream out1;  // output stream to the SecondoServer
 private InputStream in2;    // input stream from the Secondo-Client
 private OutputStream out2;  // output stream to the Secondo-Client
 
+// How the server announces its list transfer mode in <SecondoIntro>; see
+// include/CSProtocol.h, where the protocol is documented.
+private static final String BINARY_TRANSFER_TAG = "BinaryTransfer=";
+// The real server's answer, relayed to the client in this wrapper's own intro.
+// Text transfer is assumed until the server says otherwise, which is what a
+// server that never sends the line would have meant anyway.
+private String binaryTransfer = BINARY_TRANSFER_TAG + "NO";
+
 
 private static Vector set;  // set of free SecondoServer connections
 
@@ -149,6 +157,14 @@ public boolean connectWithServer(Socket server) throws IOException{
     do{
        line = nextLine(in1);
        System.out.println(line);
+       // The real server states here whether it transfers lists in binary form
+       // or as text, and the client requires that line. This wrapper writes its
+       // own intro to the client (see connectClient), so remember the server's
+       // answer and pass it on -- otherwise the client would refuse a
+       // connection made through this tool.
+       if(line.startsWith(BINARY_TRANSFER_TAG)){
+          binaryTransfer = line;
+       }
     } while(!line.equals("</SecondoIntro>"));
     System.out.println("SecondoIntro finished");
     return true;
@@ -189,6 +205,8 @@ public boolean connectClient(Socket client)throws IOException{
 
     sendString("<SecondoIntro>\n",out2);
     sendString("You are connected with a SecondoServerWrapper\n",out2);
+    // Whatever the real server said; without it the client refuses to connect.
+    sendString(binaryTransfer + "\n",out2);
     sendString("</SecondoIntro>\n",out2);
     out2.flush();
 

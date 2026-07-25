@@ -1585,8 +1585,18 @@ int SecondoServer::Execute() {
     if( si->Initialize( user, pswd, "", port, parmFile, dbDir,errorMsg, true ))
     {
        cout << "initialization successful" << endl;
+       // Announce how this server transfers lists. Client and server each used
+       // to take Server:BinaryTransfer from their own configuration, with
+       // nothing on the wire to agree on it, so a client whose config said
+       // something else waited forever for a text end tag while this side sent
+       // binary (or the reverse). The client adopts what it reads here and
+       // requires it; one that predates the line ignores it, as it ignores
+       // every other intro line.
        iosock << "<SecondoIntro>" << endl
               << "You are connected with a Secondo server." << endl
+              << csp::BINARY_TRANSFER_TAG
+              << (RTFlag::isActive("Server:BinaryTransfer") ? "YES" : "NO")
+              << endl
               << "</SecondoIntro>" << endl;
        //Messenger messenger( registrar );
        //string answer;

@@ -59,7 +59,6 @@ public class CommunicationInterface {
 		
 		if (SI.initialize("", "", HostName, SecPort)) {
 			Reporter.writeInfo("connected to Secondo server");
-			SI.useBinaryLists(true);
 			IstOk = true;
 		}
 		else 

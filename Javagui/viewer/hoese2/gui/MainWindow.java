@@ -598,12 +598,6 @@ public MainWindow(String Title,String user,String passwd, String configFile){
         SecondoHomeDir = F.getAbsolutePath();
    }
 
-   String UseBinaryLists = Config.getProperty("USE_BINARY_LISTS");
-   boolean use_binary_lists = false;
-   if(UseBinaryLists!=null && UseBinaryLists.trim().toLowerCase().equals("true"))
-      use_binary_lists = true;
-   ComPanel.useBinaryLists(use_binary_lists);
-
    
    String TMPDIR = Config.getProperty("TMP_DIR");
    File TMPF = new File("tmp");
