@@ -147,7 +147,26 @@ public class ESInterface extends SecondoInterface implements UpdateInterface{
           if(errorCode.value==81)
               terminate();
      }
-   
+
+  /** calls super.secondo with an explicit command level (2 = SQL dialect)
+    * and the optional "planonly" protocol flag; behaves like the five
+    * argument version on a lost connection
+    */
+    public void secondo(String command,
+                        ListExpr resultList,
+                        IntByReference errorCode,
+                        IntByReference errorPos,
+                        StringBuffer errorMessage,
+                        int commandLevel,
+                        boolean planOnly){
+
+          super.secondo(command,resultList,errorCode,errorPos,errorMessage,
+                        commandLevel,planOnly);
+          if(errorCode.value==81)
+              terminate();
+     }
+
+
 
 /*
   public void secondo( String commandText,

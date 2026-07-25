@@ -614,32 +614,66 @@ not accessible by the user code.
 
 */
 
+/** command level to be derived from the command text itself */
+public static final int DERIVE_COMMAND_LEVEL = -1;
+
 protected void secondo(String command,
                     ListExpr resultList,
                     IntByReference errorCode,
                     IntByReference errorPos,
                     StringBuffer errorMessage){
+   secondo(command, resultList, errorCode, errorPos, errorMessage,
+           DERIVE_COMMAND_LEVEL, false);
+}
+
+/** Sends a command at an explicitly given command level.
+  * The levels are 0 (nested list), 1 (SOS text) and 2 (SQL dialect: the
+  * server optimizes the command itself and answers with the list
+  * (plan result costs)). DERIVE_COMMAND_LEVEL picks 0 or 1 from the command
+  * text, as the five argument version has always done.
+  * With planOnly the "planonly" protocol flag is written behind the level;
+  * the server then stops after optimizing, so the plan and its costs come
+  * back and nothing is executed. It is meaningful for level 2 only.
+  */
+protected void secondo(String command,
+                    ListExpr resultList,
+                    IntByReference errorCode,
+                    IntByReference errorPos,
+                    StringBuffer errorMessage,
+                    int commandLevel,
+                    boolean planOnly){
    // write command to console if desired
 
  if(Environment.SHOW_COMMAND){
     Reporter.write(command);
-  }  
+  }
 
   // clean the errormessage
-  errorMessage.setLength(0); 
+  errorMessage.setLength(0);
   errorCode.value    = 0;
   resultList.setValueTo( ListExpr.theEmptyList() );
 
 
   // check for existing connection
-  if ( serverSocket == null ) { 
+  if ( serverSocket == null ) {
      errorCode.value = 80;
      return;
   }
 
   // check for restore command
   command=command.trim();
+  if(commandLevel==DERIVE_COMMAND_LEVEL){
+     commandLevel = command.startsWith("(")?0:1;
+  }
   try{
+     // The restore/save interception below rewrites the command; it must not
+     // touch SQL, which only the server can interpret. The C++ client guards
+     // this the same way (SecondoInterfaceCS.cpp, commandType != 2).
+     if(commandLevel==2){
+        sendCommand(command, commandLevel, planOnly, resultList, errorCode,
+                    errorPos, errorMessage);
+        return;
+     }
      if(command.startsWith("restore ")){
          callRestoreCommand(command, resultList, errorCode, errorPos, errorMessage);
          return;
@@ -658,18 +692,33 @@ protected void secondo(String command,
         return;
      }
  
-      // not a special command 
-      int commandLevel = command.startsWith("(")?0:1; 
-      outSocketStream.write( "<Secondo>\n");
-      outSocketStream.write( commandLevel + "\n" );
-      outSocketStream.write(command);
-      outSocketStream.write("\n</Secondo>\n" );
-      outSocketStream.flush();
-      receiveResponse(resultList, errorCode, errorPos, errorMessage);
+      // not a special command
+      sendCommand(command, commandLevel, planOnly, resultList, errorCode,
+                  errorPos, errorMessage);
   } catch(IOException e){
      errorCode.value=81;
      return;
   }
+}
+
+/** Writes one framed command and reads its answer.
+  * The level line is "<level>[ planonly]": the server reads the level and
+  * takes the rest of that line as protocol flags, a part it discarded before
+  * the flag existed, so omitting it changes nothing.
+  */
+private void sendCommand(String command,
+                         int commandLevel,
+                         boolean planOnly,
+                         ListExpr resultList,
+                         IntByReference errorCode,
+                         IntByReference errorPos,
+                         StringBuffer errorMessage) throws IOException {
+   outSocketStream.write( "<Secondo>\n");
+   outSocketStream.write( commandLevel + (planOnly?" planonly":"") + "\n" );
+   outSocketStream.write(command);
+   outSocketStream.write("\n</Secondo>\n" );
+   outSocketStream.flush();
+   receiveResponse(resultList, errorCode, errorPos, errorMessage);
 }
 
 public boolean setHeartbeat(int heart1, int heart2){
@@ -1160,6 +1209,73 @@ public int getPid(){
       }
    } catch(Exception e2){
       return -1;
+   }
+}
+
+/** Asks the connected server whether the optimizer (SQL dialect, command
+  * level 2) is available, i.e. compiled in and enabled for that server.
+  */
+public boolean optimizerAvailable(){
+   if(serverSocket == null){
+      return false;
+   }
+   try{
+      outSocketStream.writeln("<OptimizerAvailable/>");
+      outSocketStream.flush();
+      String line = inSocketStream.readLine();
+      return line!=null && line.trim().equals("yes");
+   } catch(Exception e){
+      return false;
+   }
+}
+
+/** Runs an optimizer control directive (a Prolog goal such as "showOptions",
+  * "setOption(subqueries)", "updateCatalog") in the server's embedded
+  * optimizer and returns the text the directive printed.
+  * Returns null when the directive failed without printing anything -- every
+  * caller treats null as failure. A goal that fails but still writes
+  * something useful (some option sub-goals do) yields that text, matching the
+  * C++ client (SecondoInterfaceCS::optimizerCommand).
+  */
+public String optimizerCommand(String directive){
+   if(serverSocket == null){
+      return null;
+   }
+   try{
+      outSocketStream.writeln("<OptimizerCommand>");
+      outSocketStream.writeln(directive);
+      outSocketStream.writeln("</OptimizerCommand>");
+      outSocketStream.flush();
+
+      // Reply: a status line ("ok" / "ERR:<msg>") then a framed text block.
+      String status = inSocketStream.readLine();
+      if(status==null){
+         return null;
+      }
+      status = status.trim();
+
+      StringBuffer output = new StringBuffer();
+      inSocketStream.readLine();  // opening <OptimizerCommandResponse>
+      String line;
+      boolean first = true;
+      while((line = inSocketStream.readLine())!=null){
+         if(line.equals("</OptimizerCommandResponse>")){
+            break;
+         }
+         // Preserve the directive's own layout (showOptions relies on
+         // leading whitespace), so do not trim the content lines.
+         if(!first){
+            output.append("\n");
+         }
+         output.append(line);
+         first = false;
+      }
+      if(status.startsWith("ERR:") && output.length()==0){
+         return null;
+      }
+      return output.toString();
+   } catch(Exception e){
+      return null;
    }
 }
 
