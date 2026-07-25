@@ -12351,7 +12351,7 @@ OperatorSpec getParamSpec(
   "Retrieves a value from a secondo configuration file. "
   "If the file argument is omitted, the currently used conifigration file "
   "will be used. ",
-  "query getParam('Environment', 'AlgebraLevel', 'Descriptive' ) "
+  "query getParam('Environment', 'SecondoHome', 'undefined' ) "
 );
 
 Operator getParamOP(

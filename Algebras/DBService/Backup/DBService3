@@ -34,9 +34,6 @@
 # C:\msys\1.0\home\user\secondo-dbtest
 SecondoHome=/home/saskia/SecondoDisks/DBService/disk3
 
-# Algebralevel after startup (Executable|Descriptive|Hybrid).
-AlgebraLevel=Executable
-
 # Name prefix of the local socket used by the registar process. The
 # process id will be appended in order to generate a unique name. 
 # On linux each socket is represented as a file in the /tmp directory.

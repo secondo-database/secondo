@@ -1318,7 +1318,7 @@ Result    : TRUE
 Operator  : getParam
 Number    : 1
 Signature : {string, text} x {string,text} x {string,text} [ x {string,text}] -> text
-Example   : query getParam('Environment', 'AlgebraLevel', 'Descriptive' )  contains "Exe"
+Example   : query getParam('Environment', 'ThisKeyDoesNotExist', 'myDefault' ) = 'myDefault'
 Result    : TRUE
 
 Operator  : saveto

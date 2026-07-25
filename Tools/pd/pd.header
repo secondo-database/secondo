@@ -1,3 +1,4 @@
+\UseRawInputEncoding
 \documentclass[11pt,a4paper]{article}
 \usepackage{epsfig, times, color, alltt}
 \usepackage[a4paper, left=2.5cm, right=2.5cm, top=2.5cm, bottom=2.5cm]{geometry}

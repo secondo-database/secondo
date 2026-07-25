@@ -7,14 +7,7 @@
 			<value>/home/databases1</value>
 			<default>/home/databases1</default>
 		</item>
-		
-		<item>
-			<key>AlgebraLevel</key>
-			<type>SINGLE</type>
-			<value>Executable</value>
-			<default>Executable</default>
-		</item>
-		
+
 		<item>
 			<key>RegistrarSocketNamePrefix</key>
 			<type>SINGLE</type>
