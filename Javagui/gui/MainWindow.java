@@ -116,9 +116,9 @@ private JMenuItem MI_OptimizerEnable;
 private JMenuItem MI_OptimizerDisable;
 private JMenuItem MI_OptimizerUpdateCatalog;
 private JMenuItem MI_OptimizerTestOptimizer;
-private JCheckBoxMenuItem MI_OptimizerReconnectWhenOpenDB;
 private JCheckBoxMenuItem MI_OptimizerAutoUpdateCatalog;
 private JMenuItem MI_OptimizerResetKnowledgeDB;
+private JMenuItem MI_OptimizerShowOptions;
 private JCheckBoxMenuItem ShowRewrittenQuery;
 
 private JMenu OptimizerCommandMenu;
@@ -130,7 +130,6 @@ private JMenuItem MI_UpdateIndexList;
 private boolean useEntropy;
 private JMenuItem MI_EnableEntropy;
 private JMenuItem MI_DisableEntropy;
-private JMenuItem MI_OptimizerSettings;
 
 
 private JMenu Menu_ServerCommand;
@@ -732,29 +731,8 @@ public MainWindow(String Title,String user,String passwd, String configFile){
 
    StartScript = Config.getProperty("STARTSCRIPT");
 
-   // optimizer settings
-   String OptHost = Config.getProperty("OPTIMIZER_HOST");
-   if(OptHost==null){
-      OptHost ="localhost";  // the default value
-      Reporter.writeError("OPTIMIZER_HOST not defined, use default: "+OptHost);
-   }
-   String OptPortString = Config.getProperty("OPTIMIZER_PORT");
-   int OptPort = 1235; // default value
-   if(OptPortString!=null){
-      try{
-        int P = Integer.parseInt(OptPortString);
-        if(P<=0){
-          Reporter.writeError("optimizer-port has no valid value");
-	}else
-	   OptPort = P;
-       }
-       catch(Exception e){
-          Reporter.writeError("optimizer-port is not a valid integer");
-       }
-   }else{
-      Reporter.writeError("OPTIMIZER_PORT not defined, use default: "+OptPort);
-   }
-   ComPanel.setOptimizer(OptHost,OptPort);
+   // The optimizer runs inside the connected Secondo server, so there is no
+   // host/port to configure any more; it only has to be switched on.
    String OptEnable = Config.getProperty("ENABLE_OPTIMIZER");
    if(OptEnable==null){
       Reporter.writeError("ENABLE_OPTIMIZER not defined in configuration file");
@@ -1016,24 +994,38 @@ private boolean exportToPS(Component c){
 /** Function enabling or disabling the entropy function of the 
     Optimizer. **/
 private void enableEntropy(boolean on){
-    String command = on?"use_entropy":"dont_use_entropy";
-    ComPanel.appendText("\noptimizer "+command+"   ");
-    if(ComPanel.sendToOptimizer(command)==null){
-        ComPanel.appendText(" ... failed");
-    }else{
-        ComPanel.appendText(" ... successful");
-    }
-    ComPanel.showPrompt();
+    runOptimizerDirective(on?"use_entropy":"dont_use_entropy");
 }
 
 
 private void updateCatalog(){
-  String command ="updateCatalog";
+  runOptimizerDirective("updateCatalog");
+}
+
+
+/** Shows the optimizer's current option settings. Together with the
+  * "optimizer setOption(X)" / "optimizer delOption(X)" command entry this
+  * exposes the whole option family SecondoPL offers.
+  **/
+private void showOptimizerOptions(){
+  runOptimizerDirective("showOptions");
+}
+
+
+/** Runs one optimizer control directive in the connected server and echoes
+  * whatever it printed. A directive that fails without printing anything
+  * yields null and is reported as failed.
+  **/
+private void runOptimizerDirective(String command){
   ComPanel.appendText("\noptimizer "+ command +"  ");
-  if(ComPanel.sendToOptimizer(command)==null){
-        ComPanel.appendText(" ... failed");
-  }else{
-        ComPanel.appendText(" ... successful");
+  String answer = ComPanel.sendToOptimizer(command);
+  if(answer==null){
+     ComPanel.appendText(" ... failed");
+  } else {
+     ComPanel.appendText(" ... successful");
+     if(answer.trim().length()>0){
+        ComPanel.appendText("\n"+answer);
+     }
   }
   ComPanel.showPrompt();
 }
@@ -1052,14 +1044,7 @@ private void testOptimizer(){
 
 
 private void resetKnowledgeDB(){
-  String command ="resetKnowledgeDB";
-  ComPanel.appendText("\noptimizer "+ command +"  ");
-  if(ComPanel.sendToOptimizer(command)==null){
-        ComPanel.appendText(" ... failed");
-  }else{
-        ComPanel.appendText(" ... successful");
-  }
-  ComPanel.showPrompt();
+  runOptimizerDirective("resetKnowledgeDB");
 }
 
 
@@ -2908,8 +2893,6 @@ private void createMenuBar(){
    
    MI_OptimizerUpdateCatalog = new JMenuItem("Update Catalog");
    MI_OptimizerTestOptimizer = new JMenuItem("Test Optimizer");
-   MI_OptimizerReconnectWhenOpenDB = new JCheckBoxMenuItem("Auto Reconnect");
-   MI_OptimizerReconnectWhenOpenDB.setSelected(true);
    MI_OptimizerAutoUpdateCatalog = new JCheckBoxMenuItem("Auto Update Catalog");
    MI_OptimizerAutoUpdateCatalog.setSelected(true);
    ComPanel.setAutoUpdateCatalog(true);
@@ -2931,11 +2914,12 @@ private void createMenuBar(){
    ShowRewrittenQuery.setSelected(false);
 
    MI_OptimizerResetKnowledgeDB = new JMenuItem("Reset Optimizer's Knowledge Database");
+   MI_OptimizerShowOptions = new JMenuItem("Show Options");
 
    OptimizerCommandMenu.add(MI_OptimizerUpdateCatalog);
    OptimizerCommandMenu.add(MI_OptimizerAutoUpdateCatalog);
-   OptimizerCommandMenu.add(MI_OptimizerReconnectWhenOpenDB);
    OptimizerCommandMenu.add(MI_OptimizerResetKnowledgeDB);
+   OptimizerCommandMenu.add(MI_OptimizerShowOptions);
    
    // Test Optimizer is currently disabled due to errors in test spec
    // OptimizerCommandMenu.addSeparator();
@@ -2966,6 +2950,9 @@ private void createMenuBar(){
         if(src.equals(MI_OptimizerResetKnowledgeDB)){
            resetKnowledgeDB();
         }
+        if(src.equals(MI_OptimizerShowOptions)){
+           showOptimizerOptions();
+        }
         if(src.equals(MI_OptimizerTestOptimizer)){
              testOptimizer();
         }
@@ -2974,6 +2961,7 @@ private void createMenuBar(){
    MI_OptimizerUpdateCatalog.addActionListener(b);
    MI_OptimizerTestOptimizer.addActionListener(b);
    MI_OptimizerResetKnowledgeDB.addActionListener(b);
+   MI_OptimizerShowOptions.addActionListener(b);
 
 
 
@@ -2995,7 +2983,6 @@ private void createMenuBar(){
    if(useEntropy) 
       OptimizerCommandMenu.add(Entropy);
 
-   MI_OptimizerSettings = OptimizerMenu.add("Settings");
    OptimizerMenu.addMenuListener(new MenuListener(){
      public void menuSelected(MenuEvent evt){
         if(ComPanel.useOptimizer()){
@@ -3031,12 +3018,9 @@ private void createMenuBar(){
 		ComPanel.showPrompt();
 	        ComPanel.disableOptimizer();
 	  }
-	  if(source.equals(MI_OptimizerSettings))
-	    ComPanel.showOptimizerSettings();
        }};
 
     MI_OptimizerEnable.addActionListener(OptimizerListener);
-    MI_OptimizerSettings.addActionListener(OptimizerListener);
     MI_OptimizerDisable.addActionListener(OptimizerListener);
 
 
@@ -3644,10 +3628,6 @@ public void databaseOpened(String DBName){
 }
 
 public void databaseClosed(){
-  if(MI_OptimizerReconnectWhenOpenDB.isSelected()){
-      Reporter.debug("HOtfix reconnect optimizer");
-      ComPanel.reconnectOptimizer();
-  }
   MI_ListTypes.setEnabled(false);
   MI_ListObjects.setEnabled(false);
   MI_CloseDatabase.setEnabled(false);

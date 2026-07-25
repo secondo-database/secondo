@@ -79,13 +79,7 @@ USE_BINARY_LISTS true
 # ensure to have the value used in SECONDO
 MAX_STRING_LENGTH 48
 
-#the host-name of an optimizer-server
-OPTIMIZER_HOST localhost
-
-#the port-number of an optimizer-server
-OPTIMIZER_PORT 1235
-
-#enable optimizer at start (true or false)
+#enable the optimizer at start (true or false)
 ENABLE_OPTIMIZER true
 
 #adds the entropy items to the main menu

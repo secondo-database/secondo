@@ -1,6 +1,4 @@
 package communication;
-import communication.optimizer.OptimizerInterface;
-import communication.optimizer.IntObj;
 import java.sql.SQLException;
 
 import tools.Reporter;
@@ -18,7 +16,6 @@ import sj.lang.IntByReference;
 public class CommunicationInterface {
 	
 	private final String AlterTempTabName = "typeTesttmp";   //AlterTabTmp
-	private OptimizerInterface OI;
 	private ESInterface SI;
 	private ListExpr LEresult;
 	private IntByReference ErrCode;
@@ -26,7 +23,6 @@ public class CommunicationInterface {
 	private StringBuffer ErrMess;
 	private boolean connectedToDB;
 	private String connectedDB;
-	private IntObj OptIO; //needed for the Optimizer, it contains the errorcode
 	
 	private int SecPort;
 	private int OptPort;
@@ -40,9 +36,7 @@ public class CommunicationInterface {
 		ErrMess = new StringBuffer();
 				
 		LEresult = new ListExpr();
-		OI = new OptimizerInterface();
 		SI = new ESInterface();
-		OptIO = new IntObj();
 		connectedToDB = false;
 		
 	}
@@ -50,7 +44,9 @@ public class CommunicationInterface {
 	
 	/**
 	 * <b> Task of this method </b> <br/>
-	 * initializes connection to Secondo server and Secondo optimizer 
+	 * initializes the connection to the Secondo server. The optimizer runs
+	 * inside that server, so there is no second connection to open; OPort is
+	 * kept for the sake of existing jdbc:secondo:// URLs and is not used.
 	 * @return true if connection has been established
 	 */
 	public boolean initialize(String HName, int SPort, int OPort) {
@@ -68,12 +64,8 @@ public class CommunicationInterface {
 		else 
 			Reporter.writeError("ERROR: Connection to Secondo server could not be established");
 		
-		OI.setHost(HostName);
-		OI.setPort(OptPort);
-		if (OI.connect()) 
-			Reporter.writeInfo("Connected to Secondo optimizer");
-		else {
-			Reporter.writeError("ERROR: Connection to Secondo optimizer could not be established");
+		if (IstOk && !SI.optimizerAvailable()) {
+			Reporter.writeError("ERROR: the Secondo server provides no optimizer");
 			IstOk = false;
 		}
 		return IstOk;	
@@ -120,12 +112,11 @@ public class CommunicationInterface {
 	
 	/**
 	 * <b> Task of this method </b> <br/>
-	 * The connection to the Optimizer Server and to the Secondo Server is terminated <br/>
+	 * The connection to the Secondo Server is terminated <br/>
 	 * It reports an error if the connection has not been established
 	 */
 	public void closeDB() {
 		if (connectedToDB) {
-			OI.disconnect();
 			SI.terminate();
 			connectedToDB = false;
 			connectedDB = "";
@@ -175,52 +166,78 @@ public class CommunicationInterface {
 	 */
 	public boolean executeCommand(String command) {
 		boolean IstOk = false;
-		boolean IsUpdate = false;
-		boolean AlterTCommand = false;
-		String result; 
-		/* IsUpdate is always false. If changed to true it is expected
-		 * than a sql mquerie command is given. In this case the command 
-		 * would be processed by the Optimizer directly
-		 * if (command.startsWith("select")) 
-			IsUpdate = false;
-		else
-			IsUpdate = true; */ 
 		
 		LEresult = new ListExpr();  // after executeCommand has been invoked for the second time
 									// it still has the result from the first call. Therfore it is
 									// reinitialized here
 		
 		if(command.startsWith("altertable")) {
-			AlterTCommand = true;
-			result = this.getAlterCommands(command);			
-		}
-		else	
-			result = OI.optimize_execute(command, connectedDB, OptIO, IsUpdate);
-		
-		if (result.startsWith("::ERROR"))
-			Reporter.writeError(result);
-		else if (result.equals("done"))
-			// DDL-Command like CREATE TABLE
-			IstOk = true;
-		else {	
-			if (!AlterTCommand)
-				result="query "+result;
+			// ALTER TABLE is rewritten into a sequence of kernel commands
+			String result = this.getAlterCommands(command);
+			if (result == null)
+				return false;
 			SI.secondo(result, LEresult, ErrCode, ErrPos, ErrMess);
-			if (ErrCode.value == 0) {
-				if (AlterTCommand) {
-					SI.secondo(AlterCommand2, LEresult, ErrCode, ErrPos, ErrMess);
-					SI.secondo(AlterCommand3, LEresult, ErrCode, ErrPos, ErrMess);
-					SI.secondo(AlterCommand4, LEresult, ErrCode, ErrPos, ErrMess);
-					//OI.optimize_execute("updateCatalog", connectedDB, OptIO, true);
-				}
-				IstOk = true; //query was successful
-				Reporter.reportInfo(LEresult.toString(), true);
-			}
-			else
+			if (ErrCode.value != 0) {
 				Reporter.writeError(ErrMess.toString());
+				return false;
+			}
+			SI.secondo(AlterCommand2, LEresult, ErrCode, ErrPos, ErrMess);
+			SI.secondo(AlterCommand3, LEresult, ErrCode, ErrPos, ErrMess);
+			SI.secondo(AlterCommand4, LEresult, ErrCode, ErrPos, ErrMess);
+			Reporter.reportInfo(LEresult.toString(), true);
+			return true;
 		}
+		
+		// SQL: the server optimizes the command and runs the plan in one step
+		ListExpr answer = sqlCommand(command, false);
+		if (answer == null)
+			return false;
+		if (planOf(answer).equals("done"))
+			// DDL-Command like CREATE TABLE: the optimizer carried it out
+			// itself while translating, so there is no plan to run
+			return true;
+		LEresult = answer.second();
+		Reporter.reportInfo(LEresult.toString(), true);
+		IstOk = true;
 		
 		return IstOk;
+	}
+	
+	/**
+	 * <b> Task of this method </b> <br/>
+	 * Sends an SQL command to the Secondo server, which optimizes it itself
+	 * (command level 2) and answers with the list (plan result costs).
+	 * @param command the command in the SQL dialect
+	 * @param planOnly if true the server stops after optimizing and executes
+	 * nothing, so only the plan and its costs come back
+	 * @return the answer list, or null if the command could not be optimized
+	 */
+	private ListExpr sqlCommand(String command, boolean planOnly) {
+		ListExpr answer = new ListExpr();
+		SI.secondo(command, answer, ErrCode, ErrPos, ErrMess, 2, planOnly);
+		if (ErrCode.value != 0) {
+			Reporter.writeError(ErrMess.toString());
+			return null;
+		}
+		if (answer.listLength() < 2) {
+			Reporter.writeError("unexpected answer from the optimizer: " + answer.toString());
+			return null;
+		}
+		return answer;
+	}
+	
+	/**
+	 * <b> Task of this method </b> <br/>
+	 * Returns the generated plan of an answer of sqlCommand. Note that this is
+	 * a ready to run command, not a bare plan expression: the server already
+	 * wrapped it into "query ..." resp. "let X = ...".
+	 * @param answer an answer list of sqlCommand
+	 * @return the plan text
+	 */
+	private String planOf(ListExpr answer) {
+		ListExpr plan = answer.first();
+		return plan.atomType() == ListExpr.TEXT_ATOM ? plan.textValue().trim()
+		                                             : plan.toString().trim();
 	}
 	
 	public void executeSettings(boolean UseSubqueries) {
@@ -233,17 +250,10 @@ public class CommunicationInterface {
 		else
 			command = "delOption(subqueries)";
 		
-		Ausgabe = OI.optimize_execute(command, connectedDB, OptIO, true);
+		Ausgabe = SI.optimizerCommand(command);
+		if (Ausgabe == null)
+			Reporter.writeError("ERROR: " + command + " failed");
 	}
-	
-	/*test
-	public void executeSettings1(String command) {
-		
-		String Ausgabe="";
-		
-		
-		Ausgabe = OI.optimize_execute(command, connectedDB, OptIO, true);
-	}*/
 	
 	public void executeSecSettings(String statm) {
 		
@@ -294,9 +304,18 @@ public class CommunicationInterface {
 			
 			colName = commandTemp.substring(pos1 + 1);
 			PreCommand = "select " + colName + " from " + tabName;
-			PreResult = OI.optimize_execute(PreCommand, connectedDB, OptIO, false);
+			// only the plan is wanted here (it carries the attribute name with
+			// its real spelling), so ask the server not to run the query
+			ListExpr PreAnswer = sqlCommand(PreCommand, true);
+			if (PreAnswer == null)
+				return null;
+			PreResult = planOf(PreAnswer);
 			pos1 = PreResult.indexOf('[');
 			pos2 = PreResult.indexOf(']');
+			if (pos1 < 0 || pos2 < pos1) {
+				Reporter.writeError("cannot read the attribute name from the plan: " + PreResult);
+				return null;
+			}
 			colName = PreResult.substring(pos1+1, pos2);
 		}
 		

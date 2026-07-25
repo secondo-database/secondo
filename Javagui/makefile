@@ -87,7 +87,6 @@ removedoc:
 makedirs:
 	rm -rf sj
 	$(MAKE) -j 1 -C secondoInterface SecondoInterface.jar
-	$(MAKE) -j 1 -C communication all
 	$(MAKE) -j 1 -C extern all
 	$(MAKE) -j 1 -C components all
 	$(MAKE) -j 1 -C viewer all
@@ -102,7 +101,6 @@ makedirs:
 .PHONY: clean # removes the documentation and all .class files
 clean: removedoc
 	$(MAKE) -C secondoInterface clean
-	$(MAKE) -C communication clean
 	$(MAKE) -C components clean
 	$(MAKE) -C extern clean
 	$(MAKE) -C gui clean

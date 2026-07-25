@@ -26,7 +26,6 @@ import javax.swing.text.*;
 import javax.swing.event.*;
 import java.util.*;
 import sj.lang.*;
-import communication.optimizer.*;
 import tools.Reporter;
 import java.io.File;
 import mmdb.MMDBUserInterfaceController;
@@ -57,8 +56,14 @@ public class CommandPanel extends JScrollPane {
   private ReturnKeyAdapter ReturnKeyListener;
   private Vector ChangeListeners = new Vector(3);
   private String OpenedDatabase = "";
-  private OptimizerInterface OptInt = new OptimizerInterface();
-  private OptimizerSettingsDialog OptSet = new OptimizerSettingsDialog(null);
+  // The optimizer runs inside the connected Secondo server, so two things
+  // have to be true for it to be usable: the user asked for it
+  // (optimizerWanted, from the configuration file or the Optimizer menu) and
+  // the server we are currently connected to actually has one
+  // (optimizerEnabled, established by probing that server). The wish outlives
+  // a connection, the answer does not -- see connect().
+  private boolean optimizerWanted = false;
+  private boolean optimizerEnabled = false;
   private Object SyncObj = new Object();
   private boolean ignoreCaretUpdate=false;
   private boolean autoUpdateCatalog = true;
@@ -104,18 +109,11 @@ public class CommandPanel extends JScrollPane {
         public void databasesChanged(){}
         // deleted or created or updated object
         public void objectsChanged(){
-            if(sendToOptimizer("updateCatalog")==null){
-               Reporter.writeError("updateCatalog failed");
-            }
-            //if(sendToOptimizer("closedb")==null){
-            //   Reporter.writeError("close database failed"); 
-            //} 
+            updateCatalogIfWanted();
         }
         // deleted or create type
         public void typesChanged(){
-            if(sendToOptimizer("updateCatalog")==null){
-               Reporter.writeError("updateCatalog failed");
-            } 
+            updateCatalogIfWanted();
         }
          // a database is opened
         public void databaseOpened(String DBName){}
@@ -145,18 +143,18 @@ public class CommandPanel extends JScrollPane {
   }
 
 
-  /** Reopends the currently opened database.
-   **/
-  private boolean reopenDatabase(){
-    //System.out.println("reopen database called");
-    if(OpenedDatabase.length()==0){
-      return false;
-    }
-    String db = OpenedDatabase;
-    if(!execUserCommand("close database")){
-        return false;
-    }
-    return execUserCommand("open database " + db);
+  /** Lets the optimizer re-read the catalog after the set of objects or types
+    * has changed, if the user asked for that.
+    * Only sensible while the optimizer is enabled -- without that check every
+    * object change would report a failed updateCatalog.
+    */
+  private void updateCatalogIfWanted(){
+     if(!autoUpdateCatalog || !useOptimizer()){
+        return;
+     }
+     if(sendToOptimizer("updateCatalog")==null){
+        Reporter.writeError("updateCatalog failed");
+     }
   }
 
 
@@ -189,25 +187,6 @@ public class CommandPanel extends JScrollPane {
 
    } 
 
-
-
-
-  /** sets the connection properties for the optimizer server
-    * the changes holds for the next connection with a optimizer
-    */
-  public void setOptimizer(String Host,int Port){
-     OptSet.setConnection(Host,Port);
-     OptInt.setHost(Host);
-     OptInt.setPort(Port);
-  }
-
-  /** Disconnects and connects to the optimizer if already connected **/
-  public void reconnectOptimizer(){
-     if(OptInt.isConnected()){
-         OptInt.disconnect();
-         OptInt.connect(); 
-     }
-  }
 
 
 
@@ -348,23 +327,6 @@ public class CommandPanel extends JScrollPane {
 
 
 
-  /** Changes the format of error messages coming from the optimizer.
-    * The Error messages from the optimizer are not nice formatted.
-    * For example line breaks are marked by \n. This is changed by this function.
-  */
-  private String formatOptimizerError(String errmsg){
-    errmsg = errmsg.replaceAll("\\\\n","\n");
-    errmsg = errmsg.replaceAll("\\\\t","\t");
-    errmsg = errmsg.replaceAll("\\\\'","'");
-    if(errmsg.startsWith("'") && errmsg.endsWith("'") && errmsg.length()>1){
-       errmsg = errmsg.substring(1,errmsg.length()-1);
-    }
-    errmsg=errmsg.replaceAll("''","\"");
-    return errmsg;
-  }
-
-
-
   private char toLower(char c){
      if(c>='A' && c<='Z'){
         return (char)(c - 'A' + 'a'); 
@@ -465,300 +427,131 @@ public class CommandPanel extends JScrollPane {
   }
 
 
-  private  String[] rewriteForOptimizer(String str){
-
-    String prefix ="query ";
-    String suffix="";
-    if(str.matches("let\\s+[a-z,A-Z][a-z,A-Z,0-9,_]*\\s*=\\s*select(.|\n)*")){ 
-       int ass = str.indexOf('=');
-       prefix = str.substring(0,ass).trim(); // without =
-       str = str.substring(ass+1,str.length()).trim();
-       String[] cmdVar = prefix.split("\\s+");
-       prefix = "let "+cmdVar[1]+" = ";
-    } 
-
-    String res = varToLowerCase(str);
-
-    res = replacePoint(res);
-
-    res = res ;
-
-    if(showRewrittenOptimizerQuery){
-      appendText("\nrewritten query: \n"+ res + "\n\n");
-    }
-    String[] r = {prefix,res,suffix};
-    return r;
+  /** Splits a command into at most maxTok lower cased tokens.
+    * The delimiter set is shared with the TTY clients
+    * (SecondoTTY.cpp, sqlTokens), so that "let r5=select ..." and
+    * "create table t(a)" tokenize identically here and there.
+    */
+  private String[] sqlTokens(String command, int maxTok){
+     StringTokenizer st = new StringTokenizer(command, " \t\n\r\f\u000b\b([{=.,;");
+     Vector toks = new Vector();
+     while(st.hasMoreTokens() && toks.size()<maxTok){
+        toks.add(st.nextToken().toLowerCase());
+     }
+     return (String[]) toks.toArray(new String[toks.size()]);
   }
 
 
-  /** Replaces variables having format a.b by a:b.
-   **/
-  private String replacePoint( String str){
-
-    // states
-    // 0 start state
-    // 1 within double quoted string
-    // 2 within single quoted string
-    // 3 within symbol
-
-    StringBuffer buf = new StringBuffer();
-    int state = 0;
-
-    for(int i=0;i<str.length(); i++){
-      char c = str.charAt(i);
-      switch(state){
-         case 0:
-              if(c == '"'){
-                 state = 1;
-                 buf.append(c);
-              } else if(c == '\''){
-                 state = 2;
-                 buf.append(c);
-              } else if(isLetter(c)){
-                 state = 3;
-                 buf.append(c);
-              } else {
-                 buf.append(c);
-              }
-              break;
-
-          case 1:
-              if( c == '"'){
-                state = 0;
-              } 
-              buf.append(c);
-              break;
-
-          case 2:
-              if(c == '\''){
-                 state = 0;
-              }         
-              buf.append(c);
-              break;
-
-         case 3:
-              if(isLetter(c) || isDigit(c) || c == '_'){
-                 buf.append(c);
-              } else if(c == '"'){
-                 state = 1;
-                 buf.append(c);
-              } else if(c == '\''){
-                 state = 2;
-                 buf.append(c);
-              } else if( c == '.'){
-                  if((i < str.length()-1) && isLetter(str.charAt(i+1))){
-                     buf.append(':');
-                  } else {
-                    buf.append(c);
-                  }
-                  state = 0;
-              } else {
-                 state = 0;
-                 buf.append(c);
-              }
-              break;
-          default: System.err.println("invalid state reached");
-      }
-    }
-    return buf.toString();
+  /** Tells whether a command is written in the SQL dialect and therefore has
+    * to be optimized by the server (command level 2) instead of being
+    * interpreted by the kernel directly.
+    * Deciding this is not a matter of the first keyword alone: "delete",
+    * "create", "update" and "let" exist in both languages and are told apart
+    * by the following token(s). Anything not recognized here falls through to
+    * the kernel -- the fallback is the kernel in every client, so the same
+    * typed command behaves the same in the GUI and in SecondoTTY/SecondoCS.
+    * The rule set is the one of SecondoTTY.cpp, looksLikeSql.
+    */
+  private boolean isSqlCommand(String command){
+     command = command.trim();
+     // nested list command or command sequence: always the kernel
+     if(command.startsWith("(") || command.startsWith("{")){
+        return false;
+     }
+     String[] t = sqlTokens(command,3);
+     if(t.length==0){
+        return false;
+     }
+     // unambiguous openers
+     if(   t[0].equals("sql") || t[0].equals("select") || t[0].equals("union")
+        || t[0].equals("intersection") || t[0].equals("drop")){
+        return true;
+     }
+     // ambiguous with kernel commands: need the second token
+     if(t.length<2){
+        return false;
+     }
+     if(t[0].equals("delete") && t[1].equals("from")) return true;
+     if(t[0].equals("insert") && t[1].equals("into")) return true;
+     if(t[0].equals("create") && (t[1].equals("table") || t[1].equals("index"))){
+        return true;
+     }
+     // ... or the third
+     if(t.length<3){
+        return false;
+     }
+     if(t[0].equals("update") && t[2].equals("set")) return true;
+     // "let <ident> = select|union|intersection ...": an SQL right hand side.
+     // The server splits the prefix off and re-wraps the generated plan.
+     if(t[0].equals("let") && (   t[2].equals("select") || t[2].equals("union")
+                               || t[2].equals("intersection"))){
+        return true;
+     }
+     return false;
   }
 
 
-
-  private String varToLowerCase(String str) {
-     StringBuffer buf = new StringBuffer();
-     int state = 0; //normal = 0, inDoublequotes = 1 in quotes = 2
-     int pos = 0;
-
-
-     // the states are the following
-     // state 0 : begin of a symbol or something other
-     // state 1 : within a double quoted string
-     // state 2 : within a single quoted text
-     // state 3 : within a symbol starting with a capital, all chars are converted to lower case
-     // state 4 : within a symbol starting with a lower case, all chars are keept
-
-     for(int i=0;i<str.length();i++){
-        char c = str.charAt(i);
-        switch(state){
-          case 0: { // normal, first character of a symbol 
-
-             if(c=='"'){ // begin of a string constant
-               state = 1;
-               buf.append(c);
-             } else if(c=='\''){ //begin of a text constant
-               state = 2;
-               buf.append(c); 
-             } else if(isLetter(c)){ // start of a symbol
-               if(isUpperCase(c)){
-                 buf.append(toLower(c));
-                 state = 3;
-               } else {
-                 buf.append(c);
-                 state = 4;
-               }
-
-             } else {  // something other
-                buf.append(c);
-             }
-             break;
+  /** Unwraps the answer of a level 2 (SQL) command, the list
+    * (plan result costs), and returns the half to be rendered.
+    * The generated plan is echoed when the user asked for it or when only the
+    * plan was requested; the result half is then handed to the usual result
+    * renderer, so an optimized query looks exactly like a kernel query.
+    * For create/drop the optimizer carried the command out itself while
+    * translating: the plan is the atom "done" and there is no result.
+    */
+  private ListExpr unwrapSqlAnswer(ListExpr answer, boolean planOnly){
+     if(answer==null || answer.listLength()<2){
+        return answer;   // not the expected shape, show it unchanged
+     }
+     ListExpr planExpr = answer.first();
+     String plan = planExpr.atomType()==ListExpr.TEXT_ATOM
+                     ? planExpr.textValue().trim()
+                     : planExpr.toString().trim();
+     if(plan.equals("done")){
+        appendText("\nExecuted by the optimizer (no plan to run).");
+        return ListExpr.theEmptyList();
+     }
+     if(showRewrittenOptimizerQuery || planOnly){
+        appendText("\nOptimized plan: " + plan);
+        // The costs were appended to the answer, so a server that does not
+        // send them still works.
+        if(answer.listLength()>=3 && answer.third().atomType()==ListExpr.REAL_ATOM){
+           double costs = answer.third().realValue();
+           if(costs>0.0){
+              appendText("\nEstimated costs: " + costs);
            }
-          case 1: { // string constant
-            if(c=='"'){
-               state = 0;
-            }
-            buf.append(c);
-            break;
-          }
-          case 2: { // text constant
-            if(c=='\''){
-              state = 0;
-            }
-            buf.append(c);
-          }
-          break;
-          case 3: { // within an indentifier, convert all
-            if(isIdentChar(c)){
-              //buf.append(toLower(c));
-              buf.append(c);
-            } else {
-              buf.append(c);
-              if(c=='"'){
-                 state = 1;
-              } else if(c=='\''){
-                 state = 2;
-              } else {
-                 state = 0;
-              }
-            }
-          }
-          break;
-          case 4: { // within an identifier, convert nothing
-            if(isIdentChar(c)){
-              buf.append(c);
-            } else {
-              buf.append(c);
-              if(c=='"'){
-                 state = 1;
-              } else if(c=='\''){
-                 state = 2;
-              } else {
-                 state = 0;
-              }
-            }
-          }
-          break;
-
-          default : { 
-             Object o = null;
-             if(o.equals(null)){ // force a null pointer exception
-                System.err.println("Bad idea");
-             }
-          }
         }
      }
-     return buf.toString();
+     if(planOnly){
+        appendText("\nPlan only -- not executed.");
+        return ListExpr.theEmptyList();
+     }
+     return answer.second();
   }
 
 
-  /** optimizes a command if optimizer is enabled */
-  private String optimize(String command){
-
-   // check for secondo command
-   command = command.trim();
-
-   // special kernel commands
-   if(command.startsWith("(") || command.startsWith("{")) return command; // command in nl format or command sequence
-
-   StringTokenizer st = new StringTokenizer(command,  " \t\n\r\f([{=.,;");
-   if(!st.hasMoreTokens()){
-     return command;
-   }
-   String start = st.nextToken();
-   // check for kernel command
-   String[] keywords = {"query","derive","type","kill","if","while","open","close","begin","commit", "abort",
-                        "save", "restore","list"};
-   // note "update", "create", and "delete"  can be both, part of the kernel and part of the optimizer
-   for(int i=0;i<keywords.length;i++){
-     if(keywords[i].equals(start)){
-         return command;
-     }
-   }
-   if(start.equals("let") && !command.matches("let\\s+[a-z,A-Z][a-z,A-Z,0-9,_]*\\s*=\\s*select(.|\n)*")){
-     return command;
-   }
-   if(start.equals("update") && !command.matches("update\\s+[a-z][a-z,A-Z,0-9,_]*\\s*set(.|\n)*")){
-     return command;
-   }
-   if(start.equals("create") && !command.matches("create\\s+table\\s(.|\n)*") && !command.matches("create\\s+index\\s(.|\n)*")) {
-     return command;
-   }
-   if(start.equals("delete") && !command.matches("delete\\s+from(.|\n)*")){
-     return command;
-   }
-
-   // now is should be an optimizer command
-   if(!useOptimizer()){ // error select clause found but no optimizer enabled
-      appendText("optimizer not available");
-      showPrompt();
-      return "";
-   }
-
-
-   IntObj Err = new IntObj();
-
-   boolean catChanged = false;
-
-   // check whether the catalog is changed -> requires reopen of database (hotfix)
-   if(command.matches("create\\s+table\\s(.|\n)*")){
-      catChanged = true;
-   } else if(command.matches("create\\s+index\\s(.|\n)*")){
-      catChanged = true;
-   } else if(command.startsWith("drop ")){
-      catChanged = true;
-   } 
-
-   
-   String[] pre_command_suf = rewriteForOptimizer(command);
-   StringBuffer buf = new StringBuffer();
-   command = pre_command_suf[1];
-
-   if(!checkBrackets(command,buf)){
-      appendText("\n\n"+buf.toString());
-      showPrompt();
-      return "";
-   }
-
-   //System.out.println("to " + command);
-   if(OpenedDatabase.length()==0){
-      appendText("\nno database open");
-      showPrompt();
-      return "";
-   }
-   String opt = OptInt.optimize_execute(command,OpenedDatabase,Err,false);
-   if(Err.value!=ErrorCodes.NO_ERROR){  // error in optimization
-      appendText("\nerror in optimization of this query");
-      showPrompt();
-      return "";
-   }else if(opt.startsWith("::ERROR::")){
-      appendText("\nproblem in optimization: \n");
-      appendText(formatOptimizerError(opt.substring(9))+"\n");
-      showPrompt();
-      return "";
-   } else if(catChanged){
-        boolean ok = reopenDatabase();
-        appendText("reopen database ");
-        if(ok){
-           appendText("successful \n");
-        } else {
-           appendText("failed \n");
-        }
+  /** Checks the preconditions for sending an SQL command and reports the
+    * reason it cannot be sent. Returns true if it may be sent.
+    */
+  private boolean canSendSql(String command){
+     if(!useOptimizer()){
+        appendText("\noptimizer not available");
         showPrompt();
-        return "";
-   } else {
-       return pre_command_suf[0] + opt + pre_command_suf[2];
-   }
- }
+        return false;
+     }
+     if(OpenedDatabase.length()==0){
+        appendText("\nno database open");
+        showPrompt();
+        return false;
+     }
+     StringBuffer buf = new StringBuffer();
+     if(!checkBrackets(command,buf)){
+        appendText("\n\n"+buf.toString());
+        showPrompt();
+        return false;
+     }
+     return true;
+  }
 
 
 
@@ -830,9 +623,11 @@ public class CommandPanel extends JScrollPane {
 		}
 
   
-    // command designates for the optimizer 
-    boolean eval=false; 
-    if((eval = command.startsWith(EvalString)) || command.startsWith(OptString)){
+    // A command addressed to the optimizer explicitly. What follows the
+    // prefix decides what it means, exactly as in the TTY clients:
+    //   "optimizer <sql>"  -> optimize only, report the plan, execute nothing
+    //   "optimizer <goal>" -> run an optimizer control directive
+    if(command.startsWith(OptString)){
        if(!useOptimizer()){
           appendText("\noptimizer not available");
           showPrompt();
@@ -842,61 +637,59 @@ public class CommandPanel extends JScrollPane {
              return !success;
           }
        }
+       String optCommand = command.substring(OptString.length()).trim();
+
+       if(isSqlCommand(optCommand)){
+          return execServerCommand(optCommand,true,isTest,success,epsilon,
+                                   isAbsolute,expectedResult);
+       }
+
        long starttime=0;
        if(tools.Environment.MEASURE_TIME)
           starttime = System.currentTimeMillis();
 
-       int OptCommandLength = eval?EvalString.length():OptString.length();
-
-       String answer = sendToOptimizer(command.substring(OptCommandLength));
+       String answer = sendToOptimizer(optCommand);
 
        if(tools.Environment.MEASURE_TIME)
           Reporter.writeInfo("used time for optimizing: "+(System.currentTimeMillis()-starttime)+" ms");
 
        if(answer==null){
           appendText("\nerror in optimizer command");
-           showPrompt();
-           if(!isTest){
-               return  false;
-           } else{
-               return !success;
-           }
-       }
-       else{
-         if(!eval){ 
-             appendText("\n"+answer);
-             showPrompt();
-             if(!isTest){
-                return true;
-             }else{
-                return success;
-             }
-         }else{ // execute the plan
-             // remove the "VARNAME =  " from the answer
-             int pos = answer.indexOf("=");
-             if(pos >= 0){
-                 answer = "query " + answer.substring(pos+1);
-             }
-             if(answer.startsWith(EvalString)){
-                 appendText("\npossible infinite recursion detected");
-                 appendText("\nsuppress execution of the optimized result");
-                 appendText("\n the result is:\n"+answer);
-                 showPrompt();
-                 if(!isTest){
-                     return false; 
-                 } else{
-                     return !success;
-                 }
-             } else{
-                 appendText("\nevaluate the query:\n"+answer+"\n"); 
-                 addToHistory(answer);
-                 return execUserCommand(answer,isTest,success,epsilon,isAbsolute,expectedResult); 
-             }
-         }
+          showPrompt();
+          if(!isTest){
+              return  false;
+          } else{
+              return !success;
+          }
+       } else {
+          appendText("\n"+answer);
+          showPrompt();
+          if(!isTest){
+             return true;
+          }else{
+             return success;
+          }
        }
     }
-   
-    // normal command
+
+    return execServerCommand(command,false,isTest,success,epsilon,isAbsolute,
+                             expectedResult);
+  }
+
+
+  /** Sends one command to the connected server and processes its result.
+    * An SQL command (auto detected) is optimized by the server at command
+    * level 2; anything else is sent unchanged at level 0/1. With planOnly the
+    * server stops after optimizing, so the plan is reported and nothing runs.
+    * @see #execUserCommand(String,boolean,boolean,double,boolean,ListExpr)
+    */
+  private boolean execServerCommand (String command,
+                                     boolean planOnly,
+                                     boolean isTest,
+                                     boolean success,
+                                     double epsilon,
+                                     boolean isAbsolute,
+                                     ListExpr expectedResult) {
 
     ListExpr displayErrorList;
     int displayErrorCode;
@@ -909,25 +702,35 @@ public class CommandPanel extends JScrollPane {
     // Executes the remote command.
     if(Secondointerface.isInitialized()){
 
-         command = optimize(command);
-         if(command.equals("")){
-             if(!isTest){
-               return false;
-             } else{
-                return !success;
-             }
-          }
+         int commandLevel = SecondoInterface.DERIVE_COMMAND_LEVEL;
+         if(isSqlCommand(command)){
+            if(!canSendSql(command)){
+               if(!isTest){
+                 return false;
+               } else{
+                  return !success;
+               }
+            }
+            commandLevel = 2;   // SQL dialect: the server optimizes it
+         }
           appendText("\n" + command + "...");
           long starttime=0;
           if(tools.Environment.MEASURE_TIME){
                starttime = System.currentTimeMillis();
           }
 
-           Secondointerface.secondo(command,      
-                                   resultList, 
-                                   errorCode, 
-                                   errorPos, 
-                                   errorMessage);
+           Secondointerface.secondo(command,
+                                   resultList,
+                                   errorCode,
+                                   errorPos,
+                                   errorMessage,
+                                   commandLevel,
+                                   planOnly);
+
+           if(commandLevel==2 && errorCode.value==0){
+              // the answer is (plan result costs); render the result half
+              resultList.setValueTo(unwrapSqlAnswer(resultList,planOnly));
+           }
 
            if(tools.Environment.MEASURE_TIME){
                  Reporter.writeInfo("used time for query: "+
@@ -1010,10 +813,37 @@ public class CommandPanel extends JScrollPane {
                 errorMessage.append("You are not connected to a Secondo Server");
                 return false;
         }
-        cmd = optimize(cmd);
         IntByReference errorPos=new IntByReference();
-        Secondointerface.secondo(cmd, resultList,errorCode,errorPos,errorMessage);
+        if(!sendCommandToServer(cmd,resultList,errorCode,errorPos,errorMessage)){
+           return false;
+        }
         return errorCode.value==0;
+  }
+
+
+  /** Sends a command to the server at the level it belongs to: an SQL command
+    * (auto detected) is optimized by the server at command level 2, anything
+    * else is sent unchanged. A level 2 answer is unwrapped to its result half,
+    * so the caller sees the same shape as for a kernel command.
+    * Returns false when an SQL command could not be sent at all; the reason
+    * has then been written to the panel.
+    */
+  private boolean sendCommandToServer(String command,
+                                      ListExpr resultList,
+                                      IntByReference errorCode,
+                                      IntByReference errorPos,
+                                      StringBuffer errorMessage){
+     boolean isSql = isSqlCommand(command);
+     if(isSql && !canSendSql(command)){
+        return false;
+     }
+     Secondointerface.secondo(command,resultList,errorCode,errorPos,errorMessage,
+                              isSql?2:SecondoInterface.DERIVE_COMMAND_LEVEL,
+                              false);
+     if(isSql && errorCode.value==0){
+        resultList.setValueTo(unwrapSqlAnswer(resultList,false));
+     }
+     return true;
   }
 
 
@@ -1021,7 +851,7 @@ public class CommandPanel extends JScrollPane {
     * @return the ErrorCode from Server
     **/
   public int internCommand (String command) {
-    command = optimize(command.trim());
+    command = command.trim();
     if(command.equals("")) return -1;
     ListExpr displayErrorList;
     int displayErrorCode;
@@ -1035,11 +865,9 @@ public class CommandPanel extends JScrollPane {
         starttime = System.currentTimeMillis();
 
      // Executes the remote command.
-    Secondointerface.secondo(command,           //Command to execute.
-                             resultList,
-                             errorCode, 
-                             errorPos, 
-                             errorMessage);
+    if(!sendCommandToServer(command,resultList,errorCode,errorPos,errorMessage)){
+       return -1;
+    }
     if(tools.Environment.MEASURE_TIME){
        Reporter.writeInfo("used time for query: "+(System.currentTimeMillis()-starttime)+" ms");
     }
@@ -1060,7 +888,7 @@ public class CommandPanel extends JScrollPane {
       * if an error occurs, null is returned
     **/
   public ListExpr getCommandResult (String command) {
-    command = optimize(command.trim());
+    command = command.trim();
     if(command.equals("")) return ListExpr.theEmptyList();
     ListExpr displayErrorList;
     int displayErrorCode;
@@ -1074,9 +902,9 @@ public class CommandPanel extends JScrollPane {
        starttime = System.currentTimeMillis();
 
     // Executes the remote command.
-    Secondointerface.secondo(command,           //Command to execute.
-                             resultList, 
-                             errorCode, errorPos, errorMessage);
+    if(!sendCommandToServer(command,resultList,errorCode,errorPos,errorMessage)){
+       return null;
+    }
     if(tools.Environment.MEASURE_TIME){
        Reporter.writeInfo("used time for query: "+(System.currentTimeMillis()-starttime)+" ms");
     }
@@ -1124,14 +952,27 @@ public class CommandPanel extends JScrollPane {
 
   /** connect the commandpanel to SECONDO */
   public boolean connect(){
+    // Whether the optimizer is available is a property of the server, so it
+    // cannot be carried over from an earlier connection.
+    optimizerEnabled = false;
     boolean ok = Secondointerface.connect();
-    if(ok)
+    if(ok){
+       if(optimizerWanted){
+          optimizerEnabled = Secondointerface.optimizerAvailable();
+          if(!optimizerEnabled){
+             appendText("\nthe optimizer is not available on this server");
+          }
+       }
        informListeners("connect");
+    }
     return ok;
   }
 
   /** disconnect from Secondo */
   public void disconnect(){
+     // there is no optimizer without a server to run it; the user's wish
+     // survives, so reconnecting brings it back where the server allows it
+     optimizerEnabled = false;
      Secondointerface.terminate();
      informListeners("disconnect");
   }
@@ -1142,56 +983,47 @@ public class CommandPanel extends JScrollPane {
     * returns true if successful false otherwise
     */
   public boolean enableOptimizer(){
-    if(!useOptimizer()){
-      Reporter.debug("Connet to Optimiter at " + OptInt.getHost()+":"+OptInt.getPort());
-      return OptInt.connect();
+    optimizerWanted = true;
+    if(!Secondointerface.isInitialized()){
+       // Switched on from the configuration file before the connection is
+       // made; connect() probes the server and decides then.
+       return true;
+    }
+    if(!optimizerEnabled){
+      // The optimizer belongs to the connected server; if that server has
+      // none, it cannot be switched on here.
+      if(!Secondointerface.optimizerAvailable()){
+         Reporter.debug("the connected server provides no optimizer");
+         return false;
+      }
+      optimizerEnabled = true;
     }
     return true;
   }
 
 
-  /** sends the given command to the optimizer
+  /** runs the given optimizer control directive (a Prolog goal such as
+    * "showOptions", "setOption(subqueries)", "updateCatalog") in the server's
+    * optimizer and returns the text it printed
     * returns null if not successful
     */
   public String sendToOptimizer(String cmd){
-     if(!OptInt.isConnected())
+     if(!useOptimizer())
         return null;
-     IntObj Err = new IntObj();
-     String res = OptInt.optimize_execute(cmd,OpenedDatabase,Err,true);
-     if(Err.value!=ErrorCodes.NO_ERROR)
-        return null;
-     else
-        return  res;
+     return Secondointerface.optimizerCommand(cmd);
   }
 
   /** disables the use of the optimizer */
   public void disableOptimizer(){
-      if(useOptimizer()){
-        IntObj err = new IntObj();
-        OptInt.optimize_execute("secondo('close database')",OpenedDatabase, err, true);
-      }
-      OptInt.disconnect();
+      optimizerWanted = false;
+      optimizerEnabled = false;
   }
 
 
-  /** returns true if the opttimizer is enabled
-    * if the optimizer was enabled but the connection is broken,
-    * the function will return false
-    */
+  /** returns true if the optimizer is enabled */
   public boolean useOptimizer(){
-     return OptInt.isConnected();
+     return optimizerEnabled;
   }
-
-  /** shows a dialog for making settings for optimizer
-    */
-  public void showOptimizerSettings(){
-      if(OptSet.showDialog()){
-         OptInt.setHost(OptSet.getHost());
-         OptInt.setPort(OptSet.getPort());
-     }
-  }
-
-
 
 
 
@@ -1301,7 +1133,9 @@ public class CommandPanel extends JScrollPane {
          OpenedDatabase="";
          SCL.databaseClosed();
       } else if(cmd.startsWith("create ") || cmd.startsWith("delete ") || cmd.startsWith("let ") ||
-         cmd.startsWith("update "))
+         cmd.startsWith("update ") ||
+         // SQL dialect: "drop table/index ..." and "insert into ..."
+         cmd.startsWith("drop ") || cmd.startsWith("insert "))
          SCL.objectsChanged();
       else if(cmd.equals("connect"))
           SCL.connectionOpened();
@@ -1664,8 +1498,7 @@ public class CommandPanel extends JScrollPane {
   }
 
 // define strings for special treatment when a command begins with it
-private static final String OptString ="optimizer "; 
-private static final String EvalString="eval ";
+private static final String OptString ="optimizer ";
 
 
 
