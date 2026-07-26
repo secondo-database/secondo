@@ -49,30 +49,39 @@ revised. Refer to NLParser.cpp.
 
 #include "NestedList.h"
 #include "LogMsg.h"
+#include "NLParser.h"
 
 using namespace std;
-
-//extern CMsg cmsg;
-//extern NestedList* nl;
-
-
-static stack<ListExpr> lists;
-
-extern NestedList* parseNL_nl;
-ListExpr parseNL_list;
 
 // Stack Size for the Parser - by default 200.
 //#define YYINITDEPTH 10000
 #define YYERROR_VERBOSE
 #define YYDEBUG 1
 
-// interaction with flex
-extern int yylex();
-#define YYSTYPE ListExpr
-
-extern void yyerror(const char* s);
+// Both are implemented in NLParser.cpp and take the context along, so that
+// nothing about one parse is reachable from another. Spelled ListExpr rather
+// than YYSTYPE: this prologue is emitted before bison defines that name.
+extern int yylex(ListExpr* yylval_param, NLParseCtx* ctx);
+extern void yyerror(NLParseCtx* ctx, const char* s);
 
 %}
+
+/*
+A pure (reentrant) parser: the state of a parse lives in ~NLParseCtx~ and in
+yyparse's own frame instead of in globals, so two threads may parse at once.
+~api.value.type~ also puts the semantic type into the generated header, which
+~[#]define YYSTYPE~ did not -- the scanner's translation unit used to see the
+default ~int~ and wrote four bytes into an eight-byte ~ListExpr~.
+
+*/
+%define api.pure full
+%param { NLParseCtx* ctx }
+%define api.value.type {ListExpr}
+
+%code requires {
+#include "NestedList.h"
+struct NLParseCtx;
+}
 
 %verbose
 %token-table
@@ -82,12 +91,12 @@ extern void yyerror(const char* s);
 
 %%
 
-ok : list { 
+ok : list {
             /* printf("Parser: list ok."); */
-            parseNL_list = $1;
+            ctx->result = $1;
           }
     | atom {
-            parseNL_list = $1;
+            ctx->result = $1;
           }
    ;
 
@@ -95,18 +104,18 @@ ok : list {
 list	: ZZOPEN rest 	{$$ = $2;}
 	;
 
-rest	: ZZCLOSE	{$$ = parseNL_nl->TheEmptyList();}
-	| seq ZZCLOSE	{$$ = lists.top(); lists.pop();}
+rest	: ZZCLOSE	{$$ = ctx->nl->TheEmptyList();}
+	| seq ZZCLOSE	{$$ = ctx->lists.top(); ctx->lists.pop();}
 	;
 
-seq	: first		{$$ = $1; lists.push($1);}
-	| seq elem	{$$ = parseNL_nl->Append($1, $2,false);
+seq	: first		{$$ = $1; ctx->lists.push($1);}
+	| seq elem	{$$ = ctx->nl->Append($1, $2,false);
               }
 	;
 
-first	: atom		{$$ = parseNL_nl->OneElemList($1,false);}
-	| list		{$$ = parseNL_nl->OneElemList($1,false);}
-	; 
+first	: atom		{$$ = ctx->nl->OneElemList($1,false);}
+	| list		{$$ = ctx->nl->OneElemList($1,false);}
+	;
 
 elem	: atom		{$$ = $1;}
 	| list		{$$ = $1;}

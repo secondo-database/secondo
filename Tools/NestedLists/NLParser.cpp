@@ -32,13 +32,11 @@ it calls the external function ~yyparse~ provided by bison.
 */
 
 
+#include <mutex>
+
 #include "LogMsg.h"
 #include "NLScanner.h"
 #include "NLParser.h"
-
-#ifdef THREAD_SAFE
-#include <boost/thread.hpp>
-#endif
 
 
 
@@ -48,69 +46,38 @@ extern CMsg cmsg;
 
 
 /*
-Below we declare some external variables for data exchange between class
-NLParser and the bison and flex generated code. 
+The generated parser is a pure one, so what a parse works on is passed to it as
+an ~NLParseCtx~ rather than exchanged through variables of file scope. Nothing
+about a parse is reachable from anywhere else, and two of them may run at once.
 
 */
 
-NestedList* parseNL_nl = 0;
-extern ListExpr parseNL_list;
-
-extern int scanNL_lines;
-extern int scanNL_cols;
-extern string scanNL_str;
 extern int yydebug;
-extern int yyparse();
-
-#ifdef THREAD_SAFE
-  static boost::recursive_mutex NLParserMtx;
-#endif
-
-
-
-
-/*
-Before we can call yyparse we need to construct a new scanner instance.
-
-*/
-
-static NLScanner* nlScanner = 0;
+extern int yyparse( NLParseCtx* ctx );
 
 int
-NLParser::parse() 
+NLParser::parse()
 {
+  NLScanner scanner( yaccnl, isp, osp );
+  NLParseCtx ctx( yaccnl, &scanner );
 
-  #ifdef THREAD_SAFE
-     boost::lock_guard<boost::recursive_mutex> guard(NLParserMtx);
-  #endif
+  // yydebug is one variable for the whole generated parser, not something a
+  // pure parser keeps per call, so it is written once instead of on every
+  // parse -- otherwise each parse writes what the others are reading. The
+  // runtime flags do not change after start-up, so once is enough.
+  static std::once_flag debugSet;
+  std::call_once( debugSet,
+                  []() { yydebug = RTFlag::isActive("NLParser:Debug") 
+                    ? 1 : 0; } );
 
-  if(nlScanner){
-    nlScanner->DeleteAllBuffers(); 
-    delete nlScanner;
-  } 
-  nlScanner = new NLScanner( yaccnl, isp, osp );
-  if ( RTFlag::isActive("NLParser:Debug") ) {
-    yydebug = 1;
-  } else {
-    yydebug = 0;
-  }
-  
-  if ( RTFlag::isActive("NLScanner:Debug") ) {
-    nlScanner->set_debug(1);
-  } else {
-    nlScanner->set_debug(0);
-  }
- 
-  scanNL_lines = 1;
-  scanNL_cols = 0;
-  scanNL_str = "";
-  parseNL_nl = yaccnl;
-  parseNL_list = yaccnl->Empty();  
-  int rc = yyparse();
-  list = parseNL_list;
-  nlScanner->DeleteAllBuffers(); 
-  delete nlScanner;
-  nlScanner = 0;
+  // The scanner's own flag, one per instance, so this one is per parse.
+  scanner.set_debug( RTFlag::isActive("NLScanner:Debug") ? 1 : 0 );
+
+  ctx.result = yaccnl->Empty();
+  int rc = yyparse( &ctx );
+  list = ctx.result;
+
+  scanner.DeleteAllBuffers();
   return rc;
 }
 
@@ -120,32 +87,30 @@ Providing function ~yyerror~
 */
 
 void
-yyerror(const char* s )
+yyerror( NLParseCtx* ctx, const char* s )
 {
-  #ifdef THREAD_SAFE
-     boost::lock_guard<boost::recursive_mutex> guard(NLParserMtx);
-  #endif
-  cmsg.error() 
+  cmsg.error()
     << "Nested-List Parser: " << endl << "  " << s
-    << " processing token ~" << nlScanner->YYText() << "~"
+    << " processing token ~" << ctx->scanner->YYText() << "~"
     //<< setiosflags(ios::hex|ios::showbase)
     //<< static_cast<unsigned short>( yychar )
     //<< resetiosflags(ios::hex|ios::showbase)
-    << " at line " << scanNL_lines
-    << " and col " << scanNL_cols << "!" << endl
-    << "LINE: " << scanNL_str << "$" << endl
+    << " at line " << ctx->scanner->getLine()
+    << " and col " << ctx->scanner->getCol() << "!" << endl
+    << "LINE: " << ctx->scanner->getCurrentLine() << "$" << endl
     << endl;
   cmsg.send();
 }
 
 /*
 Since function ~yylex()~ is a member function of class NLScanner we need to
-wrap the call into another function which has global scope.
+wrap the call into another function which has global scope. Which scanner to
+ask comes along in the context, so the wrapper holds nothing of its own.
 
 */
 
 int
-yylex()
+yylex( ListExpr* yylval_param, NLParseCtx* ctx )
 {
-  return nlScanner->yylex();
+  return ctx->scanner->yylex( yylval_param );
 }

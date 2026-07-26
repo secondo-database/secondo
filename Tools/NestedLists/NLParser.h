@@ -24,7 +24,35 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #ifndef NL_PARSER_H
 #define NL_PARSER_H
 
+#include <stack>
+
 #include "NestedList.h"
+
+class NLScanner;
+
+/*
+Everything one run of the parser works on. The generated parser is a pure one,
+so this is handed to ~yyparse~ and passed on to ~yylex~ and ~yyerror~ rather
+than kept in globals: two threads parsing at the same time -- each on its own
+nested list, as two connections have -- would otherwise build their lists into
+one another.
+
+*/
+
+struct NLParseCtx
+{
+  NLParseCtx( NestedList* nestedList, NLScanner* sc )
+    : nl( nestedList ), scanner( sc ), result( 0 )
+  {}
+
+  NestedList* nl;        // the list the result is built in
+  NLScanner*  scanner;   // supplies the tokens
+  ListExpr    result;    // what was parsed, once the parser accepted
+
+  // Holds the list under construction while its elements are read. The
+  // grammar is left-recursive, so this stays shallow.
+  std::stack<ListExpr> lists;
+};
 
 class NLParser
 {

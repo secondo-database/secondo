@@ -61,23 +61,18 @@ using namespace std;
 #include "LogMsg.h"
 
 
-// variables only visible for this
-// compilation unit
-// static char buffer[MAX_STRINGSIZE+1];
-//static char *s = buffer;
-static ostringstream* text = 0;
-static double f;
+// The scanner's state -- the input position and the text atom being collected
+// -- lives in the NLScanner instance rather than in variables of this file, so
+// that two scanners running at the same time do not share it. The rules below
+// reach it directly; they are compiled as members of the class.
 
-// global variables
-int scanNL_lines;
-int scanNL_cols;
-string scanNL_str;
+#define UPDATE_COL col += yyleng; currentLine += string(yytext);
+#define RESET_COL col = 0; currentLine = ""; line++;
 
-#define UPDATE_COL scanNL_cols += yyleng; scanNL_str += string(yytext);
-#define RESET_COL scanNL_cols = 0; scanNL_str = ""; scanNL_lines++;
-
-// the yylex() function that's actually used
-#define YY_DECL int NLScanner::yylex()
+// The yylex() function that's actually used. The parser is a pure one, so
+// where to put the semantic value is passed in rather than being a global.
+#undef YY_DECL
+#define YY_DECL int NLScanner::yylex( ListExpr* yylval_param )
 
 #include "NLScanner.h"        // The interface of the derived class
 
@@ -111,29 +106,30 @@ file		"<file>"[^<]+"</file--->"
 
 %%
 
-<INITIAL>\n|\r            { scanNL_lines++; scanNL_cols=0; scanNL_str=""; }
+<INITIAL>\n|\r            { line++; col=0; currentLine=""; }
 
 <INITIAL>[ \a\b\f\t\v]+   { UPDATE_COL }
 
 <INITIAL>-?[0-9]+       { UPDATE_COL
-                        yylval = lexnl->IntAtom( atoi( yytext ) );
+                        *yylval_param = lexnl->IntAtom( atoi( yytext ) );
                         return (ZZINTEGER);
                         }
 
 <INITIAL>{number}       { UPDATE_COL
                         std::stringstream ss(yytext);
-                        ss >> f; 
-                        yylval = lexnl->RealAtom( f );
+                        double f = 0;
+                        ss >> f;
+                        *yylval_param = lexnl->RealAtom( f );
                         return (ZZREAL);
                         }
 
 <INITIAL>"TRUE"         { UPDATE_COL
-			yylval = lexnl->BoolAtom( true );
+			*yylval_param = lexnl->BoolAtom( true );
 			return (ZZBOOLEAN);
 		        }
 
 <INITIAL>"FALSE"        { UPDATE_COL
-			yylval = lexnl->BoolAtom( false );
+			*yylval_param = lexnl->BoolAtom( false );
 			return (ZZBOOLEAN);
 		        }
 
@@ -146,7 +142,7 @@ file		"<file>"[^<]+"</file--->"
                           BEGIN(INITIAL);
                         }
 <COMMENT>\n             { RESET_COL
-                          scanNL_lines++;
+                          line++;
                         }
 
 <COMMENT>.              { UPDATE_COL
@@ -161,8 +157,8 @@ file		"<file>"[^<]+"</file--->"
 
 <TEXT>.|\n              { UPDATE_COL
                           if(yytext[0]=='\n'){
-                             scanNL_lines++;
-                             scanNL_cols = 0;
+                             line++;
+                             col = 0;
                           }
                           text->put( yytext[0] );
                         }
@@ -181,8 +177,9 @@ file		"<file>"[^<]+"</file--->"
                         ListExpr newText = lexnl->TextAtom();
                         lexnl->AppendText( newText, text->str() );
                         delete text;
+                        text = 0;
                         /* pass text node and token to the parser */
-                        yylval = newText;
+                        *yylval_param = newText;
                        return (ZZTEXT);
                         }
 
@@ -194,8 +191,8 @@ file		"<file>"[^<]+"</file--->"
 
 <TEXTSIMPLE>[^']|\n              { UPDATE_COL
                           if(yytext[0]=='\n'){
-                             scanNL_lines++;
-                             scanNL_cols = 0;
+                             line++;
+                             col = 0;
                           }
                           text->put( yytext[0] );
                         }
@@ -214,8 +211,9 @@ file		"<file>"[^<]+"</file--->"
                         ListExpr newText = lexnl->TextAtom();
                         lexnl->AppendText( newText, text->str() );
                         delete text;
+                        text = 0;
                         /* pass text node and token to the parser */
-                        yylval = newText;
+                        *yylval_param = newText;
                        return (ZZTEXT);
                         }
 
@@ -231,7 +229,7 @@ file		"<file>"[^<]+"</file--->"
                           cmsg.send();
 			}
       s = s.substr(1,yyleng-2);
-			yylval = lexnl->StringAtom( s );
+			*yylval_param = lexnl->StringAtom( s );
 			return (ZZSTRING);
 		        }
 
@@ -243,7 +241,7 @@ file		"<file>"[^<]+"</file--->"
                        cmsg.send();
                        return(ZZERROR);
 		     }
-                     yylval = lexnl->SymbolAtom( yytext );
+                     *yylval_param = lexnl->SymbolAtom( yytext );
                      return (ZZSYMBOL);
                    }
 
@@ -279,7 +277,7 @@ file		"<file>"[^<]+"</file--->"
 		 lexnl->AppendText(newText,textStream.str());
 
 		 /* pass text node and token to the parser */
-		 yylval = newText;
+		 *yylval_param = newText;
 		 return (ZZTEXT);
 		 }
 

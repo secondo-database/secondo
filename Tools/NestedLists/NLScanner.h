@@ -32,6 +32,10 @@ files for the input sequences.
 #ifndef NL_SCANNER_H
 #define NL_SCANNER_H
 
+#include <cassert>
+#include <sstream>
+#include <string>
+
 #include "NestedList.h"
 
 #ifndef yyFlexLexer
@@ -57,10 +61,30 @@ class NLScanner: public yyFlexLexer
     cantRead,
   };
                 
-  NLScanner( NestedList* nestedList, 
+  NLScanner( NestedList* nestedList,
              std::istream* yyin = 0, std::ostream* yyout = 0 );
 
-  int yylex();  // overruling yyFlexLexer's yylex()
+  ~NLScanner();
+
+  // Overrules yyFlexLexer's yylex(). Takes the place to put the semantic
+  // value, because the parser is a pure one and so has no global yylval.
+  int yylex( ListExpr* yylval_param );
+
+  // With %option yyclass, flex generates the overload above and leaves the
+  // no-argument yylex() that yyFlexLexer declares unimplemented. Overridden
+  // here rather than merely hidden by the overload, so that the compiler does
+  // not have to warn about it. It must never be called.
+  int yylex() { assert( false ); return 0; }
+
+/*
+Where the scanner has got to, for the error message. Kept per scanner rather
+than in globals, so that a second parse running at the same time reports its
+own position instead of this one's.
+
+*/
+  int getLine() const { return line; }
+  int getCol() const { return col; }
+  const std::string& getCurrentLine() const { return currentLine; }
 
   void DeleteCurrentBuffer(){
 #if YY_FLEX_MAJOR_VERSION >1 && \
@@ -87,12 +111,21 @@ class NLScanner: public yyFlexLexer
 
  private:
   // no Scanner copy-initialization
-  NLScanner( NLScanner const &other ); 
+  NLScanner( NLScanner const &other );
 
   // no assignment either
-  NLScanner &operator=( NLScanner const &other );   
+  NLScanner &operator=( NLScanner const &other );
 
   NestedList* lexnl;
+
+  // Input position, maintained by the rules in NLLex.l.
+  int line;
+  int col;
+  std::string currentLine;
+
+  // The text atom being collected while the scanner is inside <text>...
+  // </text---> or a quoted string. Per scan, so it belongs to the scanner.
+  std::ostringstream* text;
 };
 
 #endif

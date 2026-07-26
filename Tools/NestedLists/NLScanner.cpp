@@ -27,10 +27,21 @@ input position was introduced.
 
 #include "NLScanner.h"
 
-NLScanner::NLScanner( NestedList* nestedList, 
-                      std::istream* yyin, 
+NLScanner::NLScanner( NestedList* nestedList,
+                      std::istream* yyin,
                       std::ostream* yyout )
 {
   switch_streams( yyin, yyout );
   lexnl = nestedList;
+  line = 1;
+  col = 0;
+  currentLine = "";
+  text = 0;
+}
+
+NLScanner::~NLScanner()
+{
+  // Only set when the input broke off inside a <text> or a quoted string, in
+  // which case the closing rule that would have consumed it never ran.
+  delete text;
 }
