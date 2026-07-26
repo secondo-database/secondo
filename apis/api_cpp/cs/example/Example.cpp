@@ -41,7 +41,6 @@ communicate with an Secondo Server.
 #include "SecondoInterface.h"
 #include "SecondoInterfaceCS.h"
 #include "NestedList.h"
-#include "NList.h"
 
 
 using namespace std;
@@ -86,9 +85,12 @@ int main(int argc, char** argv){
   
   string command = "";
   
+  // The connection's own nested list. NList::setNLRef is deliberately not
+  // called: that sets one list for the whole process, which is wrong as soon
+  // as a program holds a second connection -- the global would then point at a
+  // list another connection owns, and at a freed one once it closes.
   NestedList* nl = si->GetNestedList();
-  NList::setNLRef(nl);
-  
+
    // let the user enter secondo commands until he/she eters quit
   
   while(command!="quit") {

@@ -35,7 +35,6 @@ in Python, where it is easy to fixture-test.
 #include "SecondoInterfaceCS.h"
 #include "SQLLanguage.h"
 #include "NestedList.h"
-#include "NList.h"
 
 namespace py = pybind11;
 
@@ -113,13 +112,10 @@ static py::handle secondoErrorType;
 // A per-connection lock would not be enough. The client library keeps process-
 // wide state that a connection touches without any synchronization of its own:
 //
-//   * NList::nlGlobal (include/NList.h) is a single NestedList pointer that
-//     every connection overwrites with its own list as it connects.
-//   * RTFlag::flagMap (include/LogMsg.h) is a plain std::map, written while a
-//     connection is set up (SecondoInterfaceCS::Initialize) and read on the
-//     way through NestedList and the parser. Only the first connect fills it,
-//     unless the configuration names no flags at all -- then every one tries.
-//   * ErrorReporter's message state (include/LogMsg.h) is static as well.
+//   * SecondoInterfaceCS::initNo, a plain counter bumped on every connect to
+//     name the trace log files.
+//   * whatever else an audit has not reached yet; Tests/csloadtest runs this
+//     library under ThreadSanitizer to find out.
 //
 // Concurrent commands on two connections are therefore a data race, not merely
 // a fairness problem. The lock covers construction and teardown too, because
@@ -165,21 +161,23 @@ class Connection
     {
       // Connecting blocks on network I/O and can hang if the SECONDO server is
       // slow or wedged. Without releasing the GIL that would freeze the whole
-      // Python process (even endpoints that never touch SECONDO). The whole
-      // setup is under the lock: setNLRef and the runtime flags are
-      // process-wide state that a command on another connection reads.
+      // Python process (even endpoints that never touch SECONDO). Setting a
+      // connection up is under the lock as well, because that is where the
+      // process-wide state is written.
       //
-      // The flags are left to Initialize, which reads them from the same
-      // config file but only while none are set yet. Doing it here for every
-      // connection would rewrite the shared map each time a browser session
-      // opens -- for identical content, since all sessions use one config.
+      // The runtime flags are left to Initialize, which fills them once per
+      // process from the same config file every session uses.
       SecondoCall call;
       si = new SecondoInterfaceCS(true, 0, false);
       ok = si->Initialize(user, passwd, host, port, config, "",
                           errMsg, multiUser);
       if (ok) {
+        // Each connection keeps its own nested list and nothing here builds
+        // NList objects, so NList::setNLRef is deliberately not called: it
+        // holds one list for the whole process, and a second session would
+        // leave it pointing at a list another session owns -- at a freed one
+        // once that session closes.
         nl = si->GetNestedList();
-        NList::setNLRef(nl);
       } else {
         // Tearing the half-built interface down again frees its nested list,
         // so it belongs under the lock as much as building it did.

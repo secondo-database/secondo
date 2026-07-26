@@ -215,8 +215,7 @@ public:
       }
       
       NestedList* nl = si->GetNestedList();
-      NList::setNLRef(nl);
-      
+
       while (! shutdown) {
          pthread_mutex_lock(&processMutex);
          while(query == NULL) {

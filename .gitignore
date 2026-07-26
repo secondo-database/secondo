@@ -221,6 +221,8 @@ makefile.algebras
 /Tests/Testspecs/*/tmp
 /Tests/Testspecs/temp_nested_list
 /Tests/Testspecs/*/temp_nested_list
+/Tests/csloadtest/app
+/Tests/csloadtest/app-tsan
 
 # Selftest
 /Selftest/result*_err
