@@ -72,6 +72,11 @@ public:
 
   static void srand(unsigned int seed) { return std::srand(seed); }
 
+  // Writes the whole buffer, coping with the two ways a write() may fall short
+  // of it: an interruption before anything was sent, and a partial write.
+  // Returns false if the buffer could not be written completely.
+  static bool writeAll(int fd, const char *buffer, size_t size);
+
   static void string2stdout(const char *string);
   static void stacktrace(const char *appName, const char *stacktraceOutput,
                          const char *relocationInfo);

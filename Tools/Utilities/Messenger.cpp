@@ -25,6 +25,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <iostream>
 #include <string>
 #include "Messenger.h"
+#include "WinUnix.h"
 
 #include <sys/socket.h>
 #include <sys/un.h>
@@ -38,34 +39,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <unistd.h>
 
 using namespace std;
-
-/*
-Writes the whole buffer, coping with the two ways a write() may fall short of
-it: an interruption before anything was sent, and a partial write. Sending less
-than the whole command would leave the registrar waiting for the rest of a line
-that never arrives.
-
-*/
-static bool
-WriteAll( int fd, const char* data, size_t size )
-{
-  size_t written = 0;
-
-  while ( written < size ) {
-    ssize_t result = write(fd, data + written, size - written);
-
-    if(result < 0) {
-      if(errno == EINTR) {
-        continue;
-      }
-      return false;
-    }
-
-    written = written + (size_t) result;
-  }
-
-  return true;
-}
 
 bool
 Messenger::Send( const string& message, string& answer )
@@ -133,9 +106,10 @@ Messenger::Send( const string& message, string& answer )
   setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, (char*)&tv, sizeof(tv));
   setsockopt(fd, SOL_SOCKET, SO_SNDTIMEO, (char*)&tv, sizeof(tv));
 
-  // Write command to registry
-  if( !WriteAll(fd, message.c_str(), message.length())
-      || !WriteAll(fd, "\n", 1) ) {
+  // Write command to registry. Sending less than the whole command would leave
+  // the registrar waiting for the rest of a line that never arrives.
+  if( !WinUnix::writeAll(fd, message.c_str(), message.length())
+      || !WinUnix::writeAll(fd, "\n", 1) ) {
     answer = "Unable to send the command";
     close(fd);
     return false;

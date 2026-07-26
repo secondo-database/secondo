@@ -40,6 +40,7 @@ September 2003, M. Spiekermann: Implementation of getpagesize()
 
 #include <string.h>
 #include <stdlib.h>
+#include <errno.h>
 
 
 #ifndef SECONDO_ANDROID
@@ -220,10 +221,33 @@ uint64_t WinUnix::convertEndian(const uint64_t n){
           (x<<56);
 }
 
+/* Write a complete buffer to a file descriptor. Partial writes are continued
+   and interrupted writes are repeated. */
+bool
+WinUnix::writeAll(int fd, const char* buffer, size_t size) {
+   size_t written = 0;
+
+   while(written < size) {
+      // 'long' instead of 'ssize_t', the latter is not available on Windows
+      long result = (long) write(fd, buffer + written, size - written);
+
+      if(result < 0) {
+         if(errno == EINTR) {
+            continue;
+         }
+         return false;
+      }
+
+      written = written + (size_t) result;
+   }
+
+   return true;
+}
+
 /* Write a string to stdout */
-void 
+void
 WinUnix::string2stdout(const char* string) {
-   write(fileno(stdout),string, strlen(string)); 
+   writeAll(fileno(stdout), string, strlen(string));
 }
     
 /* Obtain a backtrace and print it to stdout. */
@@ -253,7 +277,7 @@ WinUnix::stacktrace(const char* appName, const char* stacktraceOutput,
          }
         
          if(relocationInfo != NULL) {
-             write(fd, relocationInfo, strlen(relocationInfo));
+             WinUnix::writeAll(fd, relocationInfo, strlen(relocationInfo));
          }
           
          backtrace_symbols_fd(stacktrace, entries, fd);
@@ -298,7 +322,7 @@ WinUnix::stacktrace(const char* appName, const char* stacktraceOutput,
                     }
                     
                     if(print) {
-                        write(fileno(stdout), &line[pos], 1);
+                        WinUnix::writeAll(fileno(stdout), &line[pos], 1);
                     }
                 }
             }
