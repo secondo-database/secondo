@@ -399,6 +399,7 @@ export function App() {
           globalT0={domain ? domain[0] : 0}
           currentTime={time}
           projection={projection}
+          theme={theme}
           onSelect={(layerId, object) => {
             const props =
               object &&

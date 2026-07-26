@@ -111,6 +111,38 @@ check(
   "the chosen attribute sticks"
 );
 
+// Labels survive a light/dark switch without the view being touched.
+//
+// Their ink and halo swap over with the theme, and an earlier attempt to
+// declutter them on the GPU made that switch wipe every label off the map until
+// the next pan or zoom rebuilt deck's offscreen collision map. Nothing here
+// moves the view, and `before`/`after` bracket what the labels are worth in
+// pixels, so losing them is unmistakable.
+const toggleTheme = async () => {
+  await page.evaluate(() => {
+    const b = [...document.querySelectorAll("button")].find((x) =>
+      /light|dark/i.test(x.textContent ?? "")
+    );
+    b?.click();
+  });
+  await new Promise((r) => setTimeout(r, 1800));
+};
+const labelPixels = after - before;
+await toggleTheme();
+const switched = await drawnPixels();
+await page.screenshot({ path: `${OUT}/labels-after-theme-switch.png` });
+check(
+  switched - before > labelPixels * 0.7,
+  `labels survive a theme switch (${after} -> ${switched} px, ` +
+    `labels are worth ${labelPixels})`
+);
+await toggleTheme();
+const back = await drawnPixels();
+check(
+  back - before > labelPixels * 0.7,
+  `and survive switching back (${switched} -> ${back} px)`
+);
+
 // ...and back off again.
 await setLabel("");
 const off = await drawnPixels();

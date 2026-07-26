@@ -20,7 +20,14 @@ import { Map as BaseMap } from "react-map-gl/maplibre";
 import "maplibre-gl/dist/maplibre-gl.css";
 import type { MovingRegion, Trip } from "../api/client";
 import type { Layer, RGB } from "../layers/useLayers";
+import type { Theme } from "../theme";
 import { iconAtlas } from "../layers/icons";
+import {
+  LabelPlacer,
+  LABEL_FONT_FAMILY,
+  LABEL_FONT_SIZE_PX,
+  LABEL_FONT_WEIGHT,
+} from "./declutter";
 import {
   projectBBox,
   projectGeoJSON,
@@ -127,43 +134,120 @@ function labelAnchor(geometry: {
   return n > 0 ? [sx / n, sy / n] : null;
 }
 
-// Labels have to stay readable on the dark Cartesian canvas *and* on the light
-// OSM basemap, and a saturated layer colour manages neither at this size.
-// Lightening it most of the way to white keeps a hint of the layer's hue --
-// enough to tell two layers' labels apart -- while the plate behind the text
-// does the contrast work.
-function labelColor([r, g, b]: RGB): [number, number, number] {
-  const lift = (v: number) => Math.round(v + (255 - v) * 0.8);
-  return [lift(r), lift(g), lift(b)];
+// Whether the canvas under the labels is light. The OSM raster is light
+// whatever the app theme is, so geographic mode always is; the Cartesian canvas
+// is `--bg-deep`, which follows the theme.
+function onLightCanvas(geographic: boolean, theme: Theme): boolean {
+  return geographic || theme === "light";
+}
+
+// Ink and halo for a layer's labels.
+//
+// A saturated layer colour is unreadable as 12px text on either canvas, so the
+// hue is pushed most of the way to whichever end contrasts with the background:
+// near-black over the light basemap, near-white over the dark one. What is left
+// of the hue is still enough to tell two layers' labels apart.
+function labelInk([r, g, b]: RGB, onLight: boolean): [number, number, number] {
+  const mix = (v: number, target: number) => Math.round(v + (target - v) * 0.78);
+  return onLight
+    ? [mix(r, 16), mix(g, 18), mix(b, 22)]
+    : [mix(r, 255), mix(g, 255), mix(b, 255)];
+}
+
+function labelHalo(onLight: boolean): [number, number, number, number] {
+  return onLight ? [255, 255, 255, 235] : [8, 10, 14, 225];
 }
 
 // Shared by the static and the moving-object labels, which otherwise drift
 // apart.
 //
-// Deliberately *not* SDF text with an outline, which is what this used to be.
-// deck renders SDF glyphs from a distance-field atlas, and at label sizes the
-// field is too coarse to reconstruct 13px letterforms: the strokes come out
-// eroded and the tops of the letters sheared off, which is what made these
-// labels look eaten away. Raising fontSettings.buffer/radius does not fix it.
-// Plain bitmap glyphs are exact at this size.
-//
-// Losing the outline means losing what kept text legible over a busy basemap,
-// so the contrast comes from a translucent plate instead. On the dark canvas it
-// disappears into the background; over the OSM tiles it is what separates a
-// SECONDO label from the dozen OSM ones around it.
+// The contrast comes from a halo the shape of the letters, the way a printed
+// map does it -- not from the plate this used to draw. A plate reads as a
+// sticker laid on top of the map; a halo reads as a label the map has made
+// room for.
 const LABEL_TEXT = {
-  getSize: 13,
+  getSize: LABEL_FONT_SIZE_PX,
   sizeUnits: "pixels" as const,
   getTextAnchor: "middle" as const,
-  getAlignmentBaseline: "top" as const,
+  getAlignmentBaseline: "center" as const,
+  // deck's default font is Monaco; nothing on a map is set in monospace. Shared
+  // with the decluttering, which has to reserve the box deck then draws into.
+  fontFamily: LABEL_FONT_FAMILY,
+  fontWeight: LABEL_FONT_WEIGHT,
   // SECONDO data is Latin-1: without an automatic character set the umlauts in
   // street and restaurant names come out as placeholders.
   characterSet: "auto" as const,
-  background: true,
-  getBackgroundColor: [10, 12, 16, 190] as [number, number, number, number],
-  backgroundPadding: [4, 1, 4, 1] as [number, number, number, number],
-  backgroundBorderRadius: 2,
 };
+
+// The halo is eight copies of the text, nudged outwards and drawn underneath
+// the text itself.
+//
+// deck draws a proper halo for SDF glyphs via `outlineWidth`, and this did use
+// that. But deck's font atlas sizes a glyph's cell from
+// `actualBoundingBoxRight - actualBoundingBoxLeft`, which *subtracts* the ink
+// sitting left of the origin instead of adding it. Glyphs with a left overhang
+// therefore get a cell too narrow and are sampled down to a sliver -- in a
+// sans-serif that is exactly "J" and "j", and German data is full of them
+// ("Johann", "Jena", "Jungfernheide"). It reproduces at deck's stock SDF
+// settings as well as at any tuning of buffer/radius/fontSize, so it is their
+// atlas rather than our parameters, and there is no fixing it from out here.
+// Plain bitmap glyphs have no such problem and are exact at this size, so the
+// halo is drawn by hand instead.
+//
+// Eight directions rather than four: with four, the diagonal of a stroke shows
+// through the gap between them. The cost is eight times the glyph geometry but
+// still only one extra layer, and decluttering has already cut the labels down
+// to what fits on screen.
+const HALO_RADIUS_PX = 1.4;
+const HALO_RING: [number, number][] = [
+  [0, -1],
+  [0.7, -0.7],
+  [1, 0],
+  [0.7, 0.7],
+  [0, 1],
+  [-0.7, 0.7],
+  [-1, 0],
+  [-0.7, -0.7],
+].map(([x, y]) => [x * HALO_RADIUS_PX, y * HALO_RADIUS_PX]);
+
+interface HaloDatum {
+  position: [number, number];
+  text: string;
+  offset: [number, number];
+}
+
+/** Each label once per halo direction, so one layer draws the whole ring. */
+function haloCopies(labels: LabelDatum[], dropPx: number): HaloDatum[] {
+  const out: HaloDatum[] = [];
+  for (const [ox, oy] of HALO_RING) {
+    for (const d of labels) out.push({ ...d, offset: [ox, dropPx + oy] });
+  }
+  return out;
+}
+
+// Where an anchor lands in screen pixels, for deciding which labels overlap.
+// Only differences between two anchors matter -- a rectangle overlaps another
+// wherever the origin happens to be -- so this leaves the pan out and needs
+// nothing from the canvas.
+function toScreenPx(
+  [x, y]: [number, number],
+  geographic: boolean,
+  zoom: number
+): [number, number] {
+  const scale = 2 ** zoom;
+  // OrthographicView with flipY false: y points up, one world unit per pixel at
+  // zoom 0. Screen y grows downwards, hence the negation.
+  if (!geographic) return [x * scale, -y * scale];
+  // Web Mercator: 360 degrees of longitude span 512 * 2^zoom pixels, and
+  // latitude goes through the Mercator projection rather than a cos(lat)
+  // approximation -- it costs one log and is simply correct.
+  const world = 512 * scale;
+  return [
+    (world / 360) * x,
+    (world / (2 * Math.PI)) *
+      -Math.log(Math.tan(Math.PI / 4 + (y * Math.PI) / 360)),
+  ];
+}
 
 interface LabelDatum {
   position: [number, number];
@@ -235,6 +319,8 @@ interface Props {
   globalT0: number;
   currentTime: number;
   projection: Projection;
+  // Only the labels care: their ink and halo swap over on a light canvas.
+  theme: Theme;
   onSelect: (layerId: string | null, object: unknown) => void;
 }
 
@@ -243,6 +329,7 @@ export function MapView({
   globalT0,
   currentTime,
   projection,
+  theme,
   onSelect,
 }: Props) {
   // Apply the chosen projection to each layer's coordinates once (not per
@@ -309,6 +396,11 @@ export function MapView({
   const coordinateSystem = geographic
     ? COORDINATE_SYSTEM.LNGLAT
     : COORDINATE_SYSTEM.CARTESIAN;
+  const onLight = onLightCanvas(geographic, theme);
+  const haloColor = labelHalo(onLight);
+  // Deciding which labels overlap means putting their anchors in screen pixels,
+  // which takes the current scale (see toScreenPx).
+  const zoomLevel: number = viewState?.zoom ?? 0;
 
   const tripsById = useMemo(() => {
     const m = new Map<string, Trip[]>();
@@ -387,7 +479,58 @@ export function MapView({
   }, [layersToRender]);
   const trailLength = Math.max(combinedDuration * 0.08, 60);
 
+  // One placer for the whole frame, so labels of different layers give way to
+  // each other and not only to their own.
+  const placer = new LabelPlacer();
+
+  // Keep the labels that still find room, testing the box each one will occupy
+  // once it has been dropped below its anchor.
+  const placeLabels = (data: LabelDatum[], dropPx: number): LabelDatum[] =>
+    data.filter((d) => {
+      const [x, y] = toScreenPx(d.position, geographic, zoomLevel);
+      return placer.place(d.text, x, y + dropPx);
+    });
+
   const deckLayers = [];
+
+  // Static features, moving regions and moving points are all labelled the same
+  // way, so they all come through here: declutter, then draw the halo ring
+  // under the text.
+  const pushLabels = (
+    id: string,
+    candidates: LabelDatum[],
+    dropPx: number,
+    color: RGB
+  ) => {
+    const data = placeLabels(candidates, dropPx);
+    if (data.length === 0) return;
+    deckLayers.push(
+      new TextLayer<HaloDatum>({
+        id: `${id}-halo`,
+        data: haloCopies(data, dropPx),
+        coordinateSystem,
+        ...LABEL_TEXT,
+        getPosition: (d) => d.position,
+        getText: (d) => d.text,
+        getPixelOffset: (d) => d.offset,
+        getColor: haloColor,
+        updateTriggers: { getColor: onLight },
+      }),
+      new TextLayer<LabelDatum>({
+        id,
+        data,
+        coordinateSystem,
+        ...LABEL_TEXT,
+        // Push the text below the symbol rather than on top of it.
+        getPixelOffset: [0, dropPx],
+        getPosition: (d) => d.position,
+        getText: (d) => d.text,
+        getColor: [...labelInk(color, onLight), 255],
+        updateTriggers: { getColor: [color, onLight] },
+      })
+    );
+  };
+
   for (const layer of layersToRender) {
     const [r, g, b] = layer.style.color;
     const s = layer.style;
@@ -403,9 +546,10 @@ export function MapView({
     // box is ~4x the circle radius: the default r=4 gives a 16px box holding a
     // 13px glyph.
     const iconPx = Math.max(12, s.pointRadius * 4);
-    // How far below a symbol its label sits: a circle's extent is its radius,
-    // an icon's is half its square cell.
-    const labelDrop = (icon ? iconPx / 2 : s.pointRadius) + 8;
+    // How far below a symbol the *middle* of its label sits: a circle's extent
+    // is its radius, an icon's is half its square cell, then a gap and half a
+    // line of text.
+    const labelDrop = (icon ? iconPx / 2 : s.pointRadius) + 14;
     // Typed up front: inside a conditional spread the literal has no
     // contextual type to widen against deck's Color.
     const iconColor: [number, number, number, number] = [
@@ -462,23 +606,7 @@ export function MapView({
     // the geometry it names.
     const labels = labelsById.get(layer.id);
     if (labels) {
-      deckLayers.push(
-        new TextLayer<LabelDatum>({
-          id: `${layer.id}-labels`,
-          data: labels,
-          coordinateSystem,
-          ...LABEL_TEXT,
-          getPosition: (d) => d.position,
-          getText: (d) => d.text,
-          getColor: [...labelColor(layer.style.color), 255],
-          // Push the text below the symbol rather than on top of it.
-          getPixelOffset: [0, labelDrop],
-          updateTriggers: {
-            getColor: layer.style.color,
-            getPixelOffset: labelDrop,
-          },
-        })
-      );
+      pushLabels(`${layer.id}-labels`, labels, labelDrop, layer.style.color);
     }
 
     // Moving regions: rebuild the polygon at the current instant each frame.
@@ -529,24 +657,7 @@ export function MapView({
             const at = labelAnchor({ coordinates: p.polygon });
             if (at) texts.push({ position: at, text: String(value) });
           }
-          if (texts.length > 0) {
-            deckLayers.push(
-              new TextLayer<LabelDatum>({
-                id: `${layer.id}-mregion-labels`,
-                data: texts,
-                coordinateSystem,
-                ...LABEL_TEXT,
-                getPosition: (d) => d.position,
-                getText: (d) => d.text,
-                getColor: [...labelColor(s.color), 255],
-                getPixelOffset: [0, labelDrop],
-                updateTriggers: {
-                  getColor: s.color,
-                  getPixelOffset: labelDrop,
-                },
-              })
-            );
-          }
+          pushLabels(`${layer.id}-mregion-labels`, texts, labelDrop, s.color);
         }
       }
     }
@@ -663,24 +774,12 @@ export function MapView({
             if (value === undefined || value === null || value === "") continue;
             moving.push({ position: p.position, text: String(value) });
           }
-          if (moving.length > 0) {
-            deckLayers.push(
-              new TextLayer<LabelDatum>({
-                id: `${layer.id}-pos-labels`,
-                data: moving,
-                coordinateSystem,
-                ...LABEL_TEXT,
-                getPosition: (d) => d.position,
-                getText: (d) => d.text,
-                getColor: [...labelColor(layer.style.color), 255],
-                getPixelOffset: [0, labelDrop],
-                updateTriggers: {
-                  getColor: layer.style.color,
-                  getPixelOffset: labelDrop,
-                },
-              })
-            );
-          }
+          pushLabels(
+            `${layer.id}-pos-labels`,
+            moving,
+            labelDrop,
+            layer.style.color
+          );
         }
       }
     }
