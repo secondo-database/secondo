@@ -6,11 +6,12 @@ asyncio lock and the blocking C++ call is run in a worker thread, so a session's
 commands keep their order and a second request on the same session waits in the
 event loop instead of tying up a worker.
 
-That lock only orders *one* session, though. The client library underneath keeps
-process-wide state that a command touches (runtime flags, the global nested-list
-reference), so the native module holds a process-wide lock of its own: at most
-one SECONDO command is in flight in this process at any time, across all
-sessions. See WebUI/backend/native/secondo_native.cpp.
+The lock is per session and stays that way, because a session is stateful -- it
+has a database open, possibly a transaction -- so its commands have to keep
+their order. Sessions do not wait for each other: the client library underneath
+supports one connection per thread, so their commands run in parallel, which is
+what the server was doing anyway (it forks a process per connection). See
+WebUI/backend/native/secondo_native.cpp.
 """
 from __future__ import annotations
 
