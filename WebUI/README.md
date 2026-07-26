@@ -159,6 +159,85 @@ an explicit "none" selected, choosing one adds drawn pixels, and clearing it
 returns the canvas to exactly its previous state; for a single object the typed
 caption does the same.
 
+**Milestone 9 (table view + relation editing) — done & verified end-to-end.**
+A result that is a relation can be read as **rows and columns**, and a result
+that came from a stored relation can be **edited** — the web equivalent of the
+Java GUI's `RelViewer` and `UpdateViewer2`.
+
+- **The control belongs to the query, not to the app.** The result pane grows a
+  **tab strip** — `◱ Map` plus one closable tab per open table
+  (`table/ResultTabs.tsx`). It is not drawn at all while the map is the only tab,
+  so the map keeps that height until there is something to switch between. A
+  table is opened from the console entry that produced it (`▤ 58 rows — show as
+  table`), from the layers panel row, from the catalog's `▤` next to a relation,
+  or **automatically** — but only for a result the map cannot show at all, so a
+  spatial result never steals focus. Closing a tab puts the table away; the
+  result stays a layer.
+- **`Run ▾`** (`console/Console.tsx`) is about *how* to run, not about where the
+  answer goes: it holds **Explain — plan only**, which writes the `optimizer `
+  prefix the user otherwise has to know to type. The main button is unchanged.
+  It briefly also offered *Run and open as table* / *Run and show on map*; those
+  were removed. Declaring the destination before the answer exists is guesswork —
+  auto-opening already covers the case that matters, and "show on map" could not
+  keep its promise at all (a result with no geometry has nothing to show, so it
+  silently opened the table instead). Routing is decided once the result is
+  back, from the console entry or the layers row. *Explain* stays precisely
+  because it is the one thing that cannot be decided afterwards: it changes what
+  is sent, and a query cannot be un-run.
+- **A result that draws nothing is not a layer.** The layers panel is the map's
+  legend — visibility, draw order, colour, style — and `query ten` is a relation
+  of scalars: real rows, nothing to draw. Such a result gets a tab and a console
+  hint but no layer row and no palette slot (`isDrawable` in
+  `layers/useLayers.ts`); reordering skips past them, so the arrows never look
+  like they did nothing. A result that draws *and* has rows (e.g. `Kinos`) is
+  both a layer and a table.
+- **Reading** (`app/table.py`): `(rel (tuple ((Name Type)…)))` becomes typed
+  columns and rows. Atomic values arrive as JSON numbers/booleans/strings;
+  anything else (a point, a region, an mpoint) as its nested-list text, which is
+  what `AttributeFormatter.fromListExprToString` shows in the Java GUI. Rows and
+  cells are capped and the payload says when it capped them, so `query Trains`
+  reports a truncated table instead of pushing megabytes at the browser.
+- **Editing** (`app/updates.py`) uses the operators of
+  `Javagui/viewer/update2/CommandGenerator.java`. `✎ edit` reloads the relation
+  through `query <Rel> feed addid consume`, because the `TID` that `addid`
+  appends is what every change is addressed by — a derived result (a filter, a
+  join) has none and stays read-only. Cell edits, `+ row` and row deletions
+  accumulate as pending changes keyed by TID (so sorting and filtering the grid
+  cannot move an edit onto another tuple) until one **save** applies them as
+  `inserttuple` / `updatebyid` / `deletebyid`.
+- **Indexes are maintained with the data.** SECONDO does not keep them in step
+  by itself, so every command is wrapped in `insert/delete/updatebtree` (and the
+  rtree equivalents) for each `<Rel>_<Attr>` index found via `list objects` —
+  `CommandGenerator.retrieveIndices` does exactly this. Leaving them stale is a
+  silent wrong answer to any later query that uses one.
+- **Order and atomicity.** The batch is bracketed in a transaction (which
+  `UpdateViewer2` dropped but a browser Save needs: it is one gesture, and a
+  half-applied batch is worse than none), and runs **updates → deletes → inserts,
+  with deletes highest-TID-first**. That order is not cosmetic: a `deletebyid`
+  **renumbers the tuple identifiers after it**, so deleting 2, 5, 8 in that order
+  actually removes the 2nd, 6th and 10th tuple — verified against a live server.
+  Each `updatebyid`/`deletebyid` result count is checked against 1, so a tuple
+  another session already deleted is reported rather than silently skipped
+  (`UpdateViewerController.java:598` does the same, there being no locking).
+- **The DML commands are ordinary SOS text**, the same language the console
+  takes — `query <Rel> updatebyid[[const tid value 10]; Bev: 526000] count` — so
+  they go out through the same `Session.run` as `list objects` and need no new
+  native entry point. They were nested lists first, as the Java GUI writes them;
+  that required one, because `SecondoInterface::Secondo(text, …)` hardcodes
+  `CMD_LEVEL_TEXT` (`QueryProcessor/SecondoInterfaceGeneral.cpp:443`) and a
+  leading `(` does not switch levels — it reaches the SOS parser as a syntax
+  error. Checked against a live server, the text form handles every case the
+  list form did (a string containing `"`, `,` or `]`; a `text` holding an escaped
+  `</text--->`; `point` and `region` constants), and its assignment list
+  (`Attr: value`) is simpler than `(Attr (fun (tupleN TUPLE) value))`. The extra
+  binding bought nothing, so it is gone.
+- Verified in a headless browser (`npm run e2e -- table`) against a relation the
+  check creates and drops itself: the table opens by itself for a non-spatial
+  result, `✎ edit` brings in the TIDs, an edited cell survives a re-query, a row
+  is added and removed again, a spatial result does not steal the active tab, and
+  the console hint opens (and `✕` closes) a table for `Kinos` without disturbing
+  its map layer.
+
 ### A note on coordinates & the basemap
 
 SECONDO spatial values carry coordinates in the dataset's *own* world system
@@ -279,8 +358,12 @@ rather than dumping navigation timeouts. Screenshots land in `e2e/out/`.
 Override with `CHROMIUM=`, `WEBUI_URL=`, `WEBUI_API=`.
 
 Current checks: `animation`, `catalog-basemap`, `catalog-race`, `console`,
-`layers`, `map`, `mpoint-fit`, `mregion`, `plots`, `projection`, `remove-layer`,
-`render-modes`, `ui-polish`, `viewfit`.
+`labels`, `layer-icons`, `layer-rename`, `layers`, `map`, `mpoint-fit`,
+`mregion`, `plots`, `projection`, `remove-layer`, `render-modes`, `sql`,
+`table`, `theme`, `ui-polish`, `viewfit`.
+
+`table` writes to the database — it creates a relation, edits it and drops it
+again. It never touches the shipped berlintest objects.
 
 Real end-to-end sanity check (needs a monitor + berlintest):
 `query mehringdamm` should return `(point (9396.0 9871.0))` and draw a dot.
@@ -290,9 +373,11 @@ Real end-to-end sanity check (needs a monitor + berlintest):
 ```
 backend/
   native/        pybind11 wrapper (secondo_native.cpp, Makefile)
-  app/           FastAPI app: config, session, main,
-                 nlparser + geojson (static) + temporal (moving) + convert
-  tests/         parser / geojson / temporal / API tests + fixtures
+  app/           FastAPI app: config, session, main, catalog,
+                 nlparser + nlwriter, geojson (static) + temporal (moving)
+                 + table (rows) + updates (relation editing) + convert
+  tests/         parser / geojson / temporal / table / updates / API tests
+                 + fixtures
 frontend/
   src/api/       bridge client + types
   src/catalog/   database + object browser
@@ -302,6 +387,7 @@ frontend/
   src/map/       deck.gl MapView (Cartesian OR geographic MapLibre + OSM)
                  + projection (Berlin2WGS)
   src/plots/     PlotPanel: mreal/mint value plots as small multiples
+  src/table/     result tabs + the row grid and its pending-change model
   src/timeline/  useAnimator hook + Timeline controls
   e2e/           headless-browser checks + run.mjs (the suite runner)
 ```
@@ -398,6 +484,12 @@ leaves the view exactly where you put it. Use the `⤢` button to re-fit on dema
   binding decodes results as Latin-1 (lossless) rather than UTF-8, so names with
   umlauts (e.g. `Stölpchensee`, `UFA-Filmbühne Wien` in berlintest `Kinos` /
   `WFlaechen`) round-trip correctly instead of crashing the query.
+- **A `text` atom comes back as `'…'`, not `<text>…</text--->`.** That is what
+  `NestedList::ToString` writes, so it is what a `text` attribute looks like on
+  the way in. `nlparser` handles both forms (plus their `\'` / `\\` and
+  `\</text--->` escapes, per `Tools/NestedLists/NLLex.l`); without the short
+  form a text value was read as a bare symbol and stopped at the first space —
+  `'a </text---> b'` arrived as `'a`.
 - **Error handling:** any backend failure returns a JSON body (global exception
   handler), and the frontend parses responses defensively, so a server error can
   never surface as a raw "JSON.parse: unexpected character" in the UI.
@@ -439,8 +531,9 @@ leaves the view exactly where you put it. Use the `⤢` button to re-fit on dema
 - Additional projections beyond BerlinMOD as needed.
 - Remaining long-tail types (network/JNet, precise geometry, raster) still fall
   back to the textual nested-list view, as `DsplGeneric` does in the Java GUI.
-- Implement a regular table view that also allows updates (like the UpdateViewer
-  in the Java GUI).
+- Table view follow-ups: a load dialog for the filter/project/sort the backend
+  already accepts (`/api/table/load`), nested `nrel`/`arel` relations, and
+  linking a selected row to its geometry on the map.
 - Kernel follow-ups surfaced while wiring up SQL, all pre-existing:
   `SecondoInterfaceCS::Secondo` assigns `resolvedCmdLevel` only on its "usual
   command" branch, so after a client-intercepted `save`/`restore` it reports the

@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { runQuery } from "./api/client";
-import { Console, type Entry } from "./console/Console";
+import { loadTable, runQuery } from "./api/client";
+import { Console, type Entry, type RunIntent } from "./console/Console";
 import { Catalog } from "./catalog/Catalog";
 import { MapView } from "./map/MapView";
+import { MAP_TAB, ResultTabs } from "./table/ResultTabs";
+import { TableView } from "./table/TableView";
 import { Timeline } from "./timeline/Timeline";
 import { useAnimator } from "./timeline/useAnimator";
 import { useLayers } from "./layers/useLayers";
@@ -72,10 +74,17 @@ export function App() {
     move,
     rename,
     setStyle,
+    setTable,
     clear,
     selected,
     setSelected,
   } = useLayers();
+
+  // Which results have a table open, and which tab the pane is showing. Neither
+  // is persisted: layers do not survive a reload, so a tab pointing at one
+  // cannot either.
+  const [openTables, setOpenTables] = useState<string[]>([]);
+  const [activeTab, setActiveTab] = useState<string>(MAP_TAB);
 
   const [history, setHistory] = useState<Entry[]>([]);
   const [busy, setBusy] = useState(false);
@@ -110,22 +119,50 @@ export function App() {
     return () => window.removeEventListener("pagehide", release);
   }, []);
 
+  // Show a past result. Opening a table tab is what makes it visible; the map
+  // is always there.
+  const showResult = useCallback((layerId: string, target: "map" | "table") => {
+    if (target === "map") {
+      setActiveTab(MAP_TAB);
+      return;
+    }
+    setOpenTables((t) => (t.includes(layerId) ? t : [...t, layerId]));
+    setActiveTab(layerId);
+  }, []);
+
+  // Closing a tab only puts the table away -- the result stays a layer and its
+  // console entry opens it again.
+  const closeTable = useCallback((layerId: string) => {
+    setOpenTables((t) => t.filter((id) => id !== layerId));
+    setActiveTab((a) => (a === layerId ? MAP_TAB : a));
+  }, []);
+
   // Single command runner shared by the console and the catalog. Returns
   // whether the command succeeded so callers can refresh.
   const run = useCallback(
-    async (command: string): Promise<boolean> => {
+    async (command: string, intent?: RunIntent): Promise<boolean> => {
+      // "Explain" is the only intent that changes what is sent. The prefix is
+      // the kernel's own (stripOptimizerPrefix); the frontend just writes it.
+      const sent = intent === "explain" ? `optimizer ${command}` : command;
       setBusy(true);
       try {
-        const res = await runQuery(command);
+        const res = await runQuery(sent);
         const fc = res.geojson ?? null;
         const temp = res.temporal ?? null;
+        const tab = res.table ?? null;
+        const layerId =
+          fc || temp || tab
+            ? add(command, fc, temp, tab, res.relation ?? null)
+            : undefined;
         setHistory((h) => [
           ...h,
           {
-            command,
+            command: sent,
             result: res.text,
             hasGeometry: !!fc,
             hasMotion: !!temp,
+            layerId,
+            rowCount: tab?.rowCount,
             plan: res.plan ?? undefined,
             costs: res.costs ?? undefined,
             message: res.message ?? undefined,
@@ -133,7 +170,11 @@ export function App() {
             executedByOptimizer: res.executed_by_optimizer,
           },
         ]);
-        if (fc || temp) add(command, fc, temp);
+        // A result opens a table only when the map cannot show it at all, so a
+        // mappable result never steals focus from wherever the user is. Where a
+        // result goes is deliberately decided *after* it arrives -- from the
+        // console entry or the layers row -- rather than promised beforehand.
+        if (layerId && tab && !fc && !temp) showResult(layerId, "table");
         // The catalog refreshes on this and reports the new database state back.
         // `create table`, `drop table` and `let x = select ...` never match
         // DB_CMD: they arrive as commands the optimizer executed itself.
@@ -143,17 +184,70 @@ export function App() {
       } catch (e) {
         setHistory((h) => [
           ...h,
-          { command, error: e instanceof Error ? e.message : String(e) },
+          { command: sent, error: e instanceof Error ? e.message : String(e) },
         ]);
         return false;
       } finally {
         setBusy(false);
       }
     },
-    [add]
+    [add, showResult]
+  );
+
+  // Open a stored relation straight in the table, with its tuple identifiers --
+  // the catalog's path into editing, as the Java GUI's relation chooser is.
+  const openRelation = useCallback(
+    async (name: string): Promise<boolean> => {
+      setBusy(true);
+      try {
+        const res = await loadTable(name);
+        const layerId = add(res.command, null, null, res.table, name);
+        setHistory((h) => [
+          ...h,
+          { command: res.command, result: "", layerId, rowCount: res.table.rowCount },
+        ]);
+        showResult(layerId, "table");
+        return true;
+      } catch (e) {
+        setHistory((h) => [
+          ...h,
+          {
+            command: `table ${name}`,
+            error: e instanceof Error ? e.message : String(e),
+          },
+        ]);
+        return false;
+      } finally {
+        setBusy(false);
+      }
+    },
+    [add, showResult]
   );
 
   const visible = useMemo(() => layers.filter((l) => l.visible), [layers]);
+
+  // A removed result takes its tab with it, and the pane falls back to the map.
+  useEffect(() => {
+    const ids = new Set(layers.map((l) => l.id));
+    setOpenTables((t) =>
+      t.every((id) => ids.has(id)) ? t : t.filter((id) => ids.has(id))
+    );
+  }, [layers]);
+  useEffect(() => {
+    if (activeTab !== MAP_TAB && !openTables.includes(activeTab))
+      setActiveTab(MAP_TAB);
+  }, [openTables, activeTab]);
+
+  const tableTabs = useMemo(
+    () =>
+      openTables
+        .map((id) => layers.find((l) => l.id === id))
+        .filter((l): l is NonNullable<typeof l> => !!l)
+        .map((l) => ({ id: l.id, name: l.name, command: l.command })),
+    [openTables, layers]
+  );
+  const activeLayer =
+    activeTab === MAP_TAB ? null : layers.find((l) => l.id === activeTab) ?? null;
 
   const domain = useMemo(() => {
     let min = Infinity;
@@ -212,6 +306,7 @@ export function App() {
         ) : (
           <Catalog
             onRun={run}
+            onOpenTable={openRelation}
             refreshKey={refreshKey}
             onState={({ open, optimizer }) => {
               setOpenDb(open);
@@ -248,6 +343,7 @@ export function App() {
             setGeo((g) => ({ ...g, consoleCollapsed: !g.consoleCollapsed }))
           }
           onSubmit={run}
+          onShowResult={showResult}
         />
       </div>
 
@@ -267,6 +363,17 @@ export function App() {
       />
 
       <div className="pane map-pane">
+        <ResultTabs
+          tabs={tableTabs}
+          active={activeTab}
+          onSelect={setActiveTab}
+          onClose={closeTable}
+        />
+
+        {/* The map stays mounted behind an open table: it owns its view state
+            and its WebGL context, so covering it is what makes switching back
+            free. */}
+        <div className="result-body">
         {busy && (
           <div className="loading" role="status">
             <span className="spinner" />
@@ -315,6 +422,7 @@ export function App() {
           onRename={rename}
           onStyle={setStyle}
           onClear={clear}
+          onShowTable={(id) => showResult(id, "table")}
         />
 
         {selected && (
@@ -368,6 +476,19 @@ export function App() {
             onSpeed={setSpeed}
           />
         )}
+
+        {activeLayer?.table && (
+          // Keyed by result: switching tabs must not carry one table's edit
+          // mode, pending changes, sort or filter over to another.
+          <TableView
+            key={activeLayer.id}
+            name={activeLayer.name}
+            table={activeLayer.table}
+            relation={activeLayer.relation}
+            onTable={(t) => setTable(activeLayer.id, t)}
+          />
+        )}
+        </div>
       </div>
     </div>
   );

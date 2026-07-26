@@ -18,10 +18,26 @@ from fastapi.testclient import TestClient
 # of the server's (plan result costs) answer.
 KINOS = '((rel (tuple ((Name string) (GeoData point)))) (("Kino" (1.0 2.0))))'
 
+# A database holding one editable relation `ten` with a btree over its only
+# attribute, so the table tests exercise index maintenance too.
+OBJECTS = (
+    "(inquiry (objects (OBJECTS "
+    "(OBJECT ten () ((rel (tuple ((No int)))))) "
+    "(OBJECT ten_No () ((btree (tuple ((No int))) int))) "
+    "(OBJECT mehringdamm () ((point))) "
+    ")))"
+)
+TEN = "((rel (tuple ((No int)))) ((1) (2)))"
+TEN_WITH_TIDS = "((rel (tuple ((No int) (TID tid)))) ((1 11) (2 12)))"
+
 
 def _fake_native(optimizer: bool = True):
     """A stand-in for the pybind11 module, without a SECONDO server."""
     fake = types.ModuleType("secondo_native")
+    # Every command any connection was asked to run, so the table tests can
+    # assert on the exact SECONDO commands the bridge generates.
+    fake.commands = []
+    fake.directives = []
 
     # A deliberately crude copy of the kernel's rule -- acceptable only because
     # this is a fake; the real code calls stripOptimizerPrefix in C++.
@@ -43,20 +59,42 @@ def _fake_native(optimizer: bool = True):
 
         def optimizer_command(self, directive: str) -> str:
             self.directives.append(directive)
+            fake.directives.append(directive)
             return "ok"
 
         def secondo(self, command: str) -> str:
+            fake.commands.append(command)
             if command.strip() == "list databases":
                 return "(inquiry (databases (BERLINTEST OPT)))"
+            if command.strip() == "list objects":
+                return OBJECTS
             if command.startswith("open database"):
                 return "()"
             if command == "query mehringdamm":
                 return "(point (9396.0 9871.0))"
+            if command == "query ten":
+                return TEN
+            if command == "query ten feed addid consume":
+                return TEN_WITH_TIDS
+            if command.endswith(" transaction"):
+                return "()"
             if command == "query umlaut":
                 # names decoded from Latin-1 arrive as ordinary Python str
                 return '((rel (tuple ((Name string) (Pos point)))) (("Stölpchensee" (1.0 2.0))))'
             if command == "query boom":
                 raise ValueError("unexpected non-RuntimeError")
+            # The relation-editing commands (app/updates.py); ordinary SOS text
+            # like every other command the backend issues.
+            if command.endswith(" count") and (
+                "deletebyid[" in command or "updatebyid[" in command
+            ):
+                if "value 666]" in command:
+                    raise RuntimeError("SECONDO error 8 (pos 0): command failed")
+                # A tuple another session already deleted: the operator reports
+                # that it touched nothing.
+                return "(int 0)" if "value 777]" in command else "(int 1)"
+            if "inserttuple[" in command:
+                return "((rel (tuple ((No int) (TID tid)))) ((7 99)))"
             raise RuntimeError("SECONDO error 3 (pos 0): not evaluable")
 
         # The answers the server gives once it classifies the command itself.
@@ -111,11 +149,18 @@ def _fake_native(optimizer: bool = True):
 @pytest.fixture()
 def client(monkeypatch):
     # Stub the native module before app import so config/session load cleanly.
-    monkeypatch.setitem(sys.modules, "secondo_native", _fake_native())
+    fake = _fake_native()
+    monkeypatch.setitem(sys.modules, "secondo_native", fake)
+
+    import app.session as session_mod
 
     from app.main import app  # imported after the stub is in place
 
-    return TestClient(app)
+    monkeypatch.setattr(session_mod, "secondo_native", fake)
+    c = TestClient(app)
+    # The commands the bridge generated, for the table tests to assert on.
+    c.fake = fake
+    return c
 
 
 @pytest.fixture()
@@ -295,6 +340,164 @@ def test_sql_error_passes_the_server_message_through(client):
     # Error 33 covers four situations; only the message says which, so it is
     # forwarded verbatim rather than translated.
     assert "Unknown relation nosuchrel" in r.json()["detail"]
+
+
+# --- the table view (Milestone 9) -----------------------------------------
+
+
+def test_query_attaches_a_table_payload(client):
+    r = client.post("/api/query", json={"command": "query ten"})
+    body = r.json()
+    assert body["table"]["columns"] == [{"name": "No", "type": "int", "atomic": True}]
+    assert body["table"]["rows"] == [[1], [2]]
+    # `query ten` is exactly one stored relation, so the table can offer to edit it.
+    assert body["relation"] == "ten"
+
+
+def test_a_derived_result_names_no_relation(client):
+    """There is nothing to write a filtered or joined result back to."""
+    body = client.post("/api/query", json={"command": "select * from kinos"}).json()
+    assert body["table"] is not None  # it is still readable as rows
+    assert body["relation"] == "kinos"  # ...and this plan is a bare relation
+    body = client.post("/api/query", json={"command": "query mehringdamm"}).json()
+    assert body["table"] is None
+    assert body["relation"] is None
+
+
+def test_table_load_asks_for_tids(client):
+    r = client.post("/api/table/load", json={"relation": "ten"})
+    assert r.status_code == 200
+    body = r.json()
+    # Without `addid` there is no TID and nothing is editable.
+    assert body["command"] == "query ten feed addid consume"
+    assert body["table"]["tidIndex"] == 1
+    assert body["table"]["relation"] == "ten"
+    assert body["table"]["rows"] == [[1, 11], [2, 12]]
+
+
+def test_table_load_refuses_a_non_relation(client):
+    r = client.post("/api/table/load", json={"relation": "mehringdamm"})
+    assert r.status_code == 400
+    assert "not a relation" in r.json()["detail"]
+
+
+def test_table_load_refuses_an_unknown_object(client):
+    assert client.post("/api/table/load", json={"relation": "nosuch"}).status_code == 400
+
+
+def test_a_relation_name_is_never_pasted_into_a_command_unchecked(client):
+    """The name is concatenated into a SECONDO command, so it is validated both
+    as a name and against the catalog before anything runs."""
+    r = client.post("/api/table/load", json={"relation": "ten feed consume; kill ten"})
+    assert r.status_code == 400
+    assert not any("kill ten" in c for c in client.fake.commands)
+
+
+def test_commit_generates_the_update_delete_and_insert_commands(client):
+    client.post("/api/query", json={"command": "open database berlintest"})
+    client.fake.commands.clear()
+    r = client.post(
+        "/api/table/commit",
+        json={
+            "relation": "ten",
+            "updates": [{"tid": 11, "values": {"No": "42"}}],
+            "deletes": [12],
+            "inserts": [{"values": {"No": "7"}}],
+        },
+    )
+    assert r.status_code == 200
+    assert r.json()["applied"] == 3
+    # The TID the server assigned to the new tuple comes back.
+    assert r.json()["inserted"] == [99]
+
+    dml = [c for c in client.fake.commands if "byid[" in c or "inserttuple[" in c]
+    # Updates, then deletes, then inserts -- inserts last so their new TIDs are
+    # assigned against a settled relation. Every command maintains the btree.
+    assert dml == [
+        "query ten updatebyid[[const tid value 11]; No: 42]"
+        " ten_No updatebtree[No] count",
+        "query ten deletebyid[[const tid value 12]] ten_No deletebtree[No] count",
+        "query ten inserttuple[7] ten_No insertbtree[No] consume",
+    ]
+
+
+def test_deletes_run_highest_identifier_first(client):
+    """A `deletebyid` shifts the identifiers of the tuples after it, so deleting
+    2, 5, 8 in that order removes the 2nd, 6th and 10th tuple. Verified against a
+    live server; descending order is what makes a multi-row delete correct."""
+    client.fake.commands.clear()
+    client.post("/api/table/commit", json={"relation": "ten", "deletes": [2, 8, 5]})
+    tids = [
+        int(c.split("value ")[1].split("]")[0])
+        for c in client.fake.commands
+        if "deletebyid[" in c
+    ]
+    assert tids == [8, 5, 2]
+
+
+def test_commit_brackets_the_batch_in_a_transaction(client):
+    client.fake.commands.clear()
+    client.post(
+        "/api/table/commit",
+        json={"relation": "ten", "deletes": [12]},
+    )
+    assert "begin transaction" in client.fake.commands
+    assert "commit transaction" in client.fake.commands
+    assert client.fake.commands.index("begin transaction") < client.fake.commands.index(
+        "commit transaction"
+    )
+
+
+def test_commit_tells_the_optimizer_the_relation_changed(client):
+    client.fake.directives.clear()
+    client.post("/api/table/commit", json={"relation": "ten", "deletes": [12]})
+    assert "updateRel(ten)" in client.fake.directives
+
+
+def test_commit_rejects_a_bad_value_before_running_anything(client):
+    client.fake.commands.clear()
+    r = client.post(
+        "/api/table/commit",
+        json={"relation": "ten", "updates": [{"tid": 11, "values": {"No": "twelve"}}]},
+    )
+    assert r.status_code == 400
+    assert "No (int)" in r.json()["detail"]
+    assert not any(c.startswith("(query") for c in client.fake.commands)
+
+
+def test_a_failing_command_aborts_the_whole_batch(client):
+    client.fake.commands.clear()
+    r = client.post(
+        "/api/table/commit",
+        json={"relation": "ten", "deletes": [12, 666, 13]},
+    )
+    assert r.status_code == 400
+    assert "no change was applied" in r.json()["detail"]
+    assert "abort transaction" in client.fake.commands
+    assert "commit transaction" not in client.fake.commands
+    # The command after the failing one never ran.
+    assert not any("(tid 13)" in c for c in client.fake.commands)
+
+
+def test_a_tuple_deleted_by_someone_else_is_reported(client):
+    """UpdateViewer2 has no locking either; it checks the operator's count."""
+    r = client.post("/api/table/commit", json={"relation": "ten", "deletes": [777]})
+    assert r.status_code == 400
+    assert "no longer exists" in r.json()["detail"]
+
+
+def test_an_empty_commit_runs_nothing(client):
+    client.fake.commands.clear()
+    r = client.post("/api/table/commit", json={"relation": "ten"})
+    assert r.status_code == 200
+    assert r.json()["applied"] == 0
+    assert not any(c.startswith("(") for c in client.fake.commands)
+
+
+def test_catalog_marks_which_objects_are_editable_relations(client):
+    objs = {o["name"]: o for o in client.get("/api/objects").json()["objects"]}
+    assert objs["ten"]["relation"] is True
+    assert objs["mehringdamm"]["relation"] is False
 
 
 # --- a server without the optimizer ---------------------------------------

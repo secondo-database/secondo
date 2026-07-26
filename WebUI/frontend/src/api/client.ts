@@ -40,6 +40,31 @@ export interface TemporalPayload {
   bbox: [number, number, number, number] | null;
 }
 
+/** One attribute of a relation. `atomic` types are editable with a plain input;
+ *  everything else takes raw nested-list syntax, as it does in the Java GUI. */
+export interface TableColumn {
+  name: string;
+  type: string;
+  atomic: boolean;
+}
+
+/** A relation result as rows and columns. */
+export interface TablePayload {
+  columns: TableColumn[];
+  /** Cell values in column order: numbers/booleans/strings for atomic types,
+   *  nested-list text for everything else, null for undefined. */
+  rows: (string | number | boolean | null)[][];
+  rowCount: number;
+  /** The server capped the rows; `totalRows` says how many there were. */
+  truncated: boolean;
+  totalRows: number;
+  /** Which column holds the tuple identifier, or null when the result was not
+   *  loaded with `addid` -- i.e. when it cannot be edited. */
+  tidIndex: number | null;
+  /** The stored relation this table writes back to, once loaded for editing. */
+  relation: string | null;
+}
+
 export interface FeatureCollection {
   type: "FeatureCollection";
   features: unknown[];
@@ -50,6 +75,10 @@ export interface QueryResponse {
   text: string;
   geojson: FeatureCollection | null;
   temporal: TemporalPayload | null;
+  table: TablePayload | null;
+  // The stored relation this result came from, when the server could name one
+  // without guessing. Only a hint for offering the table's Edit button.
+  relation?: string | null;
   // Optimizer fields; absent for an ordinary kernel command. The server decides
   // which language a command is in and reports the level it resolved it to:
   // 2 = SQL (plan + costs), 3 = an optimizer directive (message).
@@ -131,6 +160,35 @@ export interface CatalogObject {
   name: string;
   type: string;
   kind: "spatial" | "temporal" | "other";
+  // A flat relation -- the only thing the table view can open and edit.
+  relation: boolean;
+}
+
+/** Reload a stored relation *with* its tuple identifiers, which is what makes a
+ *  table editable (`query <Rel> feed ... addid consume`). */
+export function loadTable(
+  relation: string,
+  opts: { filters?: string[]; project?: string[]; sort?: string[] } = {}
+): Promise<{ table: TablePayload; command: string }> {
+  return post("/api/table/load", { relation, ...opts });
+}
+
+export interface TableEdits {
+  relation: string;
+  /** Only the changed attributes, per tuple identifier. */
+  updates: { tid: number; values: Record<string, string> }[];
+  deletes: number[];
+  /** Every non-TID attribute, per new tuple. */
+  inserts: { values: Record<string, string> }[];
+}
+
+/** Apply a batch of edits. The whole batch succeeds or none of it does. */
+export function commitTable(edits: TableEdits): Promise<{
+  applied: number;
+  inserted: number[];
+  transactional: boolean;
+}> {
+  return post("/api/table/commit", edits);
 }
 
 export async function listObjects(): Promise<{

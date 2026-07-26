@@ -72,11 +72,14 @@ def test_relation_of_mpoint():
     assert payload["trips"][0]["properties"]["_attr"] == "Trip"
 
 
-def test_convert_returns_both_channels_independently():
-    geo, temp = convert("(point (1.0 2.0))")
-    assert geo is not None and temp is None
-    geo, temp = convert(MPOINT)
-    assert geo is None and temp is not None
+def test_convert_returns_every_channel_independently():
+    geo, temp, tab = convert("(point (1.0 2.0))")
+    assert geo is not None and temp is None and tab is None
+    geo, temp, tab = convert(MPOINT)
+    assert geo is None and temp is not None and tab is None
+    # A relation of scalars has no geometry and no motion -- only rows.
+    geo, temp, tab = convert("((rel (tuple ((No int)))) ((1)))")
+    assert geo is None and temp is None and tab is not None
 
 
 # --- moving regions (Milestone 6) ------------------------------------------

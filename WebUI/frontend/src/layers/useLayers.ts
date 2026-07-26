@@ -1,5 +1,9 @@
 import { useCallback, useRef, useState } from "react";
-import type { FeatureCollection, TemporalPayload } from "../api/client";
+import type {
+  FeatureCollection,
+  TablePayload,
+  TemporalPayload,
+} from "../api/client";
 import type { IconName } from "./icons";
 
 export type RGB = [number, number, number];
@@ -32,6 +36,12 @@ export interface Layer {
   command: string;
   geojson: FeatureCollection | null;
   temporal: TemporalPayload | null;
+  // Rows, for a result that is a relation. A layer can carry only this (a
+  // relation of scalars draws nothing), only geometry, or both.
+  table: TablePayload | null;
+  // The stored relation the rows can be written back to, if the server could
+  // name one. Null for a derived result -- it is read-only.
+  relation: string | null;
   visible: boolean;
   style: LayerStyle;
 }
@@ -62,6 +72,17 @@ const PALETTE: RGB[] = [
   [217, 89, 38], //   orange #d95926
 ];
 
+/**
+ * Whether a result puts anything on the map or the timeline -- geometry, moving
+ * objects, or a value plot. `query ten` is a relation of scalars: it is a real
+ * result with rows, but it draws nothing, so it does not belong in the layers
+ * panel (which is the map's legend) and gets no colour, style or draw order.
+ * Its table is reached from the console entry that produced it.
+ */
+export function isDrawable(layer: Layer): boolean {
+  return !!layer.geojson || !!layer.temporal;
+}
+
 function deriveName(command: string): string {
   const s = command.replace(/^\s*query\s+/i, "").trim();
   return s.length > 30 ? s.slice(0, 30) + "…" : s;
@@ -72,22 +93,30 @@ export function useLayers() {
   const [selected, setSelected] = useState<Selection | null>(null);
   const idRef = useRef(0);
 
+  // Returns the new layer's id: the console entry links to it, and the result
+  // pane may need to open its table tab.
   const add = useCallback(
     (
       command: string,
       geojson: FeatureCollection | null,
-      temporal: TemporalPayload | null
-    ) => {
+      temporal: TemporalPayload | null,
+      table: TablePayload | null = null,
+      relation: string | null = null
+    ): string => {
       idRef.current += 1;
       const id = `layer${idRef.current}`;
       setLayers((prev) => {
-        const color = PALETTE[prev.length % PALETTE.length];
+        // Only results that draw consume a palette slot, so a run of table-only
+        // queries does not silently walk the colours forward.
+        const color = PALETTE[prev.filter(isDrawable).length % PALETTE.length];
         const layer: Layer = {
           id,
           name: deriveName(command),
           command,
           geojson,
           temporal,
+          table,
+          relation,
           visible: true,
           style: {
             color,
@@ -105,9 +134,21 @@ export function useLayers() {
         };
         return [...prev, layer];
       });
+      return id;
     },
     []
   );
+
+  // Replace a result's rows -- after it is reloaded with tuple identifiers for
+  // editing, or after a commit. `relation` follows, since loading for editing is
+  // what establishes which relation the rows belong to.
+  const setTable = useCallback((id: string, table: TablePayload) => {
+    setLayers((prev) =>
+      prev.map((l) =>
+        l.id === id ? { ...l, table, relation: table.relation ?? l.relation } : l
+      )
+    );
+  }, []);
 
   const remove = useCallback((id: string) => {
     setLayers((prev) => prev.filter((l) => l.id !== id));
@@ -120,12 +161,16 @@ export function useLayers() {
     );
   }, []);
 
-  // Move a layer up (toward the top of the draw order) or down.
+  // Move a layer up (toward the top of the draw order) or down. It swaps with
+  // the nearest *drawable* neighbour, skipping table-only results: those are not
+  // listed in the panel, so swapping with one would look like nothing happened.
   const move = useCallback((id: string, dir: "up" | "down") => {
     setLayers((prev) => {
       const i = prev.findIndex((l) => l.id === id);
       if (i < 0) return prev;
-      const j = dir === "up" ? i + 1 : i - 1; // higher index = drawn on top
+      const step = dir === "up" ? 1 : -1; // higher index = drawn on top
+      let j = i + step;
+      while (j >= 0 && j < prev.length && !isDrawable(prev[j])) j += step;
       if (j < 0 || j >= prev.length) return prev;
       const next = [...prev];
       [next[i], next[j]] = [next[j], next[i]];
@@ -166,6 +211,7 @@ export function useLayers() {
     move,
     rename,
     setStyle,
+    setTable,
     clear,
     selected,
     setSelected,

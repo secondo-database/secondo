@@ -70,15 +70,28 @@ class Session:
     async def run(self, command: str) -> str:
         """Execute one kernel command; returns the result nested list as text.
 
-        The level is derived from the command text, so this never reaches the
+        The command goes out at kernel level, so this never reaches the
         optimizer. It is the path for commands the backend issues itself
-        (`list databases`, `list objects`); what the user types goes through
-        `execute`.
+        (`list databases`, `list objects`, and the relation-editing commands in
+        app/updates.py); what the user types goes through `execute`.
         """
         async with self.lock:
             self.touch()
             try:
                 return await asyncio.to_thread(self.conn.secondo, command)
+            finally:
+                self.touch()
+
+    async def directive(self, goal: str) -> str:
+        """Run one optimizer directive (a Prolog goal) on this session.
+
+        Same serialization as `run`; used for the catalog/statistics nudges the
+        backend sends after changing objects, which the JavaGUI sends too.
+        """
+        async with self.lock:
+            self.touch()
+            try:
+                return await asyncio.to_thread(self.conn.optimizer_command, goal)
             finally:
                 self.touch()
 

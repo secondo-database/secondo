@@ -2,12 +2,25 @@ import { useEffect, useRef, useState } from "react";
 import type { Theme } from "../theme";
 import { loadCommands, saveCommands } from "./history";
 
+/** What a one-shot Run menu item asks for; `undefined` is a plain Run.
+ *
+ *  Only "explain" remains. The menu is about *how to run*, not about where the
+ *  result goes: routing is better decided once the answer is back, which is why
+ *  it lives on the console entry and the layers row instead. ("Run and show on
+ *  map" could not even keep its promise -- for a result with no geometry there
+ *  is nothing to show, so it silently opened the table instead.) */
+export type RunIntent = "explain";
+
 export interface Entry {
   command: string;
   result?: string;
   error?: string;
   hasGeometry?: boolean;
   hasMotion?: boolean;
+  // The result this entry produced, so its hints can bring it back up.
+  layerId?: string;
+  // Rows, when the result was a relation.
+  rowCount?: number;
   // The executable plan the optimizer generated for an SQL command, and what it
   // thinks that plan costs.
   plan?: string;
@@ -31,7 +44,9 @@ interface Props {
   onToggleCollapse: () => void;
   onToggleTheme: () => void;
   onClearHistory: () => void;
-  onSubmit: (command: string) => Promise<boolean | void>;
+  onSubmit: (command: string, intent?: RunIntent) => Promise<boolean | void>;
+  /** Bring a past result back up in the result pane. */
+  onShowResult: (layerId: string, target: "map" | "table") => void;
 }
 
 export function Console({
@@ -45,13 +60,16 @@ export function Console({
   onToggleTheme,
   onClearHistory,
   onSubmit,
+  onShowResult,
 }: Props) {
   const [command, setCommand] = useState("");
   // What ↑/↓ walks through, seeded with what earlier sessions typed.
   const [commands, setCommands] = useState<string[]>(loadCommands);
   const [histIndex, setHistIndex] = useState(-1);
+  const [menuOpen, setMenuOpen] = useState(false);
   const bottom = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const runRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     bottom.current?.scrollIntoView({ behavior: "smooth" });
@@ -83,6 +101,23 @@ export function Console({
   useEffect(() => {
     saveCommands(commands);
   }, [commands]);
+
+  // The Run menu closes on Esc and on a click anywhere else, as a menu should.
+  useEffect(() => {
+    if (!menuOpen) return;
+    const close = (e: MouseEvent) => {
+      if (!runRef.current?.contains(e.target as Node)) setMenuOpen(false);
+    };
+    const onEsc = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setMenuOpen(false);
+    };
+    window.addEventListener("mousedown", close);
+    window.addEventListener("keydown", onEsc);
+    return () => {
+      window.removeEventListener("mousedown", close);
+      window.removeEventListener("keydown", onEsc);
+    };
+  }, [menuOpen]);
 
   // Empty the log and forget the recalled commands; the effect above writes the
   // empty list through, which is what clears them in storage too.
@@ -135,18 +170,19 @@ export function Console({
     }
   }
 
-  async function submit(cmd: string) {
+  async function submit(cmd: string, intent?: RunIntent) {
     const trimmed = cmd.trim();
     if (!trimmed || busy) return;
     setCommand("");
     setHistIndex(-1);
+    setMenuOpen(false);
     // Recall keeps the query as it was written -- the line breaks are what make
     // a long one readable -- while the server and the log see a single line.
     // Only the breaks and the indentation around them go: spacing inside a line
     // is left alone, since it may be inside a string literal the query compares
     // against.
     setCommands((c) => (c[c.length - 1] === trimmed ? c : [...c, trimmed]));
-    await onSubmit(trimmed.replace(/\s*\n\s*/g, " "));
+    await onSubmit(trimmed.replace(/\s*\n\s*/g, " "), intent);
     inputRef.current?.focus();
   }
 
@@ -211,8 +247,30 @@ export function Console({
                 Executed by the optimizer (no plan to run).
               </div>
             )}
-            {e.hasGeometry && <div className="geohint">▸ rendered on map</div>}
-            {e.hasMotion && <div className="geohint">▸ animated on timeline</div>}
+            {/* The hints are the way back to a result: this is where the query
+                was typed, so this is where you decide what to look at. */}
+            {(e.hasGeometry || e.hasMotion || e.rowCount !== undefined) && (
+              <div className="geohint">
+                {e.hasGeometry && (
+                  <button onClick={() => e.layerId && onShowResult(e.layerId, "map")}>
+                    ▸ rendered on map
+                  </button>
+                )}
+                {e.hasMotion && (
+                  <button onClick={() => e.layerId && onShowResult(e.layerId, "map")}>
+                    ▸ animated on timeline
+                  </button>
+                )}
+                {e.rowCount !== undefined && (
+                  <button
+                    onClick={() => e.layerId && onShowResult(e.layerId, "table")}
+                    title="Open this result as a table"
+                  >
+                    ▤ {e.rowCount} {e.rowCount === 1 ? "row" : "rows"} — show as table
+                  </button>
+                )}
+              </div>
+            )}
             {/* An optimizer directive prints its own text and has no result;
                 showOptions lays it out with leading whitespace, which is why
                 it is not trimmed anywhere along the way. */}
@@ -251,9 +309,40 @@ export function Console({
           onChange={(e) => setCommand(e.target.value)}
           onKeyDown={onKeyDown}
         />
-        <button type="submit" disabled={busy}>
-          {busy ? "…" : "Run"}
-        </button>
+        {/* A split button: `Run` is unchanged, and the menu holds the ways of
+            running that are not plain execution. Nothing here is remembered. */}
+        <div className="run-split" ref={runRef}>
+          <button type="submit" className="run-go" disabled={busy}>
+            {busy ? "…" : "Run"}
+          </button>
+          <button
+            type="button"
+            className="run-more"
+            disabled={busy}
+            aria-haspopup="menu"
+            aria-expanded={menuOpen}
+            title="Other ways to run this"
+            onClick={() => setMenuOpen((o) => !o)}
+          >
+            ▾
+          </button>
+          {menuOpen && (
+            <div className="run-menu" role="menu">
+              <button
+                role="menuitem"
+                disabled={optimizer === false}
+                title={
+                  optimizer === false
+                    ? "This server runs without the optimizer"
+                    : "Optimize the query but do not run it"
+                }
+                onClick={() => void submit(command, "explain")}
+              >
+                <span className="run-ic">≡</span> Explain — plan only
+              </button>
+            </div>
+          )}
+        </div>
       </form>
     </div>
   );

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { Layer, LayerStyle, RGB, TemporalMode } from "./useLayers";
+import { isDrawable, type Layer, type LayerStyle, type RGB, type TemporalMode } from "./useLayers";
 import { downloadGeoJSON } from "./exportGeoJSON";
 import { labelCandidates } from "./labels";
 import { ICON_NAMES, iconPathData, type IconName } from "./icons";
@@ -58,6 +58,9 @@ interface Props {
   onRename: (id: string, name: string) => void;
   onStyle: (id: string, patch: Partial<LayerStyle>) => void;
   onClear: () => void;
+  // Open this result's rows in the table view. Only offered for a layer that
+  // has rows -- a single object such as `query train7` is not a relation.
+  onShowTable: (id: string) => void;
 }
 
 export function LayersPanel({
@@ -68,14 +71,20 @@ export function LayersPanel({
   onRename,
   onStyle,
   onClear,
+  onShowTable,
 }: Props) {
   const [expanded, setExpanded] = useState<string | null>(null);
   const [collapsed, setCollapsed] = useState(false);
 
-  if (layers.length === 0) return null;
+  // This panel is the map's legend: visibility, draw order, colour and style.
+  // A result that draws nothing (a relation of scalars, e.g. `query ten`) has
+  // none of those, so it is not listed here -- its table is opened from the
+  // console entry that produced it. `onClear` still clears everything.
+  const drawn = layers.filter(isDrawable);
+  if (drawn.length === 0) return null;
 
   // Show topmost draw layer first.
-  const ordered = [...layers].reverse();
+  const ordered = [...drawn].reverse();
 
   return (
     <div className="layers-panel">
@@ -88,7 +97,7 @@ export function LayersPanel({
         >
           <span className="lp-chevron">{collapsed ? "▸" : "▾"}</span>
           Layers
-          <span className="lp-count">{layers.length}</span>
+          <span className="lp-count">{drawn.length}</span>
         </button>
         <span className={"lp-actions" + (collapsed ? " lp-hidden" : "")}>
           <button
@@ -130,6 +139,15 @@ export function LayersPanel({
                   {layer.name}
                   {layer.temporal ? " ◷" : ""}
                 </button>
+                {layer.table && (
+                  <button
+                    className="lp-mini"
+                    onClick={() => onShowTable(layer.id)}
+                    title={`Show ${layer.table.rowCount} rows as a table`}
+                  >
+                    ▤
+                  </button>
+                )}
                 <button
                   className="lp-mini"
                   disabled={isTop}

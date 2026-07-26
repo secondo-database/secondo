@@ -143,13 +143,14 @@ class Connection
 
   ~Connection() { close(); }
 
-  // Run one SECONDO command at the level derived from its text (nested list or
-  // SOS text) and return the result nested list as text. Raises RuntimeError on
-  // a SECONDO error (non-zero error code).
+  // Run one SECONDO command in SOS text syntax and return the result nested
+  // list as text. Raises RuntimeError on a SECONDO error (non-zero error
+  // code).
   //
-  // This is the path for commands the *backend* issues itself ("list
-  // databases", "list objects"): they are kernel commands and must never
-  // involve the optimizer. What the user types goes through secondo_auto.
+  // This is the path for commands the *backend* issues itself ("list objects",
+  // and the relation-editing commands in app/updates.py): they are kernel
+  // commands and must never involve the optimizer. What the user types goes
+  // through secondo_auto.
   py::str secondo(const std::string& command)
   {
     if (!si) {

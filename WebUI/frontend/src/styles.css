@@ -262,6 +262,27 @@ body.dragging {
   overflow-y: auto;
 }
 
+/* Row = "query it" plus, for a relation, "open it as a table". */
+.cat-objs li {
+  display: flex;
+  align-items: center;
+}
+
+.cat-table {
+  background: none;
+  border: none;
+  color: var(--faint);
+  cursor: pointer;
+  padding: 0.22rem 0.3rem;
+  border-radius: 4px;
+  font-size: 0.76rem;
+}
+
+.cat-table:hover {
+  background: var(--surface);
+  color: var(--accent);
+}
+
 .cat-obj {
   display: flex;
   align-items: center;
@@ -314,8 +335,19 @@ body.dragging {
   position: relative;
 }
 
+/* The result pane: an optional tab strip, then the body. The body is the
+   positioning context every overlay (map controls, layers panel, timeline, the
+   table) is placed in, so the strip pushes all of them down together. */
 .map-pane {
   background: var(--bg-deep);
+  display: flex;
+  flex-direction: column;
+}
+
+.result-body {
+  position: relative;
+  flex: 1;
+  min-height: 0;
 }
 
 .mapview {
@@ -434,10 +466,29 @@ body.dragging {
   gap: 0.35rem;
 }
 
+/* The hints are how you get a past result back on screen, so they are buttons
+   that still read as the quiet annotations they were. */
 .geohint {
   color: var(--teal);
   font-size: 0.75rem;
   margin-bottom: 0.2rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.geohint button {
+  background: none;
+  border: none;
+  padding: 0;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  border-bottom: 1px solid transparent;
+}
+
+.geohint button:hover {
+  border-bottom-color: currentColor;
 }
 
 .layers-panel {
@@ -975,4 +1026,342 @@ pre.plan {
 .input button:disabled {
   opacity: 0.5;
   cursor: default;
+}
+
+/* Run, plus a menu of one-shot verbs. Nothing in the menu is remembered, so it
+   never becomes a mode the user has to keep in mind. */
+.run-split {
+  position: relative;
+  display: flex;
+}
+
+/* The two halves meet in a flat seam and round only on their outer edge.
+   Both selectors have to out-rank `.input button` (0-1-1), which sets a full
+   6px radius -- a bare `.run-more` (0-1-0) loses to it and the arrow half keeps
+   all four corners. */
+.run-split > button.run-go {
+  border-radius: 6px 0 0 6px;
+}
+
+.run-split > button.run-more {
+  border-radius: 0 6px 6px 0;
+  padding: 0.55rem 0.5rem;
+  /* A hairline seam rather than a gap, so the pair still reads as one control. */
+  border-left: 1px solid rgba(255, 255, 255, 0.3);
+  font-size: 0.7rem;
+}
+
+.run-menu {
+  position: absolute;
+  bottom: calc(100% + 0.35rem);
+  right: 0;
+  z-index: 10;
+  min-width: 13rem;
+  display: flex;
+  flex-direction: column;
+  padding: 0.25rem;
+  gap: 0.1rem;
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+
+/* Menu items are plain rows, not more accent-filled buttons. Same specificity
+   as `.input button` but later in the file, so these win the tie. */
+.run-menu button {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  background: none;
+  color: var(--text);
+  text-align: left;
+  padding: 0.4rem 0.55rem;
+  border-radius: 5px;
+  font-size: 0.78rem;
+}
+
+/* The glyphs have very different advance widths, so they get a column of their
+   own; otherwise the labels start at three different x positions. */
+.run-ic {
+  flex: 0 0 1.1rem;
+  text-align: center;
+  color: var(--muted);
+}
+
+.run-menu button:hover:not(:disabled) {
+  background: var(--raised);
+}
+
+/* --- result tabs ------------------------------------------------------- */
+
+/* Only rendered once a table is open (ResultTabs returns null otherwise), so
+   the map keeps this height until there is something to switch between. */
+.result-tabs {
+  display: flex;
+  align-items: stretch;
+  gap: 1px;
+  padding: 0 0.4rem;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.rt-tab {
+  display: flex;
+  align-items: center;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--muted);
+  font-size: 0.76rem;
+  padding: 0.35rem 0.2rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.rt-tab:hover {
+  color: var(--text);
+}
+
+.rt-tab.active {
+  color: var(--text);
+  border-bottom-color: var(--accent);
+}
+
+.rt-label,
+.rt-close {
+  background: none;
+  border: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  padding: 0.35rem 0.3rem;
+  max-width: 14rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rt-close {
+  color: var(--faint);
+  padding: 0.35rem 0.35rem;
+}
+
+.rt-close:hover {
+  color: var(--err);
+}
+
+/* --- table view -------------------------------------------------------- */
+
+/* Drawn over the map rather than replacing it: the map owns its view state and
+   its WebGL context, and covering it is what makes switching back free. */
+.tableview {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+}
+
+.tv-head {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.45rem 0.6rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.tv-name {
+  font-size: 0.85rem;
+  max-width: 18rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tv-count {
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+.tv-warn {
+  color: var(--temporal);
+  font-size: 0.7rem;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  padding: 0 0.4rem;
+}
+
+.tv-filter {
+  margin-left: auto;
+  width: 12rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 6px;
+  padding: 0.3rem 0.5rem;
+  font-size: 0.76rem;
+}
+
+.tv-save {
+  border-color: var(--accent) !important;
+  color: var(--accent) !important;
+}
+
+.tv-pending,
+.tv-error {
+  padding: 0.35rem 0.6rem;
+  font-size: 0.75rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.tv-pending {
+  color: var(--temporal);
+  background: color-mix(in srgb, var(--temporal) 10%, transparent);
+}
+
+.tv-error {
+  color: var(--err-text);
+  background: color-mix(in srgb, var(--err) 12%, transparent);
+}
+
+.tv-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+.tv-grid {
+  border-collapse: separate;
+  border-spacing: 0;
+  width: 100%;
+  font-size: 0.78rem;
+}
+
+.tv-grid th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border-strong);
+  text-align: left;
+  padding: 0.4rem 0.55rem;
+  cursor: pointer;
+  white-space: nowrap;
+  user-select: none;
+}
+
+.tv-grid th:hover {
+  color: var(--accent);
+}
+
+.tv-grid th.num,
+.tv-grid td.num {
+  text-align: right;
+}
+
+/* The attribute's SECONDO type, next to its name: it is what decides whether a
+   cell takes a plain value or nested-list syntax. */
+.tv-type {
+  color: var(--faint);
+  font-weight: 400;
+  font-size: 0.66rem;
+  margin-left: 0.4rem;
+}
+
+.tv-sort {
+  color: var(--accent);
+  font-size: 0.6rem;
+  margin-left: 0.3rem;
+}
+
+.tv-grid td {
+  padding: 0.3rem 0.55rem;
+  border-bottom: 1px solid var(--border);
+  max-width: 26rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tv-grid tbody tr:nth-child(even) {
+  background: var(--surface-2);
+}
+
+.tv-grid tbody tr:hover {
+  background: var(--surface);
+}
+
+.tv-grid td.mono {
+  font-family: ui-monospace, Menlo, monospace;
+  color: var(--text-2);
+  font-size: 0.72rem;
+}
+
+.tv-null {
+  color: var(--faint);
+}
+
+.tv-grid td input[type="text"],
+.tv-grid td select {
+  width: 100%;
+  background: var(--bg-deep);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text);
+  font: inherit;
+  padding: 0.15rem 0.3rem;
+}
+
+.tv-grid td.num input[type="text"] {
+  text-align: right;
+}
+
+.tv-grid td.mono input[type="text"] {
+  font-family: ui-monospace, Menlo, monospace;
+}
+
+/* A cell with a pending change, marked so an edit is visible before saving. */
+.tv-grid td.tv-changed input[type="text"],
+.tv-grid td.tv-changed select {
+  border-color: var(--temporal);
+  box-shadow: inset 2px 0 0 var(--temporal);
+}
+
+.tv-grid tr.tv-deleted td {
+  opacity: 0.45;
+  text-decoration: line-through;
+}
+
+.tv-grid tr.tv-new td {
+  background: color-mix(in srgb, var(--ok) 10%, transparent);
+}
+
+.tv-gutter {
+  width: 1.8rem;
+  padding: 0 !important;
+  text-align: center;
+}
+
+.tv-rowbtn {
+  background: none;
+  border: none;
+  color: var(--faint);
+  cursor: pointer;
+  padding: 0.2rem 0.3rem;
+  font-size: 0.7rem;
+}
+
+.tv-rowbtn:hover {
+  color: var(--err);
+}
+
+.tv-empty {
+  padding: 1.5rem;
+  text-align: center;
+  color: var(--faint);
+  font-size: 0.8rem;
 }

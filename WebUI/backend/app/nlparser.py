@@ -19,6 +19,7 @@ Atoms are returned as native Python values:
 * TRUE/FALSE -> bool
 * "..."   -> str        (quoted string; quotes stripped)
 * <text>...</text---> -> str
+* '...'   -> str        (the short form ``ToString`` actually emits for text)
 * symbol  -> str        (e.g. type names like ``point``)
 
 Quoted strings and symbols both become ``str``; the distinction never matters
@@ -76,6 +77,13 @@ def parse(text: str) -> Node:
             return parse_string()
         if text.startswith(_TEXT_OPEN, pos):
             return parse_text_atom()
+        if c == "'":
+            # `NestedList::ToString` writes a text atom in the short form
+            # `'...'`, not as `<text>...</text--->` -- so this is what a `text`
+            # attribute actually looks like coming back from the server. A
+            # symbol can never contain a quote (NLLex.l's `otherChar` excludes
+            # it), so a leading one is unambiguous.
+            return parse_simple_text()
         return parse_atom()
 
     def parse_list() -> list:
@@ -92,25 +100,60 @@ def parse(text: str) -> Node:
             items.append(parse_item())
 
     def parse_string() -> str:
+        # The kernel's lexer (Tools/NestedLists/NLLex.l:222) accepts `\"` inside
+        # a string atom and unescapes `\"` -> `"` and `\\` -> `\`, so a value
+        # containing a quote must not be taken to end the atom.
         nonlocal pos
         pos += 1  # consume opening quote
-        start = pos
+        out: list[str] = []
         while pos < n and text[pos] != '"':
+            if text[pos] == "\\" and pos + 1 < n and text[pos + 1] in '\\"':
+                out.append(text[pos + 1])
+                pos += 2
+                continue
+            out.append(text[pos])
             pos += 1
-        s = text[start:pos]
         pos += 1  # consume closing quote
-        return s
+        return "".join(out)
 
     def parse_text_atom() -> str:
+        # Likewise NLLex.l:170-178: `\</text--->` is the literal close tag and
+        # `\\` a backslash, so neither ends the atom early.
         nonlocal pos
-        start = pos + len(_TEXT_OPEN)
-        end = text.find(_TEXT_CLOSE, start)
-        if end == -1:
-            end = n
-            pos = n
-        else:
-            pos = end + len(_TEXT_CLOSE)
-        return text[start:end]
+        pos += len(_TEXT_OPEN)
+        out: list[str] = []
+        while pos < n:
+            if text.startswith(_TEXT_CLOSE, pos):
+                pos += len(_TEXT_CLOSE)
+                return "".join(out)
+            if text[pos] == "\\":
+                if text.startswith(_TEXT_CLOSE, pos + 1):
+                    out.append(_TEXT_CLOSE)
+                    pos += 1 + len(_TEXT_CLOSE)
+                    continue
+                if pos + 1 < n and text[pos + 1] == "\\":
+                    out.append("\\")
+                    pos += 2
+                    continue
+            out.append(text[pos])
+            pos += 1
+        return "".join(out)  # unterminated: take what there is
+
+    def parse_simple_text() -> str:
+        # NLLex.l:190-212 (state TEXTSIMPLE): `\'` is a literal quote, `\\` a
+        # backslash, and an unescaped `'` ends the atom.
+        nonlocal pos
+        pos += 1  # consume the opening quote
+        out: list[str] = []
+        while pos < n and text[pos] != "'":
+            if text[pos] == "\\" and pos + 1 < n and text[pos + 1] in "\\'":
+                out.append(text[pos + 1])
+                pos += 2
+                continue
+            out.append(text[pos])
+            pos += 1
+        pos += 1  # consume the closing quote
+        return "".join(out)
 
     def parse_atom() -> Node:
         nonlocal pos

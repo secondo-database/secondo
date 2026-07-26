@@ -11,6 +11,10 @@ interface Props {
   // Run a SECONDO command through the same session as the console, and report
   // whether it succeeded so the catalog can refresh.
   onRun: (command: string) => Promise<boolean>;
+  // Open a stored relation directly in the table view, loaded with its tuple
+  // identifiers so it can be edited. The catalog is the discoverable way in,
+  // as the relation chooser is in the Java GUI's UpdateViewer2.
+  onOpenTable: (relation: string) => Promise<boolean>;
   // Bumped by the parent whenever a command that changes catalog state runs
   // (open/close/create/delete database, or object creation) so we refresh.
   refreshKey: number;
@@ -31,7 +35,13 @@ const KIND_ICON: Record<CatalogObject["kind"], string> = {
   other: "·",
 };
 
-export function Catalog({ onRun, refreshKey, onState, onCollapse }: Props) {
+export function Catalog({
+  onRun,
+  onOpenTable,
+  refreshKey,
+  onState,
+  onCollapse,
+}: Props) {
   const [databases, setDatabases] = useState<string[]>([]);
   const [open, setOpen] = useState<string | null>(null);
   const [objects, setObjects] = useState<CatalogObject[]>([]);
@@ -159,6 +169,16 @@ export function Catalog({ onRun, refreshKey, onState, onCollapse }: Props) {
                   <span className="cat-oname">{o.name}</span>
                   <span className="cat-otype">{o.type}</span>
                 </button>
+                {/* Only a stored relation can be opened as an editable table. */}
+                {o.relation && (
+                  <button
+                    className="cat-table"
+                    onClick={() => void onOpenTable(o.name)}
+                    title={`Open ${o.name} as an editable table`}
+                  >
+                    ▤
+                  </button>
+                )}
               </li>
             ))}
           </ul>
