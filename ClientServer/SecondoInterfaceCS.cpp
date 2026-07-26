@@ -167,11 +167,9 @@ SecondoInterfaceCS::Initialize( const string& user, const string& pswd,
        cout << "Initializing the Secondo system ..." << endl;
     }
 
-    // initialize runtime flags
-    if(RTFlag::empty()){
-       InitRTFlags(parmFile);
-    }
-
+    // Initialize the runtime flags. InitRTFlags only fills them the first time
+    // it is called.
+    InitRTFlags(parmFile);
 
     debugSecondoMethod = RTFlag::isActive("SI:DebugSecondoMethod");
 
@@ -292,33 +290,24 @@ SecondoInterfaceCS::Initialize( const string& user, const string& pswd,
                 {
                   // The server states how it transfers lists; take its word
                   // for it rather than this side's configuration, which is
-                  // what the two used to disagree about (see below). Consumed
-                  // rather than printed: it is protocol, not a greeting.
-                  if ( line.compare(0, csp::BINARY_TRANSFER_TAG.size(),
-                                    csp::BINARY_TRANSFER_TAG) == 0 )
+                  // what the two used to disagree about. Consumed rather than
+                  // printed: it is protocol, not a greeting. The mode is kept
+                  // on the protocol object, so a process holding connections
+                  // to two servers that disagree keeps both of them right.
+                  if ( csp->applyIntroLine(line) )
                   {
-                    const bool binary =
-                        line.substr(csp::BINARY_TRANSFER_TAG.size()) == "YES";
-                    // Kept on the protocol object rather than in the global
-                    // Server:BinaryTransfer flag: the mode belongs to *this*
-                    // connection, so a process holding connections to two
-                    // servers that disagree keeps both of them right, and one
-                    // connect no longer rewrites state another connection is
-                    // reading.
-                    // Only reported when it actually differs, so the usual
-                    // case -- a configuration that already agrees -- stays
-                    // silent.
-                    if ( csp->usesBinaryTransfer() != binary )
+                    // Only remarked upon when the server actually overrules
+                    // what this client was configured for, so the usual case
+                    // -- the two already agree -- stays silent.
+                    const bool binary = csp->usesBinaryTransfer();
+                    if ( !RTFlag::empty() &&
+                         RTFlag::isActive("Server:BinaryTransfer") != binary )
                     {
-                      if ( !RTFlag::empty() )
-                      {
-                        cerr << "Note: the Secondo server at "
-                             << serverDescription() << " transfers lists "
-                             << (binary ? "in binary form" : "as text")
-                             << ", overriding this client's configuration."
-                             << endl;
-                      }
-                      csp->setBinaryTransfer(binary);
+                      cerr << "Note: the Secondo server at "
+                           << serverDescription() << " transfers lists "
+                           << (binary ? "in binary form" : "as text")
+                           << ", overriding this client's configuration."
+                           << endl;
                     }
                     transferNegotiated = true;
                   }

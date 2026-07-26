@@ -338,16 +338,38 @@ Connect client with the node in nodes-vector with the index nodeNo.
 
         if ( line == "<SecondoIntro>" )
           {
+            // Whether this node transfers lists in binary form is the node's
+            // decision, announced here; take its word for it rather than this
+            // side's configuration. A node that does not say is refused: the
+            // two sides would then disagree about the wire format, and that
+            // does not fail cleanly, it deadlocks.
+            bool transferNegotiated = false;
             do
             {
               getline( iosock, line );
               if ( line != "</SecondoIntro>" )
               {
-                cout << line << endl;
+                if ( nodes[nodeNo].csp->applyIntroLine(line) )
+                {
+                  transferNegotiated = true;
+                }
+                else
+                {
+                  cout << line << endl;
+                }
               }
             }
             while (line != "</SecondoIntro>");
-            nodes[nodeNo].initialized = true;
+            if ( transferNegotiated )
+            {
+              nodes[nodeNo].initialized = true;
+            }
+            else
+            {
+              cout << "Secondo server on " << nodes[nodeNo].hostname
+                   << " does not announce how it transfers nested lists;"
+                   << " refusing to guess." << endl;
+            }
           }
           else if ( line == "<SecondoError>" )
           {
@@ -906,16 +928,35 @@ SecondoInterfaceREPLAY::Initialize(const string& user,
           getline( iosock, line );
           if ( line == "<SecondoIntro>" )
           {
+            // As above: the server states how it transfers lists and this
+            // side adopts it, rather than both going by their own
+            // configuration and deadlocking when they differ.
+            bool transferNegotiated = false;
             do
             {
               getline( iosock, line );
               if ( line != "</SecondoIntro>" )
               {
-                cout << line << endl;
+                if ( csp->applyIntroLine(line) )
+                {
+                  transferNegotiated = true;
+                }
+                else
+                {
+                  cout << line << endl;
+                }
               }
             }
             while (line != "</SecondoIntro>");
-            initialized = true;
+            if ( transferNegotiated )
+            {
+              initialized = true;
+            }
+            else
+            {
+              cout << "Secondo server does not announce how it transfers"
+                   << " nested lists; refusing to guess." << endl;
+            }
           }
           else if ( line == "<SecondoError>" )
           {

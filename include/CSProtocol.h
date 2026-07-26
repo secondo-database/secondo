@@ -578,17 +578,20 @@ struct CSProtocol {
  NestedList* nl;
  ServerMessage* msgHandler;
  MessageCenter* msg;
- // How lists arrive on *this* connection, once the client has agreed it with
- // the server the socket is connected to (see BINARY_TRANSFER_TAG above). The
+ // How lists arrive on *this* connection (see BINARY_TRANSFER_TAG above). The
  // mode is a property of the connection, not of the process: one client may
  // hold connections to two servers that disagree, and keeping it here rather
  // than in the global Server:BinaryTransfer flag keeps both of them right --
  // and stops one connect from rewriting state another connection is reading.
  //
- // Unset means "nothing negotiated": fall back to the runtime flag, which is
- // what the server side goes by (its value can still change while the server
- // starts up -- an algebra may set it as it is loaded, which happens after
- // this object is built).
+ // Where the value comes from depends on which end this is. The *server*
+ // transfers lists the way its own configuration says and announces that in
+ // the intro block, so it knows the mode from the moment it is built. A
+ // *client* has to be told by the server it connected to, through
+ // setBinaryTransfer. Reading a list before that has happened is a protocol
+ // error and is refused -- guessing from the process-wide flag would silently
+ // decode the stream the wrong way, which is the failure this negotiation was
+ // introduced to remove.
  bool binaryTransferKnown;
  bool binaryTransfer;
 
@@ -641,8 +644,10 @@ struct CSProtocol {
  {
    ignoreMsg = true;
    nl = instance;
-   binaryTransferKnown = false;
-   binaryTransfer = false;
+   // The server goes by its own configuration -- that is what it announces to
+   // the client. A client starts out not knowing and must be told.
+   binaryTransferKnown = server;
+   binaryTransfer = server && RTFlag::isActive("Server:BinaryTransfer");
    msg = MessageCenter::GetInstance();
 
    // The message handler will send Secondo runtime messages
@@ -672,8 +677,39 @@ struct CSProtocol {
 
  bool usesBinaryTransfer() const
  {
-   return binaryTransferKnown ? binaryTransfer
-                              : RTFlag::isActive("Server:BinaryTransfer");
+   return binaryTransfer;
+ }
+
+/*
+Whether the transfer mode is settled for this connection. False on a client
+that has not yet read the server's announcement; reading a list in that state
+is refused rather than guessed at.
+
+*/
+ bool transferModeKnown() const
+ {
+   return binaryTransferKnown;
+ }
+
+/*
+Consume one line of the server's ~<SecondoIntro>~ block. Returns true when the
+line was the transfer-mode announcement, which is then adopted for this
+connection; false for anything else, which is informational and the caller may
+print it.
+
+Every client has to do this, so it lives here rather than being copied into
+each of them -- which is how ~SecondoInterfaceREPLAY~ came to miss it.
+
+*/
+ bool applyIntroLine(const std::string& line)
+ {
+   if ( line.compare(0, csp::BINARY_TRANSFER_TAG.size(),
+                     csp::BINARY_TRANSFER_TAG) != 0 )
+   {
+     return false;
+   }
+   setBinaryTransfer(line.substr(csp::BINARY_TRANSFER_TAG.size()) == "YES");
+   return true;
  }
 
    
@@ -825,6 +861,17 @@ ReadList(const std::string& endTag, ListExpr& resultList,
   std::string line = "";
   std::string result = "";
   bool success = false;
+  if ( !transferModeKnown() ) {
+    // Nobody said how this connection transfers lists. Falling back to the
+    // process-wide flag would decode the stream by guesswork -- and get it
+    // wrong exactly when the server disagrees with this side's configuration,
+    // which is the case the announcement exists for. Fail instead.
+    dwriter.write(true, std::cerr, caller, callerID,
+                  "list transfer mode was never agreed for this connection");
+    errorCode = ERR_IN_SECONDO_PROTOCOL;
+    resultList = nl->TheEmptyList();
+    return false;
+  }
   if ( !usesBinaryTransfer() ) {
     dwriter.write(debug, cout, caller, callerID, "textual list transfer");
     // textual data transfer

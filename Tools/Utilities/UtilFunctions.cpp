@@ -262,6 +262,7 @@ StopWatch::diffTimes() {
 */
 
 map<string,bool> RTFlag::flagMap;
+std::once_flag RTFlag::initialized;
 
 
 void
@@ -276,6 +277,15 @@ RTFlag::showActiveFlags(ostream& os) {
     os << "  -" << it->first << "-" << endl;
   }
 
+}
+
+void
+RTFlag::initOnce( const string &keyList ) {
+
+  // Fills the map on the first call only, so that opening a connection does
+  // not rewrite flags another connection is already reading. See the class
+  // comment in include/LogMsg.h.
+  std::call_once(initialized, [&keyList]() { initByString(keyList); });
 }
 
 void

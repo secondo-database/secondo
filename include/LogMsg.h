@@ -120,6 +120,7 @@ with the ~send~ method.
 #endif
 
 #include <map>
+#include <mutex>
 #include <string>
 #include <iostream>
 #include <fstream>
@@ -128,9 +129,26 @@ with the ~send~ method.
 
 extern std::ostream* traceOS;
 
+/*
+The runtime flags are process-wide, and there is exactly one map of them however
+many connections a process holds. That is fine as long as it is filled once,
+before anything reads it, and is read-only afterwards: concurrent readers of a
+map nobody writes need no lock, whereas a connect that rewrote it while another
+connection was reading would be a data race.
+
+~initOnce~ is what makes that true. It fills the map on the first call and does
+nothing on every later one, so opening a second connection no longer touches it.
+~initByString~ and ~setFlag~ still write and are *not* safe to call once other
+threads are running -- they exist for start-up (an algebra being loaded) and for
+the TTY's interactive ~set~ command, both single-threaded by then.
+
+*/
+
 class RTFlag {
 
 public:
+
+  static void initOnce( const std::string& keyList );
 
   static void initByString( const std::string& keyList );
 
@@ -149,6 +167,7 @@ private:
   RTFlag(){}
   ~RTFlag(){}
   static std::map<std::string,bool> flagMap;
+  static std::once_flag initialized;
 
 };
 

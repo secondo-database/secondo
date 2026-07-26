@@ -320,10 +320,12 @@ SecondoInterface::showTimes(double real, double cpu)
 void
 SecondoInterface::InitRTFlags(const string& configFile) {
 
-  // initialize runtime flags
+  // Initialize the runtime flags, once per process. Opening a second
+  // connection must not rewrite a map the first one is already reading --
+  // see the class comment in include/LogMsg.h.
   string logMsgList = SmiProfile::GetParameter( "", "RTFlags", "",
                                                 configFile );
-  RTFlag::initByString(logMsgList);
+  RTFlag::initOnce(logMsgList);
   RTFlag::showActiveFlags(cout);
 
 }
