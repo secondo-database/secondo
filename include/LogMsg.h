@@ -164,20 +164,30 @@ retrieved, it is removed. If there is no error message, the function
 ~RemoveErrorMessage~ sets its argument to ~""~. 
 
 It should be used only for reporting ~type error~ messages.
-An example of the usage of function ~ReportError~ is given in the 
+An example of the usage of function ~ReportError~ is given in the
 type mapping function of operator ~feed~ in the relational algebra.
+
+The reported message is held per thread. It is written where a type mapping
+fails and read back a few frames up in the same call, so the thread that runs
+the command is the one that wants the message -- and a process that runs two
+commands at a time (the WebUI bridge holds one client connection per browser
+session) would otherwise have them overwrite each other's error, which the
+"first message wins" rule below made worse rather than better: whichever thread
+reported first silenced the other until someone collected the message. A thread
+therefore cannot pick up a message reported by another one any more; nothing
+relies on that, because with a single shared slot it never worked reliably.
 
 */
 
 class ErrorReporter
 {
 private:
-  static bool receivedMessage;
-  static std::string message;
+  static thread_local bool receivedMessage;
+  static thread_local std::string message;
 
 public:
-  static bool FreezeMessage;
-  static bool TypeMapError;
+  static thread_local bool FreezeMessage;
+  static thread_local bool TypeMapError;
   static void Reset() { TypeMapError=false; message=""; }
   static void ReportError(const std::string msg);
   static void ReportError(const char* msg);

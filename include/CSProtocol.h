@@ -578,7 +578,20 @@ struct CSProtocol {
  NestedList* nl;
  ServerMessage* msgHandler;
  MessageCenter* msg;
- 
+ // How lists arrive on *this* connection, once the client has agreed it with
+ // the server the socket is connected to (see BINARY_TRANSFER_TAG above). The
+ // mode is a property of the connection, not of the process: one client may
+ // hold connections to two servers that disagree, and keeping it here rather
+ // than in the global Server:BinaryTransfer flag keeps both of them right --
+ // and stops one connect from rewriting state another connection is reading.
+ //
+ // Unset means "nothing negotiated": fall back to the runtime flag, which is
+ // what the server side goes by (its value can still change while the server
+ // starts up -- an algebra may set it as it is loaded, which happens after
+ // this object is built).
+ bool binaryTransferKnown;
+ bool binaryTransfer;
+
  
  public:
  const std::string startFileData;
@@ -628,6 +641,8 @@ struct CSProtocol {
  {
    ignoreMsg = true;
    nl = instance;
+   binaryTransferKnown = false;
+   binaryTransfer = false;
    msg = MessageCenter::GetInstance();
 
    // The message handler will send Secondo runtime messages
@@ -643,7 +658,24 @@ struct CSProtocol {
      msg->RemoveHandler(msgHandler);
      delete msgHandler;
   }
- 
+
+ /*
+ Adopt the transfer mode the server announced for this connection. Called by
+ the client once, while reading the intro block, before any list is read.
+
+ */
+ void setBinaryTransfer(const bool binary)
+ {
+   binaryTransfer = binary;
+   binaryTransferKnown = true;
+ }
+
+ bool usesBinaryTransfer() const
+ {
+   return binaryTransferKnown ? binaryTransfer
+                              : RTFlag::isActive("Server:BinaryTransfer");
+ }
+
    
  void skipRestOfLine()
  {
@@ -793,7 +825,7 @@ ReadList(const std::string& endTag, ListExpr& resultList,
   std::string line = "";
   std::string result = "";
   bool success = false;
-  if ( !RTFlag::isActive("Server:BinaryTransfer") ) { 
+  if ( !usesBinaryTransfer() ) {
     dwriter.write(debug, cout, caller, callerID, "textual list transfer");
     // textual data transfer
     do {

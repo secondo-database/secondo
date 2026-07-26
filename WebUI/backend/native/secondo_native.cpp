@@ -27,6 +27,7 @@ in Python, where it is easy to fixture-test.
 
 #include <pybind11/pybind11.h>
 
+#include <mutex>
 #include <string>
 #include <stdexcept>
 
@@ -105,9 +106,50 @@ static SecondoCommandError secondoError(int code, int pos,
 // The registered Python exception type, set up in PYBIND11_MODULE.
 static py::handle secondoErrorType;
 
-// One SECONDO client session. Not thread-safe on its own: callers must
-// serialize access to a single Connection (the FastAPI layer keeps one
-// Connection per browser session and guards it with a lock).
+// Every call into the client library runs under this lock, so that at most one
+// SECONDO command is in flight in this process at any time -- across *all*
+// connections, not just one.
+//
+// A per-connection lock would not be enough. The client library keeps process-
+// wide state that a connection touches without any synchronization of its own:
+//
+//   * NList::nlGlobal (include/NList.h) is a single NestedList pointer that
+//     every connection overwrites with its own list as it connects.
+//   * RTFlag::flagMap (include/LogMsg.h) is a plain std::map, written while a
+//     connection is set up (SecondoInterfaceCS::Initialize) and read on the
+//     way through NestedList and the parser. Only the first connect fills it,
+//     unless the configuration names no flags at all -- then every one tries.
+//   * ErrorReporter's message state (include/LogMsg.h) is static as well.
+//
+// Concurrent commands on two connections are therefore a data race, not merely
+// a fairness problem. The lock covers construction and teardown too, because
+// that is exactly when the globals above are written.
+//
+// What is *not* on this list any more is the list transfer mode: it is agreed
+// with one server, so it now lives on that connection's CSProtocol rather than
+// in the Server:BinaryTransfer flag (include/CSProtocol.h).
+static std::mutex secondoMutex;
+
+// Releases the GIL and *then* takes the SECONDO lock -- in that order, which is
+// what the member declaration order below guarantees. The other way round a
+// thread waiting for the lock would go on holding the GIL, and the thread that
+// owns the lock could never reacquire the GIL to finish its command: deadlock.
+// Unwinding runs in reverse, so the lock is dropped before the GIL comes back.
+class SecondoCall
+{
+ public:
+  SecondoCall() : gil(), lock(secondoMutex) {}
+
+ private:
+  py::gil_scoped_release gil;
+  std::lock_guard<std::mutex> lock;
+};
+
+// One SECONDO client session. Access is serialized process-wide by
+// `secondoMutex` (see above), so a Connection may be used from any thread; the
+// FastAPI layer additionally keeps one Connection per browser session and an
+// asyncio lock per session, which keeps a session's own commands in order and
+// makes them wait in the event loop rather than in a worker thread.
 class Connection
 {
  public:
@@ -117,28 +159,38 @@ class Connection
              const std::string& passwd,
              const std::string& config)
   {
-    si = new SecondoInterfaceCS(true, 0, false);
-    si->InitRTFlags(config);
-
     std::string errMsg;
     const bool multiUser = true;  // host/port take precedence over config
     bool ok;
     {
       // Connecting blocks on network I/O and can hang if the SECONDO server is
       // slow or wedged. Without releasing the GIL that would freeze the whole
-      // Python process (even endpoints that never touch SECONDO).
-      py::gil_scoped_release release;
+      // Python process (even endpoints that never touch SECONDO). The whole
+      // setup is under the lock: setNLRef and the runtime flags are
+      // process-wide state that a command on another connection reads.
+      //
+      // The flags are left to Initialize, which reads them from the same
+      // config file but only while none are set yet. Doing it here for every
+      // connection would rewrite the shared map each time a browser session
+      // opens -- for identical content, since all sessions use one config.
+      SecondoCall call;
+      si = new SecondoInterfaceCS(true, 0, false);
       ok = si->Initialize(user, passwd, host, port, config, "",
                           errMsg, multiUser);
+      if (ok) {
+        nl = si->GetNestedList();
+        NList::setNLRef(nl);
+      } else {
+        // Tearing the half-built interface down again frees its nested list,
+        // so it belongs under the lock as much as building it did.
+        delete si;
+        si = nullptr;
+      }
     }
     if (!ok) {
-      delete si;
-      si = nullptr;
       throw std::runtime_error("Cannot connect to SECONDO server at " +
                                host + ":" + port + " - " + errMsg);
     }
-    nl = si->GetNestedList();
-    NList::setNLRef(nl);
   }
 
   ~Connection() { close(); }
@@ -156,12 +208,13 @@ class Connection
     if (!si) {
       throw std::runtime_error("connection is closed");
     }
-    ListExpr res = nl->TheEmptyList();
     SecErrInfo err;
     std::string out;
     {
-      // The call blocks on network I/O; let other Python threads run.
-      py::gil_scoped_release release;
+      // The call blocks on network I/O; let other Python threads run. It runs
+      // one at a time process-wide -- see SecondoCall.
+      SecondoCall call;
+      ListExpr res = nl->TheEmptyList();
       si->Secondo(command, res, err);
       if (err.code == 0) {
         out = nl->ToString(res);
@@ -181,7 +234,7 @@ class Connection
     if (!si) {
       throw std::runtime_error("connection is closed");
     }
-    py::gil_scoped_release release;
+    SecondoCall call;
     return si->optimizerAvailable();
   }
 
@@ -215,8 +268,8 @@ class Connection
     AutoResult r;
     {
       // Both the call and the nested-list extraction are pure C++, so the GIL
-      // stays released for all of it.
-      py::gil_scoped_release release;
+      // stays released -- and the SECONDO lock held -- for all of it.
+      SecondoCall call;
       ListExpr res = nl->TheEmptyList();
       si->SecondoAuto(command, optimizer_addressed, r.level, res,
                       r.errCode, r.errPos, r.errMsg);
@@ -257,7 +310,7 @@ class Connection
     }
     std::string out;
     {
-      py::gil_scoped_release release;
+      SecondoCall call;
       out = si->optimizerCommand(directive);
     }
     return latin1(out);
@@ -266,11 +319,10 @@ class Connection
   void close()
   {
     if (si) {
-      {
-        // Terminate talks to the server too; same reasoning as above.
-        py::gil_scoped_release release;
-        si->Terminate();
-      }
+      // Terminate talks to the server, and deleting the interface frees its
+      // nested list; both wait for whatever command is in flight elsewhere.
+      SecondoCall call;
+      si->Terminate();
       delete si;
       si = nullptr;
       nl = nullptr;

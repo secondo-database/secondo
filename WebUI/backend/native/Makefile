@@ -27,8 +27,13 @@ LIBS     = -L$(CS_DIR)/lib -lsecondo -L$(BDB_LIB_DIR) -l$(BERKELEY_DB_LIB) \
 .PHONY: all clean
 all: $(MODULE)
 
+# -fvisibility=hidden is what pybind11 asks for: its own types are hidden, so a
+# class of ours holding one as a member (SecondoCall) would otherwise be more
+# visible than its field and GCC warns about it. PYBIND11_MODULE still exports
+# the module init function explicitly.
 $(MODULE): secondo_native.cpp
-	$(CPPC) -O2 -Wall -shared -std=c++17 -fPIC $(CCFLAGS) $(INCLUDES) \
+	$(CPPC) -O2 -Wall -shared -std=c++17 -fPIC -fvisibility=hidden \
+	    $(CCFLAGS) $(INCLUDES) \
 	    secondo_native.cpp -o $(MODULE) $(LIBS)
 
 clean:

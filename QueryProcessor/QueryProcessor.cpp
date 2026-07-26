@@ -5695,10 +5695,11 @@ void QueryProcessor::GetDBObjects(OpNode* s, std::vector<std::string>& result){
 
 
 
-bool ErrorReporter::receivedMessage = false;
-bool ErrorReporter::TypeMapError = false;
+// Per thread; see the class comment in include/LogMsg.h.
+thread_local bool ErrorReporter::receivedMessage = false;
+thread_local bool ErrorReporter::TypeMapError = false;
 
-string ErrorReporter::message = "";
+thread_local string ErrorReporter::message = "";
 
 void ErrorReporter::ReportError(const string msg)
 {

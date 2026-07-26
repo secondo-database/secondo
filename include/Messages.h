@@ -212,11 +212,16 @@ class MessageCenter {
   } 
   
   void AddHandler(MessageHandler* handler) {
-
+    #ifdef THREAD_SAFE
+    boost::lock_guard<boost::mutex> guard(mtx);
+    #endif
      msgHandler.push_back(handler);
   }
 
   void RemoveHandler(MessageHandler* handler){
+    #ifdef THREAD_SAFE
+    boost::lock_guard<boost::mutex> guard(mtx);
+    #endif
      msgHandler.remove(handler);
   }
 

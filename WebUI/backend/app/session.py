@@ -1,9 +1,16 @@
 """Per-browser-session SECONDO connections.
 
 Mirrors WebGui2's per-session connection model: each browser session owns one
-`secondo_native.Connection`. A Connection is not thread-safe and SECONDO runs
-one command at a time per client, so every command on a session is serialized
-behind an asyncio lock and the blocking C++ call is run in a worker thread.
+`secondo_native.Connection`. Every command on a session is serialized behind an
+asyncio lock and the blocking C++ call is run in a worker thread, so a session's
+commands keep their order and a second request on the same session waits in the
+event loop instead of tying up a worker.
+
+That lock only orders *one* session, though. The client library underneath keeps
+process-wide state that a command touches (runtime flags, the global nested-list
+reference), so the native module holds a process-wide lock of its own: at most
+one SECONDO command is in flight in this process at any time, across all
+sessions. See WebUI/backend/native/secondo_native.cpp.
 """
 from __future__ import annotations
 

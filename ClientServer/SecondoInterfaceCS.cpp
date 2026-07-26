@@ -299,9 +299,16 @@ SecondoInterfaceCS::Initialize( const string& user, const string& pswd,
                   {
                     const bool binary =
                         line.substr(csp::BINARY_TRANSFER_TAG.size()) == "YES";
-                    // Only touched when it actually differs, so the usual case
-                    // -- a configuration that already agrees -- stays silent.
-                    if ( RTFlag::isActive("Server:BinaryTransfer") != binary )
+                    // Kept on the protocol object rather than in the global
+                    // Server:BinaryTransfer flag: the mode belongs to *this*
+                    // connection, so a process holding connections to two
+                    // servers that disagree keeps both of them right, and one
+                    // connect no longer rewrites state another connection is
+                    // reading.
+                    // Only reported when it actually differs, so the usual
+                    // case -- a configuration that already agrees -- stays
+                    // silent.
+                    if ( csp->usesBinaryTransfer() != binary )
                     {
                       if ( !RTFlag::empty() )
                       {
@@ -311,7 +318,7 @@ SecondoInterfaceCS::Initialize( const string& user, const string& pswd,
                              << ", overriding this client's configuration."
                              << endl;
                       }
-                      RTFlag::setFlag("Server:BinaryTransfer", binary);
+                      csp->setBinaryTransfer(binary);
                     }
                     transferNegotiated = true;
                   }
