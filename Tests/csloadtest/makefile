@@ -99,11 +99,15 @@ vpath %.cpp $(sort $(dir $(CS_SOURCES)))
 
 tsan/%.o: %.cpp
 	@mkdir -p tsan
-	$(CPPC) -c -o $@ $(CCFLAGS) $(TSAN_FLAGS) $(TSAN_INCLUDES) $<
+	$(CPPC) -c -o $@ $(CCFLAGS) $(TSAN_FLAGS) $(TSAN_INCLUDES) $< \
+	    -MMD -MP -MF tsan/$*.dep
 
 tsan/ClientLoadTest.o: ClientLoadTest.cpp
 	@mkdir -p tsan
-	$(CPPC) -c -o $@ $(CCFLAGS) $(TSAN_FLAGS) $(TSAN_INCLUDES) $<
+	$(CPPC) -c -o $@ $(CCFLAGS) $(TSAN_FLAGS) $(TSAN_INCLUDES) $< \
+	    -MMD -MP -MF tsan/ClientLoadTest.dep
+
+-include $(wildcard tsan/*.dep)
 
 .PHONY: tsan
 tsan: Config.ini app-tsan$(EXEEXT)

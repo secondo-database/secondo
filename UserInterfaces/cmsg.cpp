@@ -57,6 +57,56 @@ A global pointer to an ~ostream~ object.
 
 */
 
+/*
+Per-thread message state; see the class definition in include/LogMsg.h. Held in
+function-local statics so that each thread's stream is constructed the first
+time that thread asks for it -- the streams carry a locale, and one that was
+never constructed fails on the first ~endl~ rather than at the point of use.
+
+They are also deliberately never destroyed, which is why each is reached
+through a pointer that is allocated once and never freed. Secondo logs while it
+shuts down -- the algebras, the broker and the context all report as they are
+reset -- and glibc destroys a thread's thread-local objects at the *start* of
+~exit~, before any static destructor runs. A stream destroyed at that point but
+written to a moment later corrupts the heap, which is what SecondoPL did on
+Ubuntu 22.04 and 24.04. Living forever costs one small stream per thread that
+ever logs, and the memory goes back when the process ends in any case.
+
+The same reasoning covers the mutex: it must still be lockable at whatever
+point during teardown the last message is sent.
+
+*/
+int& CMsg::stdOutput()
+{
+  static thread_local int value = 1;
+  return value;
+}
+
+std::ofstream*& CMsg::fp()
+{
+  static thread_local std::ofstream* value = 0;
+  return value;
+}
+
+std::stringstream& CMsg::buffer()
+{
+  static thread_local std::stringstream* stream = new std::stringstream();
+  return *stream;
+}
+
+std::stringstream& CMsg::devnull()
+{
+  static thread_local std::stringstream* stream = new std::stringstream();
+  return *stream;
+}
+
+// Guards allErrors and the open log files.
+std::mutex& CMsg::msgMutex()
+{
+  static std::mutex* guarded = new std::mutex();
+  return *guarded;
+}
+
 CMsg cmsg;
 
 /*
@@ -76,6 +126,7 @@ CMsg::CMsg()
 
 CMsg::~CMsg() // close open files
 {
+  lock_guard<mutex> guard(msgMutex());
   for ( map<string,ofstream*>::iterator it = files.begin();
   it != files.end();
   it++ )
@@ -88,99 +139,113 @@ CMsg::~CMsg() // close open files
 
 void CMsg::init()
 {
-  { 
-    stdOutput = 1; 
-    fp = new ofstream();
-    logFileStr = "secondo.log";
-    prefix = "tmp/";
-    files[logFileStr] = fp;
-    fp->open((prefix + logFileStr).c_str()); 
-    buffer.str("");
-    allErrors.str("");
-    devnull.str("");
-  }
+  // Runs once, while the global cmsg is constructed. The default log file goes
+  // into the shared map rather than into the thread-local fp: fp names the file
+  // the *calling* thread is currently writing to, and file() sets it.
+  lock_guard<mutex> guard(msgMutex());
+  logFileStr = "secondo.log";
+  prefix = "tmp/";
+  ofstream* defaultFile = new ofstream();
+  files[logFileStr] = defaultFile;
+  defaultFile->open((prefix + logFileStr).c_str());
+  allErrors.str("");
 }
 
-ostream& CMsg::file() 
+ostream& CMsg::file()
 {
-  fp = files[logFileStr]; 
-  stdOutput = 3;  
-  return buffer; 
+  {
+    lock_guard<mutex> guard(msgMutex());
+    fp() = files[logFileStr];
+  }
+  stdOutput() = 3;
+  return buffer();
 }
 
-ostream& CMsg::file(const string& fileName) 
-{ 
+ostream& CMsg::file(const string& fileName)
+{
+  lock_guard<mutex> guard(msgMutex());
   map<string,ofstream*>::iterator it = files.find(fileName);
-  
+
   if  ( it != files.end() ) {
-  
-    fp = it->second;
-    
+
+    fp() = it->second;
+
   } else {
-  
-    fp = new ofstream();
-    files[fileName] = fp;
-    fp->open((prefix + fileName).c_str());
+
+    fp() = new ofstream();
+    files[fileName] = fp();
+    fp()->open((prefix + fileName).c_str());
   }
-  //stdOutput = 3;    
-  return *fp; 
+  //stdOutput() = 3;
+  return *fp();
 }
 
 ostream& CMsg::info(const string& key) {
 
   if (RTFlag::isActive(key)) {
-    stdOutput = 1; return buffer;
+    stdOutput() = 1; return buffer();
   } else { 
-    stdOutput = 0; return devnull; 
+    stdOutput() = 0; return devnull(); 
   }
 }
 
 void CMsg::send() {
-  
-  if ( isSpaceStr( buffer.str() ) ) {
-    buffer.str("");
-    buffer.clear();
+
+  if ( isSpaceStr( buffer().str() ) ) {
+    buffer().str("");
+    buffer().clear();
     return;
   }
 
-  switch (stdOutput) { 
+  // Held for the whole of the write, so that a message reaches the terminal or
+  // the log in one piece instead of interleaved with another thread's, and so
+  // that allErrors and the file streams are not touched concurrently.
+  lock_guard<mutex> guard(msgMutex());
+
+  switch (stdOutput()) {
 
   case 3:
   {
-    (*fp) << buffer.str();
+    // fp is only ever set by file(), which is also what selects channel 3, so
+    // it is non-null here; checked rather than assumed because the two are now
+    // separate pieces of per-thread state.
+    if ( fp() ) {
+      (*fp()) << buffer().str();
+    }
      break;
   }
   case 2: 
   {
-    cerr << color(red) << "Error: " << buffer.str() << color(normal);
+    cerr << color(red) << "Error: " << buffer().str() << color(normal);
     cerr.flush();
-    allErrors << "Error: " << buffer.str();
+    allErrors << "Error: " << buffer().str();
     break;
   }
   case 1: 
   {
-    cout << buffer.str();
+    cout << buffer().str();
     cout.flush();
     break;
   }
   case 0:
   {
-    devnull.str("");
-    devnull.clear();
+    devnull().str("");
+    devnull().clear();
     break;
   } 
   default :
   {
-    allErrors << buffer.str();
+    allErrors << buffer().str();
   }
   }
 
-  buffer.str("");
-  buffer.clear();
+  buffer().str("");
+  buffer().clear();
 }
 
 string CMsg::getErrorMsg() {
 
+  lock_guard<mutex> guard(msgMutex());
   string result = allErrors.str();
 //  allErrors.str("");
 //  allErrors.clear(); 
@@ -193,6 +258,7 @@ string CMsg::getErrorMsg() {
 }
 
 void CMsg::resetErrors(){
+  lock_guard<mutex> guard(msgMutex());
   allErrors.str("");
   allErrors.clear();
 }

@@ -227,9 +227,9 @@ public:
   // condintinal output of messages
   std::ostream& info(const std::string& key);
 
-  inline std::ostream& info()    { stdOutput = 1; return buffer; }
-  inline std::ostream& warning() { stdOutput = 1; return buffer; }
-  inline std::ostream& error()   { stdOutput = 2; return buffer; } 
+  inline std::ostream& info()    { stdOutput() = 1; return buffer(); }
+  inline std::ostream& warning() { stdOutput() = 1; return buffer(); }
+  inline std::ostream& error()   { stdOutput() = 2; return buffer(); }
   
   // More specific error channels
   void typeError(const std::string& msg)   { ErrorReporter::ReportError(msg);}
@@ -257,15 +257,40 @@ Retrieving and cleaning stored errors.
 private:
 
   void init();
-  int stdOutput;
-  std::ofstream* fp;
-  std::stringstream buffer;
+
+/*
+A message is built up over several calls -- ~error() << ... << ...~ and then
+~send()~ -- so the half-finished text belongs to the thread writing it. Shared,
+two threads would splice their lines into one another and whichever reached
+~send()~ first would flush the other's fragment. The same goes for the channel
+the message is destined for and, with it, the file it would be written to.
+
+There is exactly one ~CMsg~ in the process (the global ~cmsg~), so this is
+thread-local rather than per-object -- and reached through a function, because
+a function-local static is the form whose initialization on first use in each
+thread is actually guaranteed. As a thread-local *data member* the stream was
+left unconstructed and the first ~endl~ on it died looking for a locale facet.
+
+*/
+  static int& stdOutput();
+  static std::ofstream*& fp();
+  static std::stringstream& buffer();
+  static std::stringstream& devnull();
+
+/*
+Shared by every thread and guarded by ~mtx~: the errors collected for
+~getErrorMsg~, and the open log files -- which must stay one stream per path
+however many threads write to them, or they would truncate each other's file.
+~send~ holds the lock while it writes, so a message reaches the terminal in one
+piece.
+
+*/
+  static std::mutex& msgMutex();
   std::stringstream allErrors;
-  std::stringstream devnull;
   std::string logFileStr;
   std::string prefix;
   std::map<std::string,std::ofstream*> files;
-  
+
 };
 
 // defined in cmsg.cpp

@@ -290,6 +290,15 @@ static void parseWorker(const Options& o, int id)
     }
     check(nl->Equal(list, second),
           "thread " + to_string(id) + " lost information in a round trip");
+
+    // A list that cannot be parsed, so that the error path is exercised too.
+    // It runs through the parser's yyerror, and so through the global cmsg,
+    // which every thread shares -- reporting a failure is the one thing a
+    // concurrency test must not leave untested, because it is where the
+    // shared message buffer is written.
+    ListExpr broken = nl->TheEmptyList();
+    check(!nl->ReadFromString("(unbalanced (list ", broken),
+          "thread " + to_string(id) + " accepted a malformed list");
   }
   delete nl;
 }
