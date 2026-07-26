@@ -226,6 +226,13 @@ public:
    // level 2) is available (compiled in and enabled for that server).
    bool optimizerAvailable();
 
+   // How this connection transfers nested lists, as agreed with the server it
+   // is connected to (see csp::BINARY_TRANSFER_TAG). Not the same thing as the
+   // Server:BinaryTransfer runtime flag, which is only what this side would
+   // have chosen: the server has the final say, and one process may hold
+   // connections to two servers that answer differently.
+   bool usesBinaryTransfer() const;
+
    // Sends a command without saying which language it is written in: the
    // server classifies it (see SQLLanguage.h) and reports in resolvedLevel
    // what it decided, which tells the caller how to read the answer --

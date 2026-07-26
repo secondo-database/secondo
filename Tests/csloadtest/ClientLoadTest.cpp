@@ -209,9 +209,13 @@ static void connectWorker(const Options& o, int id)
     }
 
     if (o.expectBinary >= 0) {
-      const bool binary = RTFlag::isActive("Server:BinaryTransfer");
+      // What this connection actually agreed with the server, not the
+      // Server:BinaryTransfer flag -- that only says what this client would
+      // have picked, so asking it would pass whatever the server answered.
+      const bool binary =
+          static_cast<SecondoInterfaceCS*>(si)->usesBinaryTransfer();
       check(binary == (o.expectBinary == 1),
-            string("server transfers lists ") + 
+            string("server transfers lists ") +
             (binary ? "binary" : "as text") +
             ", which is not what was asked for");
     }

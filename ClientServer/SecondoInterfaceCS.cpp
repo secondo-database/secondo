@@ -1337,6 +1337,13 @@ std::string SecondoInterfaceCS::getHome(){
    return line;
 }
 
+bool SecondoInterfaceCS::usesBinaryTransfer() const {
+   // Answered from the connection, not from the runtime flag: what counts is
+   // what this server announced, which may differ from what this client was
+   // configured for.
+   return csp != 0 && csp->usesBinaryTransfer();
+}
+
 bool SecondoInterfaceCS::optimizerAvailable(){
    if(!server){
      return false;
