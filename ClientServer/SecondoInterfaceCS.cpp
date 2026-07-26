@@ -109,7 +109,7 @@ SecondoInterfaceCS::~SecondoInterfaceCS()
 }
 
 
-int SecondoInterfaceCS::initNo = 0;
+std::atomic<int> SecondoInterfaceCS::initNo(0);
 
 
 string
@@ -191,11 +191,15 @@ SecondoInterfaceCS::Initialize( const string& user, const string& pswd,
       traceSocketOut = 0;
     }
   
-    // create new trace streams if entry in SecondoConfig.ini found  
- 
+    // create new trace streams if entry in SecondoConfig.ini found
+
+    // The number that tells this connection's trace files from those of the
+    // others in this process. Taken once, with an atomic increment.
+    const int myInitNo = initNo++;
+
     if(!traceIn.empty()){
       string fname = traceIn + "_" + stringutils::int2str(WinUnix::getpid())
-                   + "_" + stringutils::int2str(initNo) + ".log";
+                   + "_" + stringutils::int2str(myInitNo) + ".log";
       traceSocketIn = new ofstream(fname.c_str(),ios::binary | ios::app);
       if(!traceSocketIn->good()){
         delete traceSocketIn;
@@ -206,9 +210,9 @@ SecondoInterfaceCS::Initialize( const string& user, const string& pswd,
        if(traceIn==traceOut){
           traceSocketOut = traceSocketIn;
        } else {
-          string fname = traceOut + "_" 
+          string fname = traceOut + "_"
                        + stringutils::int2str(WinUnix::getpid()) + "_"
-                       + stringutils::int2str(initNo)+".log";
+                       + stringutils::int2str(myInitNo)+".log";
           traceSocketOut = new ofstream(fname.c_str(),ios::binary | ios::app);
           if(!traceSocketOut->good()){
             delete traceSocketOut;
@@ -216,8 +220,7 @@ SecondoInterfaceCS::Initialize( const string& user, const string& pswd,
           }
        }
     }
-    initNo++;
-    
+
     if(verbose){
        if(externalNL){
           cout << "use already existing nested list storage" << endl;

@@ -28,6 +28,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #ifndef SECONDO_INTERFACE_CS_H
 #define SECONDO_INTERFACE_CS_H
 
+#include <atomic>
+
 #include "SecondoInterface.h"
 #include "Messages.h"
 
@@ -340,7 +342,12 @@ public:
                                     const std::string& received,
                                     const std::string& expected) const;
 
-     static int initNo; // counter for initialize calls
+     // Counter for initialize calls, used to give each connection's trace
+     // files a name of their own. Shared by every connection in the process,
+     // so it is incremented atomically -- and the value each connection uses
+     // is taken from that one increment (see Initialize), not read back
+     // afterwards.
+     static std::atomic<int> initNo;
 
 };
 
