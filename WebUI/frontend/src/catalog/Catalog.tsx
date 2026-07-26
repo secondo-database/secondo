@@ -20,10 +20,14 @@ interface Props {
   refreshKey: number;
   // The catalog owns the authoritative database state (it is what queries the
   // backend); it reports it up so the rest of the UI doesn't fetch it twice.
+  // `objects` travels with it for the same reason: the console completes on
+  // these names and the empty state suggests queries from them, and neither
+  // should ask the server for a list this panel already has.
   onState?: (state: {
     open: string | null;
     databases: string[];
     optimizer: boolean;
+    objects: CatalogObject[];
   }) => void;
   // Collapse the whole catalog to a rail, giving the space to the map.
   onCollapse?: () => void;
@@ -61,18 +65,25 @@ export function Catalog({
       if (seq !== seqRef.current) return;
       setDatabases(dbs.databases);
       setOpen(dbs.open);
-      onStateRef.current?.({
-        open: dbs.open,
-        databases: dbs.databases,
-        optimizer: dbs.optimizer,
-      });
+      const report = (objects: CatalogObject[]) =>
+        onStateRef.current?.({
+          open: dbs.open,
+          databases: dbs.databases,
+          optimizer: dbs.optimizer,
+          objects,
+        });
       if (dbs.open) {
         setLoadingObjects(true);
+        // Report the database straight away so the header is right while the
+        // objects are still loading, then again once they are in.
+        report([]);
         const objs = await listObjects();
         if (seq !== seqRef.current) return;
         setObjects(objs.objects);
+        report(objs.objects);
       } else {
         setObjects([]);
+        report([]);
       }
     } catch {
       /* backend not reachable yet */
@@ -115,6 +126,11 @@ export function Catalog({
         )}
       </div>
       <div className="cat-dbs">
+        {databases.length === 0 && (
+          <p className="cat-hint">
+            No databases on the server, or it is not reachable yet.
+          </p>
+        )}
         {databases.map((db) => (
           <button
             key={db}
@@ -132,6 +148,10 @@ export function Catalog({
           </button>
         ))}
       </div>
+
+      {!shownDb && databases.length > 0 && (
+        <p className="cat-hint">Click a database to open it.</p>
+      )}
 
       {shownDb && (
         <>
@@ -157,6 +177,9 @@ export function Catalog({
               <li className="cat-loading">
                 <span className="cat-spin" /> loading objects…
               </li>
+            )}
+            {!busy && objects.length > 0 && shown.length === 0 && (
+              <li className="cat-hint">No object matches “{filter}”.</li>
             )}
             {shown.map((o) => (
               <li key={o.name}>

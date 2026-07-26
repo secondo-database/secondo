@@ -6,6 +6,9 @@ export type Theme = "dark" | "light";
 
 const THEME_KEY = "secondo.webui.theme";
 
+/** The remembered choice, or -- on a first visit -- whatever the OS asks for.
+ *  Once the toggle has been used the stored value wins, so the preference is
+ *  only ever a starting point. */
 export function loadTheme(): Theme {
   try {
     const raw = localStorage.getItem(THEME_KEY);
@@ -13,7 +16,9 @@ export function loadTheme(): Theme {
   } catch {
     /* storage unavailable */
   }
-  return "dark";
+  return window.matchMedia?.("(prefers-color-scheme: light)").matches
+    ? "light"
+    : "dark";
 }
 
 /** Paint in `theme` and remember the choice. */

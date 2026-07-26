@@ -83,9 +83,44 @@ body {
   color: var(--text);
 }
 
+/* One focus ring for the whole app. `:where()` keeps it at zero specificity, so
+   any component rule still wins on colour -- it only has to not remove the
+   outline. Keyboard only: :focus-visible leaves mouse clicks unmarked. */
+:where(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Controls that sit flush in a list or a grid cell: an outset ring would be
+   clipped by the scroll container or cover the neighbouring row. */
+:where(.cat-obj, .cat-table, .lp-name, .lp-mini, .rt-tab, .rt-label, .rt-close,
+  .tv-grid td input, .tv-grid td select, .tv-rowbtn, .rail-btn):focus-visible {
+  outline-offset: -2px;
+}
+
+/* Motion is decoration here: the spinners say "busy" and the splitter's tint
+   says "draggable" -- both read fine without movement. Timeline playback is
+   user-initiated and deliberately left alone. */
+@media (prefers-reduced-motion: reduce) {
+  .spinner,
+  .cat-spin {
+    animation: none;
+    border-top-color: var(--accent);
+  }
+
+  .split {
+    transition: none;
+  }
+}
+
 /* Catalog on the left, and the console under the map across the rest of the
    width. The console used to be dockable to the left as well; that only made
    the map narrower for no gain, so there is one layout now. */
+/* The console row is exactly the dragged height. It must NOT be sized from its
+   content (`min-content`): the log is arbitrarily long, so the row would grow
+   with the query history until the map had no height left. What used to be
+   clipped -- a grown query box overflowing the pane -- is handled where it
+   belongs, by capping the box against `--conh`; see `.input textarea`. */
 .app {
   display: grid;
   height: 100vh;
@@ -113,6 +148,25 @@ body {
   cursor: default;
 }
 
+/* The collapse/expand arrows, the layer row's mini buttons and the panel
+   toggles are the controls reached for most, and they were the smallest thing
+   on screen: a 0.7rem glyph with 2px of padding is a ~16px target. They keep
+   their quiet ghost styling -- only the target grows, to 24px square. */
+.rail-btn,
+.cat-collapse,
+.lp-mini,
+.plots-toggle,
+.rt-close,
+.cat-table,
+.tv-rowbtn,
+.details-head button {
+  min-width: 1.5rem;
+  min-height: 1.5rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .rail-btn {
   width: 100%;
   height: 2.2rem;
@@ -121,7 +175,7 @@ body {
   border-bottom: 1px solid var(--border);
   color: var(--muted);
   cursor: pointer;
-  font-size: 0.85rem;
+  font-size: 1rem;
 }
 
 .rail-btn:hover {
@@ -131,16 +185,19 @@ body {
 
 .cat-collapse {
   margin-left: auto;
+  margin-right: -0.25rem; /* the target grows inwards, the glyph stays put */
   background: none;
   border: none;
+  border-radius: 4px;
   color: var(--faint);
   cursor: pointer;
-  font-size: 0.85rem;
-  padding: 0 0.2rem;
+  font-size: 0.95rem;
+  padding: 0;
 }
 
 .cat-collapse:hover {
   color: var(--text);
+  background: var(--surface);
 }
 
 .split {
@@ -160,6 +217,12 @@ body.dragging {
 
 .catalog-pane {
   overflow: hidden;
+}
+
+/* Wraps the catalog so it can be hidden (not unmounted) while collapsed. */
+.cat-wrap {
+  height: 100%;
+  min-height: 0;
 }
 
 .catalog {
@@ -275,7 +338,7 @@ body.dragging {
   cursor: pointer;
   padding: 0.22rem 0.3rem;
   border-radius: 4px;
-  font-size: 0.76rem;
+  font-size: 0.85rem;
 }
 
 .cat-table:hover {
@@ -342,12 +405,20 @@ body.dragging {
   background: var(--bg-deep);
   display: flex;
   flex-direction: column;
+  /* The overlays are absolutely positioned and taller than a squeezed map
+     pane: without this the layers panel spills over the console below it and
+     covers the very buttons that would give the map its height back. */
+  overflow: hidden;
 }
 
+/* Every bottom-anchored overlay measures from here rather than guessing at the
+   timeline's height, so nothing lands on top of it -- and nothing floats above
+   an empty strip when there is no timeline. App sets it. */
 .result-body {
   position: relative;
   flex: 1;
   min-height: 0;
+  --bottom-inset: 0.75rem;
 }
 
 .mapview {
@@ -355,14 +426,74 @@ body.dragging {
   inset: 0;
 }
 
+/* What the map says before anything has been queried. Centred in the pane and
+   transparent to the pointer, so it never blocks a drag; only the example
+   buttons take clicks. */
 .map-empty {
   position: absolute;
   inset: 0;
+  z-index: 1;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  color: var(--faint);
+  gap: 0.4rem;
+  padding: 1rem;
+  text-align: center;
+  color: var(--muted);
   pointer-events: none;
+}
+
+.map-empty strong {
+  color: var(--text-2);
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.map-empty p {
+  margin: 0;
+  max-width: 32ch;
+  font-size: 0.82rem;
+  color: var(--faint);
+}
+
+.me-examples {
+  list-style: none;
+  margin: 0.2rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.me-examples button {
+  pointer-events: auto;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text-2);
+  border-radius: 6px;
+  padding: 0.3rem 0.7rem;
+  font-family: ui-monospace, Menlo, monospace;
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+
+.me-examples button:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--text);
+}
+
+.me-examples button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* Catalog empty states: what to do when there is nothing to list. */
+.cat-hint {
+  margin: 0.15rem 0.3rem;
+  color: var(--faint);
+  font-size: 0.74rem;
+  line-height: 1.4;
 }
 
 .projection-ctl {
@@ -382,15 +513,25 @@ body.dragging {
   backdrop-filter: blur(4px);
 }
 
+/* Bottom right, the conventional place -- and clear of the layers panel, which
+   owns the top right corner. They used to share the right edge, so the zoom
+   buttons (the higher z-index) drew across the panel's rows. */
 .zoom-ctl {
   position: absolute;
   right: 0.6rem;
-  top: 50%;
-  transform: translateY(-50%);
+  bottom: var(--bottom-inset);
   z-index: 3;
   display: flex;
   flex-direction: column;
   gap: 0.3rem;
+}
+
+/* MapLibre puts the "© OpenStreetMap contributors" notice in this same corner,
+   and it is a licence condition that it stays readable -- so when a basemap is
+   drawn, the buttons step up above it. Without one there is no notice and no
+   reason for the gap. */
+.mapview[data-geographic="true"] .zoom-ctl {
+  bottom: calc(var(--bottom-inset) + 1.6rem);
 }
 
 .zoom-ctl button {
@@ -496,7 +637,8 @@ body.dragging {
   top: 0.5rem;
   right: 0.5rem;
   z-index: 2;
-  width: 240px;
+  /* Four 24px row buttons need the width the 12px ones did not. */
+  width: 264px;
   background: var(--overlay);
   border: 1px solid var(--border);
   border-radius: 8px;
@@ -523,13 +665,19 @@ body.dragging {
   visibility: hidden;
 }
 
+/* The whole "▾ Layers 3" is the toggle, so it is padded out to a comfortable
+   target rather than leaving the chevron alone as a 10px one. The negative
+   margin keeps the title aligned with the panel's edge as it was. */
 .lp-collapse {
   display: flex;
   align-items: center;
   gap: 0.35rem;
+  min-height: 1.5rem;
   background: none;
   border: none;
-  padding: 0;
+  border-radius: 4px;
+  padding: 0 0.3rem;
+  margin-left: -0.3rem;
   color: inherit;
   font: inherit;
   font-weight: 600;
@@ -538,13 +686,14 @@ body.dragging {
 
 .lp-collapse:hover {
   color: var(--text);
+  background: var(--surface);
 }
 
 .lp-chevron {
   display: inline-block;
-  width: 0.7rem;
+  width: 0.8rem;
   color: var(--muted);
-  font-size: 0.7rem;
+  font-size: 0.85rem;
 }
 
 .lp-count {
@@ -609,10 +758,16 @@ body.dragging {
 .lp-mini {
   background: none;
   border: none;
+  border-radius: 4px;
   color: var(--muted);
   cursor: pointer;
-  padding: 0 0.15rem;
-  font-size: 0.8rem;
+  padding: 0;
+  font-size: 0.9rem;
+}
+
+.lp-mini:hover:not(:disabled) {
+  color: var(--text);
+  background: var(--surface);
 }
 
 .lp-mini:disabled {
@@ -620,7 +775,8 @@ body.dragging {
   cursor: default;
 }
 
-.lp-x:hover {
+/* Beats the shared .lp-mini hover above, which is why it is that specific. */
+.lp-mini.lp-x:hover {
   color: var(--err);
 }
 
@@ -686,11 +842,31 @@ body.dragging {
   gap: 0.4rem;
 }
 
-.details {
+/* The bottom-left stack: the selected feature's attributes and the value plots.
+   They used to be positioned independently, 0.2rem apart, so the plots covered
+   the very attributes a click had just asked for. One column instead, growing
+   upwards from the bottom; the column itself is transparent to the pointer so
+   the empty part of it never eats a map drag. */
+.ov-left {
   position: absolute;
   left: 0.75rem;
-  bottom: 4rem;
+  bottom: var(--bottom-inset);
   z-index: 2;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: flex-start;
+  gap: 0.5rem;
+  max-height: calc(100% - var(--bottom-inset) - 3rem);
+  pointer-events: none;
+}
+
+.ov-left > * {
+  pointer-events: auto;
+  min-height: 0;
+}
+
+.details {
   max-width: 320px;
   max-height: 40vh;
   overflow: auto;
@@ -740,12 +916,9 @@ body.dragging {
   word-break: break-word;
 }
 
-/* Value plots: small multiples, one per measure (never a shared/dual y-axis). */
+/* Value plots: small multiples, one per measure (never a shared/dual y-axis).
+   Positioned by .ov-left, below the details panel. */
 .plots {
-  position: absolute;
-  left: 0.75rem;
-  bottom: 4.2rem;
-  z-index: 3;
   background: var(--overlay);
   border: 1px solid var(--border);
   border-radius: 8px;
@@ -770,9 +943,16 @@ body.dragging {
 .plots-toggle {
   background: none;
   border: none;
+  border-radius: 4px;
   color: var(--muted);
   cursor: pointer;
-  font-size: 0.75rem;
+  font-size: 0.9rem;
+  padding: 0;
+}
+
+.plots-toggle:hover {
+  color: var(--text);
+  background: var(--surface);
 }
 
 .plot + .plot {
@@ -903,14 +1083,27 @@ body.dragging {
   font-size: 0.85rem;
 }
 
+/* history / clear / theme, and the table view's edit-mode buttons: 22px tall
+   was under any reasonable target size for controls this often used. */
 .dock-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  min-height: 1.8rem;
   background: var(--surface);
   border: 1px solid var(--border);
   color: var(--muted);
   border-radius: 5px;
-  padding: 0.15rem 0.45rem;
-  font-size: 0.72rem;
+  padding: 0.25rem 0.65rem;
+  font-size: 0.78rem;
   cursor: pointer;
+}
+
+/* The glyph carries the meaning at a glance, so it is set larger than the word
+   beside it rather than shrinking to match. */
+.dock-ic {
+  font-size: 1rem;
+  line-height: 1;
 }
 
 /* The first button of the header group pushes itself (and the rest) right. */
@@ -943,8 +1136,26 @@ body.dragging {
 }
 
 .cmd {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
   color: var(--text-2);
   margin-bottom: 0.25rem;
+}
+
+.cmd-text {
+  flex: 1;
+  min-width: 0;
+  word-break: break-word;
+}
+
+/* Right-aligned and recessive: available when looked for, never competing with
+   the command itself. */
+.cmd-ms {
+  color: var(--faint);
+  font-size: 0.72rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 .prompt {
@@ -997,11 +1208,14 @@ pre.plan {
 
 /* Height is set from the content in Console.tsx; this caps how far that can go
    and hands over to a scrollbar past the cap. `resize` is off because a drag
-   handle would only fight the automatic sizing. */
+   handle would only fight the automatic sizing.
+   The third term is what keeps a grown box inside the console pane: 7rem is
+   the header, the input's own padding and a little air. It only bites while
+   the console is short -- dragged taller, the 11rem cap wins again. */
 .input textarea {
   flex: 1;
   min-height: 0;
-  max-height: min(11rem, 35vh);
+  max-height: min(11rem, 35vh, calc(var(--conh) - 7rem));
   resize: none;
   overflow-y: auto;
   background: var(--surface);
@@ -1026,6 +1240,90 @@ pre.plan {
 .input button:disabled {
   opacity: 0.5;
   cursor: default;
+}
+
+/* The completion list, above the query box and aligned with it. Same surface as
+   the Run menu: both are things that appear over the console. */
+.cmp-menu {
+  position: absolute;
+  bottom: calc(100% - 0.4rem);
+  left: 2.2rem;
+  z-index: 10;
+  min-width: 16rem;
+  max-width: 28rem;
+  /* Tall enough to choose from, short enough that it does not become a panel
+     over the map; the rest scrolls. */
+  max-height: 14rem;
+  overflow-y: auto;
+  list-style: none;
+  margin: 0;
+  padding: 0.25rem;
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+
+/* Scoped by the menu, not bare: these are buttons inside `.input`, and
+   `.input button` (0-1-1) would otherwise paint every row accent-blue -- the
+   same trap `.run-menu button` documents below. */
+.cmp-menu .cmp-item {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  width: 100%;
+  background: none;
+  border: none;
+  border-radius: 5px;
+  padding: 0.25rem 0.45rem;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+  font-family: ui-monospace, Menlo, monospace;
+  font-size: 0.78rem;
+}
+
+.cmp-menu .cmp-item:hover {
+  background: var(--raised);
+}
+
+/* The one Tab would take. A plain --raised tint is legible on the dark palette
+   but almost invisible on the light one, so the mark is an accent wash plus a
+   solid accent edge -- the edge carries it in either theme, and the text keeps
+   its own ink rather than turning blue. */
+.cmp-menu .cmp-item.picked {
+  background: color-mix(in srgb, var(--accent) 18%, var(--surface));
+  box-shadow: inset 2px 0 0 var(--accent);
+  color: var(--text);
+}
+
+.cmp-key {
+  color: var(--accent);
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  font-size: 0.72rem;
+}
+
+.cmp-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The SECONDO type, or "command" / "operator": what this name is, in the same
+   quiet grey the catalog uses for the same job. */
+.cmp-hint {
+  color: var(--faint);
+  font-size: 0.68rem;
+  font-family: ui-sans-serif, system-ui, sans-serif;
+}
+
+.cmp-help {
+  padding: 0.3rem 0.45rem 0.15rem;
+  border-top: 1px solid var(--border);
+  margin-top: 0.25rem;
+  color: var(--faint);
+  font-size: 0.66rem;
 }
 
 /* Run, plus a menu of one-shot verbs. Nothing in the menu is remembered, so it
@@ -1147,6 +1445,7 @@ pre.plan {
 .rt-close {
   color: var(--faint);
   padding: 0.35rem 0.35rem;
+  font-size: 0.85rem;
 }
 
 .rt-close:hover {

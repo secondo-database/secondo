@@ -820,19 +820,21 @@ export function MapView({
         {geographic && <BaseMap reuseMaps mapStyle={OSM_STYLE} />}
       </DeckGL>
       <div className="zoom-ctl">
-        <button onClick={() => zoomBy(0.6)} title="Zoom in">
+        <button onClick={() => zoomBy(0.6)} title="Zoom in" aria-label="Zoom in">
           +
         </button>
-        <button onClick={() => zoomBy(-0.6)} title="Zoom out">
+        <button onClick={() => zoomBy(-0.6)} title="Zoom out" aria-label="Zoom out">
           −
         </button>
-        <button onClick={recenter} title="Fit to data" className="zoom-fit">
+        <button
+          onClick={recenter}
+          title="Fit to data"
+          aria-label="Fit the view to the data"
+          className="zoom-fit"
+        >
           ⤢
         </button>
       </div>
-      {layers.length === 0 && (
-        <div className="map-empty">Run a spatial or moving-object query</div>
-      )}
     </div>
   );
 }

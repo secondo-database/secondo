@@ -1,5 +1,11 @@
 import { useEffect, useRef, useState } from "react";
+import type { CatalogObject } from "../api/client";
 import type { Theme } from "../theme";
+import {
+  applyCompletion,
+  completionsFor,
+  type Completion,
+} from "./completion";
 import { loadCommands, saveCommands } from "./history";
 
 /** What a one-shot Run menu item asks for; `undefined` is a plain Run.
@@ -31,6 +37,14 @@ export interface Entry {
   planOnly?: boolean;
   // A create/drop the optimizer carried out itself while translating.
   executedByOptimizer?: boolean;
+  // How long the round trip took, bridge and conversion included.
+  elapsedMs?: number;
+}
+
+/** Elapsed time, at the precision that reads as a duration rather than as a
+ *  measurement: sub-second in milliseconds, past that in seconds. */
+function fmtElapsed(ms: number): string {
+  return ms < 1000 ? `${Math.round(ms)} ms` : `${(ms / 1000).toFixed(2)} s`;
 }
 
 interface Props {
@@ -41,6 +55,8 @@ interface Props {
   optimizer: boolean | null;
   collapsed: boolean;
   theme: Theme;
+  /** The open database's objects, for completing names as they are typed. */
+  objects: CatalogObject[];
   onToggleCollapse: () => void;
   onToggleTheme: () => void;
   onClearHistory: () => void;
@@ -56,6 +72,7 @@ export function Console({
   optimizer,
   collapsed,
   theme,
+  objects,
   onToggleCollapse,
   onToggleTheme,
   onClearHistory,
@@ -67,12 +84,23 @@ export function Console({
   const [commands, setCommands] = useState<string[]>(loadCommands);
   const [histIndex, setHistIndex] = useState(-1);
   const [menuOpen, setMenuOpen] = useState(false);
+  // What the word under the caret could become, and which of those Tab would
+  // take. The first is marked from the start, so it is never a guess which one
+  // Tab means. `moved` records whether that mark was *chosen* with the arrows:
+  // until it is, Enter still runs the query, so the primary action is never
+  // hijacked by a suggestion nobody asked for.
+  const [items, setItems] = useState<Completion[]>([]);
+  const [picked, setPicked] = useState(0);
+  const [moved, setMoved] = useState(false);
   const bottom = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const runRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    bottom.current?.scrollIntoView({ behavior: "smooth" });
+    // Smooth only when motion is welcome; the jump still lands in the same
+    // place for everyone else.
+    const reduced = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    bottom.current?.scrollIntoView({ behavior: reduced ? "auto" : "smooth" });
   }, [history]);
 
   // A long query has to be readable while it is written, so the box is sized to
@@ -129,14 +157,77 @@ export function Console({
 
   function recall(text: string) {
     setCommand(text);
+    closeCompletions();
     requestAnimationFrame(() => {
       const el = inputRef.current;
       if (el) el.setSelectionRange(el.value.length, el.value.length);
     });
   }
 
+  function closeCompletions() {
+    setItems([]);
+    setPicked(0);
+    setMoved(false);
+  }
+
+  /** Recompute the offer from the word under the caret. */
+  function refreshCompletions(el: HTMLTextAreaElement) {
+    setItems(completionsFor(el.value.slice(0, el.selectionStart), objects));
+    setPicked(0);
+    setMoved(false);
+  }
+
+  /** Put `choice` in place of the word under the caret. */
+  function accept(choice: Completion) {
+    const el = inputRef.current;
+    if (!el) return;
+    const next = applyCompletion(el.value, el.selectionStart, choice);
+    setCommand(next.value);
+    closeCompletions();
+    requestAnimationFrame(() => {
+      inputRef.current?.setSelectionRange(next.caret, next.caret);
+      inputRef.current?.focus();
+    });
+  }
+
   function onKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
     const el = e.currentTarget;
+
+    // The completion list gets first refusal on these keys, but only over what
+    // it needs: Tab and the arrows while it is open, Enter *only* once
+    // something has been picked from it. Everything else -- and every key when
+    // it is closed -- falls through to the behaviour the box always had.
+    if (items.length > 0) {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        closeCompletions();
+        return;
+      }
+      if (e.key === "Tab") {
+        e.preventDefault();
+        accept(items[picked]);
+        return;
+      }
+      if (e.key === "Enter" && moved && !e.shiftKey && !e.altKey) {
+        e.preventDefault();
+        accept(items[picked]);
+        return;
+      }
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        // The first press confirms the mark that is already on the first item
+        // rather than skipping past it.
+        setPicked((i) => (moved ? (i + 1) % items.length : i));
+        setMoved(true);
+        return;
+      }
+      if (e.key === "ArrowUp" && moved) {
+        e.preventDefault();
+        setPicked((i) => (i <= 0 ? items.length - 1 : i - 1));
+        return;
+      }
+    }
+
     if (e.key === "Enter" && !e.shiftKey && !e.altKey) {
       // Enter still runs the query, as it did when this was a one-line input;
       // Shift+Enter (and Alt+Enter) is what breaks a line. Ctrl/Cmd+Enter is
@@ -176,6 +267,7 @@ export function Console({
     setCommand("");
     setHistIndex(-1);
     setMenuOpen(false);
+    closeCompletions();
     // Recall keeps the query as it was written -- the line breaks are what make
     // a long one readable -- while the server and the log see a single line.
     // Only the breaks and the indentation around them go: spacing inside a line
@@ -202,9 +294,10 @@ export function Console({
         <button
           className="dock-btn first"
           onClick={onToggleCollapse}
+          aria-expanded={!collapsed}
           title={collapsed ? "Show query history" : "Hide query history"}
         >
-          {collapsed ? "▴ history" : "▾ history"}
+          <span className="dock-ic">{collapsed ? "▴" : "▾"}</span> history
         </button>
         {/* The recalled commands outlive the tab, so they need a way back to
             empty; the log on screen goes with them. */}
@@ -214,22 +307,37 @@ export function Console({
           disabled={history.length === 0 && commands.length === 0}
           title="Clear the log and the remembered commands"
         >
-          ⌫ clear
+          <span className="dock-ic">⌫</span> clear
         </button>
         <button
           className="dock-btn"
           onClick={onToggleTheme}
           title={theme === "dark" ? "Switch to light theme" : "Switch to dark theme"}
         >
-          {theme === "dark" ? "☀ light" : "☾ dark"}
+          <span className="dock-ic">{theme === "dark" ? "☀" : "☾"}</span>{" "}
+          {theme === "dark" ? "light" : "dark"}
         </button>
       </header>
 
-      <div className="log">
+      {/* A result -- and an error -- has to reach someone who is not watching
+          the pane. `additions` keeps it to the new entry rather than re-reading
+          the whole log every time. */}
+      <div className="log" role="log" aria-live="polite" aria-relevant="additions">
         {history.map((e, i) => (
           <div key={i} className="entry">
             <div className="cmd">
-              <span className="prompt">&gt;</span> {e.command}
+              <span className="prompt">&gt;</span>
+              <span className="cmd-text">{e.command}</span>
+              {/* How long the answer took -- the first thing anyone asks of a
+                  database, and nothing said it before. */}
+              {e.elapsedMs !== undefined && (
+                <span
+                  className="cmd-ms"
+                  title="Time from sending the command to having the result, bridge included"
+                >
+                  {fmtElapsed(e.elapsedMs)}
+                </span>
+              )}
             </div>
             {e.plan !== undefined && (
               <pre className="plan">
@@ -304,11 +412,47 @@ export function Console({
           rows={1}
           autoFocus
           spellCheck={false}
-          placeholder="e.g. open database berlintest | query mehringdamm | select * from kinos   (⇧⏎ newline, ↑/↓ history)"
+          // Short enough to fit the box at any width: it used to wrap to two
+          // lines in a one-line box and get clipped. The examples now live in
+          // the empty-state card, where there is room for them.
+          placeholder="query, select …   ⇧⏎ newline · ↑↓ history · ⇥ complete"
           value={command}
-          onChange={(e) => setCommand(e.target.value)}
+          onChange={(e) => {
+            setCommand(e.target.value);
+            refreshCompletions(e.target);
+          }}
+          onBlur={closeCompletions}
           onKeyDown={onKeyDown}
+          aria-autocomplete="list"
+          aria-expanded={items.length > 0}
         />
+
+        {items.length > 0 && (
+          <ul className="cmp-menu" role="listbox" aria-label="Completions">
+            {items.map((c, i) => (
+              <li key={`${c.text}-${c.hint}`}>
+                <button
+                  type="button"
+                  role="option"
+                  aria-selected={i === picked}
+                  className={"cmp-item" + (i === picked ? " picked" : "")}
+                  // The blur that a click would cause closes the list before
+                  // the click lands, so act on mousedown instead.
+                  onMouseDown={(ev) => {
+                    ev.preventDefault();
+                    accept(c);
+                  }}
+                >
+                  <span className="cmp-name">{c.text}</span>
+                  <span className="cmp-hint">{c.hint}</span>
+                  {/* Says which key takes this one, on the one it would take. */}
+                  {i === picked && <span className="cmp-key">⇥</span>}
+                </button>
+              </li>
+            ))}
+            <li className="cmp-help">⇥ complete · ↑↓ pick · esc dismiss</li>
+          </ul>
+        )}
         {/* A split button: `Run` is unchanged, and the menu holds the ways of
             running that are not plain execution. Nothing here is remembered. */}
         <div className="run-split" ref={runRef}>

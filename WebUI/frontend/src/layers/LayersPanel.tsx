@@ -126,6 +126,7 @@ export function LayersPanel({
                   checked={layer.visible}
                   onChange={() => onToggle(layer.id)}
                   title="Toggle visibility"
+                  aria-label={`Show layer ${layer.name}`}
                 />
                 <span
                   className="lp-swatch"
@@ -144,6 +145,7 @@ export function LayersPanel({
                     className="lp-mini"
                     onClick={() => onShowTable(layer.id)}
                     title={`Show ${layer.table.rowCount} rows as a table`}
+                    aria-label={`Show ${layer.name} as a table`}
                   >
                     ▤
                   </button>
@@ -153,6 +155,7 @@ export function LayersPanel({
                   disabled={isTop}
                   onClick={() => onMove(layer.id, "up")}
                   title="Bring forward"
+                  aria-label={`Bring ${layer.name} forward`}
                 >
                   ↑
                 </button>
@@ -161,6 +164,7 @@ export function LayersPanel({
                   disabled={isBottom}
                   onClick={() => onMove(layer.id, "down")}
                   title="Send backward"
+                  aria-label={`Send ${layer.name} backward`}
                 >
                   ↓
                 </button>
@@ -168,6 +172,7 @@ export function LayersPanel({
                   className="lp-mini lp-x"
                   onClick={() => onRemove(layer.id)}
                   title="Remove layer"
+                  aria-label={`Remove layer ${layer.name}`}
                 >
                   ✕
                 </button>

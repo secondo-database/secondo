@@ -1,6 +1,10 @@
 // Verifies the light/dark theme switch: the toggle in the console header flips
 // the palette, every surface follows (no element keeps a dark background while
 // the app is light), text stays readable, and the choice survives a reload.
+//
+// A first visit now starts from the OS preference rather than always dark, so
+// the browser is told what that preference is instead of leaving it to the
+// headless default; the last check covers the light-preference case.
 import { createRequire } from "module";
 import { mkdirSync } from "fs";
 import { dirname } from "path";
@@ -47,6 +51,9 @@ try {
       sessionStorage.setItem("e2e-started", "1");
     }
   });
+  await page.emulateMediaFeatures([
+    { name: "prefers-color-scheme", value: "dark" },
+  ]);
   await page.goto(URL, { waitUntil: "networkidle2" });
   await page.waitForSelector(".console header");
 
@@ -125,6 +132,20 @@ try {
   await new Promise((r) => setTimeout(r, 200));
   const backBg = await luma("body", "backgroundColor");
   check(backBg < 0.25, `toggling again returns to dark (luma ${backBg?.toFixed(2)})`);
+
+  // --- 6) A first visit follows the OS preference (nothing stored yet) ---
+  const fresh = await browser.newPage();
+  await fresh.setViewport({ width: 800, height: 600 });
+  await fresh.emulateMediaFeatures([
+    { name: "prefers-color-scheme", value: "light" },
+  ]);
+  await fresh.evaluateOnNewDocument(() => localStorage.clear());
+  await fresh.goto(URL, { waitUntil: "networkidle2" });
+  await fresh.waitForSelector(".console header");
+  const preferred = await fresh.evaluate(() => document.documentElement.dataset.theme);
+  check(preferred === "light",
+        `a first visit follows the OS light preference (got ${preferred})`);
+  await fresh.close();
 } finally {
   await browser.close();
 }

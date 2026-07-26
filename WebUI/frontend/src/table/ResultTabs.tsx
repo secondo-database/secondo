@@ -74,6 +74,7 @@ export function ResultTabs({ tabs, active, onSelect, onClose }: Props) {
           <button
             className="rt-close"
             title="Close this table"
+            aria-label={`Close the ${t.name} table`}
             onClick={() => onClose(t.id)}
           >
             ✕

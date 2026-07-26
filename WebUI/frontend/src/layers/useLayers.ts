@@ -55,21 +55,38 @@ export interface Selection {
 }
 
 // Categorical palette, assigned in fixed order (never cycled by rank) so a
-// layer keeps its colour as others come and go. These are the dark-surface
-// steps of a validated categorical theme -- they pass the lightness-band,
-// chroma-floor, CVD-separation and contrast checks against a dark chart
-// surface, and being mid-dark they also read against the light OSM basemap.
-// The one adjacent pair below CVD 12 (green/yellow) is always accompanied by
-// secondary encoding: a swatch, the layer name and direct labels.
+// layer keeps its colour as others come and go.
+//
+// These are the *bright* steps of a validated categorical theme. The previous
+// set used the dark-surface steps, which are mid-dark by design -- on the
+// near-black map canvas a thin 1px line in #008300 or #c98500 was genuinely
+// hard to see. Each hue is now taken at its brighter step, and the order is
+// the theme's own (blue, orange, aqua, yellow, magenta, green, violet, red)
+// rather than the ad-hoc one it had, which put red next to magenta: that pair
+// measured ΔE 7.8 to normal vision, i.e. two layers a full-colour reader could
+// not tell apart.
+//
+// Validated with the data-viz palette checker against *both* surfaces the map
+// has -- the near-black canvas (#0b0d11) and the light OSM basemap (#f2efe9):
+// chroma floor, CVD separation (worst adjacent ΔE 9.1, protan) and the
+// normal-vision floor (19.6) pass on both, and contrast passes 3:1 on the dark
+// canvas. Two deliberate trade-offs, both the price of "brighter":
+//   - three slots sit above the dark-mode lightness band. That band assumes one
+//     dark surface; this palette serves a light one as well, and it is inside
+//     the light band as a set.
+//   - over the OSM basemap several slots fall under 3:1, which the method
+//     allows only with secondary encoding. That is satisfied here: every layer
+//     carries a swatch and a name in the layers panel, and can carry a direct
+//     label on the map.
 const PALETTE: RGB[] = [
-  [57, 135, 229], // blue    #3987e5
-  [25, 158, 112], // aqua    #199e70
-  [201, 133, 0], //  yellow  #c98500
-  [0, 131, 0], //    green   #008300
-  [144, 133, 233], // violet #9085e9
-  [230, 103, 103], // red    #e66767
-  [213, 81, 129], //  magenta #d55181
-  [217, 89, 38], //   orange #d95926
+  [57, 135, 229], //  blue    #3987e5
+  [235, 104, 52], //  orange  #eb6834
+  [27, 175, 122], //  aqua    #1baf7a
+  [237, 161, 0], //   yellow  #eda100
+  [232, 123, 164], // magenta #e87ba4
+  [53, 177, 58], //   green   #35b13a
+  [144, 133, 233], // violet  #9085e9
+  [230, 103, 103], // red     #e66767
 ];
 
 /**

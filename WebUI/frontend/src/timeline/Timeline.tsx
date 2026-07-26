@@ -32,12 +32,14 @@ export function Timeline({
         className="tl-play"
         onClick={() => onPlay(!playing)}
         title={playing ? "Pause" : "Play"}
+        aria-label={playing ? "Pause the animation" : "Play the animation"}
       >
         {playing ? "❚❚" : "▶"}
       </button>
       <span className="tl-clock">{fmtClock(t0 + time)}</span>
       <input
         className="tl-range"
+        aria-label="Seek the animation"
         type="range"
         min={0}
         max={duration}

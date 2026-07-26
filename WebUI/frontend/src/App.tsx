@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { loadTable, runQuery } from "./api/client";
+import { loadTable, runQuery, type CatalogObject } from "./api/client";
 import { Console, type Entry, type RunIntent } from "./console/Console";
 import { Catalog } from "./catalog/Catalog";
 import { MapView } from "./map/MapView";
@@ -92,6 +92,10 @@ export function App() {
   const [openDb, setOpenDb] = useState<string | null>(null);
   // Whether the connected server runs SQL; null until the catalog has asked.
   const [optimizer, setOptimizer] = useState<boolean | null>(null);
+  // The open database's objects, reported by the catalog (see Catalog.onState).
+  // The console completes on these names, and the empty state suggests queries
+  // built from them -- neither fetches its own copy.
+  const [objects, setObjects] = useState<CatalogObject[]>([]);
   const [refreshKey, setRefreshKey] = useState(0);
   const [projection, setProjection] = useState<Projection>("none");
   const [geo, setGeo] = useState<Geometry>(loadGeometry);
@@ -145,6 +149,10 @@ export function App() {
       // the kernel's own (stripOptimizerPrefix); the frontend just writes it.
       const sent = intent === "explain" ? `optimizer ${command}` : command;
       setBusy(true);
+      // Wall clock around the round trip, so it includes the bridge and the
+      // conversion -- which is what the user actually waited for. The console
+      // labels it as elapsed rather than as the server's own query time.
+      const started = performance.now();
       try {
         const res = await runQuery(sent);
         const fc = res.geojson ?? null;
@@ -168,6 +176,7 @@ export function App() {
             message: res.message ?? undefined,
             planOnly: res.plan_only,
             executedByOptimizer: res.executed_by_optimizer,
+            elapsedMs: performance.now() - started,
           },
         ]);
         // A result opens a table only when the map cannot show it at all, so a
@@ -184,7 +193,11 @@ export function App() {
       } catch (e) {
         setHistory((h) => [
           ...h,
-          { command: sent, error: e instanceof Error ? e.message : String(e) },
+          {
+            command: sent,
+            error: e instanceof Error ? e.message : String(e),
+            elapsedMs: performance.now() - started,
+          },
         ]);
         return false;
       } finally {
@@ -225,6 +238,18 @@ export function App() {
   );
 
   const visible = useMemo(() => layers.filter((l) => l.visible), [layers]);
+
+  // Three things worth looking at in *this* database, for the empty map: the
+  // objects that draw something come first (spatial, then moving), since the
+  // suggestion is only useful if clicking it puts something on screen.
+  const suggestions = useMemo(() => {
+    const rank = { spatial: 0, temporal: 1, other: 2 } as const;
+    return [...objects]
+      .filter((o) => o.kind !== "other")
+      .sort((a, b) => rank[a.kind] - rank[b.kind])
+      .slice(0, 3)
+      .map((o) => `query ${o.name}`);
+  }, [objects]);
 
   // A removed result takes its tab with it, and the pane falls back to the map.
   useEffect(() => {
@@ -295,26 +320,33 @@ export function App() {
       }
     >
       <div className="pane catalog-pane">
-        {geo.catalogCollapsed ? (
+        {geo.catalogCollapsed && (
           <button
             className="rail-btn"
             title="Show catalog"
+            aria-label="Show the catalog"
             onClick={() => setGeo((g) => ({ ...g, catalogCollapsed: false }))}
           >
             ▸
           </button>
-        ) : (
+        )}
+        {/* Hidden while collapsed rather than unmounted: it is what reports the
+            open database and its objects, and an unmounted catalog stops
+            reporting -- the header and the console's completions would then go
+            stale the moment the rail is used. */}
+        <div className="cat-wrap" hidden={geo.catalogCollapsed}>
           <Catalog
             onRun={run}
             onOpenTable={openRelation}
             refreshKey={refreshKey}
-            onState={({ open, optimizer }) => {
+            onState={({ open, optimizer, objects }) => {
               setOpenDb(open);
               setOptimizer(optimizer);
+              setObjects(objects);
             }}
             onCollapse={() => setGeo((g) => ({ ...g, catalogCollapsed: true }))}
           />
-        )}
+        </div>
       </div>
 
       {/* Catalog | rest splitter (no resizing while collapsed) */}
@@ -337,6 +369,7 @@ export function App() {
           optimizer={optimizer}
           collapsed={geo.consoleCollapsed}
           theme={theme}
+          objects={objects}
           onToggleTheme={() => setTheme((t) => (t === "dark" ? "light" : "dark"))}
           onClearHistory={() => setHistory([])}
           onToggleCollapse={() =>
@@ -355,9 +388,18 @@ export function App() {
           geo.consoleCollapsed
             ? undefined
             : startDrag(e, geo.consoleH, (start, _dx, dy) =>
-                // The floor leaves room for a fully grown query box: this row
-                // is a fixed height, so a taller box would be clipped by it.
-                setGeo((g) => ({ ...g, consoleH: clamp(start - dy, 200, 640) }))
+                setGeo((g) => ({
+                  ...g,
+                  // The ceiling is measured against the window, not a constant:
+                  // on a short screen a fixed 640 would leave the map with no
+                  // height at all -- and the controls that give it back are in
+                  // the map pane.
+                  consoleH: clamp(
+                    start - dy,
+                    200,
+                    Math.max(200, Math.min(640, window.innerHeight - 240))
+                  ),
+                }))
               )
         }
       />
@@ -372,8 +414,14 @@ export function App() {
 
         {/* The map stays mounted behind an open table: it owns its view state
             and its WebGL context, so covering it is what makes switching back
-            free. */}
-        <div className="result-body">
+            free. `--bottom-inset` is where the bottom-anchored overlays stop:
+            above the timeline when there is one, at the pane's edge when not. */}
+        <div
+          className="result-body"
+          style={
+            { "--bottom-inset": domain ? "4.5rem" : "0.75rem" } as React.CSSProperties
+          }
+        >
         {busy && (
           <div className="loading" role="status">
             <span className="spinner" />
@@ -415,6 +463,40 @@ export function App() {
           }}
         />
 
+        {/* The empty map used to say only "Run a spatial or moving-object
+            query", which tells a first-time user neither where to start nor
+            what a query looks like here. The examples are built from the open
+            database's own objects, so they always work. */}
+        {layers.length === 0 && (
+          <div className="map-empty">
+            {!openDb ? (
+              <>
+                <strong>No database open</strong>
+                <p>Pick one in the catalog on the left to see what it holds.</p>
+              </>
+            ) : (
+              <>
+                <strong>Nothing on the map yet</strong>
+                <p>
+                  Click an object in the catalog, or run a query below
+                  {suggestions.length > 0 ? " — for example:" : "."}
+                </p>
+                {suggestions.length > 0 && (
+                  <ul className="me-examples">
+                    {suggestions.map((cmd) => (
+                      <li key={cmd}>
+                        <button onClick={() => void run(cmd)} disabled={busy}>
+                          {cmd}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </>
+            )}
+          </div>
+        )}
+
         <LayersPanel
           layers={layers}
           onToggle={toggle}
@@ -426,6 +508,9 @@ export function App() {
           onShowTable={(id) => showResult(id, "table")}
         />
 
+        {/* One bottom-left column, so the plots can never cover the attributes
+            of the feature that was just clicked. */}
+        <div className="ov-left">
         {selected && (
           <div className="details">
             <div className="details-head">
@@ -464,6 +549,7 @@ export function App() {
             onToggle={() => setPlotsCollapsed((c) => !c)}
           />
         )}
+        </div>
 
         {domain && (
           <Timeline
