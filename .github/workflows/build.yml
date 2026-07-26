@@ -183,6 +183,33 @@ jobs:
           echo "$res" | grep -q '"geojson"'
           echo "SECONDO answered a query through the REST bridge."
 
+      # -----------------------------------------------------------------------
+      # The client library has to tolerate several connections in one process:
+      # the WebUI bridge opens one per browser session and runs them in
+      # parallel. Tests/csloadtest drives it from many threads and checks the
+      # answers; under ThreadSanitizer it also checks that nothing shared is
+      # touched without synchronization. Runs against the monitor started above.
+      # -----------------------------------------------------------------------
+      - name: Test concurrent client connections
+        working-directory: Tests/csloadtest
+        run: |
+          make
+          ./app --db berlintest --threads 10 --rounds 5 --expect-binary
+
+      - name: Test concurrent client connections under ThreadSanitizer
+        working-directory: Tests/csloadtest
+        run: |
+          # Fails if the list of instrumented sources has drifted from the
+          # archive: an object we forget to instrument makes TSan quietly blind.
+          make tsan-check-sources
+          make tsan
+          # TSan exits 66 when it reports anything, which fails this step.
+          # halt_on_error=0 so that a failing run lists every race, not just
+          # the first. Fewer threads and rounds than above: the sanitizer is
+          # slow, and the races it looks for do not need a large workload.
+          TSAN_OPTIONS="halt_on_error=0 history_size=4" \
+            ./app-tsan --db berlintest --threads 4 --rounds 2
+
       - name: Stop the WebUI stack
         if: always()
         run: |
