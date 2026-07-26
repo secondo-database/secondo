@@ -118,7 +118,7 @@ entropy:
 
 .PHONY: clean
 clean:
-	$(RM) *.dep $(APPLOBJECTS) $(APPLICATIONS) $(ENTROPY_OBJ) $(DEP_FILES) $(CS_OBJECTS)
+	$(RM) *.dep $(APPLOBJECTS) $(APPLICATIONS) $(ENTROPY_OBJ) $(DEP_FILES) $(CS_OBJECTS) $(CS_DEP_FILES)
 	$(MAKE) -C InteractiveQueryEditor clean
 
 #
@@ -127,19 +127,45 @@ clean:
 # create dependencies from include directives
 
 
+# The client/server variants are built from the same sources as the standalone
+# ones, with different flags, so they need rules of their own -- and, like every
+# other object, dependency files, which they went without for a long time. An
+# object that does not depend on the headers it includes is not rebuilt when one
+# of them changes, and the stale copy then wins silently at link time: inline
+# member functions are emitted as weak symbols in every translation unit that
+# uses them, so one old copy of (say) CMsg::info is enough to give the whole
+# binary a version of it that no longer matches the class. That is not a link
+# error, it is a crash somewhere else entirely.
+CS_DEP_FILES := MainTTYCS.dep SecondoTTYCS.dep TestRunnerCS.dep
+
 MainTTYCS.$(OBJEXT): MainTTY.$(OBJEXT)
 MainTTYCS.$(OBJEXT): MainTTY.cpp
-	$(CC) -c -o $@ $< $(CCFLAGS) -DSEC_TTYCS  $(CPPSTDOPTION)
+	$(CC) -c -o $@ $< $(CCFLAGS) -DSEC_TTYCS  $(CPPSTDOPTION) \
+	    -MMD -MP -MF MainTTYCS.dep
 
 SecondoPL.$(OBJEXT): $(ENTROPY_OBJ)
+
+# Overrides the generic rule in makefile.env to add $(JNIINCLUDE), so it has to
+# repeat the dependency generation that rule does -- without it nothing in this
+# directory was rebuilt when a header changed.
 %.$(OBJEXT): %.cpp
-	$(CC) -c -o $@ $< $(CCFLAGS) $(JNIINCLUDE) $(CPPSTDOPTION)
+	$(CC) -c -o $@ $< $(CCFLAGS) $(JNIINCLUDE) $(CPPSTDOPTION) \
+	    -MMD -MP -MF $*.dep
 
 SecondoTTYCS.$(OBJEXT): SecondoTTY.cpp
-	$(CC) -c -DSECONDO_CLIENT_SERVER -o $@ $< $(CCFLAGS) $(CPPSTDOPTION)
+	$(CC) -c -DSECONDO_CLIENT_SERVER -o $@ $< $(CCFLAGS) $(CPPSTDOPTION) \
+	    -MMD -MP -MF SecondoTTYCS.dep
 
-TestRunnerCS.$(OBJEXT): TestRunner.cpp 
-	$(CC) -c -DSECONDO_CLIENT_SERVER -o $@ $< $(CCFLAGS)  $(CPPSTDOPTION)
+TestRunnerCS.$(OBJEXT): TestRunner.cpp
+	$(CC) -c -DSECONDO_CLIENT_SERVER -o $@ $< $(CCFLAGS)  $(CPPSTDOPTION) \
+	    -MMD -MP -MF TestRunnerCS.dep
+
+# Read here rather than through makefile.env's DEP_FILES: that list is derived
+# from the *.cpp in this directory, and these objects are named after sources
+# that do not exist.
+ifneq ($(MAKECMDGOALS),clean)
+-include $(CS_DEP_FILES)
+endif
 
 # Rules for linkage
 #
