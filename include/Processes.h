@@ -177,10 +177,16 @@ Sends the signal ~signo~ to the associated process.
 In case of success "true"[4] is returned, otherwise "false"[4].
 
 */
-  bool WaitForTermination();
+  bool WaitForTermination( const int graceSeconds = 30,
+                           bool* killed = 0 );
 /*
-Waits for the termination of the associated process. The methode
-returns "true"[4], if a termination signal was received. In case of an error
+Waits up to ~graceSeconds~ for the termination of the associated process,
+killing it outright if it is still running when the grace period expires.
+A ~graceSeconds~ of 0 waits indefinitely; a caller should only ask for that
+when it can afford to block forever. If ~killed~ is given, it is set to
+"true"[4] when the process had to be killed rather than shutting down on
+request -- worth reporting, since it means a daemon ignored the request. The
+method returns "true"[4], if the process has terminated. In case of an error
 "false"[4] is returned.
 
 */
@@ -339,9 +345,15 @@ An application should check both ~IsProcessOk~ *and* ~IsProcessTerminated~
 to detect an error condition.
 
 */
-  static bool WaitForProcess( const int processId );
+  static bool WaitForProcess( const int processId,
+                              const int graceSeconds = 30,
+                              bool* killed = 0 );
 /*
-Waits for the termination of process ~processId~.
+Waits up to ~graceSeconds~ for the termination of process ~processId~. A
+straggler still running when the grace period expires is killed outright, so
+that one wedged daemon cannot stall a shutdown indefinitely. A ~graceSeconds~
+of 0 waits indefinitely. If ~killed~ is given, it is set to "true"[4] when the
+process had to be killed rather than shutting down on request.
 In case the process terminated "true"[4] is returned, in case of an error
 "false"[4] is returned.
 

@@ -159,7 +159,16 @@ SecondoMonitor::ExecShutDown()
   {
     cout << "Shutdown in progress ... ";
     ProcessFactory::SignalProcess( pidListener );
-    ProcessFactory::WaitForProcess( pidListener );
+    bool killed = false;
+    if ( !ProcessFactory::WaitForProcess( pidListener, 30, &killed ) )
+    {
+      cout << "Secondo Listener could not be terminated." << endl;
+    }
+    else if ( killed )
+    {
+      cout << "Secondo Listener ignored the shutdown request "
+           << "and had to be killed." << endl;
+    }
     cout << "completed." << endl;
     int status = 0;
     ProcessFactory::GetExitCode( pidListener, status );
@@ -575,7 +584,16 @@ void SecondoMonitor::Terminate()
   {
     cout << "Terminating Secondo Registrar ... ";
     ProcessFactory::SignalProcess( pidRegistrar );
-    ProcessFactory::WaitForProcess( pidRegistrar );
+    bool killed = false;
+    if ( !ProcessFactory::WaitForProcess( pidRegistrar, 30, &killed ) )
+    {
+      cout << "Secondo Registrar could not be terminated." << endl;
+    }
+    else if ( killed )
+    {
+      cout << "Secondo Registrar ignored the shutdown request "
+           << "and had to be killed." << endl;
+    }
     cout << "completed." << endl;
     int status = 0;
     ProcessFactory::GetExitCode( pidRegistrar, status );
@@ -588,7 +606,22 @@ void SecondoMonitor::Terminate()
     {
       cout << "Terminating Checkpoint Service ... ";
       ProcessFactory::SignalProcess( pidCheckpoint );
-      ProcessFactory::WaitForProcess( pidCheckpoint );
+      // A checkpoint service wedged on a BerkeleyDB region lock used to hang
+      // the monitor here forever; it is now killed once the grace period is up.
+      // Say so explicitly: killing it may have orphaned a region lock, which is
+      // the first thing to suspect if the SmiEnvironment shutdown below then
+      // misbehaves.
+      bool killed = false;
+      if ( !ProcessFactory::WaitForProcess( pidCheckpoint, 30, &killed ) )
+      {
+        cout << "Checkpoint service could not be terminated." << endl;
+      }
+      else if ( killed )
+      {
+        cout << "Checkpoint service ignored the shutdown request and had to "
+             << "be killed; a BerkeleyDB region lock may have been orphaned."
+             << endl;
+      }
       cout << "completed." << endl;
       int status = 0;
       ProcessFactory::GetExitCode( pidCheckpoint, status );

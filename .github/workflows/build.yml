@@ -68,6 +68,17 @@ jobs:
           find /tmp/secondotest -type f 2>/dev/null | while read -r f; do
             echo "########## $f"; tail -80 "$f"
           done || true
+          # TestClientServer runs from a mktemp -d and normally removes it, so
+          # anything left here is from a run that was killed before its trap
+          # could fire -- a hung shutdown. That leftover monitor.log names the
+          # call the monitor or checkpoint service was wedged in, and it is the
+          # one artifact that was missing when this last happened.
+          for d in "${TMPDIR:-/tmp}"/TestClientServer.* /tmp/TestClientServer.*; do
+            [ -d "$d" ] || continue
+            find "$d" -type f 2>/dev/null | while read -r f; do
+              echo "########## $f"; tail -80 "$f"
+            done
+          done || true
 
       # -----------------------------------------------------------------------
       # Web UI (WebUI/). Build the JS/Python components against the freshly
@@ -306,4 +317,15 @@ jobs:
           done
           find /tmp/secondotest -type f 2>/dev/null | while read -r f; do
             echo "########## $f"; tail -80 "$f"
+          done || true
+          # TestClientServer runs from a mktemp -d and normally removes it, so
+          # anything left here is from a run that was killed before its trap
+          # could fire -- a hung shutdown. That leftover monitor.log names the
+          # call the monitor or checkpoint service was wedged in, and it is the
+          # one artifact that was missing when this last happened.
+          for d in "${TMPDIR:-/tmp}"/TestClientServer.* /tmp/TestClientServer.*; do
+            [ -d "$d" ] || continue
+            find "$d" -type f 2>/dev/null | while read -r f; do
+              echo "########## $f"; tail -80 "$f"
+            done
           done || true

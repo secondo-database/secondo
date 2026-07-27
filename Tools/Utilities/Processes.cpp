@@ -53,6 +53,11 @@ using namespace std;
 #define WAIT_ANY (-1)
 #endif
 
+// How long a process gets to be reaped after it was killed outright, once the
+// caller's own grace period has already expired. A SIGKILL cannot be caught,
+// so this only covers the reap itself and stays deliberately short.
+static const int KILL_GRACE_MS = 2000;
+
 #ifndef SECONDO_WIN32
 /*
 Closes every descriptor in the range [~first~, ~last~].
@@ -638,18 +643,27 @@ ProcessFactory::IsProcessTerminated( const int processId )
 }
 
 bool
-ProcessFactory::WaitForProcess( const int processId )
+ProcessFactory::WaitForProcess( const int processId,
+                                const int graceSeconds /* = 30 */,
+                                bool* killed /* = 0 */ )
 {
   bool ok = false;
   int index = processId / (instance->maxChilds+1);
   int cycle = processId % (instance->maxChilds+1);
+
+  // Set unconditionally, so every path out of here leaves it defined.
+  if ( killed != 0 )
+  {
+    *killed = false;
+  }
 
   if ( instance->processList[index].cycle == cycle &&
        instance->processList[index].reserved )
   {
     if ( !instance->processList[index].terminated )
     {
-      ok = instance->processList[index].WaitForTermination();
+      ok = instance->processList[index].WaitForTermination( graceSeconds,
+                                                            killed );
     }
     else
     {
@@ -856,24 +870,89 @@ Process::operator=( Process const &other )
 }
 
 bool
-Process::WaitForTermination()
+Process::WaitForTermination( const int graceSeconds /* = 30 */,
+                             bool* killed /* = 0 */ )
 {
   bool ok = false;
+  if ( killed != 0 )
+  {
+    *killed = false;
+  }
   if ( reserved && !terminated )
   {
 #ifdef SECONDO_WIN32
-    ok = ( ::WaitForSingleObject( processInfo.hProcess, INFINITE ) 
+    const DWORD timeout = ( graceSeconds > 0 )
+                          ? (DWORD) ( graceSeconds * 1000 ) : INFINITE;
+    ok = ( ::WaitForSingleObject( processInfo.hProcess, timeout )
            == WAIT_OBJECT_0 );
+    if ( !ok )
+    {
+      if ( killed != 0 )
+      {
+        *killed = true;
+      }
+      ::TerminateProcess( processInfo.hProcess, 1 );
+      ok = ( ::WaitForSingleObject( processInfo.hProcess,
+                                    KILL_GRACE_MS ) == WAIT_OBJECT_0 );
+    }
+    if ( ok )
+    {
+      terminated = true;
+    }
 //
 //  - exit status besorgen
 //  - process handle schliessen
 //  - socket schliessen, falls vorhanden
 //
 #else
-    ok = (waitpid( pid, 0, 0 ) >= 0);
-    if ( !terminated )
+    // Poll instead of blocking in waitpid(): the SIGCHLD handler may reap this
+    // child concurrently, so the terminated flag -- not our own waitpid -- is
+    // the authoritative liveness check. An unbounded wait here would stall a
+    // whole shutdown on a single wedged daemon: a checkpoint process stuck on
+    // a BerkeleyDB region lock never exits, and the monitor waiting on it hung
+    // forever. A straggler still present when the grace period expires is
+    // killed outright, exactly as WaitForAll does.
+    const int pollMs   = 100;
+    int       maxIters = ( graceSeconds * 1000 ) / pollMs;
+    bool      killedIt = false;
+
+    for ( int iter = 0; ; iter++ )
     {
-      terminated = true;
+      int serrno = errno;
+      int exitcode;
+      if ( !terminated && waitpid( pid, &exitcode, WNOHANG ) == pid )
+      {
+        terminated = true;
+        exitStatus = exitcode;
+      }
+      errno = serrno;
+
+      if ( terminated )
+      {
+        ok = true;
+        break;
+      }
+
+      // graceSeconds == 0 means "wait indefinitely", so never escalate.
+      if ( graceSeconds > 0 && iter >= maxIters )
+      {
+        if ( killedIt )
+        {
+          // SIGKILL sent and the post-kill window elapsed without a reap.
+          break;
+        }
+        kill( pid, SIGKILL );
+        killedIt = true;
+        if ( killed != 0 )
+        {
+          *killed = true;
+        }
+        // Give the kill its own bounded window to be reaped rather than
+        // deciding on the very next tick.
+        maxIters = iter + ( KILL_GRACE_MS / pollMs );
+      }
+
+      usleep( pollMs * 1000 );
     }
 #endif
   }

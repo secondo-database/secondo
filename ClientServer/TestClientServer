@@ -614,24 +614,51 @@ if [ ! -S "$regSocket" ]; then
   rc=1
 fi
 
+# Wait well past the monitor's own worst case before calling it a deadlock.
+shutdownWait=150
 kill -TERM "$monPid" 2>/dev/null
 shutdownGone=0
-for _ in $(seq 1 30); do
+for _ in $(seq 1 $((shutdownWait * 2))); do
   kill -0 "$monPid" 2>/dev/null || { shutdownGone=1; break; }
   sleep 0.5
 done
-wait "$monPid" 2>/dev/null
-
 if [ "$shutdownGone" -ne 1 ]; then
-  echo "FAIL (shutdown): monitor still alive 15s after SIGTERM (deadlock?)"
+  # Do not "wait" here: the monitor is still running, so it would block until
+  # the harness times the whole test out an hour later, and this diagnostic --
+  # the one written for exactly this case -- would never be printed. Report the
+  # deadlock, dump what the monitor was doing, and kill the tree instead.
+  echo "FAIL (shutdown): monitor still alive ${shutdownWait}s after SIGTERM" \
+       "(deadlock?)"
+  ps -p "$monPid" -o pid=,ppid=,stat=,comm= 2>/dev/null
+  for pid in $kids; do
+    kill -0 "$pid" 2>/dev/null && ps -p "$pid" -o pid=,ppid=,stat=,comm= \
+      2>/dev/null
+  done
+  echo "=== monitor log ==="
+  tail -30 "$home/monitor.log"
+  kill -KILL "$monPid" 2>/dev/null
+  for pid in $kids; do kill -KILL "$pid" 2>/dev/null; done
+  wait "$monPid" 2>/dev/null
   rc=1
 else
+  wait "$monPid" 2>/dev/null
   assert_no_orphans "shutdown" $kids "$monPid" || rc=1
   if [ -e "$regSocket" ]; then
     echo "FAIL (shutdown): registrar socket $regSocket not removed"
     rc=1
   else
     echo "OK (shutdown): registrar socket removed"
+  fi
+  # The monitor exiting is not the whole story: a daemon that ignores the
+  # shutdown request is now killed after its grace period, after which the
+  # monitor exits cleanly, leaves no orphans and unlinks the socket.
+  if grep -qE "had to be killed|could not be terminated" \
+       "$home/monitor.log" 2>/dev/null; then
+    echo "FAIL (shutdown): a daemon did not shut down on request:"
+    grep -E "had to be killed|could not be terminated" "$home/monitor.log"
+    rc=1
+  else
+    echo "OK (shutdown): all daemons shut down on request"
   fi
 fi
 
