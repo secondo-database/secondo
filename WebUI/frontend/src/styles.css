@@ -264,14 +264,18 @@ body.dragging {
   border: 1px solid var(--border);
   color: var(--text-2);
   border-radius: 5px;
-  padding: 0.2rem 0.45rem;
+  padding: 0.28rem 0.55rem;
   font-size: 0.72rem;
   cursor: pointer;
 }
 
+/* Filled, not tinted: on a chip this size a border colour is not a state, and
+   which database is open is the one thing the panel has to answer at a glance. */
 .cat-db.active {
-  border-color: var(--accent);
-  color: var(--text);
+  background: var(--accent-solid);
+  border-color: var(--accent-solid);
+  color: var(--accent-on);
+  font-weight: 600;
 }
 
 .cat-db.pending {
@@ -444,8 +448,26 @@ body.dragging {
   pointer-events: none;
 }
 
+/* The surface the text sits on. Without it the card's words are read against
+   whatever the map happens to be showing -- and with a projection chosen that is
+   light OSM raster tiles, which the muted greys vanish into. Transparent to the
+   pointer like its parent, so a drag begun on the card still pans the map. */
+.map-empty-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 1rem 1.35rem;
+  background: var(--overlay);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  backdrop-filter: blur(6px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+  pointer-events: none;
+}
+
 .map-empty strong {
-  color: var(--text-2);
+  color: var(--text);
   font-size: 0.95rem;
   font-weight: 600;
 }
@@ -454,7 +476,7 @@ body.dragging {
   margin: 0;
   max-width: 32ch;
   font-size: 0.82rem;
-  color: var(--faint);
+  color: var(--muted);
 }
 
 .me-examples {
@@ -1070,17 +1092,57 @@ body.dragging {
   min-height: 0;
 }
 
+/* A status row, so it centres its contents: the chips have a box and buttons
+   have a height, and a baseline would hang all of them off the word SECONDO. */
 .console header {
   display: flex;
-  align-items: baseline;
-  gap: 1rem;
+  align-items: center;
+  gap: 0.6rem;
   padding: 0.75rem 1rem;
   border-bottom: 1px solid var(--border);
 }
 
-.console header .db {
+/* What is true of this session right now: the open database, and whether the
+   server takes SQL. Read, never clicked -- the controls that change either of
+   them are the catalog and the server itself. */
+.st-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  background: var(--raised);
+  border: 1px solid transparent;
+  border-radius: 999px;
+  padding: 0.12rem 0.5rem;
+  font-size: 0.74rem;
+  white-space: nowrap;
+}
+
+.st-chip .st-ic {
+  font-size: 0.8em;
+  opacity: 0.9;
+}
+
+.st-chip.db {
   color: var(--teal);
-  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+/* Nothing is open: a statement of fact, not a warning -- it is the state the
+   app starts in. */
+.st-chip.none {
+  color: var(--faint);
+  background: none;
+  padding-left: 0;
+}
+
+.st-chip.ok {
+  color: var(--teal);
+}
+
+/* A caveat rather than decoration: it is the answer to why `select ...` fails. */
+.st-chip.warn {
+  color: var(--err-text);
+  border-color: var(--err);
 }
 
 /* history / clear / theme, and the table view's edit-mode buttons: 22px tall
@@ -1354,7 +1416,9 @@ pre.plan {
   bottom: calc(100% + 0.35rem);
   right: 0;
   z-index: 10;
-  min-width: 13rem;
+  /* Wide enough for a label and its note side by side; without it the note
+     squeezes the label onto a second line. */
+  min-width: 16rem;
   display: flex;
   flex-direction: column;
   padding: 0.25rem;
@@ -1377,6 +1441,8 @@ pre.plan {
   padding: 0.4rem 0.55rem;
   border-radius: 5px;
   font-size: 0.78rem;
+  /* A menu row is one line: the note goes beside the label, not under it. */
+  white-space: nowrap;
 }
 
 /* The glyphs have very different advance widths, so they get a column of their
@@ -1389,6 +1455,15 @@ pre.plan {
 
 .run-menu button:hover:not(:disabled) {
   background: var(--raised);
+}
+
+/* Why a row is greyed out, on the row itself. A tooltip is no answer for a
+   disabled control: hovering one is not many people's first instinct. */
+.run-note {
+  margin-left: auto;
+  padding-left: 0.5rem;
+  color: var(--faint);
+  font-size: 0.68rem;
 }
 
 /* --- result tabs ------------------------------------------------------- */

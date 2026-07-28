@@ -142,8 +142,14 @@ async function get<T>(path: string): Promise<T> {
   });
 }
 
-export function runQuery(command: string): Promise<QueryResponse> {
-  return post<QueryResponse>("/api/query", { command });
+/** Run a command. `view: "table"` asks the server for the rows only -- it skips
+ *  the spatial and temporal conversion instead of converting payloads the
+ *  caller is going to discard. Omitted means "auto": convert whatever fits. */
+export function runQuery(
+  command: string,
+  view?: "table"
+): Promise<QueryResponse> {
+  return post<QueryResponse>("/api/query", view ? { command, view } : { command });
 }
 
 export async function listDatabases(): Promise<{

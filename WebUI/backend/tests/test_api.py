@@ -364,6 +364,35 @@ def test_a_derived_result_names_no_relation(client):
     assert body["relation"] is None
 
 
+def test_table_view_asks_for_rows_only(client):
+    """"Run as table" wants the rows and nothing else, so the spatial payload is
+    not built rather than built and discarded -- for a relation of moving points
+    that payload is the bulk of the response."""
+    body = client.post(
+        "/api/query", json={"command": "select * from kinos", "view": "table"}
+    ).json()
+    assert body["table"]["rows"] == [["Kino", "(1.0 2.0)"]]
+    assert body["geojson"] is None
+    assert body["temporal"] is None
+    # Everything that is not a render payload is unaffected.
+    assert body["plan"] == "kinos feed consume"
+    assert body["relation"] == "kinos"
+
+    # The same command without the flag still renders on the map, so the default
+    # path is untouched.
+    body = client.post("/api/query", json={"command": "select * from kinos"}).json()
+    assert body["geojson"]["features"][0]["geometry"]["coordinates"] == [1.0, 2.0]
+
+
+def test_table_view_of_a_non_relation_has_no_rows(client):
+    """A point is not a relation. The UI says so rather than opening nothing."""
+    body = client.post(
+        "/api/query", json={"command": "query mehringdamm", "view": "table"}
+    ).json()
+    assert body["table"] is None
+    assert body["geojson"] is None
+
+
 def test_table_load_asks_for_tids(client):
     r = client.post("/api/table/load", json={"relation": "ten"})
     assert r.status_code == 200

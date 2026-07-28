@@ -7,7 +7,7 @@ import { MAP_TAB, ResultTabs } from "./table/ResultTabs";
 import { TableView } from "./table/TableView";
 import { Timeline } from "./timeline/Timeline";
 import { useAnimator } from "./timeline/useAnimator";
-import { useLayers } from "./layers/useLayers";
+import { isDrawable, useLayers } from "./layers/useLayers";
 import { LayersPanel } from "./layers/LayersPanel";
 import { PlotPanel, type PlotEntry } from "./plots/PlotPanel";
 import { PROJECTION_LABEL, type Projection } from "./map/projection";
@@ -154,7 +154,10 @@ export function App() {
       // labels it as elapsed rather than as the server's own query time.
       const started = performance.now();
       try {
-        const res = await runQuery(sent);
+        // "Run as table" is answered by the server: it converts the rows only,
+        // so a relation of moving points does not build and ship a trips payload
+        // that would be thrown away here.
+        const res = await runQuery(sent, intent === "table" ? "table" : undefined);
         const fc = res.geojson ?? null;
         const temp = res.temporal ?? null;
         const tab = res.table ?? null;
@@ -176,14 +179,19 @@ export function App() {
             message: res.message ?? undefined,
             planOnly: res.plan_only,
             executedByOptimizer: res.executed_by_optimizer,
+            // Nothing opened and nothing was drawn; say why, or the menu item
+            // looks like it did nothing at all.
+            noTable: intent === "table" && !tab,
             elapsedMs: performance.now() - started,
           },
         ]);
-        // A result opens a table only when the map cannot show it at all, so a
-        // mappable result never steals focus from wherever the user is. Where a
-        // result goes is deliberately decided *after* it arrives -- from the
-        // console entry or the layers row -- rather than promised beforehand.
-        if (layerId && tab && !fc && !temp) showResult(layerId, "table");
+        // A plain run opens a table only when the map cannot show the result at
+        // all, so a mappable result never steals focus from wherever the user
+        // is: where it goes is decided *after* it arrives, from the console
+        // entry or the layers row. "Run as table" asked for one up front, and
+        // with no geometry converted there is nothing else it could mean.
+        if (layerId && tab && (intent === "table" || (!fc && !temp)))
+          showResult(layerId, "table");
         // The catalog refreshes on this and reports the new database state back.
         // `create table`, `drop table` and `let x = select ...` never match
         // DB_CMD: they arrive as commands the optimizer executed itself.
@@ -238,6 +246,13 @@ export function App() {
   );
 
   const visible = useMemo(() => layers.filter((l) => l.visible), [layers]);
+
+  // What the map has to show. A table-only result is still a layer -- it holds
+  // the rows and the tab that opens them -- but it draws nothing, so counting
+  // layers would call the map "not empty" while it is blank. `query ten`, or
+  // anything run through "Show result as table", left it with no explanation of
+  // itself at all once its tab was closed.
+  const drawn = useMemo(() => layers.filter(isDrawable), [layers]);
 
   // Three things worth looking at in *this* database, for the empty map: the
   // objects that draw something come first (spatial, then moving), since the
@@ -467,8 +482,12 @@ export function App() {
             query", which tells a first-time user neither where to start nor
             what a query looks like here. The examples are built from the open
             database's own objects, so they always work. */}
-        {layers.length === 0 && (
+        {drawn.length === 0 && (
           <div className="map-empty">
+            {/* On its own surface rather than as bare text: with a projection
+                chosen the map draws light OSM raster tiles underneath, and text
+                sized for the dark empty pane disappears into them. */}
+            <div className="map-empty-card">
             {!openDb ? (
               <>
                 <strong>No database open</strong>
@@ -494,6 +513,7 @@ export function App() {
                 )}
               </>
             )}
+            </div>
           </div>
         )}
 

@@ -12,6 +12,7 @@ import logging
 import re
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from typing import Literal
 
 from fastapi import Cookie, FastAPI, HTTPException, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
@@ -93,6 +94,11 @@ app.add_middleware(
 
 class QueryRequest(BaseModel):
     command: str
+    # Which render payloads the caller wants back. "auto" derives whatever the
+    # result supports; "table" is the UI's "run as table", and asks for the rows
+    # alone -- a relation of moving points is megabytes of trips that would only
+    # be discarded, so it is not built rather than built and dropped.
+    view: Literal["auto", "table"] = "auto"
 
 
 class QueryResponse(BaseModel):
@@ -171,7 +177,11 @@ async def query(
     # so this is the unchanged Milestone 2/3 pipeline.
     geojson = temporal = tabular = None
     try:
-        geojson, temporal, tabular = convert(result.text)
+        if req.view == "table":
+            # Asked for rows and nothing else, so only the rows are derived.
+            tabular = table_mod.to_table(result.text)
+        else:
+            geojson, temporal, tabular = convert(result.text)
     except Exception:  # noqa: BLE001 - conversion must not fail the request
         logger.exception("Result conversion failed for command: %s", req.command)
     return QueryResponse(

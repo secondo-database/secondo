@@ -118,8 +118,15 @@ try {
   const headerText = await page.$eval(".console header", (el) => el.textContent);
   check(!/BERLINTEST\s*·\s*OPT/.test(headerText ?? ""),
         `console header no longer duplicates the database list`);
-  check(/db:\s*berlintest/.test(headerText ?? ""),
-        `console header shows the open database (${headerText?.trim()})`);
+  // The header states the session: which database, and whether the server takes
+  // SQL. It is the only place that says so once the catalog is collapsed.
+  const dbChip = await page.$eval(".st-chip.db", (el) => el.textContent.trim());
+  check(/berlintest/i.test(dbChip),
+        `console header shows the open database (${dbChip})`);
+  const sqlChip = await page.$eval(".st-chip.ok, .st-chip.warn", (el) =>
+    el.textContent.trim());
+  check(/SQL (ready|off)/.test(sqlChip),
+        `console header states the SQL capability (${sqlChip})`);
   const catalogDbs = await page.$$eval(".cat-db", (els) => els.length);
   check(catalogDbs >= 3, `catalog is the single place listing databases (${catalogDbs})`);
 

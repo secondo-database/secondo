@@ -10,12 +10,14 @@ import { loadCommands, saveCommands } from "./history";
 
 /** What a one-shot Run menu item asks for; `undefined` is a plain Run.
  *
- *  Only "explain" remains. The menu is about *how to run*, not about where the
- *  result goes: routing is better decided once the answer is back, which is why
- *  it lives on the console entry and the layers row instead. ("Run and show on
- *  map" could not even keep its promise -- for a result with no geometry there
- *  is nothing to show, so it silently opened the table instead.) */
-export type RunIntent = "explain";
+ *  "explain" changes how the command is sent; "table" changes what is asked of
+ *  the result. Routing is otherwise decided once the answer is back -- from the
+ *  console entry or the layers row -- because a promise made beforehand may not
+ *  be keepable. ("Run and show on map" was dropped for exactly that: a result
+ *  with no geometry has nothing to show, so it silently opened the table
+ *  instead.) "table" is safe to promise in that sense: when the result is not a
+ *  relation the entry says so rather than quietly doing something else. */
+export type RunIntent = "explain" | "table";
 
 export interface Entry {
   command: string;
@@ -35,6 +37,9 @@ export interface Entry {
   message?: string;
   // The user wrote the "optimizer " prefix: optimized, deliberately not run.
   planOnly?: boolean;
+  // "Run as table" was asked for, but the result is not a relation. Said out
+  // loud, since nothing opened and the reason is not otherwise visible.
+  noTable?: boolean;
   // A create/drop the optimizer carried out itself while translating.
   executedByOptimizer?: boolean;
   // How long the round trip took, bridge and conversion included.
@@ -263,10 +268,12 @@ export function Console({
 
   async function submit(cmd: string, intent?: RunIntent) {
     const trimmed = cmd.trim();
+    // Closed first, so a submit that turns out to have nothing to run still
+    // acknowledges the click instead of leaving the menu hanging open.
+    setMenuOpen(false);
     if (!trimmed || busy) return;
     setCommand("");
     setHistIndex(-1);
-    setMenuOpen(false);
     closeCompletions();
     // Recall keeps the query as it was written -- the line breaks are what make
     // a long one readable -- while the server and the log see a single line.
@@ -278,17 +285,47 @@ export function Console({
     inputRef.current?.focus();
   }
 
+  // Running a query empties the box, so by the time anyone reaches for the menu
+  // there is usually nothing left in it to run. Every item therefore says what
+  // it would act on -- and "show result as table" takes the obvious reading when
+  // nothing is typed: the last answer that had rows, which is the one on screen.
+  const typed = command.trim().length > 0;
+  const lastRows = typed
+    ? undefined
+    : [...history].reverse().find((e) => e.layerId && e.rowCount !== undefined);
+
   return (
     <div className={"console" + (collapsed ? " collapsed" : "")}>
       <header>
         <strong>SECONDO</strong>
-        {/* The database list lives in the catalog panel; don't duplicate it. */}
-        <span className="db">{openDb ? `db: ${openDb}` : "no database open"}</span>
-        {/* Only worth saying when SQL is *not* on offer, so that a failing
-            `select ...` explains itself instead of looking like a bug. */}
-        {optimizer === false && (
-          <span className="db" title="This server runs without the optimizer">
-            sql: off
+        {/* Session status, not a second database chooser: picking one is the
+            catalog's job, but the catalog collapses to a rail and this does not,
+            so this is what always says which database a query will run against.
+            It sits next to the input for the same reason -- it is where a
+            command that fails for want of an open database is typed. */}
+        {openDb ? (
+          <span className="st-chip db" title={`Queries run against ${openDb}`}>
+            <span className="st-ic">◆</span>
+            {openDb}
+          </span>
+        ) : (
+          <span className="st-chip none">no database open</span>
+        )}
+        {/* Both states are worth saying. "off" so that a failing `select ...`
+            explains itself instead of looking like a bug, and "ready" because
+            nothing else tells a newcomer this server takes SQL at all. Null
+            until the catalog's first fetch, when neither is known yet. */}
+        {optimizer !== null && (
+          <span
+            className={"st-chip " + (optimizer ? "ok" : "warn")}
+            title={
+              optimizer
+                ? "This server runs the optimizer — SQL (select … from … where …) works here"
+                : "This server runs without the optimizer — only executable queries"
+            }
+          >
+            <span className="st-ic">⌁</span>
+            {optimizer ? "SQL ready" : "SQL off"}
           </span>
         )}
         <button
@@ -350,6 +387,9 @@ export function Console({
               </pre>
             )}
             {e.planOnly && <div className="optnote">Plan only — not executed.</div>}
+            {e.noTable && (
+              <div className="optnote">Not a relation — no rows to tabulate.</div>
+            )}
             {e.executedByOptimizer && (
               <div className="optnote">
                 Executed by the optimizer (no plan to run).
@@ -474,7 +514,7 @@ export function Console({
             <div className="run-menu" role="menu">
               <button
                 role="menuitem"
-                disabled={optimizer === false}
+                disabled={optimizer === false || !typed}
                 title={
                   optimizer === false
                     ? "This server runs without the optimizer"
@@ -483,6 +523,42 @@ export function Console({
                 onClick={() => void submit(command, "explain")}
               >
                 <span className="run-ic">≡</span> Explain — plan only
+                {/* A greyed-out row with the reason only in a tooltip leaves
+                    anyone who does not hover guessing. */}
+                {optimizer === false ? (
+                  <span className="run-note">needs the optimizer</span>
+                ) : (
+                  !typed && <span className="run-note">type a query</span>
+                )}
+              </button>
+              <button
+                role="menuitem"
+                disabled={!typed && !lastRows}
+                title={
+                  typed
+                    ? "Run this query and open the result as a table — nothing is drawn on the map"
+                    : lastRows
+                      ? "Open the rows of the last result as a table"
+                      : "Type a query, or run one that returns rows"
+                }
+                onClick={() => {
+                  if (typed) {
+                    void submit(command, "table");
+                    return;
+                  }
+                  // Nothing typed: the item is about the answer already on
+                  // screen. Running the empty box would do nothing at all --
+                  // which is what made this look broken.
+                  setMenuOpen(false);
+                  if (lastRows?.layerId) onShowResult(lastRows.layerId, "table");
+                }}
+              >
+                <span className="run-ic">▤</span> Show result as table
+                {!typed && (
+                  <span className="run-note">
+                    {lastRows ? "last result" : "no rows yet"}
+                  </span>
+                )}
               </button>
             </div>
           )}

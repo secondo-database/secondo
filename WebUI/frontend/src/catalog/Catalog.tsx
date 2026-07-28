@@ -96,13 +96,18 @@ export function Catalog({
     void refresh();
   }, [refresh, refreshKey]);
 
+  // `list databases` reports the names uppercased while `session.open_db` keeps
+  // them as the open command spelled them, so the two are only ever the same
+  // database, never the same string. One helper for the comparison, used by both
+  // the highlight and the guard below, so they cannot drift apart again.
+  const isOpen = (name: string) => open?.toLowerCase() === name.toLowerCase();
+
   async function openDb(name: string) {
     if (pendingDb) return; // ignore rapid repeat clicks while one is in flight
     setPendingDb(name);
-    const lname = name.toLowerCase();
     try {
-      if (open && open !== lname) await onRun("close database");
-      if (open !== lname) await onRun(`open database ${name}`);
+      if (open && !isOpen(name)) await onRun("close database");
+      if (!isOpen(name)) await onRun(`open database ${name}`);
       await refresh();
     } finally {
       setPendingDb(null);
@@ -136,12 +141,15 @@ export function Catalog({
             key={db}
             className={
               "cat-db" +
-              (open === db.toLowerCase() ? " active" : "") +
+              (isOpen(db) ? " active" : "") +
               (pendingDb === db ? " pending" : "")
             }
             disabled={pendingDb !== null}
+            // The chips are a single-select group; without this the selected one
+            // is only a colour, which is nothing to a screen reader.
+            aria-pressed={isOpen(db)}
             onClick={() => void openDb(db)}
-            title={`open database ${db}`}
+            title={isOpen(db) ? `${db} is open` : `open database ${db}`}
           >
             {db}
             {pendingDb === db && <span className="cat-spin" />}
