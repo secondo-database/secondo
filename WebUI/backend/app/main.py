@@ -12,11 +12,13 @@ import logging
 import re
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from pathlib import Path
 from typing import Literal
 
 from fastapi import Cookie, FastAPI, HTTPException, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from . import table as table_mod
@@ -46,8 +48,34 @@ async def _reaper() -> None:
             logger.exception("Session reaper failed")
 
 
+def _configure_logging() -> None:
+    """Make this app's log actually come out.
+
+    `logging.getLogger("secondo.webui")` has no handler of its own, and uvicorn
+    configures only its own loggers -- it leaves the root logger at WARNING with
+    no handler. So every `logger.info` here (the config in force, the session
+    reaper, which mode this process is in) went nowhere, and only warnings and
+    errors surfaced, through logging's last-resort handler. Borrowing uvicorn's
+    handler keeps one format and one stream for the whole process; run outside
+    uvicorn (a test, a script) there is nothing to borrow, so fall back to a
+    plain stderr handler.
+    """
+    if logger.handlers:
+        return
+    # "uvicorn" is the one carrying the handler in uvicorn's default config;
+    # "uvicorn.error" is configured with a level only and propagates to it.
+    parent = logging.getLogger("uvicorn")
+    if parent.handlers:
+        logger.handlers = parent.handlers
+        logger.setLevel(parent.level or logging.INFO)
+    else:
+        logging.basicConfig(level=logging.INFO)
+        logger.setLevel(logging.INFO)
+
+
 @asynccontextmanager
 async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
+    _configure_logging()
     # Say up front which config the client will use and whether it is usable:
     # the wrong one is the difference between a working bridge and one whose
     # every endpoint hangs, and it is invisible otherwise.
@@ -60,6 +88,18 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
             settings.secondo_host,
             settings.secondo_port,
             settings.secondo_config,
+        )
+    # Which of the two shapes this process is: the whole WebUI, or the API half
+    # of a dev setup where Vite serves the rest. A blank page is otherwise
+    # unexplained. (STATIC_DIR is assigned at the end of this module, which has
+    # finished importing long before any of this runs.)
+    if STATIC_DIR:
+        logger.info("Serving the WebUI from %s", STATIC_DIR)
+    else:
+        logger.info(
+            "No frontend build at %s -- serving the API only. Run "
+            "`make -C WebUI build`, or use the Vite dev server.",
+            settings.static_dir,
         )
     task = asyncio.create_task(_reaper())
     try:
@@ -443,3 +483,31 @@ async def close(secondo_sid: str | None = Cookie(default=None)) -> dict:
     if secondo_sid:
         await manager.close(secondo_sid)
     return {"closed": True}
+
+
+def mount_static(app: FastAPI, directory: str | None = None) -> Path | None:
+    """Serve the built frontend from this same app; return what was mounted, or
+    None if there is no build to serve.
+
+    This is what makes a deployment one server on one port: the API and the UI
+    share an origin, so the session cookie needs no proxy to stay same-site.
+
+    Mounted *last* on purpose. Starlette matches routes in the order they were
+    added, so every /api route declared above still wins and this catches what
+    is left. A checkout that has not run `npm run build` is not an error -- the
+    Vite dev server is serving the UI then -- so this is a no-op rather than a
+    failure, and the startup log says which of the two is happening.
+
+    `index.html` rather than the directory decides, so an empty or half-removed
+    `dist/` counts as no build instead of mounting a 404 factory.
+    """
+    d = Path(directory or settings.static_dir)
+    if not (d / "index.html").is_file():
+        return None
+    # html=True is what serves index.html for "/". There is no client-side
+    # router, so an unknown path is honestly a 404 and needs no rewrite.
+    app.mount("/", StaticFiles(directory=d, html=True), name="webui")
+    return d
+
+
+STATIC_DIR = mount_static(app)

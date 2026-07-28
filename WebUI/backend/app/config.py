@@ -50,6 +50,15 @@ class Settings:
     # CORS origin for the Vite dev server.
     cors_origin: str = os.environ.get("WEBUI_CORS_ORIGIN", "http://localhost:5173")
 
+    # The built frontend (`npm run build` output), served by the bridge itself
+    # so a deployment is one server on one port. Unlike `secondo_config` this
+    # one *is* guessed: it is a directory inside this checkout, and getting it
+    # wrong costs a missing page rather than a client with the wrong flags.
+    static_dir: str = os.environ.get(
+        "WEBUI_STATIC_DIR",
+        str(Path(__file__).resolve().parent.parent.parent / "frontend" / "dist"),
+    )
+
     # Each session holds a SECONDO connection (the server forks a process per
     # connection), so idle sessions are closed to avoid leaking them.
     session_idle_timeout: float = float(

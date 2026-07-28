@@ -264,6 +264,14 @@ below.
 
 ## Build & run
 
+Two shapes, and they are not variations of one setup:
+
+- **Development** — two servers. Vite on `:5173` serves the frontend with hot
+  reload and proxies `/api` to uvicorn on `:8000`. Steps 1-3 below.
+- **Production** — *one* server. The bridge serves `/api/*` and the built
+  frontend together on a single port, so there is no Vite process and no proxy.
+  See [Production](#production-one-server).
+
 ### 1. Backend (native module + FastAPI)
 
 ```bash
@@ -306,7 +314,7 @@ cd $SECONDO_BUILD_DIR/bin
 ./SecondoMonitor -s      # listens on port 1234
 ```
 
-### 3. Frontend
+### 3. Frontend (development)
 
 ```bash
 cd WebUI/frontend
@@ -334,6 +342,57 @@ optimizer select * from kinos              # show the plan, do not run it
 showOptions                                # an optimizer directive
 ```
 
+## Production (one server)
+
+`npm run build` compiles the frontend into `frontend/dist/`, and the bridge
+serves that directory itself (`mount_static` in `app/main.py`). The result is one
+process on one port answering both `/api/*` and the UI — no Vite, no proxy, and
+the session cookie is same-origin by construction rather than by proxy
+configuration.
+
+```bash
+source ~/.secondorc
+make -C WebUI venv native     # once: virtualenv + the pybind11 module
+make -C WebUI prod            # build frontend/dist, then serve everything
+```
+
+Then open `http://<host>:8000`. A SecondoMonitor still has to be running
+(step 2 above). The `Makefile` also has `build`, `serve`, `native`, `venv` and
+`clean` separately, so a redeploy after a UI change is `make -C WebUI build` and
+a restart.
+
+**Listen address.** `HOST` and `PORT` are make variables:
+
+```bash
+make -C WebUI prod HOST=127.0.0.1     # this machine only
+make -C WebUI prod PORT=9000
+```
+
+The default is `HOST=0.0.0.0`, i.e. reachable from the network. **The WebUI has
+no authentication**: anyone who can reach the port can read and modify every
+database on the connected server, and `save`/`restore` typed into the console
+write into the *server's* filesystem. On anything but a trusted network, bind
+`127.0.0.1` and put an authenticating reverse proxy in front of it.
+
+**Run a single worker.** Sessions live in an in-process dict
+(`SessionManager`, `app/session.py`) and each holds one SECONDO connection, so
+with `--workers N` a session cookie would land on a worker that has never heard
+of it — the object list would come back empty at random. The `Makefile` runs one
+worker; keep it that way. Concurrency comes from the async bridge and from the
+monitor forking a process per connection, not from uvicorn workers.
+
+**Other things worth knowing:**
+
+- `source ~/.secondorc` matters for the production server exactly as it does for
+  the dev bridge — same 503, same `/api/health` reporting `misconfigured`.
+- The served bundle is a build artifact, not the sources: after editing anything
+  under `frontend/src`, `make -C WebUI build`. `frontend/dist/` is gitignored.
+- With no build present the server still starts and serves the API only, saying
+  so at startup (`No frontend build at … -- serving the API only`). That is the
+  development case, not an error.
+- `WEBUI_STATIC_DIR` overrides which directory is served, if the build lives
+  somewhere else.
+
 ## Tests
 
 Backend unit/API tests (no live monitor required — the connection is faked):
@@ -349,6 +408,15 @@ Frontend end-to-end map test (needs the full stack up: monitor + bridge + vite):
 cd WebUI/frontend
 npm run e2e                # the whole suite
 npm run e2e -- plots       # only checks whose name matches "plots"
+```
+
+The same suite runs against the **production** server — point it at the single
+port and everything (built assets, API, same-origin cookie) is exercised through
+one process:
+
+```bash
+make -C WebUI prod &
+cd WebUI/frontend && WEBUI_URL=http://127.0.0.1:8000/ npm run e2e
 ```
 
 `e2e/run.mjs` discovers every `e2e/verify-*.mjs`, runs them sequentially and
@@ -371,6 +439,7 @@ Real end-to-end sanity check (needs a monitor + berlintest):
 ## Layout
 
 ```
+Makefile         build + run the production server (make prod / build / native)
 backend/
   native/        pybind11 wrapper (secondo_native.cpp, Makefile)
   app/           FastAPI app: config, session, main, catalog,
@@ -379,6 +448,7 @@ backend/
   tests/         parser / geojson / temporal / table / updates / API tests
                  + fixtures
 frontend/
+  dist/          production build (npm run build); served by the bridge
   src/api/       bridge client + types
   src/catalog/   database + object browser
   src/console/   command console (history recall, focus retention)

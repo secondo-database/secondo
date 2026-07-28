@@ -219,6 +219,55 @@ def test_health_reports_a_broken_config(client, monkeypatch):
     assert "SECONDO_CONFIG" in body["config_error"]
 
 
+# --- serving the built frontend from the same server ----------------------
+#
+# These drive `mount_static` against a temporary directory rather than the real
+# frontend/dist, so they hold whether or not the UI has been built.
+
+
+def test_no_build_mounts_nothing(client, tmp_path):
+    """A checkout that has not run `npm run build` is not an error -- in dev the
+    Vite server is serving the UI. An empty dist counts as no build too."""
+    from fastapi import FastAPI
+
+    from app.main import mount_static
+
+    assert mount_static(FastAPI(), str(tmp_path)) is None
+
+
+def test_a_build_is_served_at_the_root(client, tmp_path):
+    from fastapi import FastAPI
+
+    from app.main import mount_static
+
+    (tmp_path / "index.html").write_text("<title>SECONDO Web UI</title>")
+    (tmp_path / "assets").mkdir()
+    (tmp_path / "assets" / "app.js").write_text("console.log(1)")
+
+    app = FastAPI()
+    assert mount_static(app, str(tmp_path)) == tmp_path
+
+    c = TestClient(app)
+    # "/" serves index.html (StaticFiles html=True), and hashed assets are
+    # reachable under the path Vite writes into that file.
+    assert "SECONDO Web UI" in c.get("/").text
+    assert c.get("/assets/app.js").status_code == 200
+    # No client-side router, so an unknown path is honestly a 404.
+    assert c.get("/nope").status_code == 404
+
+
+def test_the_static_mount_does_not_shadow_the_api(client):
+    """The regression that matters: a mount at "/" registered before the API
+    routes would swallow every one of them. Starlette matches in registration
+    order, so `mount_static` has to stay at the end of the module."""
+    from app.main import STATIC_DIR
+
+    assert client.get("/api/health").status_code == 200
+    assert client.post("/api/query", json={"command": "query ten"}).status_code == 200
+    if STATIC_DIR is not None:  # only when this checkout has a built frontend
+        assert "<title>" in client.get("/").text
+
+
 def test_query_and_session_cookie(client):
     r = client.post("/api/query", json={"command": "query mehringdamm"})
     assert r.status_code == 200
