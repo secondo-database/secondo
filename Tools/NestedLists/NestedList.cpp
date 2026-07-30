@@ -122,6 +122,7 @@ A nested list is represented by four stable tables called ~Nodes~, ~Ints~,
 #include "LogMsg.h"
 #include "Counter.h"
 #include "StringUtils.h"
+#include "SecondoException.h"
 
 
 using namespace std;
@@ -221,6 +222,31 @@ you comment out the line below.
    boost::mutex smtx;
 #endif
 
+/*
+Resolves ~dir~ against the current working directory, so that it keeps naming
+the same place after the process has moved elsewhere.
+
+*/
+static string absoluteFolder(const string& dir)
+{
+  if( !dir.empty() && dir[0] == PATH_SLASH[0] )
+  {
+    return dir;
+  }
+  string cwd = FileSystem::GetCurrentFolder();
+  if( cwd.empty() )
+  {
+    // getcwd failed: the working directory has been removed under the process,
+    // or its path does not fit the buffer of GetCurrentFolder. Either way we
+    // cannot say where a relative name points, and handing one out anyway is
+    // the very thing this function exists to prevent.
+    throw SecondoException("Cannot determine the current folder to resolve "
+                           "the nested list directory '" + dir + "' against");
+  }
+  FileSystem::AppendSlash( cwd );
+  return cwd + dir;
+}
+
 NestedList::NestedList(string dir /* ="" */,
                        const uint32_t nodeMem,
                        const uint32_t strMem,
@@ -239,15 +265,17 @@ NestedList::NestedList(string dir /* ="" */,
 
   instanceNo = NLinstance++;
   stringstream ss;
+  // The directory is created here, but the files under it are opened later,
+  // so remember it absolutely.
   if(!dir.empty()){
     FileSystem::AppendSlash(dir);
     if(!FileSystem::FileOrFolderExists(dir)){
        if(FileSystem::CreateFolderEx(dir)){
-         ss << dir;
+         ss << absoluteFolder(dir);
        }
     } else {
       if(FileSystem::IsDirectory(dir)){
-         ss << dir;
+         ss << absoluteFolder(dir);
       }
     }
   }
