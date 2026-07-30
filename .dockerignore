@@ -1,0 +1,57 @@
+# What the build context must not carry.
+#
+# A built checkout is several gigabytes, almost all of it output that the image
+# rebuilds anyway (see packaging/container/Dockerfile). Everything listed here is
+# generated; no tracked file matches any of these patterns.
+#
+# This belongs at the root of the build context, not next to the Dockerfile.
+# BuildKit does read a "<dockerfile>.dockerignore" sibling, but only while the
+# Dockerfile lies inside the context; where that does not hold it falls back
+# here without warning, and a build that silently carries the whole tree costs
+# gigabytes of context and picks up stale binaries.
+
+.git
+.github
+
+# Compiler output. Not "lib/": the directory itself is tracked (via
+# lib/.empty_file) because the makefiles copy into it without creating it, and
+# excluding it makes the build fail in ClientServer.
+**/*.o
+**/*.a
+**/*.dep
+
+# The kernel and the client/server programs
+bin/SecondoBDB
+bin/SecondoCS
+bin/SecondoListener
+bin/SecondoMonitor
+bin/SecondoRegistrar
+bin/SecondoCheckpoint
+bin/KeyValueStore
+
+# Runtime artifacts of a local run: the monitor, the TTY and the persistent
+# nested list all write relative to their working directory.
+bin/tmp/
+bin/temp_nested_list*/
+**/temp_nested_list/
+bin/server.msg
+bin/proglogt.csv
+bin/*.log
+bin/.secondo_history
+.secondo_history
+
+# WebUI: the frontend bundle, its dependencies, the backend virtualenv and the
+# pybind11 module are all rebuilt in the image.
+**/node_modules/
+**/.venv/
+WebUI/frontend/dist/
+WebUI/backend/native/*.so
+
+# The packaging metadata is not part of the build. Excluding it also keeps the
+# Dockerfile itself out of the context, so editing it does not invalidate the
+# `COPY . /opt/secondo` layer and force a half-hour recompile. The entrypoint
+# is the one file the runtime stage copies from the context, so it stays.
+packaging/
+!packaging/container/docker-entrypoint.sh
+
+Algebras/Cassandra/tools/dsecondo-gui/target/

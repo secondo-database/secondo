@@ -1,0 +1,60 @@
+name: Build the container image
+
+# Builds the SECONDO container image and publishes it to the GitHub
+# container registry.
+
+on:
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: 'Push the image to ghcr.io'
+        type: boolean
+        default: true
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    # The image is built from source which takes some time on a hosted runner.
+    timeout-minutes: 90
+    permissions:
+      contents: read
+      packages: write     # to push to ghcr.io
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v7
+
+      # ghcr.io rejects upper case, and a repository name may contain it.
+      - name: Derive the image name
+        id: meta
+        run: |
+          echo "image=ghcr.io/${GITHUB_REPOSITORY,,}" >> "$GITHUB_OUTPUT"
+          echo "Building ghcr.io/${GITHUB_REPOSITORY,,}:latest"
+
+      - name: Build the image
+        run: |
+          docker build --progress=plain \
+            -f packaging/container/Dockerfile \
+            -t secondo:ci \
+            .
+
+      # A failure here fails the job before the push step, so a broken image
+      # cannot reach the registry.
+      - name: Test the image
+        run: packaging/container/test-image.sh secondo:ci
+
+      - name: Log in to ghcr.io
+        if: ${{ inputs.publish }}
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Push the image
+        if: ${{ inputs.publish }}
+        env:
+          IMAGE: ${{ steps.meta.outputs.image }}
+        run: |
+          docker tag secondo:ci "$IMAGE:latest"
+          docker push "$IMAGE:latest"
+          echo "Pushed $IMAGE:latest"

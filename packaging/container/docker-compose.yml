@@ -1,0 +1,32 @@
+# SECONDO: the server, the WebUI, and the CLI client in one container.
+#
+#   docker compose -f packaging/container/docker-compose.yml up --build
+#
+# Then open http://127.0.0.1:8000 for the WebUI, or use the command line:
+#
+#   docker exec -it secondo SecondoTTYCS
+#
+# The first start restores the berlintest and opt databases into the volume
+# below; later starts find them there and skip the restore.
+
+services:
+  secondo:
+    build:
+      context: ../..
+      dockerfile: packaging/container/Dockerfile
+    image: secondo
+    container_name: secondo
+    ports:
+      - "127.0.0.1:8000:8000"   # WebUI
+      - "127.0.0.1:1234:1234"   # SECONDO server (SecondoTTYCS, Javagui, ...)
+    volumes:
+      - secondo-databases:/var/lib/secondo/databases
+    environment:
+      # Set to "true" to start with an empty database directory.
+      SECONDO_SKIP_DB_INIT: "false"
+    restart: unless-stopped
+    # The first start has to restore two databases before the WebUI comes up.
+    stop_grace_period: 60s
+
+volumes:
+  secondo-databases:
