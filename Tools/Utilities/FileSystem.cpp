@@ -123,19 +123,27 @@ to file lists for a folder.
 string
 FileSystem::GetCurrentFolder()
 {
-  char str[500];
   string folder = "";
 #ifdef SECONDO_WIN32
-  int count = ::GetCurrentDirectory( 497, str );
-  if ( count > 0 && count < 498 )
+  // With a size of 0 GetCurrentDirectory returns the required length,
+  // including the terminating null character.
+  DWORD needed = ::GetCurrentDirectory( 0, NULL );
+  if ( needed > 0 )
   {
-    folder = string( str );
+    std::vector<char> buf( needed );
+    DWORD count = ::GetCurrentDirectory( needed, &buf[0] );
+    if ( count > 0 && count < needed )
+    {
+      folder = string( &buf[0], count );
+    }
   }
 #else
-  char* buf = ::getcwd( str, 499 );
-  if ( buf == str )
+  // getcwd allocates a buffer of the needed size when passed a null pointer.
+  char* buf = ::getcwd( NULL, 0 );
+  if ( buf != NULL )
   {
     folder = buf;
+    ::free( buf );
   }
 #endif
   return (folder);
