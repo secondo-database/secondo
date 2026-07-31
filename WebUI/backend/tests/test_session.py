@@ -7,6 +7,8 @@ orphaned SecondoBDB processes).
 from __future__ import annotations
 
 import asyncio
+import threading
+import time
 import types
 
 import pytest
@@ -147,3 +149,65 @@ def test_no_catalog_refresh_without_an_optimizer(monkeypatch):
         return mod._directives
 
     assert asyncio.run(scenario()) == []
+
+
+def test_close_waits_for_a_command_in_flight(session_mod):
+    """Closing must not free the connection under a running command.
+
+    `Connection::close` deletes the SecondoInterfaceCS and with it the socket's
+    SocketBuffer; a command still reading the response dereferences the freed
+    buffer (`SocketIO.cpp:153`) and the whole bridge process dies of a general
+    protection fault. The frontend closes its session with a `sendBeacon` on
+    `pagehide`, so reloading the page mid-query is exactly this race.
+    """
+    order: list[str] = []
+    started = None
+
+    class SlowConnection:
+        def __init__(self, *_a, **_k):
+            pass
+
+        def optimizer_available(self) -> bool:
+            return False
+
+        def secondo(self, command: str) -> str:
+            started.set()
+            time.sleep(0.2)  # still on the socket
+            order.append("command finished")
+            return "()"
+
+        def close(self) -> None:
+            order.append("closed")
+
+    session_mod.secondo_native.Connection = SlowConnection
+
+    async def scenario():
+        nonlocal started
+        started = threading.Event()
+        mgr = session_mod.SessionManager()
+        session = await mgr.create()
+        running = asyncio.create_task(session.run("query ten"))
+        await asyncio.to_thread(started.wait, 5)
+        await mgr.close(session.id)
+        await running
+        return mgr.count()
+
+    assert asyncio.run(scenario()) == 0
+    assert order == ["command finished", "closed"]
+
+
+def test_close_removes_the_session_before_waiting(session_mod):
+    """The id is popped first, so a request arriving while the close waits for
+    a running command cannot pick the session up again."""
+    mgr = session_mod.SessionManager()
+
+    async def scenario():
+        session = await mgr.create()
+        async with session.lock:  # pretend a command is running
+            closing = asyncio.create_task(mgr.close(session.id))
+            await asyncio.sleep(0)  # let it get as far as the lock
+            found = mgr.get(session.id)
+        await closing
+        return found
+
+    assert asyncio.run(scenario()) is None

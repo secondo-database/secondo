@@ -1,11 +1,13 @@
 // What the query box offers while you type: the open database's own object
-// names, the command words, and the operators used most often.
+// names, the command words, and every operator the connected server has.
 //
-// The names come from the catalog (App passes them down), so this never asks
-// the server for a list the left-hand panel already has, and it is always the
-// open database's vocabulary rather than a generic one.
+// Both name lists come from the server (App passes them down) -- the objects
+// from `list objects`, which the left-hand panel already has, and the operators
+// from `list operators`. Neither is a list maintained here: an operator is
+// offered because the server it is talking to can run it, so enabling an
+// algebra is enough to make its operators complete.
 
-import type { CatalogObject } from "../api/client";
+import type { CatalogObject, OperatorInfo } from "../api/client";
 
 export interface Completion {
   /** What gets inserted. */
@@ -43,10 +45,10 @@ const KEYWORDS = [
   "values",
 ];
 
-/** The operators reached for most in day-to-day queries. Deliberately a short,
- *  curated list rather than every operator the server knows: a completion menu
- *  is only useful while it is shorter than the manual. */
-const OPERATORS = [
+/** What to offer before `/api/operators` has answered, or if it never does --
+ *  the operators reached for most in day-to-day queries. A fallback only: the
+ *  server's own list replaces it wholesale as soon as it arrives. */
+export const FALLBACK_OPERATORS = [
   "feed",
   "consume",
   "filter",
@@ -113,36 +115,49 @@ const MIN_TOKEN = 2;
 
 /** A menu longer than this stops being a hint and starts being a panel over
  *  the map; narrowing the word is the better way to get to a long tail. */
-const MAX_ITEMS = 6;
+const MAX_ITEMS = 10;
 
 /**
  * What to offer for the word under the caret. Object names come first -- they
  * are the part a user cannot be expected to remember -- then commands, then
  * operators; within each, what starts with the token beats what merely
  * contains it, and shorter beats longer.
+ *
+ * Operators match on their *prefix* only. There are around 1800 of them, and a
+ * substring match on a two-letter token pulls in a hundred names that have
+ * nothing to do with what is being typed; an object name is worth guessing at
+ * from the middle, an operator is not.
  */
 export function completionsFor(
   textBeforeCaret: string,
-  objects: CatalogObject[]
+  objects: CatalogObject[],
+  operators: OperatorInfo[] = FALLBACK_OPERATORS.map((name) => ({
+    name,
+    syntax: "",
+  }))
 ): Completion[] {
   const token = tokenAt(textBeforeCaret);
   if (token.length < MIN_TOKEN) return [];
   const needle = token.toLowerCase();
 
-  const pools: { items: Completion[]; rank: number }[] = [
+  const pools: { items: Completion[]; rank: number; prefixOnly?: boolean }[] = [
     {
       rank: 0,
       items: objects.map((o) => ({ text: o.name, hint: o.type })),
     },
     { rank: 1, items: KEYWORDS.map((k) => ({ text: k, hint: "command" })) },
-    { rank: 2, items: OPERATORS.map((o) => ({ text: o, hint: "operator" })) },
+    {
+      rank: 2,
+      prefixOnly: true,
+      items: operators.map((o) => ({ text: o.name, hint: o.syntax || "operator" })),
+    },
   ];
 
   const scored: { c: Completion; key: [number, number, number, string] }[] = [];
-  for (const { items, rank } of pools) {
+  for (const { items, rank, prefixOnly } of pools) {
     for (const c of items) {
       const at = c.text.toLowerCase().indexOf(needle);
-      if (at < 0) continue;
+      if (at < 0 || (prefixOnly && at !== 0)) continue;
       // A name typed out in full stays on the list. It has nothing left to
       // insert, but its presence is the answer to "is this actually an object
       // here, and did I spell it right?" -- the same reason a shell keeps

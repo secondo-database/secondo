@@ -59,6 +59,48 @@ def test_row_cap_is_reported(monkeypatch):
     assert t["truncated"] is True
 
 
+def test_a_page_is_not_a_truncation():
+    """The rows outside a page are one request away, so nothing is dropped and
+    the payload says where in the relation the page sits."""
+    t = table.from_tree(
+        parse("((rel (tuple ((No int)))) ((5) (6) (7)))"),
+        offset=4,
+        limit=3,
+        total=10,
+    )
+    assert t["rows"] == [[5], [6], [7]]
+    assert (t["offset"], t["limit"], t["totalRows"]) == (4, 3, 10)
+    assert t["pageable"] is True
+    assert t["truncated"] is False
+    assert t["totalKnown"] is True
+
+
+def test_an_uncounted_page_reports_only_what_it_has_seen():
+    """Stepping pages skips the count query; the total is then a lower bound and
+    says so rather than pretending to be exact."""
+    t = table.from_tree(
+        parse("((rel (tuple ((No int)))) ((5) (6)))"), offset=4, limit=3
+    )
+    assert t["totalRows"] == 6
+    assert t["totalKnown"] is False
+
+
+def test_a_page_is_not_capped_at_max_rows(monkeypatch):
+    """MAX_ROWS is the ceiling the *endpoint* clamps a page size to; the
+    converter must not silently cut the page the server already sized."""
+    monkeypatch.setattr(table, "MAX_ROWS", 2)
+    t = table.from_tree(
+        parse("((rel (tuple ((No int)))) ((1) (2) (3) (4)))"), limit=4, total=4
+    )
+    assert t["rowCount"] == 4
+
+
+def test_an_unpaged_result_reports_no_page():
+    t = convert("((rel (tuple ((No int)))) ((1) (2)))")
+    assert t["pageable"] is False
+    assert (t["offset"], t["limit"]) == (0, None)
+
+
 def test_long_cells_are_clipped(monkeypatch):
     monkeypatch.setattr(table, "MAX_CELL_CHARS", 8)
     t = convert('((rel (tuple ((T text)))) ((<text>aaaaaaaaaaaaaaaa</text--->)))')

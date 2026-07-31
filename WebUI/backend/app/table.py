@@ -33,8 +33,18 @@ TID_TYPE = "tid"
 # A relation of Trains is 562 tuples of multi-megabyte mpoint text. Neither the
 # wire nor the browser wants that, so both dimensions are capped and the payload
 # says so rather than silently showing a prefix.
+#
+# For a *stored* relation the cap is not the end of the story: /api/table/load
+# cuts pages out of the relation server-side (app.updates.load_command), and
+# MAX_ROWS is then only the ceiling on how large a page may be. The cap is a
+# real truncation just for results the backend did not build the query for --
+# an ad-hoc join arrives whole or not at all.
 MAX_ROWS = 1000
 MAX_CELL_CHARS = 4000
+
+# What /api/table/load reads when the client does not ask for a size. Small
+# enough that a page of mpoints is still a sensible HTTP response.
+DEFAULT_PAGE_ROWS = 200
 
 _UNDEF = frozenset({"undef", "undefined"})
 
@@ -125,9 +135,21 @@ def _clip(text: str) -> str:
     return text if len(text) <= MAX_CELL_CHARS else text[:MAX_CELL_CHARS] + " …"
 
 
-def from_tree(tree: Node) -> dict | None:
+def from_tree(
+    tree: Node,
+    *,
+    offset: int = 0,
+    limit: int | None = None,
+    total: int | None = None,
+) -> dict | None:
     """A parsed ``(type value)`` result -> a table payload, or None if it is not
-    a flat relation."""
+    a flat relation.
+
+    ``limit`` says the result is already one page of a larger relation, cut out
+    server-side; ``offset`` is where that page starts and ``total`` how many rows
+    there are altogether (``None`` when the caller chose not to count them). A
+    page is never *truncated*: every row is reachable, just not at once.
+    """
     if not (isinstance(tree, list) and len(tree) >= 2):
         return None
     columns = columns_of(tree[0])
@@ -137,9 +159,10 @@ def from_tree(tree: Node) -> dict | None:
     if not isinstance(tuples, list):
         return None
 
+    paged = limit is not None
     types = [c["type"] for c in columns]
     rows: list[list[Any]] = []
-    for tup in tuples[:MAX_ROWS]:
+    for tup in tuples if paged else tuples[:MAX_ROWS]:
         if not isinstance(tup, list):
             continue
         rows.append(
@@ -153,8 +176,16 @@ def from_tree(tree: Node) -> dict | None:
         "columns": columns,
         "rows": rows,
         "rowCount": len(rows),
-        "truncated": len(tuples) > MAX_ROWS,
-        "totalRows": len(tuples),
+        # Rows were dropped with no way to ask for them. A page never is: the
+        # client just asks for the next one.
+        "truncated": (not paged) and len(tuples) > MAX_ROWS,
+        "totalRows": (total if total is not None else offset + len(rows)) if paged
+        else len(tuples),
+        # Whether `totalRows` is the real total or just what has been seen so far.
+        "totalKnown": (total is not None) if paged else True,
+        "offset": offset if paged else 0,
+        "limit": limit,
+        "pageable": paged,
         "tidIndex": tid_index,
         # Set by the editable load path (see app.updates); a table that just
         # came out of /api/query is read-only until it is loaded with TIDs.

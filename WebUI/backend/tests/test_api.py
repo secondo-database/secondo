@@ -6,11 +6,14 @@ against a monitor is documented in WebUI/README.md.
 """
 from __future__ import annotations
 
+import re
 import sys
 import types
 
 import pytest
 from fastapi.testclient import TestClient
+
+from app import table as table_mod
 
 
 # A relation of points, the shape the GeoJSON conversion recognizes. Used as an
@@ -25,10 +28,47 @@ OBJECTS = (
     "(OBJECT ten () ((rel (tuple ((No int)))))) "
     "(OBJECT ten_No () ((btree (tuple ((No int))) int))) "
     "(OBJECT mehringdamm () ((point))) "
+    # A relation whose own attribute collides with the paging counter's name.
+    "(OBJECT rowno () ((rel (tuple ((RowNo int)))))) "
     ")))"
 )
 TEN = "((rel (tuple ((No int)))) ((1) (2)))"
 TEN_WITH_TIDS = "((rel (tuple ((No int) (TID tid)))) ((1 11) (2 12)))"
+# `ten` really does hold ten tuples here, so a page can be smaller than it.
+TEN_TUPLES = [(n, 10 + n) for n in range(1, 11)]
+
+# Two algebras' worth of `list operators`, including an operator registered
+# twice (overloaded) and one spelled as a symbol the editor cannot type.
+OPERATORS_INQUIRY = """(inquiry (operators (
+  (feed ("Signature" "Syntax" "Meaning") (<text>rel -> stream</text--->
+        <text>_ feed</text---> <text>Turns a relation into a stream.</text--->))
+  (feed ("Signature" "Syntax") (<text>orel -> stream</text---> <text>_ feed</text--->))
+  (createsuffixtree ("Signature" "Syntax") (<text>text -> suffixtree</text--->
+        <text>createsuffixtree( _ )</text--->))
+  (+ ("Signature" "Syntax") (<text>int x int -> int</text---> <text>_ + _</text--->))
+  (nosyntax ("Signature") (<text>a -> b</text--->))
+)))"""
+
+
+def _page_of_ten(command: str) -> str:
+    """What `query ten feed [addid] [page…] consume` answers.
+
+    The fake reads the page out of the command instead of hardcoding one, so the
+    tests prove the *generated* command selects the rows it claims to. Without
+    `addid` there is no TID column, exactly as SECONDO would answer.
+    """
+    rows = TEN_TUPLES
+    m = re.search(r"\.\w+ > (\d+)", command)
+    if m:
+        rows = rows[int(m.group(1)) :]
+    m = re.search(r"head\[(\d+)\]", command)
+    if m:
+        rows = rows[: int(m.group(1))]
+    if " addid" not in command:
+        body = " ".join(f"({no})" for no, _ in rows)
+        return f"((rel (tuple ((No int)))) ({body}))"
+    body = " ".join(f"({no} {tid})" for no, tid in rows)
+    return f"((rel (tuple ((No int) (TID tid)))) ({body}))"
 
 
 def _fake_native(optimizer: bool = True):
@@ -68,14 +108,22 @@ def _fake_native(optimizer: bool = True):
                 return "(inquiry (databases (BERLINTEST OPT)))"
             if command.strip() == "list objects":
                 return OBJECTS
+            if command.strip() == "list operators":
+                return OPERATORS_INQUIRY
             if command.startswith("open database"):
                 return "()"
             if command == "query mehringdamm":
                 return "(point (9396.0 9871.0))"
             if command == "query ten":
                 return TEN
-            if command == "query ten feed addid consume":
-                return TEN_WITH_TIDS
+            if command == "query ten feed count":
+                return f"(int {len(TEN_TUPLES)})"
+            if command.startswith("query ten feed") and command.endswith(" consume"):
+                return _page_of_ten(command)
+            if command.startswith("query rowno feed"):
+                if command.endswith(" count"):
+                    return "(int 3)"
+                return "((rel (tuple ((RowNo int) (TID tid)))) ((1 11)))"
             if command.endswith(" transaction"):
                 return "()"
             if command == "query umlaut":
@@ -398,8 +446,10 @@ def test_query_attaches_a_table_payload(client):
     r = client.post("/api/query", json={"command": "query ten"})
     body = r.json()
     assert body["table"]["columns"] == [{"name": "No", "type": "int", "atomic": True}]
-    assert body["table"]["rows"] == [[1], [2]]
-    # `query ten` is exactly one stored relation, so the table can offer to edit it.
+    # `query ten` is exactly one stored relation, so the table can offer to edit
+    # it -- and the rows are that relation's first page rather than the answer's
+    # (see test_querying_a_whole_relation_pages_it_instead_of_capping_it).
+    assert body["table"]["rows"] == [[n] for n, _ in TEN_TUPLES]
     assert body["relation"] == "ten"
 
 
@@ -442,15 +492,124 @@ def test_table_view_of_a_non_relation_has_no_rows(client):
     assert body["geojson"] is None
 
 
+def test_querying_a_whole_relation_pages_it_instead_of_capping_it(client):
+    """`query ten` is a stored relation, so the table it opens is that relation's
+    first page -- not a capped copy of the answer. The rows a cap would have
+    dropped are a Next away, and pressing Edit changes nothing about the view."""
+    client.post("/api/query", json={"command": "open database berlintest"})
+    body = client.post("/api/query", json={"command": "query ten"}).json()
+    table = body["table"]
+    assert body["relation"] == "ten"
+    assert table["pageable"] is True
+    assert table["truncated"] is False
+    assert table["totalRows"] == len(TEN_TUPLES)
+    # Read-only until Edit asks for the TIDs, so the column is not in the way.
+    assert table["tidIndex"] is None
+    assert [c["name"] for c in table["columns"]] == ["No"]
+
+
+def test_a_derived_result_is_still_capped(client, monkeypatch):
+    """There is no relation to ask for page two of, so the cap stands -- and the
+    payload says so rather than showing a prefix silently."""
+    monkeypatch.setattr(table_mod, "MAX_ROWS", 1)
+    client.post("/api/query", json={"command": "open database berlintest"})
+    body = client.post(
+        "/api/query", json={"command": "select * from kinos", "view": "table"}
+    ).json()
+    # `kinos` is not an object of this database, so nothing can be paged.
+    assert body["table"]["pageable"] is False
+
+
+def test_a_command_that_only_looks_like_a_relation_keeps_its_own_answer(client):
+    """`base_relation` guesses a name out of the command text. When the guess is
+    not a relation here, the query's own result is what is shown."""
+    body = client.post("/api/query", json={"command": "query mehringdamm"}).json()
+    assert body["table"] is None
+
+
 def test_table_load_asks_for_tids(client):
-    r = client.post("/api/table/load", json={"relation": "ten"})
+    r = client.post("/api/table/load", json={"relation": "ten", "limit": 2})
     assert r.status_code == 200
     body = r.json()
     # Without `addid` there is no TID and nothing is editable.
-    assert body["command"] == "query ten feed addid consume"
+    assert body["command"] == "query ten feed addid head[2] consume"
     assert body["table"]["tidIndex"] == 1
     assert body["table"]["relation"] == "ten"
     assert body["table"]["rows"] == [[1, 11], [2, 12]]
+
+
+def test_table_load_reads_one_page_and_counts_the_rest(client):
+    """The page is cut server-side, so the payload says which rows these are and
+    how many there are in total -- the two numbers a pager needs."""
+    body = client.post(
+        "/api/table/load", json={"relation": "ten", "offset": 4, "limit": 3}
+    ).json()
+    assert body["command"] == (
+        "query ten feed addid addcounter[RowNo, 1] filter [ .RowNo > 4 ] "
+        "head[3] remove[RowNo] consume"
+    )
+    table = body["table"]
+    assert table["rows"] == [[5, 15], [6, 16], [7, 17]]
+    assert (table["offset"], table["limit"]) == (4, 3)
+    assert table["totalRows"] == 10 and table["totalKnown"]
+    # A page is not a truncation: every row is one request away.
+    assert table["pageable"] and not table["truncated"]
+    assert "query ten feed count" in client.fake.commands
+
+
+def test_paging_does_not_recount_unless_asked(client):
+    """Counting is a full scan. Stepping pages carries the total the client
+    already has rather than paying for it again on every click."""
+    client.post("/api/table/load", json={"relation": "ten", "limit": 3})
+    client.fake.commands.clear()
+    body = client.post(
+        "/api/table/load",
+        json={"relation": "ten", "offset": 3, "limit": 3, "want_total": False},
+    ).json()
+    assert "query ten feed count" not in client.fake.commands
+    # Without a count the total is only what has been seen -- and says so.
+    assert body["table"]["totalKnown"] is False
+
+
+def test_a_page_never_exceeds_the_row_cap(client):
+    """MAX_ROWS stops being a truncation and becomes the ceiling on a page."""
+    body = client.post(
+        "/api/table/load", json={"relation": "ten", "limit": 10_000}
+    ).json()
+    assert f"head[{table_mod.MAX_ROWS}]" in body["command"]
+    assert body["table"]["limit"] == table_mod.MAX_ROWS
+
+
+@pytest.mark.parametrize("page", [{"offset": -1}, {"limit": 0}])
+def test_table_load_rejects_a_nonsensical_page(client, page):
+    r = client.post("/api/table/load", json={"relation": "ten", **page})
+    assert r.status_code == 400
+
+
+def test_the_counter_attribute_avoids_the_relations_own_names(client):
+    """`addcounter` appends its attribute to the tuple, so a relation with a
+    RowNo of its own would otherwise make the load fail on a duplicate name."""
+    body = client.post(
+        "/api/table/load", json={"relation": "rowno", "offset": 1, "limit": 1}
+    ).json()
+    assert "addcounter[RowNo2, 1]" in body["command"]
+
+
+def test_operators_lists_what_the_server_can_do(client):
+    body = client.get("/api/operators").json()
+    names = [o["name"] for o in body["operators"]]
+    # Complete: an operator is offered because the server has it, not because
+    # someone remembered to add it to a list in the frontend.
+    assert "createsuffixtree" in names
+    # An overloaded operator is registered once per algebra; the menu shows one.
+    assert names.count("feed") == 1
+    # `+` is a real operator, but the editor's token regex can never type it.
+    assert "+" not in names
+    assert names == sorted(names, key=str.lower)
+    syntax = {o["name"]: o["syntax"] for o in body["operators"]}
+    assert syntax["createsuffixtree"] == "createsuffixtree( _ )"
+    # A specification without the field loses the field, not the entry.
+    assert syntax["nosyntax"] == ""
 
 
 def test_table_load_refuses_a_non_relation(client):

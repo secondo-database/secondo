@@ -844,16 +844,125 @@ body.dragging {
   font-size: 0.72rem;
 }
 
-/* 34 options, the longest of which would otherwise widen the whole panel. */
-.lp-icon {
+/* The point-symbol picker: a trigger showing the current glyph, and the grid it
+   expands into. The grid is in flow, so the row grows and the layer list
+   scrolls -- the panel clips anything that tries to float above it. */
+.lp-iconpick {
   flex: 1;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  margin-left: 0.4rem;
 }
 
-/* Shows which glyph "rail-metro" actually is, in the layer's own colour. */
-.lp-icon-preview {
-  width: 15px;
-  height: 15px;
+.lp-icon {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  width: 100%;
+  min-height: 1.5rem;
+  padding: 0.1rem 0.35rem;
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border-strong);
+  border-radius: 4px;
+  font: inherit;
+  font-size: 0.72rem;
+  cursor: pointer;
+}
+
+.lp-icon:hover {
+  border-color: var(--accent);
+}
+
+.lp-icon-name {
+  flex: 1;
+  text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lp-icon-caret {
+  color: var(--muted);
+  flex: none;
+}
+
+.lp-icon-menu {
+  border: 1px solid var(--border-strong);
+  border-radius: 5px;
+  background: var(--surface);
+}
+
+/* auto-fill rather than a fixed column count: the cells keep their 30px target
+   whatever the panel is doing, and the rows fill out to whatever fits. */
+.lp-icon-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(30px, 1fr));
+  gap: 2px;
+  padding: 3px;
+  max-height: 40vh;
+  overflow-y: auto;
+}
+
+.lp-icon-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 28px;
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  padding: 0;
+  cursor: pointer;
+}
+
+.lp-icon-cell:hover,
+.lp-icon-cell:focus-visible {
+  background: var(--raised);
+  border-color: var(--border-strong);
+  outline: none;
+}
+
+.lp-icon-cell.lp-on {
+  border-color: var(--accent);
+  background: var(--raised);
+}
+
+/* Names whichever glyph is under the pointer -- see IconPicker.tsx. */
+.lp-icon-caption {
+  padding: 0.15rem 0.4rem 0.25rem;
+  border-top: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 0.7rem;
+  text-align: center;
+  min-height: 1rem;
+}
+
+.lp-glyph,
+.lp-glyph-box .lp-glyph {
+  width: 17px;
+  height: 17px;
+  flex: none;
+}
+
+.lp-glyph-box {
+  display: flex;
+  flex: none;
+}
+
+/* The picker's own row. The colour comes from `.lp-style label`, which this
+   <div> does not match; the top alignment keeps the word "icon" beside the
+   trigger instead of halfway down an open grid, and the line-height still
+   centres it against the trigger while the grid is closed. */
+.lp-check.lp-check-label {
+  color: var(--muted);
+  align-items: flex-start;
+}
+
+.lp-icon-label {
+  line-height: 1.7rem;
   flex: none;
 }
 
@@ -1266,6 +1375,10 @@ pre.plan {
   gap: 0.5rem;
   padding: 0.75rem 1rem;
   border-top: 1px solid var(--border);
+  /* The positioning context for the completion menu. Without it the menu
+     resolves against the console pane and floats a header's height above the
+     box it belongs to, which reads as an unrelated panel. */
+  position: relative;
 }
 
 /* Height is set from the content in Console.tsx; this caps how far that can go
@@ -1308,8 +1421,14 @@ pre.plan {
    the Run menu: both are things that appear over the console. */
 .cmp-menu {
   position: absolute;
-  bottom: calc(100% - 0.4rem);
-  left: 2.2rem;
+  /* Anchored to `.input`, which is `position: relative` for exactly this. The
+     box sits 0.75rem below `.input`'s top edge (its padding), so subtracting a
+     little more than that leaves the menu a few pixels clear of the box it is
+     completing -- close enough to read as part of it, as an editor's does. */
+  bottom: calc(100% - 0.45rem);
+  /* The left edge of the text being completed: `.input`'s padding, the `>`
+     prompt and the flex gap, plus the textarea's own padding. */
+  left: 2.9rem;
   z-index: 10;
   min-width: 16rem;
   max-width: 28rem;
@@ -1738,4 +1857,53 @@ pre.plan {
   text-align: center;
   color: var(--faint);
   font-size: 0.8rem;
+}
+
+/* The pager: a relation is read one page at a time, so these buttons are how
+   the rest of it is reached. Sized like the other dock buttons rather than as
+   inline arrows -- they are the primary control of the view. */
+.tv-pager {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.6rem;
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.tv-pager .dock-btn {
+  min-width: 2.2rem;
+  justify-content: center;
+  font-size: 0.9rem;
+  line-height: 1;
+}
+
+.tv-pager .dock-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.tv-range {
+  color: var(--text);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  padding: 0 0.3rem;
+}
+
+.tv-pagesize {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+
+.tv-pagesize select {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 5px;
+  padding: 0.2rem 0.3rem;
+  font-size: 0.75rem;
 }

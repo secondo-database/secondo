@@ -1,6 +1,6 @@
-"""Parse SECONDO's ``list objects`` inquiry into a browsable catalog.
+"""Parse SECONDO's ``list objects`` and ``list operators`` inquiries.
 
-Result shape:
+``list objects``:
 
     (inquiry (objects (OBJECTS
         (OBJECT <name> (<args>) (<typeexpr>))
@@ -10,8 +10,13 @@ For each object we surface its name, a short type label (the outermost type
 constructor, e.g. ``rel`` / ``mpoint`` / ``region``), a ``kind`` hint
 (``spatial`` / ``temporal`` / ``other``) so the UI can flag what will draw, and
 whether it is a flat relation -- the only thing the table view can open and edit.
+
+``list operators`` is the vocabulary half of the same idea: what the *server*
+can do, as opposed to what the open database holds. See ``parse_operators``.
 """
 from __future__ import annotations
+
+import re
 
 from .nlparser import Node, parse
 from .table import RELATION_TYPES
@@ -96,3 +101,64 @@ def parse_objects(text: str) -> list[dict]:
         )
     result.sort(key=lambda o: str(o["name"]).lower())
     return result
+
+
+# What a completion menu can insert. SECONDO also registers operators spelled
+# `+`, `<=` or `#`, but the editor's token regex (console/completion.ts) can
+# never produce a word for those, so listing them only pads the response.
+_OPERATOR_NAME = re.compile(r"\A[A-Za-z_]\w*\Z")
+
+
+def parse_operators(text: str) -> list[dict]:
+    """Every operator the connected server has, from ``list operators``.
+
+    Result shape (``SecondoCatalog::ListOperators``, SecondoCatalog.cpp:3048):
+
+        (inquiry (operators (
+            (<name> (<label> ...) (<value> ...))
+            ...)))
+
+    The two sublists are ``Operator::GetSpecList()`` -- the labels an algebra
+    chose (usually ``Signature Syntax Meaning Example``) and their values, as
+    string or text atoms. Only ``Syntax`` is kept: it is what a completion menu
+    can show in one line, and carrying every ``Meaning`` would multiply the size
+    of a response that already lists on the order of 1500 operators.
+
+    An overloaded operator is registered once per algebra, so names repeat; the
+    first spelling of each wins.
+    """
+    tree = parse(text)
+    try:
+        # (inquiry (operators (op*)))
+        entries = tree[1][1]  # type: ignore[index]
+    except (IndexError, TypeError):
+        return []
+    if not isinstance(entries, list):
+        return []
+
+    seen: dict[str, dict] = {}
+    for entry in entries:
+        if not (isinstance(entry, list) and len(entry) >= 3):
+            continue
+        name = entry[0]
+        if not isinstance(name, str) or not _OPERATOR_NAME.match(name):
+            continue
+        if name in seen:
+            continue
+        seen[name] = {"name": name, "syntax": _spec_value(entry[1], entry[2], "Syntax")}
+    return sorted(seen.values(), key=lambda o: str(o["name"]).lower())
+
+
+def _spec_value(labels: Node, values: Node, wanted: str) -> str:
+    """One labelled field of an operator specification.
+
+    The label set is up to the algebra, so labels and values are zipped rather
+    than indexed by position -- an operator that spells its specification
+    differently loses the field, not the entry.
+    """
+    if not (isinstance(labels, list) and isinstance(values, list)):
+        return ""
+    for label, value in zip(labels, values):
+        if label == wanted and isinstance(value, str):
+            return " ".join(value.split())
+    return ""

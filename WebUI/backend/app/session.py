@@ -213,8 +213,19 @@ class SessionManager:
         return session
 
     async def close(self, sid: str) -> None:
+        """Close a session's connection, once nothing is using it any more.
+
+        The lock is not optional. `Connection::close` deletes the
+        `SecondoInterfaceCS`, and with it the socket's `iostream` and its
+        `SocketBuffer`; a command still in flight on another worker thread is
+        sitting in `SocketBuffer::underflow` reading the response
+        (`ClientServer/SocketIO.cpp:153`) and dereferences `gptr()` straight
+        into the memory that was just freed.
+        """
         session = self._sessions.pop(sid, None)
-        if session is not None:
+        if session is None:
+            return
+        async with session.lock:
             await asyncio.to_thread(session.conn.close)
 
     async def reap(self, max_idle: float) -> int:
@@ -228,8 +239,11 @@ class SessionManager:
         now = time.monotonic()
         closed = 0
         for sid, session in list(self._sessions.items()):
+            # `close` waits for the lock anyway; skipping a busy session here
+            # keeps the reaper from parking on a long query while every other
+            # idle connection stays open behind it.
             if session.lock.locked():
-                continue  # busy running a command
+                continue
             if now - session.last_used > max_idle:
                 await self.close(sid)
                 closed += 1

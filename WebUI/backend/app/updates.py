@@ -4,7 +4,7 @@ The operators are the ones ``Javagui/viewer/update2/CommandGenerator.java`` uses
 -- the Java GUI is the reference implementation of relation editing in SECONDO --
 but written in **SOS text syntax**, the same language the console takes:
 
-* load    ``query <Rel> feed [filter…] [project…] [sortby…] addid consume``
+* load    ``query <Rel> feed [filter…] [project…] [sortby…] addid [page…] consume``
 * insert  ``query <Rel> inserttuple[<value>…] consume``
 * delete  ``query <Rel> deletebyid[[const tid value <id>]] count``
 * update  ``query <Rel> updatebyid[[const tid value <id>]; <Attr>: <value>…] count``
@@ -93,16 +93,58 @@ def _maintain(verb: str, indexes: Indexes) -> str:
     )
 
 
+def counter_name(columns: list[dict], base: str = "RowNo") -> str:
+    """An attribute name for the paging counter that no column already uses.
+
+    ``addcounter`` appends its attribute to the tuple, so a relation that happens
+    to have a ``RowNo`` of its own would make the load fail on a duplicate name.
+    """
+    taken = {str(c["name"]).lower() for c in columns}
+    if base.lower() not in taken:
+        return base
+    i = 2
+    while f"{base}{i}".lower() in taken:
+        i += 1
+    return f"{base}{i}"
+
+
+def _restrict(offset: int, limit: int, counter: str) -> str:
+    """The operators that cut one page out of the stream, appended after ``addid``.
+
+    There is no ``skip`` in SECONDO, so an offset is a counter plus a filter:
+    ``addcounter`` (ExtRelationAlgebra.cpp:11391) numbers the stream from 1 and
+    ``head`` (ExtRelationAlgebra.cpp:1122) ends it once the page is full, so the
+    scan stops after ``offset + limit`` tuples and only ``limit`` cross the wire.
+    ``remove`` (Relation.examples:129) drops the counter again -- it was appended
+    last, so removing it restores the relation's own attribute order.
+    """
+    if offset <= 0:
+        return f"head[{limit}]"
+    return (
+        f"addcounter[{counter}, 1] filter [ .{counter} > {offset} ] "
+        f"head[{limit}] remove[{counter}]"
+    )
+
+
 def load_command(
     relation: str,
     filters: list[str] | None = None,
     project: list[str] | None = None,
     sort: list[str] | None = None,
+    offset: int = 0,
+    limit: int | None = None,
+    tids: bool = True,
+    counter: str = "RowNo",
 ) -> str:
     """``CommandGenerator.generateLoad`` -- the only load that yields TIDs.
 
     ``addid`` appends the ``TID`` attribute that every later update addresses the
-    tuple by; without it a table is read-only.
+    tuple by; without it a table is read-only, which is what ``tids=False`` is
+    for -- a table being read rather than edited has no use for the column.
+
+    With a ``limit`` the command yields one *page*: the paging operators go after
+    ``addid``, so the tuple identifiers are the stored ones regardless of which
+    page is being read.
     """
     parts = [f"query {relation} feed"]
     for f in filters or []:
@@ -112,7 +154,25 @@ def load_command(
         parts.append("project [ " + ", ".join(project) + " ]")
     if sort:
         parts.append("sortby [ " + ", ".join(sort) + " ]")
-    parts.append("addid consume")
+    if tids:
+        parts.append("addid")
+    if limit is not None:
+        parts.append(_restrict(offset, limit, counter))
+    parts.append("consume")
+    return " ".join(parts)
+
+
+def count_command(relation: str, filters: list[str] | None = None) -> str:
+    """How many tuples a load would yield in total -- what the pager counts up to.
+
+    Neither ``project`` nor ``sortby`` can change a count, so they are left out
+    and the scan stays as cheap as it can be.
+    """
+    parts = [f"query {relation} feed"]
+    for f in filters or []:
+        if f.strip():
+            parts.append(f"filter [ {f} ]")
+    parts.append("count")
     return " ".join(parts)
 
 

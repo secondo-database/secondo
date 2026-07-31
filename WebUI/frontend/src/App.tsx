@@ -1,5 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { loadTable, runQuery, type CatalogObject } from "./api/client";
+import {
+  listOperators,
+  loadTable,
+  runQuery,
+  type CatalogObject,
+  type OperatorInfo,
+} from "./api/client";
 import { Console, type Entry, type RunIntent } from "./console/Console";
 import { Catalog } from "./catalog/Catalog";
 import { MapView } from "./map/MapView";
@@ -13,7 +19,13 @@ import { PlotPanel, type PlotEntry } from "./plots/PlotPanel";
 import { PROJECTION_LABEL, type Projection } from "./map/projection";
 import { applyTheme, loadTheme, type Theme } from "./theme";
 
-const DB_CMD = /^\s*(open|close|create|delete|restore)\s+database/i;
+// Commands after which the catalog on the left is stale: they switch the
+// database (open/close/create/delete/restore database), or they add, remove,
+// rename or overwrite an object inside it. Anything else -- `query`, `list`,
+// `save`, `set` -- leaves the object list exactly as it was, so it does not
+// pay for two round trips.
+const CATALOG_CMD =
+  /^\s*(open|close|create|delete|restore|let_?|letnt|derive|update|kill|changename|drop)\b/i;
 
 // Persisted panel geometry.
 interface Geometry {
@@ -96,6 +108,10 @@ export function App() {
   // The console completes on these names, and the empty state suggests queries
   // built from them -- neither fetches its own copy.
   const [objects, setObjects] = useState<CatalogObject[]>([]);
+  // What the *server* can do, as opposed to what the open database holds. Fetched
+  // once: `list operators` reads the algebra catalog, which no command changes,
+  // so unlike `objects` this never needs refreshing.
+  const [operators, setOperators] = useState<OperatorInfo[]>([]);
   const [refreshKey, setRefreshKey] = useState(0);
   const [projection, setProjection] = useState<Projection>("none");
   const [geo, setGeo] = useState<Geometry>(loadGeometry);
@@ -104,6 +120,14 @@ export function App() {
   useEffect(() => {
     applyTheme(theme);
   }, [theme]);
+
+  // Best-effort: without it the editor falls back to its built-in shortlist, so
+  // a failure costs completeness, not completion.
+  useEffect(() => {
+    listOperators()
+      .then((r) => setOperators(r.operators))
+      .catch(() => undefined);
+  }, []);
 
   useEffect(() => {
     try {
@@ -192,10 +216,11 @@ export function App() {
         // with no geometry converted there is nothing else it could mean.
         if (layerId && tab && (intent === "table" || (!fc && !temp)))
           showResult(layerId, "table");
-        // The catalog refreshes on this and reports the new database state back.
-        // `create table`, `drop table` and `let x = select ...` never match
-        // DB_CMD: they arrive as commands the optimizer executed itself.
-        if (DB_CMD.test(command) || res.executed_by_optimizer)
+        // The catalog refreshes on this and reports the new database state back
+        // -- which also keeps the console's completions in step with it. SQL
+        // that the optimizer executed itself (`create table x`, `insert into`)
+        // arrives already flagged, so it does not have to match the pattern.
+        if (CATALOG_CMD.test(command) || res.executed_by_optimizer)
           setRefreshKey((k) => k + 1);
         return true;
       } catch (e) {
@@ -385,6 +410,7 @@ export function App() {
           collapsed={geo.consoleCollapsed}
           theme={theme}
           objects={objects}
+          operators={operators}
           onToggleTheme={() => setTheme((t) => (t === "dark" ? "light" : "dark"))}
           onClearHistory={() => setHistory([])}
           onToggleCollapse={() =>

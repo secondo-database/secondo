@@ -20,6 +20,7 @@ import bus from "@mapbox/maki/icons/bus.svg?raw";
 import cafe from "@mapbox/maki/icons/cafe.svg?raw";
 import car from "@mapbox/maki/icons/car.svg?raw";
 import chargingStation from "@mapbox/maki/icons/charging-station.svg?raw";
+import cinema from "@mapbox/maki/icons/cinema.svg?raw";
 import circleStroked from "@mapbox/maki/icons/circle-stroked.svg?raw";
 import fastFood from "@mapbox/maki/icons/fast-food.svg?raw";
 import ferry from "@mapbox/maki/icons/ferry.svg?raw";
@@ -73,6 +74,7 @@ const SVG = {
   "fast-food": fastFood,
   lodging,
   shop,
+  cinema,
   // civic
   hospital,
   police,
@@ -93,7 +95,7 @@ const SVG = {
 
 export type IconName = keyof typeof SVG;
 
-// Alphabetical: the dropdown is a flat list of 34 names with no headings, so
+// Alphabetical: the dropdown is a flat list of 35 names with no headings, so
 // the only way to find one is to know where it sorts. The grouping above is
 // for whoever edits this file, not for whoever uses the picker.
 export const ICON_NAMES = (Object.keys(SVG) as IconName[]).sort();

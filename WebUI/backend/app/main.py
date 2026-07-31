@@ -23,7 +23,7 @@ from pydantic import BaseModel
 
 from . import table as table_mod
 from . import updates as updates_mod
-from .catalog import object_type_expr, parse_objects
+from .catalog import object_type_expr, parse_objects, parse_operators
 from .config import config_error, settings
 from .convert import convert
 from .nlparser import parse
@@ -224,14 +224,21 @@ async def query(
             geojson, temporal, tabular = convert(result.text)
     except Exception:  # noqa: BLE001 - conversion must not fail the request
         logger.exception("Result conversion failed for command: %s", req.command)
+    relation = table_mod.base_relation(req.command, result.plan) if tabular else None
+    # `query plz` is a whole stored relation, so it is served as its *first page*
+    # rather than as a capped copy of the answer: the rows the cap would have
+    # dropped are only ever a Next away, and the table behaves the same before
+    # and after pressing Edit. Only a genuinely derived result -- a join, a
+    # projection, anything the backend did not write the query for -- is still
+    # capped, because there is no relation to ask for page two of.
+    if relation:
+        tabular = await _page_of(session, relation) or tabular
     return QueryResponse(
         text=result.text,
         geojson=geojson,
         temporal=temporal,
         table=tabular,
-        relation=(
-            table_mod.base_relation(req.command, result.plan) if tabular else None
-        ),
+        relation=relation,
         level=result.level,
         plan=result.plan,
         costs=result.costs,
@@ -272,6 +279,26 @@ async def objects(
     return {"objects": parse_objects(text), "open": session.open_db}
 
 
+@app.get("/api/operators")
+async def operators(
+    response: Response, secondo_sid: str | None = Cookie(default=None)
+) -> dict:
+    """Every operator this server has, with its syntax -- the query editor's
+    vocabulary.
+
+    A property of the *server*, not of a database: `list operators` reads the
+    algebra catalog directly and, unlike `list types`, needs no open database
+    (SecondoInterfaceTTY.cpp:1302), so the editor can be complete from the first
+    keystroke of a session.
+    """
+    session = await _session_for(response, secondo_sid)
+    try:
+        text = await session.run("list operators")
+    except RuntimeError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return {"operators": parse_operators(text)}
+
+
 # --- the table view: reading a relation with TIDs, and writing it back -----
 #
 # Editing a relation is the Java GUI's UpdateViewer2 (Javagui/viewer/update2/),
@@ -290,6 +317,17 @@ class TableLoadRequest(BaseModel):
     filters: list[str] = []
     project: list[str] = []
     sort: list[str] = []
+    # One page of the relation. The page is cut server-side, so a relation of any
+    # size can be browsed and edited -- see app.updates.load_command.
+    offset: int = 0
+    limit: int = table_mod.DEFAULT_PAGE_ROWS
+    # Counting is a full scan, so it is asked for only when the answer can have
+    # changed: the first load, and any change of filter or sort. Stepping through
+    # pages carries the total the client already has.
+    want_total: bool = True
+    # `addid`, and with it the TID column every edit is addressed by. Off for a
+    # table that is only being read, which is one column less to look at.
+    tids: bool = True
 
 
 class TableUpdate(BaseModel):
@@ -342,31 +380,87 @@ def _count(text: str) -> int | None:
     return None
 
 
+async def _load_page(session: Session, req: TableLoadRequest) -> tuple[dict, str]:
+    """One page of a stored relation, as a table payload and the command that
+    read it. Raises HTTPException for anything the caller asked for that the
+    open database cannot answer."""
+    if req.offset < 0 or req.limit < 1:
+        raise HTTPException(
+            status_code=400, detail="offset must be >= 0 and limit >= 1"
+        )
+    limit = min(req.limit, table_mod.MAX_ROWS)
+    _, columns = await _relation_schema(session, req.relation)
+
+    total: int | None = None
+    if req.want_total:
+        try:
+            total = _count(await session.run(
+                updates_mod.count_command(req.relation, req.filters)
+            ))
+        except RuntimeError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    command = updates_mod.load_command(
+        req.relation,
+        req.filters,
+        req.project,
+        req.sort,
+        offset=req.offset,
+        limit=limit,
+        tids=req.tids,
+        # The counter is checked against the *stored* schema; `project` can only
+        # remove attributes, so a name free there is free in the page too.
+        counter=updates_mod.counter_name(columns),
+    )
+    try:
+        text = await session.run(command)
+    except RuntimeError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    payload = table_mod.from_tree(
+        parse(text), offset=req.offset, limit=limit, total=total
+    )
+    if payload is None:
+        raise HTTPException(
+            status_code=400, detail=f"{req.relation} did not load as a relation"
+        )
+    payload["relation"] = req.relation
+    return payload, command
+
+
+async def _page_of(session: Session, relation: str) -> dict | None:
+    """The first page of a stored relation, read-only, or None if the name does
+    not turn out to be one in the open database.
+
+    `base_relation` only *guesses* a name out of the command text, so this is
+    allowed to come back empty; the caller then keeps the payload it already had.
+    """
+    try:
+        payload, _ = await _load_page(
+            session, TableLoadRequest(relation=relation, tids=False)
+        )
+    except HTTPException:
+        return None
+    except Exception:  # noqa: BLE001 - a bonus payload must not fail the request
+        logger.exception("Could not page %s", relation)
+        return None
+    return payload
+
+
 @app.post("/api/table/load")
 async def table_load(
     req: TableLoadRequest,
     response: Response,
     secondo_sid: str | None = Cookie(default=None),
 ) -> dict:
-    """Load a stored relation *with* its tuple identifiers, so it can be edited.
+    """Load one page of a stored relation *with* its tuple identifiers, so it
+    can be edited.
 
-    This is `CommandGenerator.generateLoad`: `query <Rel> feed … addid consume`.
+    This is `CommandGenerator.generateLoad`: `query <Rel> feed … addid consume`,
+    with the page cut out of the stream before `consume` so that neither the
+    server nor the browser ever holds the whole relation.
     """
     session = await _session_for(response, secondo_sid)
-    await _relation_schema(session, req.relation)
-    command = updates_mod.load_command(
-        req.relation, req.filters, req.project, req.sort
-    )
-    try:
-        text = await session.run(command)
-    except RuntimeError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
-    payload = table_mod.to_table(text)
-    if payload is None:
-        raise HTTPException(
-            status_code=400, detail=f"{req.relation} did not load as a relation"
-        )
-    payload["relation"] = req.relation
+    payload, command = await _load_page(session, req)
     return {"table": payload, "command": command}
 
 

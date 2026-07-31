@@ -2,7 +2,7 @@ import { useState } from "react";
 import { isDrawable, type Layer, type LayerStyle, type RGB, type TemporalMode } from "./useLayers";
 import { downloadGeoJSON } from "./exportGeoJSON";
 import { labelCandidates } from "./labels";
-import { ICON_NAMES, iconPathData, type IconName } from "./icons";
+import { IconPicker } from "./IconPicker";
 
 const toHex = ([r, g, b]: RGB): string =>
   "#" + [r, g, b].map((v) => v.toString(16).padStart(2, "0")).join("");
@@ -192,41 +192,17 @@ export function LayersPanel({
                     />
                   </label>
                   {/* Symbol for point geometry -- colour and icon are the two
-                      identity controls, so they sit together. The preview
-                      shows the glyph in the layer's own colour, since the
-                      names alone are a poor clue as to what it looks like. */}
-                  <label className="lp-check">
-                    icon
-                    <select
-                      className="lp-icon"
-                      value={layer.style.icon ?? ""}
-                      onChange={(e) =>
-                        onStyle(layer.id, {
-                          icon: (e.target.value || null) as IconName | null,
-                        })
-                      }
-                    >
-                      <option value="">circle</option>
-                      {ICON_NAMES.map((n) => (
-                        <option key={n} value={n}>
-                          {n}
-                        </option>
-                      ))}
-                    </select>
-                    {layer.style.icon && (
-                      <svg
-                        className="lp-icon-preview"
-                        viewBox="0 0 15 15"
-                        style={{ color: toHex(layer.style.color) }}
-                        aria-hidden
-                      >
-                        <path
-                          d={iconPathData(layer.style.icon)}
-                          fill="currentColor"
-                        />
-                      </svg>
-                    )}
-                  </label>
+                      identity controls, so they sit together. The picker shows
+                      the glyphs themselves, in the layer's own colour, since
+                      the names alone are a poor clue as to what they are. */}
+                  <div className="lp-check lp-check-label">
+                    <span className="lp-icon-label">icon</span>
+                    <IconPicker
+                      value={layer.style.icon}
+                      color={toHex(layer.style.color)}
+                      onChange={(icon) => onStyle(layer.id, { icon })}
+                    />
+                  </div>
                   <label>
                     opacity
                     <input

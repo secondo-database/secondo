@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import type { CatalogObject } from "../api/client";
+import type { CatalogObject, OperatorInfo } from "../api/client";
 import type { Theme } from "../theme";
 import {
   applyCompletion,
@@ -62,6 +62,8 @@ interface Props {
   theme: Theme;
   /** The open database's objects, for completing names as they are typed. */
   objects: CatalogObject[];
+  /** Every operator the connected server has, for the same. */
+  operators: OperatorInfo[];
   onToggleCollapse: () => void;
   onToggleTheme: () => void;
   onClearHistory: () => void;
@@ -78,6 +80,7 @@ export function Console({
   collapsed,
   theme,
   objects,
+  operators,
   onToggleCollapse,
   onToggleTheme,
   onClearHistory,
@@ -177,7 +180,9 @@ export function Console({
 
   /** Recompute the offer from the word under the caret. */
   function refreshCompletions(el: HTMLTextAreaElement) {
-    setItems(completionsFor(el.value.slice(0, el.selectionStart), objects));
+    setItems(
+      completionsFor(el.value.slice(0, el.selectionStart), objects, operators)
+    );
     setPicked(0);
     setMoved(false);
   }

@@ -71,6 +71,10 @@ top layer, and clicking a region shows its `Name`.
 - **DB & object browser** (`catalog/Catalog.tsx`, backend `/api/objects` +
   `app/catalog.py`): pick a database to open, then click a typed object to query
   it; objects show a kind hint (spatial ◆ / temporal ◷) and filter box.
+  The list reloads after any command that can change it — `let`, `derive`,
+  `delete`, `kill`, `update`, `changename`, `create`/`drop`, and the
+  database commands (`CATALOG_CMD` in `App.tsx`) — so a newly created object
+  is one command away from being clickable, and console completion sees it too.
 - **Geographic MapLibre + OSM basemap** (`map/MapView.tsx`): when a result's
   coordinates fall within lon/lat ranges the map switches from the Cartesian
   orthographic view to a geographic `MapView` with a raster **OpenStreetMap**
@@ -194,17 +198,36 @@ Java GUI's `RelViewer` and `UpdateViewer2`.
 - **Reading** (`app/table.py`): `(rel (tuple ((Name Type)…)))` becomes typed
   columns and rows. Atomic values arrive as JSON numbers/booleans/strings;
   anything else (a point, a region, an mpoint) as its nested-list text, which is
-  what `AttributeFormatter.fromListExprToString` shows in the Java GUI. Rows and
-  cells are capped and the payload says when it capped them, so `query Trains`
-  reports a truncated table instead of pushing megabytes at the browser.
+  what `AttributeFormatter.fromListExprToString` shows in the Java GUI. Cells are
+  clipped at `MAX_CELL_CHARS`, and an *ad-hoc* result — a join, a projection —
+  is capped at `MAX_ROWS` rows, so `query Trains` reports a truncated table
+  instead of pushing megabytes at the browser. A stored relation is not capped;
+  it is paged (below).
+- **A relation is read a page at a time** (`/api/table/load`). The page is cut
+  server-side, inside the command the backend writes: `head[n]` alone for the
+  first page, and `addcounter[RowNo, 1] filter[.RowNo > offset] head[n]
+  remove[RowNo]` for any other, since SECONDO has no `skip`. `head` ends the
+  scan once the page is full, so a page costs `offset + limit` tuples read and
+  `limit` transferred, and neither the server nor the browser ever holds the
+  whole relation. The pager under the grid steps through it; `rows per page` is
+  clamped to `MAX_ROWS`. The row *total* comes from a separate `query <Rel> feed
+  [filter…] count`, which is a full scan — so it is asked for only when it can
+  have changed (opening the table, and saving), and carried over otherwise.
+  The paging operators go **after** `addid`, so the tuple identifiers are the
+  stored ones on every page. This is why a **filter box narrows the page while a
+  column header sorts the relation**: `sortby` is part of the command and
+  reorders all of it, whereas the free-text filter is applied in the browser to
+  the rows on screen.
 - **Editing** (`app/updates.py`) uses the operators of
   `Javagui/viewer/update2/CommandGenerator.java`. `✎ edit` reloads the relation
-  through `query <Rel> feed addid consume`, because the `TID` that `addid`
+  through `query <Rel> feed addid … consume`, because the `TID` that `addid`
   appends is what every change is addressed by — a derived result (a filter, a
   join) has none and stays read-only. Cell edits, `+ row` and row deletions
   accumulate as pending changes keyed by TID (so sorting and filtering the grid
   cannot move an edit onto another tuple) until one **save** applies them as
-  `inserttuple` / `updatebyid` / `deletebyid`.
+  `inserttuple` / `updatebyid` / `deletebyid`. Keying by TID is also what lets
+  pending changes **span pages**: an edit made on page 1 is still addressed to
+  the same tuple after paging to page 3, and one save writes both.
 - **Indexes are maintained with the data.** SECONDO does not keep them in step
   by itself, so every command is wrapped in `insert/delete/updatebtree` (and the
   rtree equivalents) for each `<Rel>_<Attr>` index found via `list objects` —
@@ -237,6 +260,37 @@ Java GUI's `RelViewer` and `UpdateViewer2`.
   is added and removed again, a spatial result does not steal the active tab, and
   the console hint opens (and `✕` closes) a table for `Kinos` without disturbing
   its map layer.
+
+**Milestone 10 (paged relations, complete operator list) — done & verified end-to-end.**
+- **A relation is no longer capped, it is paged.** See the two table-view bullets
+  above for how the page is cut (`head` / `addcounter`), why the count is a
+  separate query, and why sorting goes to the server while the filter box stays
+  in the browser. The 1000-row cap remains only where the backend does not write
+  the query — an ad-hoc `query` — and the badge on such a result now points at
+  `✎ edit` as the way to reach the whole relation.
+- **Completion offers every operator the server has** (`/api/operators`,
+  `catalog.parse_operators`, `console/completion.ts`). It used to offer a
+  hardcoded list of 101 names kept in the frontend, so an operator like
+  `createsuffixtree` was missing for no better reason than that nobody had added
+  it. The list now comes from the `list operators` inquiry —
+  `SecondoCatalog::ListOperators`, every operator of every loaded algebra, ~1800
+  on a full build — which reads the algebra catalog directly and, unlike
+  `list types`, needs no open database, so it is fetched once per session and
+  never refreshed. Each entry carries the `Syntax` from its
+  `Operator::GetSpecList()`, which becomes the hint beside the name. Enabling an
+  algebra is now enough to make its operators complete.
+- **The menu had to change shape for that.** With ~1800 names a substring match
+  on a two-letter token is noise, so **operators match on their prefix only**
+  while object names and command words still match anywhere — an object name is
+  worth guessing at from the middle, an operator is not — and the menu holds 10
+  items rather than 6.
+- Verified in a headless browser (`npm run e2e -- paging`) against a 450-row
+  relation the check creates and drops itself: the pager reports the true total,
+  steps forward and back, resizes, and sorting descending puts row 450 on the
+  *first* page — which browser-side sorting of a 200-row page could never do.
+  A cell is edited on page 1, another on page 2, and one save writes both.
+  `npm run e2e -- ux` additionally checks that `createsuffi` completes to
+  `createsuffixtree` with its syntax.
 
 ### A note on coordinates & the basemap
 
@@ -425,13 +479,15 @@ the output of any failure. It preflights the stack and tells you what is missing
 rather than dumping navigation timeouts. Screenshots land in `e2e/out/`.
 Override with `CHROMIUM=`, `WEBUI_URL=`, `WEBUI_API=`.
 
-Current checks: `animation`, `catalog-basemap`, `catalog-race`, `console`,
-`labels`, `layer-icons`, `layer-rename`, `layers`, `map`, `mpoint-fit`,
-`mregion`, `plots`, `projection`, `remove-layer`, `render-modes`, `sql`,
-`table`, `theme`, `ui-polish`, `viewfit`.
+Current checks: `animation`, `catalog-basemap`, `catalog-race`,
+`catalog-refresh`, `console`, `db-selection`, `labels`, `layer-icons`,
+`layer-rename`, `layers`, `map`, `mpoint-fit`, `mregion`, `paging`, `plots`,
+`projection`, `remove-layer`, `render-modes`, `sql`, `table`, `table-intent`,
+`theme`, `ui-polish`, `ux`, `viewfit`.
 
-`table` writes to the database — it creates a relation, edits it and drops it
-again. It never touches the shipped berlintest objects.
+`table`, `paging` and `catalog-refresh` write to the database — each creates an
+object, works on it and deletes it again. None touches the shipped berlintest
+objects.
 
 Real end-to-end sanity check (needs a monitor + berlintest):
 `query mehringdamm` should return `(point (9396.0 9871.0))` and draw a dot.
@@ -533,10 +589,13 @@ leaves the view exactly where you put it. Use the `⤢` button to re-fit on dema
   everywhere — the row, the selection details header, the value plots and the
   `_layer` stamp in a GeoJSON export.
 - **Point icon** (per layer, in the style editor): points and moving-object
-  positions draw as a circle by default; the `icon` dropdown swaps in a symbol
+  positions draw as a circle by default; the `icon` picker swaps in a symbol
   (`bus`, `rail`, `car`, `restaurant`, …) tinted with the layer's colour, so a
   trains layer and a buses layer are distinguishable by shape and not by colour
-  alone. The **point radius** still sizes them. The icons are
+  alone. The **point radius** still sizes them. The picker (`layers/IconPicker`)
+  opens a grid of the glyphs themselves rather than a list of names — a name
+  like `rail-metro` says little about a 15px symbol — each drawn in the layer's
+  colour, with the hovered one named underneath; Escape closes it. The icons are
   [Maki](https://github.com/mapbox/maki) (CC0-1.0, drawn for cartography at
   small sizes); `layers/icons.ts` rasterises the offered subset into one PNG
   atlas at first use and hands it to deck.gl, and offering another of Maki's 215
@@ -577,6 +636,20 @@ leaves the view exactly where you put it. Use the `⤢` button to re-fit on dema
     (default 1800s, swept every `SECONDO_SESSION_REAP_INTERVAL`, default 60s),
     never reaping one that is mid-command;
   - all sessions are closed on shutdown.
+- **Closing a session waits for the command it is running.** `SessionManager.close`
+  takes the session lock, and this is not tidiness: `Connection::close` deletes
+  the `SecondoInterfaceCS` and with it the socket's `iostream` and `SocketBuffer`,
+  while a command still in flight on a worker thread is sitting in
+  `SocketBuffer::underflow` reading the response. It then dereferences `gptr()`
+  into freed memory (`ClientServer/SocketIO.cpp:153`) — a **general protection
+  fault that kills the bridge process**, not an exception anything can catch.
+  Reloading the page mid-query is exactly that race, since the frontend releases
+  its session with a `pagehide` `sendBeacon` that does not wait for anything. It
+  showed up as the backend dying part-way through a long e2e run, with
+  `traps: python[…] general protection fault … in secondo_native…so` in `dmesg`
+  and nothing at all in the bridge's own log. The session id is popped from the
+  map before the lock is taken, so a request arriving meanwhile cannot pick the
+  session up again and the wait is bounded by the one command already running.
 - **The native binding must never hold the GIL during server I/O.**
   `Connection`'s connect/terminate/`secondo`/`secondo_auto` all release it. A
   connect that hangs (slow or wedged SECONDO) would otherwise freeze the whole
@@ -594,10 +667,25 @@ leaves the view exactly where you put it. Use the `⤢` button to re-fit on dema
   the database changes, so after a kernel `let`/`create`/`delete`/`update` the
   backend sends `updateCatalog` (as the JavaGUI does). Disable with
   `SECONDO_AUTO_UPDATE_CATALOG=false`.
+- **Results arrive whole, not streamed.** The client/server protocol has one
+  response per command (`CSProtocol::ReadResponse` reads a single
+  `<SecondoResponse>`) and tuple streams never leave the server process, so there
+  is nothing for a WebSocket to deliver progressively — it would carry one message
+  per query, at the moment the HTTP response arrives anyway. Large results are
+  handled by asking for less instead. Where the backend writes the command — a
+  stored relation, `/api/table/load` — that means **paging**: `head`/`addcounter`
+  cut one page out of the stream server-side, so the size of the relation stops
+  mattering. Where it does not — an ad-hoc `query`, whose text is the user's —
+  there is nothing to rewrite, so the `MAX_ROWS` cap in `app/table.py` stands and
+  the table says it truncated; `view: "table"` also skips building the spatial and
+  temporal payloads. Pressing `✎ edit` on such a result is the way over to the
+  paged path, and the truncation badge says so.
+  SECONDO *does* push query-progress messages mid-execution (`ProgressView`, what
+  the JavaGUI's progress bar reads); the bridge does not register a message
+  handler for them, so the UI shows an indeterminate spinner.
 
 ## Roadmap (next)
 
-- Streaming large results over the WebSocket (`/api/stream`).
 - Additional projections beyond BerlinMOD as needed.
 - Remaining long-tail types (network/JNet, precise geometry, raster) still fall
   back to the textual nested-list view, as `DsplGeneric` does in the Java GUI.

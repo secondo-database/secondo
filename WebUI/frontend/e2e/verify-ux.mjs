@@ -184,7 +184,34 @@ try {
   check(afterFull.length === 0 || afterFull.includes("Kinos"),
         "a name typed in full is not dropped from the list");
 
+  // 9b) Operators come from the server, not from a list kept in the frontend:
+  //     `createsuffixtree` belongs to an algebra nobody would have thought to
+  //     add by hand, and it is offered with the syntax the server reports.
+  await page.click(".input textarea");
+  await page.$eval(".input textarea", (el) => {
+    el.value = "";
+    el.dispatchEvent(new Event("input", { bubbles: true }));
+  });
+  await page.type(".input textarea", "query createsuffi");
+  await wait(400);
+  const ops = await page.evaluate(() =>
+    [...document.querySelectorAll(".cmp-item")].map((e) => ({
+      name: e.querySelector(".cmp-name")?.textContent,
+      hint: e.querySelector(".cmp-hint")?.textContent,
+    }))
+  );
+  const suffix = ops.find((o) => o.name === "createsuffixtree");
+  check(!!suffix, `completion offers createsuffixtree (${ops.map((o) => o.name).join(", ")})`);
+  check(!!suffix && suffix.hint.includes("createsuffixtree"),
+        `it is hinted with its syntax (${suffix?.hint})`);
+
   // Enter still runs the query while nothing has been picked with the arrows.
+  await page.$eval(".input textarea", (el) => {
+    el.value = "";
+    el.dispatchEvent(new Event("input", { bubbles: true }));
+  });
+  await page.type(".input textarea", "query Kinos");
+  await wait(300);
   const beforeRun = await page.$$eval(".log .entry", (e) => e.length);
   await page.type(".input textarea", " count");
   await wait(300);

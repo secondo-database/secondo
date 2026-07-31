@@ -97,7 +97,15 @@ try {
     }
     return prev;
   }
-  const setIcon = (name) => page.select(".lp-style .lp-icon", name);
+  // The picker is a grid of glyphs, not a <select>: open it, click the cell,
+  // and wait for it to close again. "" is the circle.
+  const setIcon = async (name) => {
+    await page.click(".lp-style .lp-icon");
+    await page.waitForSelector(".lp-icon-grid", { timeout: 3000 });
+    await page.click(`.lp-icon-cell[data-icon="${name}"]`);
+    await page.waitForFunction(() => !document.querySelector(".lp-icon-grid"),
+                               { timeout: 3000 });
+  };
   const clearLayers = async () => {
     const btn = await page.evaluateHandle(() =>
       [...document.querySelectorAll(".lp-clear")].find((b) => b.textContent.trim() === "clear"));
@@ -127,11 +135,12 @@ try {
   await page.click(".lp-name");
   await page.waitForSelector(".lp-style .lp-icon", { timeout: 3000 });
   check(true, "icon picker shown in the style editor");
-  const defaultIcon = await page.$eval(".lp-style .lp-icon", (el) => el.value);
+  const defaultIcon = await page.$eval(".lp-style .lp-icon",
+                                       (el) => el.dataset.value);
   check(defaultIcon === "",
         `a fresh layer defaults to the circle, not an icon (value "${defaultIcon}")`);
-  check((await page.$$(".lp-icon-preview")).length === 0,
-        "no glyph preview while the layer draws circles");
+  check((await page.$$(".lp-icon-grid")).length === 0,
+        "the glyph grid stays closed until the trigger is clicked");
 
   // Show only the position symbols, so the measurement is about them alone.
   await page.select(".lp-style .lp-moving", "points");
@@ -142,10 +151,36 @@ try {
   await page.screenshot({ path: `${OUT}/icon-rail.png` });
   check(railPx > 0 && Math.abs(railPx - dotsPx) > dotsPx * 0.1,
         `rail icons replace the position dots (${dotsPx} px -> ${railPx} px)`);
-  const previewPath = await page.$eval(".lp-icon-preview path", (el) => el.getAttribute("d"))
+  const previewPath = await page.$eval(".lp-icon path", (el) => el.getAttribute("d"))
     .catch(() => null);
   check(previewPath && previewPath.length > 20 && !previewPath.includes("&"),
-        `the picker previews the glyph with decoded path data (${(previewPath ?? "").slice(0, 24)}…)`);
+        `the trigger previews the chosen glyph with decoded path data (${(previewPath ?? "").slice(0, 24)}…)`);
+
+  // Every offered symbol is drawn in the grid, so the choice is made on the
+  // glyphs rather than on names like "rail-metro". Same decoding applies.
+  await page.click(".lp-style .lp-icon");
+  await page.waitForSelector(".lp-icon-grid", { timeout: 3000 });
+  const cells = await page.$$eval(".lp-icon-cell", (els) =>
+    els.map((el) => ({
+      name: el.dataset.icon,
+      d: el.querySelector("path")?.getAttribute("d") ?? "",
+      circle: !!el.querySelector("circle"),
+      selected: el.getAttribute("aria-selected") === "true",
+    })));
+  check(cells.length > 30, `the grid offers every symbol (${cells.length} cells)`);
+  check(cells[0].name === "" && cells[0].circle,
+        "the circle is the first cell, drawn as a disc");
+  const bad = cells.filter((c) => !c.circle && (c.d.length < 20 || c.d.includes("&")));
+  check(bad.length === 0,
+        `every glyph is drawn with decoded path data (${bad.map((c) => c.name).join(",") || "all ok"})`);
+  check(cells.filter((c) => c.selected).length === 1 &&
+        cells.find((c) => c.selected).name === "rail",
+        "the current symbol is marked selected");
+  await page.screenshot({ path: `${OUT}/icon-picker.png` });
+  await page.keyboard.press("Escape");
+  await page.waitForFunction(() => !document.querySelector(".lp-icon-grid"),
+                             { timeout: 3000 });
+  check(true, "Escape closes the picker");
 
   await setIcon("");
   const backPx = await settled(drawn);

@@ -1,0 +1,28 @@
+(inquiry (operators (
+(abs ("Signature" "Syntax" "Meaning" "Example") ('real -> real, int -> int' 'abs(_)' 'Returns the absolute value of its argument' 'query abs(-3.1)'))
+(abs ("Signature" "Syntax" "Meaning" "Example") ('duration -> duration' 'abs(_)' 'Computes the absolute duration.' 'query abs( [const duration value(-1 0)])'))
+(feed ("Signature" "Syntax" "Meaning" "Example") ('rel(X) | trel(X) | orel(X,Y) -> stream(X)' '_ feed' 'Produces a stream from a relation, temporal relation, or ordered relation by scanning the relation tuple by tuple.' 'query Orte feed count'))
+(feed ("Signature" "Syntax" "Meaning" "Example") ('For T in kind DATA:
+T -> (stream T)' '_ feed' 'create a single-value stream from a single value.' 'query 5 feed count;'))
+(consume ("Signature" "Syntax" "Meaning" "Example") ('(stream x) -> (rel x)' '_ consume' 'Collects objects from a stream.' 'query Orte feed consume count'))
+(consume ("Signature" "Syntax" "Meaning" "Example") ('stream(D) -> rel(tuple((Elem D))), D in DATA' ' _ consume' 'Collects an attribute stream into a relation.' 'query intstream(1,10) consume count'))
+(filter ("Signature" "Syntax" "Meaning" "Example") ('((stream x) (map x bool)) -> (stream x)' '_ filter [ fun ]' 'Only tuples, fulfilling a certain condition are passed on to the output stream.' 'query Orte feed filter[.BevT > 200] count'))
+(filter ("Signature" "Syntax" "Meaning" "Example") ('For T in kind DATA:
+((stream T) (map T bool)) -> (stream T)' '_ filter [ fun ]' 'Filters the elements of a stream by a predicate.' 'query intstream (1,10) filter[. > 7] count'))
+(createsuffixtree ("Signature" "Syntax" "Meaning" "Example") ('text -> suffixtree' 'createsuffixtree (_)' 'Creates a SuffixTree from a text in O(n) time.' 'query createsuffixtree (\'babac\');'))
+(windowintersects ("Signature" "Syntax" "Meaning" "Example") ('rtree(tuple ((x1 t1)...(xn tn)) ti) x rel(tuple ((x1 t1)...(xn tn))) x T -> (stream (tuple ((x1 t1)...(xn tn))))
+For T= rect<d> and ti in {rect<d>} U SPATIAL<d>D, for d in {2, 3, 4, 8}' '_ _ windowintersects [ _ ]' 'Uses the given rtree to find all tuples in the given relation with .xi intersects the  argument value\'s bounding box.' 'query strassen_GeoData strassen windowintersects[ bbox(thecenter) ] count'))
+(windowintersects ("Signature" "Syntax" "Meaning" "Example") ('xtree x relation x hrect -> tuple stream' '_ _ rangesearch [_]' 'Returns a tuple stream, which contains all attributes, that intersects the search windows. The relation must contain at least the same tuples, that had been used to create the xtree.' 'query strassen creatextree[GeoData] strassen windowintersects[[const hrect value (2 (9000.0 9000.0) (10000.0 10000.0))]] count'))
+(sortby ("Signature" "Syntax" "Meaning" "Example") ('((stream (tuple([a1:d1, ... ,an:dn]))) ((xi1 asc/desc) ... (xij [asc/desc]))) -> (stream (tuple([a1:d1, ... ,an:dn])))' '_ sortby [list]' 'Sorts an input stream according to a list of attributes ai1 ... aij. For each attribute one may specify the sorting order (asc/desc). If no order is specified, ascending is assumed.' 'query Staedte feed sortby[Bev desc] head[3] count'))
+(addcounter ("Signature" "Syntax" "Meaning" "Example") ('(stream (tuple(X))) x name x {int,longint}  -> (stream (tuple(X (name int)))) ))' ' stream addcounter[AttrName, Initial]  ' 'Adds a counter with the given name to the stream starting at the initial value ' 'query ten feed addcounter[ Cnt , 1] consume'))
+(head ("Signature" "Syntax" "Meaning" "Example") ('((stream (tuple([a1:d1, ... ,an:dn]))) x int) -> (stream (tuple([a1:d1, ... ,an:dn]))) or 
+((stream T) int) -> (stream T), for T in kind DATA.' '_ head [ _ ]' 'Returns the first n elements of the input stream.' 'query Trains feed head[7] count'))
+(remove ("Signature" "Syntax" "Meaning" "Example") ('((stream (tuple ((x1 T1) ... (xn Tn)))) (ai1 ... aik)) -> (stream (tuple ((aj1 Tj1) ... (ajn-k Tjn-k))))' '_ remove [list]' 'Produces a removal tuple for each tuple of its input stream.' 'query Staedte feed project[Bev, PLZ] remove[PLZ] head[1] consume'))
+(addid ("Signature" "Syntax" "Meaning" "Example") ('stream(tuple(x))  -> stream(tuple(x@[TID:tid]))] ' '_ addid' 'Appends an attribute which is the tuple-id of the tuple to each tuple.' 'query Staedte feed addid consume'))
+(inserttuple ("Signature" "Syntax" "Meaning" "Example") ('rel(tuple(x))) x [t1 ... tn] -> stream(tuple(x@[TID:tid]))] ' ' _ inserttuple [list]' 'Inserts a new tuple with the values from the second argument-list into the relation. ' 'query Kleinstaedte3 inserttuple["Bremen", 526000, 2800, "0421", "HB"] count'))
+(deletebyid ("Signature" "Syntax" "Meaning" "Example") ('rel(tuple(x))) x (tid)  -> stream(tuple(x@[TID:tid]))] ' ' _ deletebyid _' 'Deletes the tuple with the id from thesecond argument from the relaton.' 'query Staedte1 deletebyid[[const tid value 5]] consume'))
+(+ ("Signature" "Syntax" "Meaning" "Example") ('(int int) -> int, (int real) -> real, (real int) -> real, (real real) -> real (string string) -> string' '_ + _' 'Addition. Strings are concatenated.' 'query -1.2 + 7'))
+(+ ("Signature" "Syntax" "Meaning" "Example") ('point x point -> point' ' _ + _' ' Returns the vector sum of two points.' 'query [const point value (0.0 -1.2)] + [const point value (-5.0 1.2)]'))
+(# ("Signature" "Syntax" "Meaning" "Example") ('(int int) -> bool, (int real) -> bool, (real int) -> bool, (real real) -> bool, (bool bool) -> bool, (string string) -> bool' '_ # _' 'Not equal.' 'query 2.1 # 2.01'))
+(# ("Signature" "Syntax" "Meaning" "Example") ('(point point) -> bool, (points points) -> bool, (line line) -> bool, (region region) -> bool,(sline sline) -> bool' '_ # _' 'TRUE, iff both arguments are not equal.' 'query mehringdamm # alexanderplatz'))
+)))

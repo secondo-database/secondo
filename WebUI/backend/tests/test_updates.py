@@ -49,6 +49,55 @@ def test_load_with_filter_project_and_sort():
     )
 
 
+# --- paging ----------------------------------------------------------------
+
+
+def test_the_first_page_needs_no_counter():
+    """`head` alone is the whole restriction at offset 0, and it ends the scan
+    once the page is full."""
+    assert updates.load_command("Staedte", limit=200) == (
+        "query Staedte feed addid head[200] consume"
+    )
+
+
+def test_a_later_page_counts_and_skips():
+    """SECONDO has no `skip`, so an offset is `addcounter` plus a `filter`; the
+    counter is removed again so the page has the relation's own attributes."""
+    assert updates.load_command("Staedte", offset=400, limit=200) == (
+        "query Staedte feed addid addcounter[RowNo, 1] filter [ .RowNo > 400 ] "
+        "head[200] remove[RowNo] consume"
+    )
+
+
+def test_paging_comes_after_addid():
+    """The TIDs must be the stored ones, whichever page is read -- so the page is
+    cut out after `addid`, never before it."""
+    cmd = updates.load_command(
+        "Staedte", [".Bev > 500000"], ["SName", "Bev"], ["SName"], offset=10, limit=5
+    )
+    assert cmd.index("addid") < cmd.index("addcounter")
+    assert cmd.startswith(
+        "query Staedte feed filter [ .Bev > 500000 ] "
+        "project [ SName, Bev ] sortby [ SName ] addid "
+    )
+
+
+def test_counter_name_avoids_the_relations_own_attributes():
+    assert updates.counter_name(STAEDTE) == "RowNo"
+    assert updates.counter_name([{"name": "RowNo"}]) == "RowNo2"
+    # Case is not a defence: SECONDO would still see a duplicate.
+    assert updates.counter_name([{"name": "rowno"}, {"name": "RowNo2"}]) == "RowNo3"
+
+
+def test_count_command_keeps_the_filter_and_drops_the_rest():
+    """Neither `project` nor `sortby` can change a count, so the scan the pager
+    pays for stays as cheap as it can be."""
+    assert updates.count_command("Staedte", [".Bev > 500000"]) == (
+        "query Staedte feed filter [ .Bev > 500000 ] count"
+    )
+    assert updates.count_command("Staedte") == "query Staedte feed count"
+
+
 # --- DML ------------------------------------------------------------------
 
 

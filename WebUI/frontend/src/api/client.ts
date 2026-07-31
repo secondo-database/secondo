@@ -55,9 +55,20 @@ export interface TablePayload {
    *  nested-list text for everything else, null for undefined. */
   rows: (string | number | boolean | null)[][];
   rowCount: number;
-  /** The server capped the rows; `totalRows` says how many there were. */
+  /** The server capped the rows and the rest are *unreachable* -- only an
+   *  ad-hoc query result can be, since the backend did not write that query.
+   *  A page is never truncated: the next one is a request away. */
   truncated: boolean;
   totalRows: number;
+  /** Whether `totalRows` is the real total or only what has been seen so far
+   *  (paging skips the counting scan unless something invalidated the count). */
+  totalKnown: boolean;
+  /** Index of the first row shown, 0 when the whole result is here. */
+  offset: number;
+  /** Page size the server applied, null when the result is not paged. */
+  limit: number | null;
+  /** Whether another page of this table can be asked for. */
+  pageable: boolean;
   /** Which column holds the tuple identifier, or null when the result was not
    *  loaded with `addid` -- i.e. when it cannot be edited. */
   tidIndex: number | null;
@@ -170,13 +181,43 @@ export interface CatalogObject {
   relation: boolean;
 }
 
-/** Reload a stored relation *with* its tuple identifiers, which is what makes a
- *  table editable (`query <Rel> feed ... addid consume`). */
+/** Read one page of a stored relation *with* its tuple identifiers, which is
+ *  what makes a table editable (`query <Rel> feed ... addid consume`).
+ *
+ *  The page is cut server-side, so a relation of any size can be browsed and
+ *  edited. `wantTotal` costs a counting scan; leave it off when only the page
+ *  changed and the caller already knows the total. */
 export function loadTable(
   relation: string,
-  opts: { filters?: string[]; project?: string[]; sort?: string[] } = {}
+  opts: {
+    filters?: string[];
+    project?: string[];
+    sort?: string[];
+    offset?: number;
+    limit?: number;
+    wantTotal?: boolean;
+    /** Ask for the TID column. Only a table loaded with it can be edited. */
+    tids?: boolean;
+  } = {}
 ): Promise<{ table: TablePayload; command: string }> {
-  return post("/api/table/load", { relation, ...opts });
+  const { wantTotal, ...rest } = opts;
+  return post("/api/table/load", {
+    relation,
+    ...rest,
+    ...(wantTotal === undefined ? {} : { want_total: wantTotal }),
+  });
+}
+
+/** One operator the connected server knows. A property of the *server*, not of
+ *  the open database, so the query editor fetches it once per session. */
+export interface OperatorInfo {
+  name: string;
+  /** How it is written, e.g. `_ feed` -- shown next to the name while typing. */
+  syntax: string;
+}
+
+export async function listOperators(): Promise<{ operators: OperatorInfo[] }> {
+  return get("/api/operators");
 }
 
 export interface TableEdits {
