@@ -401,7 +401,15 @@ as a nested list expression or as a string.
 
   OperatorInfo  GetOpInfo() const
   {
-    return OperatorInfo(name, specString);
+    // Operators constructed from an OperatorInfo already carry a complete
+    // spec, so parsing specString would only reproduce it. The string-spec
+    // constructors leave spec empty; those are parsed once and cached here
+    // instead of on every call.
+    if ( spec.name.empty() )
+    {
+      spec = OperatorInfo(name, specString);
+    }
+    return spec;
   }
 
   void SetOpInfo(const OperatorInfo& oi)
@@ -546,7 +554,7 @@ Adds a value mapping function to the list of overloaded operator functions.
 */
     std::string         name;           // Name of operator
     std::string         specString;     // Specification
-    OperatorInfo   spec;
+    mutable OperatorInfo spec;          // filled lazily by GetOpInfo()
     int            numOfFunctions; // No. overloaded functions
     SelectFunction selectFunc;
     ValueMapping*  valueMap;       // Array of size numOfFunctions
