@@ -41,6 +41,7 @@ APPLOBJECTS := \
 
 APPLICATIONS := $(BINDIR)/Secondo$(SMIUP) \
 		$(BINDIR)/SecondoCS \
+		$(BINDIR)/CheckExamples \
 
 # some optional objects and applications
 ifneq ($(smitype),ora)
@@ -187,6 +188,14 @@ $(BINDIR)/Secondo$(SMIUP)$(EXEEXT):  $(APP_LIB) $(ALG_LIST) $(FLOB) $(PL_OBJECTS
 # It always needs readline (for the interactive history); in optimizer builds
 # RL_LD_FLAG is empty because readline used to come in via the (now removed)
 # Prolog link flags, so link it explicitly here.
+# CheckExamples validates the .examples files at build time; it parses commands
+# but never runs them, so like SecondoCS it needs no algebra libs. cmsg.o is
+# linked directly rather than via libappCommon: the parser's error handler is
+# its only user, and inside an archive it would be searched before the library
+# group that pulls the parser in, so the symbol would go unresolved.
+$(BINDIR)/CheckExamples$(EXEEXT): CheckExamples.$(OBJEXT) cmsg.$(OBJEXT) $(FLOB)
+	$(LD) $(EXEFLAGS) $(LDFLAGS) -o $@ $(filter %.o, $^) -lsdbutils $(LD_LINK_LIBS) $(COMMON_LD_FLAGS)
+
 $(BINDIR)/SecondoCS$(EXEEXT): $(SECLIBFILES) $(FLOB)
 $(BINDIR)/SecondoCS$(EXEEXT): $(CS_OBJECTS) $(APP_LIB) $(FLOB)
 	$(LD) $(EXEFLAGS) $(LDFLAGS) $(PROFILERFLAGS) -o $@ $(filter %.o, $^) -lappCommon -lsdbutils $(OPTLIB_LIBS)   $(LD_LINK_LIBS) $(RL_LD_FLAG) -lreadline -lncurses $(COMMON_LD_FLAGS)

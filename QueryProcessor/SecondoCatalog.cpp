@@ -111,7 +111,6 @@ The names of existing databases are stored in a list ~DBTable~.
 #include "NList.h"
 #include "SystemTables.h"
 #include "ExampleReader.h"
-#include "SecParser.h"
 #include "TypeConstructor.h"
 #include "Environment.h"
 #include "ListUtils.h"
@@ -2693,18 +2692,6 @@ SecondoCatalog::Initialize(OperatorInfoRel* r)
                if (traceExpl) {
                   cout << ex2.example << endl;
                }
-               bool secOk = false;
-               SecParser sp;
-               string exList = "";
-               int rc = sp.Text2List( ex2.example, exList );
-               secOk = (rc == 0);
-               if ( !secOk ) {
-                  t.remark = "Return Secondo Parse Error!";
-                  cerr << "Operator: " << ex2.opName << endl
-                       << "Example : " << ex2.example << endl
-                       << "In line : " << ex2.lineNo << endl << endl;
-               }
-
                t.name = oi.name;
                t.algebra = algName;
                t.signature = oi.signature;

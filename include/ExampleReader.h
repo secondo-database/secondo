@@ -384,9 +384,9 @@ a*bc* with single characters a,b and c.
         nextLine(stream, line);
       }
       if (debug)
-        cout << lineCtr << ": " << line << std::endl;
+        std::cout << lineCtr << ": " << line << std::endl;
       if (debug)
-        cout << tokendef[expected] << std::endl;
+        std::cout << tokendef[expected] << std::endl;
 
       bool switchAgain = true; 
       while(switchAgain) {
@@ -572,7 +572,7 @@ a*bc* with single characters a,b and c.
       }
 
       if (debug) {
-        cout << lineCtr << ": " << lineRest << std::endl;
+        std::cout << lineCtr << ": " << lineRest << std::endl;
       }  
     }
     return true;

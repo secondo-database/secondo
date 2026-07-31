@@ -115,9 +115,13 @@ kernel: makedirs buildlibs buildAlgebras
 .PHONY: linkonly
 linkonly: buildapps
 
-.PHONY: examples 
-examples: kernel
+# The kernel used to check that every example parses at every startup, once per
+# example, and discarded the result. It is a property of the .examples files,
+# so bin/CheckExamples (built by buildapps) verifies them once here instead.
+.PHONY: examples
+examples: kernel buildapps
 	$(MAKE) -C Algebras examples
+	$(BINDIR)/CheckExamples$(EXEEXT) bin/tmp/*.examples
 
 .PHONY: jnicheck
 jnicheck:
