@@ -28,6 +28,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "ExternalFileCache.h"
 #include "Flob.h"
 #include "FlobManager.h"
+#include <cstdlib>
 #include <fstream>
 
 ExternalFileCache::ExternalFileCache(const size_t _ms):
@@ -42,10 +43,12 @@ ExternalFileCache::ExternalFileCache(const size_t _ms):
     tableSize = 1u;
   }
 
-  hashtable = new CachedFileIdEntry*[tableSize];
-  for(unsigned int i=0;i<tableSize; i++){
-    hashtable[i] = 0;
-  }
+  // The bucket array is large -- with the 64 MB budget FlobManager passes in,
+  // tableSize is about 2.8 million pointers, i.e. ~22 MB. Allocate it with
+  // calloc rather than new[].
+  hashtable = static_cast<CachedFileIdEntry**>(
+                  calloc(tableSize, sizeof(CachedFileIdEntry*)));
+  assert(hashtable);
 
   hashFile = new SmiRecordFile(true, slotSize, true);
   bool created = hashFile->Create("cachedFileIDTable", "Default");
@@ -92,11 +95,9 @@ void ExternalFileCache::clear()
   //Clean all cached records
   if (hashtable)
   {
-    for (size_t i=0; i < tableSize; i++)
-    {
-      hashtable[i] = 0;
-    }
-    delete[] hashtable;
+    // No need to clear the buckets first: the entries they point at are freed
+    // below by walking the lru-list.
+    free(hashtable);
     hashtable = 0;
   }
   CachedFileIdEntry* entry = first;
