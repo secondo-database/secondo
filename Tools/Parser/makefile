@@ -82,8 +82,12 @@ $(SPECPARSER):
 $(SPECFILE): $(SPECPARSER) $(SPECFILES) 
 	$(MAKE) -C ../../Algebras specs
 
+# -B: batch input, so LexerInput does a bulk read instead of fetching one
+# character at a time through the istream. The scanner is never attached to a
+# terminal -- SecParser builds it only over an istringstream. -Cf/-CF would be
+# faster still but are incompatible with the %option yylineno used by SecLex.l.1.
 SecLex.cpp: SecLex.l
-	$(LEX) -Ca -d -+ -o$@ -Pxx $<
+	$(LEX) -Ca -B -+ -o$@ -Pxx $<
 
 SecParser.tab.cpp: SecParser.y
 	$(YACC) -d -p xx -o SecParser.tab.cpp $<

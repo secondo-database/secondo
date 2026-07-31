@@ -51,8 +51,15 @@ NLParser.tab.cpp: NLParser.y
 	$(YACC) -d -o NLParser.tab.cpp $<
 $(TOKENDEF): NLParser.tab.cpp ;
 
+# -Cf: full (fastest) scanner tables, instead of flex's default -Cem, which is
+# the smallest and slowest. It also implies batch input, so LexerInput does a
+# bulk read instead of fetching one character at a time through the istream.
+#
+# -8 is REQUIRED and must not be dropped. flex generates 7-bit tables by
+# default under -Cf/-CF (it halves their size), and nested lists carry 8-bit
+# data: bin/berlintest is ISO-8859 with ~9000 bytes.
 NLLex.cpp: NLLex.l $(TOKENDEF)
-	$(LEX) -d -+ -Pnl -o$@ $<
+	$(LEX) -Cf -8 -+ -Pnl -o$@ $<
 
 ifneq ($(MAKECMDGOALS),clean)
 -include $(DEP_FILES)
