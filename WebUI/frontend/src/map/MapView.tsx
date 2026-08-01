@@ -371,21 +371,33 @@ export function MapView({
   );
 
   // Controlled view state: user pan/zoom updates it. We deliberately re-fit
-  // ONLY when a layer the map has never shown appears, or the projection
-  // changes (which moves the data to a whole new coordinate space). Editing a
-  // layer's style, toggling visibility or removing a layer must leave the view
-  // exactly where the user put it. The "adjust state during render" pattern
-  // keeps `views` and `viewState` in sync in the same render.
+  // ONLY when a layer the map has never shown appears, or the data moves to a
+  // whole new coordinate space -- the projection changed, or the union bbox
+  // crossed the geographic/Cartesian line. Editing a layer's style, toggling
+  // visibility or removing a layer must leave the view exactly where the user
+  // put it. The "adjust state during render" pattern keeps `views` and
+  // `viewState` in sync in the same render.
+  //
+  // The geographic flag has to be watched, not just the projection: removing a
+  // layer can flip it. Querying strassen (berlintest Cartesian) and then
+  // wanderung (GPS lon/lat) gives a union bbox outside lon/lat range, so the
+  // map is Cartesian; dropping strassen leaves wanderung's geographic bbox
+  // alone. Without a re-fit the MapView controller would then be handed an
+  // orthographic {target, zoom} with no longitude/latitude and assert.
   const [viewState, setViewState] = useState<VState>(fit);
-  const [fitState, setFitState] = useState<{ seen: string[]; projection: Projection }>(
-    { seen: [], projection }
-  );
+  const [fitState, setFitState] = useState<{
+    seen: string[];
+    projection: Projection;
+    geographic: boolean;
+  }>({ seen: [], projection, geographic });
   const unseen = layersToRender.filter((l) => !fitState.seen.includes(l.id));
-  const projectionChanged = fitState.projection !== projection;
-  if (unseen.length > 0 || projectionChanged) {
+  const spaceChanged =
+    fitState.projection !== projection || fitState.geographic !== geographic;
+  if (unseen.length > 0 || spaceChanged) {
     setFitState({
       seen: [...fitState.seen, ...unseen.map((l) => l.id)],
       projection,
+      geographic,
     });
     setViewState(fit);
   }
