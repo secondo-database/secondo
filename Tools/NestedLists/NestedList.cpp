@@ -1193,7 +1193,6 @@ string nlChars could not be written properly, or if there was something wrong
 within the structure of the list, otherwise, the function result is ~true~.
 
 */
-  ostringstream os;
   if ( IsEmpty( list ) )
   {
     nlChars << "()";
@@ -1203,10 +1202,15 @@ within the structure of the list, otherwise, the function result is ~true~.
     switch ( (*nodeTable)[list].nodeType )
     {
       case IntType:
+      {
+        ostringstream os;
         os << IntValue( list );
         nlChars << os.str();
         break;
+      }
       case RealType:
+      {
+        ostringstream os;
         os << setprecision(16) << RealValue( list );
         if ( (os.str().find( '.' ) == string::npos )&&
              (os.str().find('e') == string::npos))
@@ -1215,6 +1219,7 @@ within the structure of the list, otherwise, the function result is ~true~.
         }
         nlChars << os.str();
         break;
+      }
       case BoolType:
         nlChars << BoolToStr( BoolValue( list ) );
         break;
