@@ -13,7 +13,7 @@ HEADERS1=$$($(CPPC) -MM -I$(INCL) -I$(LAT) $(Interface1) | sed "s/.*://"  | sed 
 DEPS1=$(HEADERS1)
 
 
-HEADERS2=$$($(CPPC) -MM -D CTABLE_PERSISTENT -D NL_PERSISTENT -D SECONDO_WIN32 -I$(INCL) -I$(LAT) $(Interface1) | sed "s/.*://"  | sed -e 's/\\//g' | tr -d "\n"    )
+HEADERS2=$$($(CPPC) -MM -D CTABLE_PERSISTENT -D SECONDO_WIN32 -I$(INCL) -I$(LAT) $(Interface1) | sed "s/.*://"  | sed -e 's/\\//g' | tr -d "\n"    )
 DEPS2=$(HEADERS2)
 
 
