@@ -238,10 +238,15 @@ Persistent_AvgSize=512
 
 # Main memory buffers for global nested list storage used by the QueryProcessor.
 # Values are given in kB.
-# Defaults are NodeMem=2048, StringMem=1024, TextMem=1024
-#NodeMem=2048
-#StringMem=1024
-#TextMem=1024
+# Defaults are NodeMem=262144, StringMem=65536, TextMem=32768
+#
+# These are ceilings, not reservations: the storage behind them is filled only
+# as list nodes are actually stored, so a small result costs what it always did.
+# Lowering them makes larger results page out to a temp file in
+# temp_nested_list/, which is expensive.
+#NodeMem=262144
+#StringMem=65536
+#TextMem=32768
 
 # --- ProgressEstimation Section ---
 

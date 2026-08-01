@@ -258,13 +258,32 @@ SecondoInterface::ErrorMap SecondoInterface::errors = InitErrorMessages();
 
 const string nlfolder = "temp_nested_list";
 
+/*
+List memory for an interface that brings its own list, in kB. This is the list a
+*client* rebuilds every query result into, so it is sized like the kernel's
+(SecondoInterfaceTTY::Initialize) rather than left on the NestedList constructor
+defaults, which hold ~32k nodes -- `query Trains` on berlintest is ~570k, and the
+rest was paged through a temp file behind a 128 kB LRU (52 MB of reads for one
+query). A ceiling, not a reservation: BigArray fills its slot cache only as
+entries are stored, so a client that asks small questions pays nothing for this.
+
+The values are not read from the configuration file: this runs in the
+constructor, before Initialize() is told which one to use, and a client that
+wants to tune them can pass its own NestedList.
+
+*/
+const uint32_t clientNodeMem   = 262144;
+const uint32_t clientStringMem = 65536;
+const uint32_t clientTextMem   = 32768;
+
 SecondoInterface::SecondoInterface(bool isServer, NestedList* _nl)
 {
   Init();
 
   serverInstance = isServer;
   if(!_nl){
-    nl = new NestedList(nlfolder);
+    nl = new NestedList(nlfolder, clientNodeMem, clientStringMem,
+                        clientTextMem);
     al = nl;
     externalNL = false;
   } else {

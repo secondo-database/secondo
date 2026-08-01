@@ -488,18 +488,25 @@ SecondoInterfaceTTY::Initialize( const string& user,
     }
   }
 
-  // set list memory
-  long nodeMem = 2048;
+  // Set list memory. In kB; see bin/SecondoConfig.example to override.
+  //
+  // These are ceilings, not reservations -- BigArray's slot cache is filled by
+  // append() only as entries are actually stored -- so raising them costs a
+  // small result nothing. What they buy is that an ordinary result stops being
+  // paged: the old 2048 kB held ~65k nodes, while `query Trains` on berlintest
+  // is ~570k, and the overflow went through a temp file behind a 128 kB LRU
+  // (measured at 240 MB of 16 kB reads to produce a 4.7 MB answer).
+  long nodeMem = 262144;
   nodeMem =
     SmiProfile::GetParameter("QueryProcessor", "NodeMem",
                              nodeMem, cfgFile);
 
-  long stringMem = 1024;
+  long stringMem = 65536;
   stringMem =
     SmiProfile::GetParameter("QueryProcessor", "StringMem",
                              stringMem, cfgFile);
 
-  long textMem = 1024;
+  long textMem = 32768;
   textMem =
     SmiProfile::GetParameter("QueryProcessor", "TextMem",
                              textMem, cfgFile);
@@ -582,6 +589,16 @@ SecondoInterfaceTTY::Initialize( const string& user,
     cmsg.send();
 
     al = SecondoSystem::GetAppNestedList();
+    // The application list gets the same budget as the kernel's. It is not a
+    // lesser list: every application-level command copies its whole result into
+    // it (CopyList, called from the Secondo() below), so leaving it on the
+    // NestedList constructor defaults meant the result was paged out again
+    // right after being built -- 47 MB of temp-file traffic for `query Trains`
+    // even with NodeMem raised, because only `nl` above was ever told about it.
+    if ( al != nl ) {
+      al->setMem(nodeMem, stringMem, textMem);
+      al->initializeListMemory();
+    }
     ok = SecondoSystem::StartUp();
   }
 
