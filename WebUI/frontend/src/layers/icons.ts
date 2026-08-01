@@ -104,6 +104,15 @@ const CELL = 64; // atlas cell: ~4x Maki's 15px design grid, crisp well past 48p
 const INSET = 6; // transparent margin, which doubles as the mip-bleed guard
 const COLS = 8;
 
+// A pin is not a symbol standing *at* a place, it is an arrow pointing *to* one:
+// its tip is the location and the rest of it hangs above. Centring it like every
+// other glyph puts the position halfway up the balloon, which is visibly wrong
+// on a moving point -- the marker floats beside the trail rather than riding it.
+//
+// The value is the tip's y in Maki's 15x15 design grid. `marker` draws its point
+// at (7.5 14); the glyph is symmetric, so x keeps deck's centred default.
+const PIN_TIP: Partial<Record<IconName, number>> = { marker: 14 };
+
 export interface IconAtlas {
   url: string;
   mapping: Record<string, {
@@ -112,7 +121,18 @@ export interface IconAtlas {
     width: number;
     height: number;
     mask: boolean;
+    anchorY?: number;
   }>;
+}
+
+/**
+ * How far an icon's ink reaches below its anchor, as a fraction of the icon
+ * box -- what a label written under the symbol has to clear. A centred glyph
+ * fills the box, so half of it hangs below; a pin ends at its tip, so nothing
+ * does.
+ */
+export function iconInkBelow(name: IconName): number {
+  return PIN_TIP[name] === undefined ? 0.5 : 0;
 }
 
 // 77 of Maki's 215 icons write XML character references (&#xA;, &#x9;) as
@@ -166,7 +186,17 @@ function build(): IconAtlas | null {
       ctx.fill(new Path2D(d));
       ctx.restore();
     }
-    mapping[name] = { x, y, width: CELL, height: CELL, mask: true };
+    // deck anchors at the cell's centre unless told otherwise, and scales the
+    // anchor with the drawn size, so this stays correct at any icon size.
+    const tip = PIN_TIP[name];
+    mapping[name] = {
+      x,
+      y,
+      width: CELL,
+      height: CELL,
+      mask: true,
+      ...(tip !== undefined && { anchorY: INSET + tip * scale }),
+    };
   });
 
   return { url: canvas.toDataURL("image/png"), mapping };

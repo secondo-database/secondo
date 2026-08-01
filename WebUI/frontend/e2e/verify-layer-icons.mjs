@@ -84,6 +84,31 @@ try {
         }
       return bottom < top ? 0 : bottom - top + 1;
     });
+  // Where the drawn ink sits vertically, in device pixels, together with the
+  // canvas centre. A lone point is fitted to the middle of the canvas, so the
+  // centre *is* the object's position and this says how the symbol straddles
+  // it. Only meaningful with a single symbol on screen.
+  const symbolBounds = () =>
+    page.evaluate(() => {
+      const c = document.querySelector(".mapview canvas");
+      const gl = c.getContext("webgl2", { preserveDrawingBuffer: true }) ||
+                 c.getContext("webgl", { preserveDrawingBuffer: true });
+      const w = c.width, h = c.height;
+      const px = new Uint8Array(w * h * 4);
+      gl.readPixels(0, 0, w, h, gl.RGBA, gl.UNSIGNED_BYTE, px);
+      // readPixels is bottom-up; flip so y grows downwards like the screen.
+      let top = Infinity, bottom = -Infinity;
+      for (let y = 0; y < h; y++)
+        for (let x = 0; x < w; x++) {
+          const i = (y * w + x) * 4;
+          if (px[i + 3] > 10 && Math.max(px[i], px[i + 1], px[i + 2]) > 70) {
+            const sy = h - 1 - y;
+            if (sy < top) top = sy;
+            if (sy > bottom) bottom = sy;
+          }
+        }
+      return { top, bottom, center: h / 2 };
+    });
   // Deck redraws asynchronously (and the icon atlas arrives via a data-URL
   // fetch), so read until two consecutive frames agree rather than guessing a
   // sleep -- an early read once measured a trail that was already switched off.
@@ -207,6 +232,29 @@ try {
   await setIcon("");
   check(Math.abs((await settled(symbolHeight)) - circleH) <= 2,
         `and returns to the disc when the icon is cleared`);
+
+  // --- the pin hangs above its position ------------------------------------
+  // Every glyph is centred on the position except "marker", which is an arrow
+  // pointing at one: its tip must land on the position with the balloon above,
+  // or a marker on a moving point floats beside the trail instead of riding it.
+  await setIcon("star");
+  await settled(symbolHeight);
+  const starAt = await symbolBounds();
+  check(Math.abs((starAt.top + starAt.bottom) / 2 - starAt.center) <= 3,
+        `an ordinary glyph stays centred on the position ` +
+        `(ink ${starAt.top}..${starAt.bottom}, position ${starAt.center})`);
+
+  await setIcon("marker");
+  await settled(symbolHeight);
+  const pinAt = await symbolBounds();
+  const pinH = pinAt.bottom - pinAt.top;
+  check(Math.abs(pinAt.bottom - pinAt.center) <= 3,
+        `the marker's tip sits on the position ` +
+        `(ink ends at ${pinAt.bottom}, position ${pinAt.center})`);
+  check(pinAt.top < pinAt.center - pinH * 0.7,
+        `and its balloon hangs above it (ink ${pinAt.top}..${pinAt.bottom})`);
+  await page.screenshot({ path: `${OUT}/icon-marker.png` });
+  await setIcon("");
 
   check(iconErrors.length === 0,
         `no icon-atlas errors logged (${iconErrors.join(" | ") || "none"})`);

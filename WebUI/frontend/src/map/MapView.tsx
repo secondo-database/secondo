@@ -21,7 +21,7 @@ import "maplibre-gl/dist/maplibre-gl.css";
 import type { MovingRegion, Trip } from "../api/client";
 import type { Layer, RGB } from "../layers/useLayers";
 import type { Theme } from "../theme";
-import { iconAtlas } from "../layers/icons";
+import { iconAtlas, iconInkBelow } from "../layers/icons";
 import {
   LabelPlacer,
   LABEL_FONT_FAMILY,
@@ -559,9 +559,10 @@ export function MapView({
     // 13px glyph.
     const iconPx = Math.max(12, s.pointRadius * 4);
     // How far below a symbol the *middle* of its label sits: a circle's extent
-    // is its radius, an icon's is half its square cell, then a gap and half a
-    // line of text.
-    const labelDrop = (icon ? iconPx / 2 : s.pointRadius) + 14;
+    // is its radius, an icon's is however much of it hangs under its anchor
+    // (half the cell for a centred glyph, nothing for a pin standing on its
+    // tip), then a gap and half a line of text.
+    const labelDrop = (icon ? iconPx * iconInkBelow(icon) : s.pointRadius) + 14;
     // Typed up front: inside a conditional spread the literal has no
     // contextual type to widen against deck's Color.
     const iconColor: [number, number, number, number] = [
