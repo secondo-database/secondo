@@ -176,7 +176,7 @@ def test_a_text_attribute_comes_back_in_the_short_quoted_form():
     """`NestedList::ToString` writes a text atom as `'...'`, not as
     `<text>...</text--->`. Parsed as a bare token it stopped at the first space,
     so a text cell showed as `'a` -- truncated and with a stray quote."""
-    t = convert("((rel (tuple ((Note text)))) (('a </text---> b') ('hello'))))")
+    t = convert("((rel (tuple ((Note text)))) (('a </text---> b') ('hello')))")
     assert t["rows"] == [["a </text---> b"], ["hello"]]
 
 

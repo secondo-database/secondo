@@ -27,6 +27,8 @@ in Python, where it is easy to fixture-test.
 
 #include <pybind11/pybind11.h>
 
+#include <cctype>
+#include <mutex>
 #include <string>
 #include <stdexcept>
 
@@ -34,6 +36,7 @@ in Python, where it is easy to fixture-test.
 #include "SecondoInterfaceCS.h"
 #include "SQLLanguage.h"
 #include "NestedList.h"
+#include "LogMsg.h"
 
 namespace py = pybind11;
 
@@ -79,6 +82,24 @@ static std::string trimmed(const std::string& s)
   return s.substr(b, s.find_last_not_of(ws) - b + 1);
 }
 
+// Whitespace runs (newlines included) squeezed to single spaces, then trimmed.
+static std::string oneLine(const std::string& s)
+{
+  std::string out;
+  out.reserve(s.size());
+  bool space = false;
+  for (const char c : s) {
+    if (isspace(static_cast<unsigned char>(c))) {
+      space = true;
+      continue;
+    }
+    if (space && !out.empty()) out += ' ';
+    space = false;
+    out += c;
+  }
+  return out;
+}
+
 /*
 1.1 Nested list -> Python objects
 
@@ -89,7 +110,17 @@ becomes the matching Python scalar.
 The GIL must be held: this allocates Python objects.
 
 */
-static py::object treeOf(NestedList* nl, ListExpr list)
+typedef py::str (*Decoder)(const std::string&);
+
+// What the server produced is Latin-1; what Python handed in (parse_nl) is
+// already UTF-8 and must not be run through the Latin-1 decoder, or an umlaut
+// comes back as two characters.
+static py::str utf8(const std::string& s)
+{
+  return py::str(s);
+}
+
+static py::object treeOf(NestedList* nl, ListExpr list, Decoder decode = latin1)
 {
   if (nl->IsEmpty(list)) {
     return py::list();
@@ -101,9 +132,9 @@ static py::object treeOf(NestedList* nl, ListExpr list)
       case BoolType:   return py::bool_(nl->BoolValue(list));
       // Strings, symbols and texts all arrive as str, as the text parser had
       // them: nothing downstream distinguishes a symbol from a quoted string.
-      case StringType: return latin1(nl->StringValue(list));
-      case SymbolType: return latin1(nl->SymbolValue(list));
-      case TextType:   return latin1(nl->Text2String(list));
+      case StringType: return decode(nl->StringValue(list));
+      case SymbolType: return decode(nl->SymbolValue(list));
+      case TextType:   return decode(nl->Text2String(list));
       default:         return py::none();
     }
   }
@@ -111,10 +142,56 @@ static py::object treeOf(NestedList* nl, ListExpr list)
   // a million tuples is one long list, not a million-deep one.
   py::list items;
   while (!nl->IsEmpty(list)) {
-    items.append(treeOf(nl, nl->First(list)));
+    items.append(treeOf(nl, nl->First(list), decode));
     list = nl->Rest(list);
   }
   return items;
+}
+
+/*
+1.2 Text -> nested list, through SECONDO's own parser
+
+For the one thing that arrives as text and has no ~ListExpr~ behind it: a value
+the *user* typed into a table cell. It is checked here rather than by a parser
+of our own because the only question worth asking is whether SECONDO will
+accept it -- a second implementation of ~NLLex.l~ and ~NLParser.y~ can only ever
+agree with them by accident, and the dangerous direction is the one where it is
+more permissive: the value then fails on the server, mid-save, instead of at the
+field.
+
+Its own list, not a connection's: validating a cell has nothing to do with a
+session, and this way it works before any connection exists. The list is reset
+after every parse so a long-lived bridge does not accumulate the nodes.
+
+The mutex covers all three of the shared things touched here -- the list, its
+reset, and ~cmsg~'s process-wide error buffer, which is how the parser's own
+diagnostic (token, line and column) is retrieved.
+
+*/
+static py::object parseNL(const std::string& text)
+{
+  static std::mutex mtx;
+  static NestedList* nl = nullptr;
+  std::lock_guard<std::mutex> guard(mtx);
+  if (!nl) {
+    nl = new NestedList("temp_nested_list");
+  }
+
+  ListExpr list = nl->TheEmptyList();
+  cmsg.resetErrors();
+  const bool ok = nl->ReadFromString(text, list);
+  if (!ok) {
+    // The parser lays its complaint out over several lines; this one ends up
+    // beside a table cell, so it is folded onto one.
+    const std::string why = oneLine(cmsg.getErrorMsg());
+    cmsg.resetErrors();
+    nl->initializeListMemory();
+    throw std::invalid_argument(why.empty() ? "not a valid nested list" : why);
+  }
+  py::object tree = treeOf(nl, list, utf8);
+  cmsg.resetErrors();
+  nl->initializeListMemory();
+  return tree;
 }
 
 // An error the SECONDO server reported. Surfaces in Python as
@@ -451,6 +528,12 @@ PYBIND11_MODULE(secondo_native, m)
       },
       py::arg("command"),
       "Strip a leading \"optimizer \" keyword; returns (had_prefix, rest).");
+
+  // Needs no connection: it is the kernel's own parser, not a server call.
+  m.def("parse_nl", &parseNL, py::arg("text"),
+        "Parse nested-list text with SECONDO's own parser (NLParser/NLLex) and "
+        "return it as Python objects. Raises ValueError, carrying the parser's "
+        "message, if SECONDO would not accept the text.");
 
   py::class_<Connection>(m, "Connection")
       .def(py::init<const std::string&, const std::string&,
