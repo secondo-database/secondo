@@ -1779,7 +1779,6 @@ NestedList::WriteBinaryRec(ListExpr list, ostream& os) const {
   unsigned long strlen = 0;
   unsigned int len = 0;
 
-  os.flush();
   assert( os.good() );
 
   nlbyte typeId = GetBinaryType(list);
