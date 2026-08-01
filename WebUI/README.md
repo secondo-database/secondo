@@ -292,6 +292,75 @@ Java GUI's `RelViewer` and `UpdateViewer2`.
   `npm run e2e -- ux` additionally checks that `createsuffi` completes to
   `createsuffixtree` with its syntax.
 
+**Milestone 11 (GPX import by drag-and-drop) — done & verified end-to-end.**
+- **A GPX track is dropped on the catalog and imported.** The drop zone sits at
+  the foot of the object list and announces itself whenever a file is dragged
+  anywhere over the window; clicking it opens a file chooser, which is the same
+  path by keyboard. Without an open database it says so rather than silently
+  refusing. The file goes to the bridge (`POST /api/upload`) and is stored in
+  its temp directory; an import dialog then proposes a name derived from the
+  filename (`2026-07-26_Wanderung.gpx` → `gpx_2026_07_26_wanderung`) and lists
+  the four objects that name will produce, each with what it *is* — the
+  suffixes alone do not say, and one dropped track turning into four catalog
+  entries is worth explaining before it happens:
+
+  ```
+  WILL CREATE
+    ·  wanderung               raw GPX import
+    ·  wanderung_mp            moving point
+    ·  wanderung_trajectory    trajectory
+    ·  wanderung_bbox          bounding box
+  ```
+
+  Pressing Import runs four commands in order and turns that same list into the
+  progress — nothing moves, the row being worked on gets a spinner and says what
+  it is doing, and a finished one gets a green check:
+
+  ```
+  let <n>            = gpximport('/tmp/…') consume
+  let <n>_mp         = <n> feed projectextend[; T: .Time, P: makepoint(.Lon, .Lat)]
+                              approximate[T, P]
+  let <n>_trajectory = trajectory(<n>_mp)
+  let <n>_bbox       = bbox(<n>_trajectory)
+  ```
+
+  This is the pipeline from `bin/Scripts/ReadingASetOfGPXFiles.sec` cut down to
+  one file. `gpximport` is MapMatchingAlgebra, the rest Temporal/Spatial; all
+  are in a stock build.
+- **All four names are checked before the first command runs.** A name is
+  refused unless it is lowercase `[a-z][a-z0-9_]*`, and unless *every* object
+  the import would create is free — checking only the first would let the import
+  fail halfway, which is the one outcome worth designing against. If a command
+  fails anyway, the import stops there, shows SECONDO's own message under the
+  failed step and names what it did create. Nothing is deleted behind the user's
+  back; the catalog refreshes so the leftovers can be seen and dropped.
+- **The commands run on the user's own session**, not server-side in a batch, so
+  the optimizer's catalog is refreshed after each `let`
+  (`Session._update_catalog_if_wanted`) and every command is left in the console
+  where it can be read and run again. They use a new `view: "none"` on
+  `/api/query`: `let x = <a long track> consume` answers with the whole created
+  object, and neither the payload conversion nor the transfer is worth paying
+  for when nothing will render it.
+- **The upload is the request body, not a multipart part** — one file needs none
+  of what multipart buys, and this way the bridge does not grow a
+  `python-multipart` dependency for it. The filename is sanitized to a basename
+  of `[A-Za-z0-9._-]` and stored under a `mkstemp` name: it is pasted into a
+  SECONDO text literal, so an apostrophe in it would end the literal, and a
+  directory in it would put the file wherever the uploader liked. Uploads are
+  capped at `WEBUI_MAX_UPLOAD_BYTES` (64 MiB) and deleted when the session that
+  made them closes.
+- **`gpximport` opens the path on the SECONDO server**, while the upload lands
+  on the *bridge*. The two therefore have to share a filesystem — which they do
+  in the default deployment (`SECONDO_HOST=127.0.0.1`). Against a remote server
+  the import fails on its first command with the server's own "file not found",
+  which says as much.
+- Verified in a headless browser (`npm run e2e -- gpx-import`) against
+  `bin/Trk_MapMatchTest.gpx`: the zone is disabled until a database is open, the
+  dialog proposes the name derived from the filename and previews all four
+  objects with their kinds, all four steps go green, the catalog then lists all
+  four objects, and a second import of the same file is refused with the
+  collision named before anything runs. The check deletes what it created.
+
 ### A note on coordinates & the basemap
 
 SECONDO spatial values carry coordinates in the dataset's *own* world system
@@ -424,8 +493,10 @@ make -C WebUI prod PORT=9000
 
 The default is `HOST=0.0.0.0`, i.e. reachable from the network. **The WebUI has
 no authentication**: anyone who can reach the port can read and modify every
-database on the connected server, and `save`/`restore` typed into the console
-write into the *server's* filesystem. On anything but a trusted network, bind
+database on the connected server, `save`/`restore` typed into the console
+write into the *server's* filesystem, and `/api/upload` writes into the
+*bridge's* temp directory (capped by `WEBUI_MAX_UPLOAD_BYTES`, 64 MiB, and
+cleaned up when the session closes). On anything but a trusted network, bind
 `127.0.0.1` and put an authenticating reverse proxy in front of it.
 
 **Run a single worker.** Sessions live in an in-process dict

@@ -9,7 +9,9 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import logging
+import os
 import re
+import tempfile
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -137,8 +139,10 @@ class QueryRequest(BaseModel):
     # Which render payloads the caller wants back. "auto" derives whatever the
     # result supports; "table" is the UI's "run as table", and asks for the rows
     # alone -- a relation of moving points is megabytes of trips that would only
-    # be discarded, so it is not built rather than built and dropped.
-    view: Literal["auto", "table"] = "auto"
+    # be discarded, so it is not built rather than built and dropped. "none" is
+    # for a command run for its effect: `let x = ... consume` answers with the
+    # whole created object, and the GPX import that issues it wants none of it.
+    view: Literal["auto", "table", "none"] = "auto"
 
 
 class QueryResponse(BaseModel):
@@ -217,7 +221,9 @@ async def query(
     # so this is the unchanged Milestone 2/3 pipeline.
     geojson = temporal = tabular = None
     try:
-        if req.view == "table":
+        if req.view == "none":
+            pass  # run for the effect; the answer is not going to be rendered
+        elif req.view == "table":
             # Asked for rows and nothing else, so only the rows are derived.
             tabular = table_mod.to_table(result.text)
         else:
@@ -234,7 +240,10 @@ async def query(
     if relation:
         tabular = await _page_of(session, relation) or tabular
     return QueryResponse(
-        text=result.text,
+        # `let x = <a long track> consume` answers with the whole created
+        # object. A caller that asked for no payloads is not going to show it
+        # either, so it does not cross the wire.
+        text="" if req.view == "none" else result.text,
         geojson=geojson,
         temporal=temporal,
         table=tabular,
@@ -277,6 +286,81 @@ async def objects(
     except RuntimeError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     return {"objects": parse_objects(text), "open": session.open_db}
+
+
+# --- uploading a file for an import operator to read -----------------------
+#
+# `gpximport` and its kind take a *path* and open it themselves, so a file in
+# the browser has to be put on a disk the SECONDO server can read before any
+# command can name it. The bridge writes it into its own temp directory, which
+# is the server's temp directory too whenever the two share a machine -- the
+# default deployment. With a remote SECONDO_HOST the import fails on the first
+# command with the server's own "file not found", which says as much.
+
+# What a written file may be called: no directory separators, nothing that
+# needs quoting. The path is pasted into a SECONDO text literal ('...'), so an
+# apostrophe in a filename would end the literal -- it cannot survive this.
+_UNSAFE_IN_NAME = re.compile(r"[^A-Za-z0-9._-]")
+
+
+def _safe_upload_name(filename: str, suffix: str) -> str:
+    """A filename that cannot escape the temp directory or a text literal."""
+    # `Path(...).name` drops any directory the browser (or a caller) put in
+    # front; the substitution then leaves only characters that need no quoting.
+    stem = Path(_UNSAFE_IN_NAME.sub("_", Path(filename).name)).stem
+    return (stem[:60] or "upload") + suffix
+
+
+@app.post("/api/upload")
+async def upload(
+    request: Request,
+    response: Response,
+    filename: str,
+    secondo_sid: str | None = Cookie(default=None),
+) -> dict:
+    """Store an uploaded file where an import operator can read it.
+
+    The body is the file itself rather than a multipart part: one file needs
+    none of what multipart buys, and this way the bridge does not grow a
+    dependency (`python-multipart`) for it.
+
+    The file belongs to the session that uploaded it and is deleted when that
+    session closes -- see `Session.uploads`.
+    """
+    session = await _session_for(response, secondo_sid)
+    suffix = Path(filename).suffix.lower()
+    if suffix != ".gpx":
+        raise HTTPException(
+            status_code=400, detail=f"Only .gpx files can be imported, not {filename!r}"
+        )
+    body = await request.body()
+    if not body:
+        raise HTTPException(status_code=400, detail="The uploaded file is empty.")
+    if len(body) > settings.max_upload_bytes:
+        raise HTTPException(
+            status_code=413,
+            detail=(
+                f"The file is {len(body)} bytes; the limit is "
+                f"{settings.max_upload_bytes}."
+            ),
+        )
+    safe = _safe_upload_name(filename, suffix)
+    # A named temp file rather than the plain name: two sessions importing the
+    # same track must not write over each other, and the name is not the
+    # user's to choose on the bridge's disk.
+    fd, path = tempfile.mkstemp(prefix="secondo-webui-", suffix="-" + safe)
+    dest = Path(path)
+    try:
+        await asyncio.to_thread(dest.write_bytes, body)
+    except OSError as exc:
+        with contextlib.suppress(OSError):
+            dest.unlink()
+        raise HTTPException(status_code=500, detail=f"Cannot store the upload: {exc}")
+    finally:
+        os.close(fd)
+    session.uploads.append(dest)
+    logger.info("Stored upload %s (%d bytes)", dest, len(body))
+    return {"path": str(dest), "filename": safe, "size": len(body)}
 
 
 @app.get("/api/operators")

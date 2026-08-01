@@ -108,7 +108,8 @@ body {
     border-top-color: var(--accent);
   }
 
-  .split {
+  .split,
+  .cat-drop {
     transition: none;
   }
 }
@@ -516,6 +517,281 @@ body.dragging {
   color: var(--faint);
   font-size: 0.74rem;
   line-height: 1.4;
+}
+
+/* Something the user did wrong, said in place. Used where a `pre.err` block
+   would be too much for one line of text. Scoped per user because a bare
+   `.err-text` ties on specificity with the class it modifies (`.gpx-note`) and
+   loses to whichever of the two is written later in this file. */
+.gpx-note.err-text,
+.cat-drop-err.err-text {
+  color: var(--err-text);
+}
+
+/* --- the GPX drop zone -------------------------------------------------- */
+
+/* Sits at the foot of the catalog and stays there: `margin-top: auto` pins it
+   below a short object list, and `flex-shrink: 0` keeps a long one from
+   squashing it away. The object list scrolls; this does not go with it. */
+.cat-drop {
+  margin-top: auto;
+  flex: 0 0 auto;
+  border: 2px dashed var(--border-strong);
+  border-radius: 8px;
+  padding: 0.5rem 0.4rem;
+  text-align: center;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+/* A file is somewhere over the window: say where it can go before the user has
+   to guess. Bright rather than subtle -- it has one moment to be noticed. */
+.cat-drop.armed {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+}
+
+/* And now it is over the zone itself. */
+.cat-drop.over {
+  border-color: var(--accent-solid);
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
+}
+
+.cat-drop.disabled {
+  border-style: dashed;
+  border-color: var(--border);
+  opacity: 0.7;
+}
+
+.cat-drop-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.1rem;
+  width: 100%;
+  /* A drop target the size of a link is a drop target that gets missed. */
+  min-height: 56px;
+  justify-content: center;
+  background: none;
+  border: none;
+  color: var(--text-2);
+  cursor: pointer;
+  /* The zone below is the target; the button must not eat the drag events on
+     their way to it. */
+  pointer-events: auto;
+}
+
+.cat-drop-btn * {
+  pointer-events: none;
+}
+
+.cat-drop-ic {
+  font-size: 1.15rem;
+  line-height: 1;
+  color: var(--accent);
+}
+
+.cat-drop-text {
+  font-size: 0.76rem;
+}
+
+.cat-drop-sub {
+  margin: 0;
+  color: var(--faint);
+  font-size: 0.68rem;
+  line-height: 1.35;
+}
+
+.cat-drop-err {
+  margin: 0.3rem 0 0;
+  font-size: 0.68rem;
+  line-height: 1.35;
+}
+
+/* The chooser behind the click; the drag is the headline gesture, but a file
+   input is the keyboard path to the same thing. */
+.cat-drop-input {
+  display: none;
+}
+
+/* --- the GPX import dialog ---------------------------------------------- */
+
+.gpx-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.45);
+  padding: 1rem;
+}
+
+/* Same card as the run menu (surface, strong border, lifted shadow) so the
+   first modal in the app does not look like it came from somewhere else. */
+.gpx-dialog {
+  width: min(28rem, 100%);
+  max-height: 100%;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding: 1rem 1.1rem 0.9rem;
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+
+.gpx-title {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+/* The filename can be long and is not worth wrapping the dialog for. */
+.gpx-file {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.74rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gpx-label {
+  margin-top: 0.3rem;
+  color: var(--muted);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.gpx-name {
+  background: var(--surface-2);
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  color: var(--text);
+  padding: 0.45rem 0.55rem;
+  font-family: ui-monospace, Menlo, monospace;
+  font-size: 0.85rem;
+}
+
+.gpx-name:disabled {
+  color: var(--text-2);
+  opacity: 0.8;
+}
+
+/* Which objects this will create, or why it will not run. Said here rather
+   than only by a greyed-out button. */
+.gpx-note {
+  margin: 0;
+  color: var(--faint);
+  font-size: 0.7rem;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.gpx-steps {
+  list-style: none;
+  margin: 0.4rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+/* One row per object the import creates: marker, the object's name, and what
+   that object is. The same row before and during the import -- only the marker
+   and the right-hand text change -- so pressing Import moves nothing. */
+.gpx-step {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+/* A fixed column for the marker: the glyphs and the spinner are different
+   widths, and without it every name starts somewhere else. */
+.gpx-step-ic {
+  flex: 0 0 1.1rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  align-self: center;
+  color: var(--faint);
+}
+
+/* The object's name, in the console's font because that is what it will be
+   typed as. It is the row's subject, so it leads. */
+.gpx-step-obj {
+  color: var(--text-2);
+  font-family: ui-monospace, Menlo, monospace;
+  font-size: 0.74rem;
+  overflow-wrap: anywhere;
+}
+
+/* What that object is ("moving point"), or what is being done to it while the
+   step runs. Right-aligned so the four kinds read as a column of their own. */
+.gpx-step-what {
+  margin-left: auto;
+  padding-left: 0.5rem;
+  color: var(--faint);
+  font-size: 0.72rem;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.gpx-step.is-running .gpx-step-obj,
+.gpx-step.is-done .gpx-step-obj {
+  color: var(--text);
+}
+
+.gpx-step.is-running .gpx-step-what {
+  color: var(--accent);
+}
+
+.gpx-step.is-done .gpx-step-ic {
+  color: var(--ok);
+}
+
+.gpx-step.is-error .gpx-step-ic,
+.gpx-step.is-error .gpx-step-obj,
+.gpx-step.is-error .gpx-step-what {
+  color: var(--err-text);
+}
+
+.gpx-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 0.6rem;
+}
+
+.gpx-actions button {
+  min-height: 30px;
+  padding: 0.4rem 0.9rem;
+  border-radius: 6px;
+  border: 1px solid var(--border-strong);
+  background: var(--raised);
+  color: var(--text);
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+/* Scoped so it out-ranks `.gpx-actions button` above (0-1-1), which would
+   otherwise paint the primary action the same grey as Cancel. */
+.gpx-actions .gpx-import {
+  background: var(--accent-solid);
+  border-color: var(--accent-solid);
+  color: var(--accent-on);
+  font-weight: 600;
+}
+
+.gpx-actions button:disabled {
+  opacity: 0.5;
+  cursor: default;
 }
 
 .projection-ctl {

@@ -3,11 +3,13 @@ import {
   listOperators,
   loadTable,
   runQuery,
+  uploadGpx,
   type CatalogObject,
   type OperatorInfo,
 } from "./api/client";
 import { Console, type Entry, type RunIntent } from "./console/Console";
 import { Catalog } from "./catalog/Catalog";
+import { GpxImportDialog, type StepOutcome } from "./catalog/GpxImportDialog";
 import { MapView } from "./map/MapView";
 import { MAP_TAB, ResultTabs } from "./table/ResultTabs";
 import { TableView } from "./table/TableView";
@@ -113,6 +115,16 @@ export function App() {
   // so unlike `objects` this never needs refreshing.
   const [operators, setOperators] = useState<OperatorInfo[]>([]);
   const [refreshKey, setRefreshKey] = useState(0);
+  // The GPX import in progress: the dropped file, where the bridge put it (null
+  // until the upload finishes) and why it could not be stored.
+  const [gpxImport, setGpxImport] = useState<{
+    file: File;
+    path: string | null;
+    error?: string;
+  } | null>(null);
+  // Whether a file is being dragged anywhere over the window, so the catalog's
+  // drop zone can announce itself while the drag is still in the air.
+  const [dragArmed, setDragArmed] = useState(false);
   const [projection, setProjection] = useState<Projection>("none");
   const [geo, setGeo] = useState<Geometry>(loadGeometry);
   const [theme, setTheme] = useState<Theme>(loadTheme);
@@ -136,6 +148,49 @@ export function App() {
       /* storage unavailable */
     }
   }, [geo]);
+
+  // Watch for a file being dragged over the window, for two reasons: the drop
+  // zone lights up so a drag already in the air can find it, and a *missed*
+  // drop is swallowed. Without the latter the browser's default takes over and
+  // navigates the tab to the dropped file, losing the session and every layer.
+  // Only file drags count -- the splitter drags are mouse events, but a text
+  // selection dragged within the page would otherwise arm this too.
+  useEffect(() => {
+    const hasFiles = (e: DragEvent) =>
+      Array.from(e.dataTransfer?.types ?? []).includes("Files");
+    let depth = 0;
+    const onEnter = (e: DragEvent) => {
+      if (!hasFiles(e)) return;
+      depth++;
+      setDragArmed(true);
+    };
+    const onOver = (e: DragEvent) => {
+      if (hasFiles(e)) e.preventDefault();
+    };
+    const onLeave = (e: DragEvent) => {
+      if (!hasFiles(e)) return;
+      if (--depth <= 0) {
+        depth = 0;
+        setDragArmed(false);
+      }
+    };
+    const onDrop = (e: DragEvent) => {
+      if (!hasFiles(e)) return;
+      e.preventDefault(); // the catalog's own handler has already had its turn
+      depth = 0;
+      setDragArmed(false);
+    };
+    window.addEventListener("dragenter", onEnter);
+    window.addEventListener("dragover", onOver);
+    window.addEventListener("dragleave", onLeave);
+    window.addEventListener("drop", onDrop);
+    return () => {
+      window.removeEventListener("dragenter", onEnter);
+      window.removeEventListener("dragover", onOver);
+      window.removeEventListener("dragleave", onLeave);
+      window.removeEventListener("drop", onDrop);
+    };
+  }, []);
 
   // Release the SECONDO connection when the tab goes away. Each session holds a
   // server-side process, so waiting for the idle timeout would pile them up.
@@ -239,6 +294,49 @@ export function App() {
     },
     [add, showResult]
   );
+
+  // One command of a GPX import. A sibling of `run` rather than a use of it:
+  // the answer to `let x = <a track> consume` is the whole created object, and
+  // the import wants neither a layer nor a table out of it -- only whether it
+  // worked. The console still gets the command, so the import is readable
+  // afterwards and every step can be run again by hand.
+  const runStep = useCallback(async (command: string): Promise<StepOutcome> => {
+    setBusy(true);
+    const started = performance.now();
+    try {
+      await runQuery(command, "none");
+      setHistory((h) => [
+        ...h,
+        { command, result: "", elapsedMs: performance.now() - started },
+      ]);
+      return { ok: true };
+    } catch (e) {
+      const error = e instanceof Error ? e.message : String(e);
+      setHistory((h) => [
+        ...h,
+        { command, error, elapsedMs: performance.now() - started },
+      ]);
+      return { ok: false, error };
+    } finally {
+      setBusy(false);
+    }
+  }, []);
+
+  // Take a dropped GPX file: put it where the SECONDO server can read it, then
+  // let the dialog drive the import. The dialog opens straight away, before the
+  // upload finishes, so a multi-megabyte track does not look like a dead click.
+  const startGpxImport = useCallback((file: File) => {
+    setGpxImport({ file, path: null });
+    void uploadGpx(file)
+      .then(({ path }) => setGpxImport((s) => (s?.file === file ? { file, path } : s)))
+      .catch((e) =>
+        setGpxImport((s) =>
+          s?.file === file
+            ? { file, path: null, error: e instanceof Error ? e.message : String(e) }
+            : s
+        )
+      );
+  }, []);
 
   // Open a stored relation straight in the table, with its tuple identifiers --
   // the catalog's path into editing, as the Java GUI's relation chooser is.
@@ -385,6 +483,8 @@ export function App() {
               setObjects(objects);
             }}
             onCollapse={() => setGeo((g) => ({ ...g, catalogCollapsed: true }))}
+            onImport={startGpxImport}
+            dragArmed={dragArmed}
           />
         </div>
       </div>
@@ -623,6 +723,26 @@ export function App() {
         )}
         </div>
       </div>
+
+      {/* Keyed by the file so a second drop starts a clean dialog rather than
+          reusing the last one's name and step states. */}
+      {gpxImport && openDb && (
+        <GpxImportDialog
+          key={gpxImport.file.name + gpxImport.file.lastModified}
+          file={gpxImport.file}
+          path={gpxImport.path}
+          uploadError={gpxImport.error}
+          database={openDb}
+          existingNames={objects.map((o) => o.name)}
+          runStep={runStep}
+          onClose={() => {
+            setGpxImport(null);
+            // Whatever the import managed to create is in the database now,
+            // including after a failure part-way through.
+            setRefreshKey((k) => k + 1);
+          }}
+        />
+      )}
     </div>
   );
 }

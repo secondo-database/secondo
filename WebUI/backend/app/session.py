@@ -16,11 +16,13 @@ WebUI/backend/native/secondo_native.cpp.
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import logging
 import re
 import secrets
 import time
 from dataclasses import dataclass, field
+from pathlib import Path
 
 import secondo_native  # provided by ../native (see config.py)
 
@@ -71,6 +73,11 @@ class Session:
     lock: asyncio.Lock = field(default_factory=asyncio.Lock)
     # Monotonic timestamp of the last use, for idle reaping.
     last_used: float = field(default_factory=time.monotonic)
+    # Files this session uploaded (see /api/upload), removed when it closes.
+    # They are only needed until the command that reads them has run, and
+    # nothing else will ever clean them up: without this every page reload
+    # would leave another track behind in the temp directory.
+    uploads: list[Path] = field(default_factory=list)
 
     def touch(self) -> None:
         self.last_used = time.monotonic()
@@ -227,6 +234,12 @@ class SessionManager:
             return
         async with session.lock:
             await asyncio.to_thread(session.conn.close)
+            for path in session.uploads:
+                # Best effort: a file the user already moved or a temp
+                # directory that was swept is not a reason to fail a close.
+                with contextlib.suppress(OSError):
+                    path.unlink()
+            session.uploads.clear()
 
     async def reap(self, max_idle: float) -> int:
         """Close sessions idle longer than `max_idle` seconds.

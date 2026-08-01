@@ -8,12 +8,15 @@ from __future__ import annotations
 
 import re
 import sys
+import tempfile
 import types
+from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
 
 from app import table as table_mod
+from app.config import settings
 
 
 # A relation of points, the shape the GeoJSON conversion recognizes. Used as an
@@ -760,3 +763,87 @@ def test_without_optimizer_the_prefix_is_refused(plain_client):
     )
     assert r.status_code == 400
     assert "not available" in r.json()["detail"]
+
+
+# --- uploading a file for an import operator to read ------------------------
+
+
+GPX = b"""<?xml version="1.0"?>
+<gpx version="1.1"><trk><trkseg>
+<trkpt lat="52.5" lon="13.4"><time>2026-07-26T08:00:00Z</time></trkpt>
+</trkseg></trk></gpx>"""
+
+
+def _upload(client, name: str, body: bytes = GPX):
+    return client.post(
+        "/api/upload",
+        params={"filename": name},
+        content=body,
+        headers={"Content-Type": "application/gpx+xml"},
+    )
+
+
+def test_upload_stores_the_file_and_returns_a_readable_path(client, tmp_path):
+    r = _upload(client, "Wanderung.gpx")
+    assert r.status_code == 200
+    body = r.json()
+    path = Path(body["path"])
+    assert path.is_file()
+    assert path.read_bytes() == GPX
+    assert body["size"] == len(GPX)
+    assert path.suffix == ".gpx"
+    path.unlink()
+
+
+def test_upload_refuses_anything_but_gpx(client):
+    r = _upload(client, "trip.csv")
+    assert r.status_code == 400
+    assert ".gpx" in r.json()["detail"]
+
+
+def test_upload_refuses_an_empty_body(client):
+    r = _upload(client, "empty.gpx", b"")
+    assert r.status_code == 400
+
+
+def test_upload_refuses_a_file_over_the_limit(client, monkeypatch):
+    monkeypatch.setattr(settings, "max_upload_bytes", 10)
+    r = _upload(client, "big.gpx")
+    assert r.status_code == 413
+    assert "limit" in r.json()["detail"]
+
+
+def test_an_upload_name_can_neither_escape_the_directory_nor_a_text_literal(client):
+    """The stored path is pasted into a SECONDO text literal ('...') by the
+    caller, so a quote in the name would end the literal, and a directory in it
+    would put the file wherever the uploader liked."""
+    r = _upload(client, "../../etc/pass'wd.gpx")
+    assert r.status_code == 200
+    path = Path(r.json()["path"])
+    assert path.parent == Path(tempfile.gettempdir())
+    assert "'" not in str(path) and ".." not in path.name
+    path.unlink()
+
+
+def test_two_uploads_of_the_same_name_do_not_collide(client):
+    a, b = _upload(client, "trip.gpx"), _upload(client, "trip.gpx")
+    pa, pb = Path(a.json()["path"]), Path(b.json()["path"])
+    assert pa != pb and pa.is_file() and pb.is_file()
+    pa.unlink()
+    pb.unlink()
+
+
+def test_closing_a_session_removes_what_it_uploaded(client):
+    path = Path(_upload(client, "trip.gpx").json()["path"])
+    assert path.is_file()
+    assert client.post("/api/close").status_code == 200
+    assert not path.exists()
+
+
+def test_a_command_run_for_its_effect_ships_no_payload(client):
+    """`view: "none"` is the GPX import's: it runs `let x = ... consume`, whose
+    answer is the whole created object and is never rendered."""
+    r = client.post("/api/query", json={"command": "query ten", "view": "none"})
+    assert r.status_code == 200
+    assert r.json()["text"] == ""
+    assert r.json()["table"] is None and r.json()["geojson"] is None

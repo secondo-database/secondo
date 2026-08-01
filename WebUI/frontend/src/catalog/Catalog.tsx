@@ -31,6 +31,13 @@ interface Props {
   }) => void;
   // Collapse the whole catalog to a rail, giving the space to the map.
   onCollapse?: () => void;
+  // A GPX file was dropped (or picked) here: upload it and open the import
+  // dialog. Only ever called with a database open.
+  onImport: (file: File) => void;
+  // A file is being dragged somewhere over the window. The drop zone is down
+  // among the objects, so it says so while there is something to drop --
+  // otherwise the target for a drag already in progress is easy to miss.
+  dragArmed?: boolean;
 }
 
 const KIND_ICON: Record<CatalogObject["kind"], string> = {
@@ -45,6 +52,8 @@ export function Catalog({
   refreshKey,
   onState,
   onCollapse,
+  onImport,
+  dragArmed,
 }: Props) {
   const [databases, setDatabases] = useState<string[]>([]);
   const [open, setOpen] = useState<string | null>(null);
@@ -52,6 +61,14 @@ export function Catalog({
   const [filter, setFilter] = useState("");
   const [loadingObjects, setLoadingObjects] = useState(false);
   const [pendingDb, setPendingDb] = useState<string | null>(null);
+  // The file is over the drop zone itself, as opposed to somewhere else.
+  const [over, setOver] = useState(false);
+  // Why the last file was refused, shown in the zone rather than as an alert.
+  const [dropError, setDropError] = useState<string | null>(null);
+  // dragenter/dragleave fire for every child element the pointer crosses, so
+  // the highlight is kept on a depth count rather than on the last event.
+  const dragDepth = useRef(0);
+  const fileInput = useRef<HTMLInputElement>(null);
   // Monotonic id so a slower, stale refresh can't overwrite a newer one.
   const seqRef = useRef(0);
   // Held in a ref so `refresh` stays stable regardless of the callback identity.
@@ -112,6 +129,18 @@ export function Catalog({
     } finally {
       setPendingDb(null);
     }
+  }
+
+  // One way in for both gestures: the drop and the file chooser behind the
+  // click, which is the keyboard path and what the e2e test drives.
+  function accept(file: File | undefined | null) {
+    if (!file) return;
+    if (!file.name.toLowerCase().endsWith(".gpx")) {
+      setDropError(`${file.name} is not a .gpx file.`);
+      return;
+    }
+    setDropError(null);
+    onImport(file);
   }
 
   const shown = objects.filter((o) =>
@@ -215,6 +244,71 @@ export function Catalog({
           </ul>
         </>
       )}
+
+      {/* Importing a GPX file is a drag away, and the zone says so even when
+          nothing is being dragged -- a drop target nothing announces is a
+          feature nobody finds. Without a database open there is nowhere to
+          import *to*, so it says that instead of silently refusing. */}
+      <div
+        className={
+          "cat-drop" +
+          (open ? "" : " disabled") +
+          (over ? " over" : "") +
+          (dragArmed && open ? " armed" : "")
+        }
+        onDragEnter={(e) => {
+          if (!open) return;
+          e.preventDefault();
+          dragDepth.current++;
+          setOver(true);
+        }}
+        onDragOver={(e) => {
+          if (!open) return;
+          e.preventDefault();
+          e.dataTransfer.dropEffect = "copy";
+        }}
+        onDragLeave={() => {
+          if (--dragDepth.current <= 0) {
+            dragDepth.current = 0;
+            setOver(false);
+          }
+        }}
+        onDrop={(e) => {
+          e.preventDefault();
+          dragDepth.current = 0;
+          setOver(false);
+          if (!open) return;
+          accept(e.dataTransfer.files?.[0]);
+        }}
+      >
+        {open ? (
+          <>
+            <button
+              className="cat-drop-btn"
+              onClick={() => fileInput.current?.click()}
+              title={`Import a GPX track into ${open}`}
+            >
+              <span className="cat-drop-ic">⬆</span>
+              <span className="cat-drop-text">Drop a GPX file here</span>
+              <span className="cat-drop-sub">or click to choose one</span>
+            </button>
+            <input
+              ref={fileInput}
+              className="cat-drop-input"
+              type="file"
+              accept=".gpx"
+              onChange={(e) => {
+                accept(e.target.files?.[0]);
+                // Let the same file be picked twice in a row.
+                e.target.value = "";
+              }}
+            />
+            {dropError && <p className="cat-drop-err err-text">{dropError}</p>}
+          </>
+        ) : (
+          <p className="cat-drop-sub">Open a database to import a GPX file.</p>
+        )}
+      </div>
     </div>
   );
 }

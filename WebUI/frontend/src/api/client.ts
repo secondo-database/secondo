@@ -155,12 +155,44 @@ async function get<T>(path: string): Promise<T> {
 
 /** Run a command. `view: "table"` asks the server for the rows only -- it skips
  *  the spatial and temporal conversion instead of converting payloads the
- *  caller is going to discard. Omitted means "auto": convert whatever fits. */
+ *  caller is going to discard. `view: "none"` asks for nothing at all: the GPX
+ *  import runs `let x = ... consume`, whose answer is the whole created object.
+ *  Omitted means "auto": convert whatever fits. */
 export function runQuery(
   command: string,
-  view?: "table"
+  view?: "table" | "none"
 ): Promise<QueryResponse> {
   return post<QueryResponse>("/api/query", view ? { command, view } : { command });
+}
+
+/** Put a file where a SECONDO import operator can read it, and return the path
+ *  to name in the command.
+ *
+ *  The file is the request body rather than a multipart part -- one file needs
+ *  none of what multipart buys. It goes through the same queue as every other
+ *  call so it cannot race the session cookie, and the server deletes it when
+ *  the session closes.
+ *
+ *  The path is the *bridge's*, and `gpximport` opens it on the SECONDO server:
+ *  the two have to share a filesystem, which they do in the default deployment.
+ */
+export async function uploadGpx(file: File): Promise<{
+  path: string;
+  filename: string;
+  size: number;
+}> {
+  return enqueue(async () => {
+    const res = await fetch(
+      `/api/upload?filename=${encodeURIComponent(file.name)}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/gpx+xml" },
+        credentials: "same-origin",
+        body: file,
+      }
+    );
+    return parseResponse(res);
+  });
 }
 
 export async function listDatabases(): Promise<{

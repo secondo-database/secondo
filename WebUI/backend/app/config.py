@@ -59,6 +59,14 @@ class Settings:
         str(Path(__file__).resolve().parent.parent.parent / "frontend" / "dist"),
     )
 
+    # Largest file /api/upload accepts. The body is read into memory before it
+    # is written, and an unbounded upload on an unauthenticated bridge is a way
+    # to fill the disk -- a GPX track of a long hike is a few MB, so this is
+    # generous rather than tight.
+    max_upload_bytes: int = int(
+        os.environ.get("WEBUI_MAX_UPLOAD_BYTES", str(64 * 1024 * 1024))
+    )
+
     # Each session holds a SECONDO connection (the server forks a process per
     # connection), so idle sessions are closed to avoid leaking them.
     session_idle_timeout: float = float(
