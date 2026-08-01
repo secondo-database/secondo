@@ -99,7 +99,7 @@ const std::string DFUN_SYMTRAJ_DIST1_DESCR("distance function for symbolic "
 const std::string DFUN_TUPLE_DIST1("tuple");
 const std::string DFUN_TUPLE_DIST1_DESCR("distance function for tuples");
 
-#ifndef NO_IMAGESIMILARITY
+#ifdef HAS_IMAGESIMILARITY
 const std::string DFUN_EMD("emd");
 const std::string DFUN_EMD_DESCR("Earth Mover's distance function");
 
@@ -410,7 +410,7 @@ Distance function between tuples
     static void tupleDistance(
             const DistData *data1, const DistData *data2, double &result);
 
-#ifndef NO_MP3
+#ifdef HAS_MP3
 //-------------------cru-----------------------------------
 /*
 Euclidean distance function for the ~fvector~ type constructor.
@@ -427,7 +427,7 @@ First distance function (SQFD) for the ~FeatureSignature~ data type
 
 */
 
-#ifndef NO_IMAGESIMILARITY
+#ifdef HAS_IMAGESIMILARITY
 static void sqfdFeatureSignature(
             const DistData* data1, const DistData* data2,
             double &result);

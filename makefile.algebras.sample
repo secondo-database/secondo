@@ -261,12 +261,10 @@ ALGEBRAS     += ArrayAlgebra
 
 #ALGEBRA_DIRS += MP3b
 #ALGEBRAS     += MP3Algebra
-CCFLAGS += -DNO_MP3
 
 # Defect selftest
 #ALGEBRA_DIRS += ImageSimilarity
 #ALGEBRAS  += ImageSimilarityAlgebra
-CCFLAGS += -DNO_IMAGESIMILARITY
 
 
 ALGEBRA_DIRS += Picture

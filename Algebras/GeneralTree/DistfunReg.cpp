@@ -43,7 +43,7 @@ January-May 2008, Mirko Dibbert
 
 #include "Algebras/FVector/FVector.h"
 
-#ifndef NO_IMAGESIMILARITY
+#ifdef HAS_IMAGESIMILARITY
 #include "../ImageSimilarity/JPEGImage.h"
 #include "../ImageSimilarity/ImageSimilarityAlgebra.h"
 #include <vector>
@@ -489,7 +489,7 @@ void DistfunReg::tupleDistance(const DistData *data1, const DistData *data2,
   result = 1.0;
 }
 
-#ifndef NO_MP3
+#ifdef HAS_MP3
 //------------cru--------------------------
 /*
 Method ~DistfunReg::euclidFVector~:
@@ -525,7 +525,7 @@ void DistfunReg::euclidFVector(const DistData *data1, const DistData *data2,
 Method ~DistfunReg::sqfdImageSignature~:
 
 */
-#ifndef NO_IMAGESIMILARITY
+#ifdef HAS_IMAGESIMILARITY
 void DistfunReg::sqfdFeatureSignature(const DistData *data1,
                                       const DistData *data2, double &result) {
   // std::cout << "entered distance fun" << std::endl;
@@ -922,7 +922,7 @@ void DistfunReg::initialize() {
                       DistDataReg::getInfo(Tuple::BasicType(), DDATA_NATIVE),
                       DFUN_IS_METRIC | DFUN_IS_DEFINED));
 
-#ifndef NO_MP3
+#ifdef HAS_MP3
   //----------------------cru--------------------------
   addInfo(DistfunInfo(DFUN_EUCLID, DFUN_EUCLID_DESCR, euclidFVector,
                       DistDataReg::getInfo(FVector::BasicType(), DDATA_NATIVE),
@@ -930,7 +930,7 @@ void DistfunReg::initialize() {
 //---------------------------------------------------
 #endif
 
-#ifndef NO_IMAGESIMILARITY
+#ifdef HAS_IMAGESIMILARITY
   addInfo(DistfunInfo(
       DFUN_SQFD, DFUN_SQFD_DESCR, sqfdFeatureSignature,
       DistDataReg::getInfo(FeatureSignaturealg::FeatureSignature::BasicType(),

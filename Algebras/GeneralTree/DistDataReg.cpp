@@ -42,7 +42,7 @@ January-May 2008, Mirko Dibbert
 
 #include "Algebras/FVector/FVector.h"
 
-#ifndef NO_IMAGESIMILARITY
+#ifdef HAS_IMAGESIMILARITY
 #include "Algebras/ImageSimilarity/JPEGImage.h"
 #include "Algebras/ImageSimilarity/ImageSimilarityAlgebra.h"
 #include "Tools/Flob/DbArray.h"
@@ -248,7 +248,7 @@ string DistDataReg::definedNames(const string& typeName)
 }
 
 
-#ifndef NO_IMAGESIMILARITY
+#ifdef HAS_IMAGESIMILARITY
 /*
 Method ~DistDataReg::getFeatureSignature~:
 Dbarray<FeatureSignatureTuple> will be used 
@@ -458,7 +458,7 @@ DistData* DistDataReg::getDataTuple(const void* attr) {
 }
 
 
-#ifndef NO_MP3
+#ifdef HAS_MP3
 //----------------cru----------------
 /*
 Method ~DistDataReg::getDataFvector~:
@@ -518,7 +518,7 @@ void DistDataReg::initialize()
     // the default DistDataInfo objects are automatically assigned,
     // depending on the default distance functions in the
     // DistfunReg class
-#ifndef NO_MP3
+#ifdef HAS_MP3
 //--------------------cru-------------------
     addInfo(DistDataInfo(
         DDATA_NATIVE, DDATA_NATIVE_DESCR, DDATA_NATIVE_ID,
@@ -526,7 +526,7 @@ void DistDataReg::initialize()
 //------------------------------------------
 #endif
 
-#ifndef NO_IMAGESIMILARITY
+#ifdef HAS_IMAGESIMILARITY
     addInfo(DistDataInfo(
        DDATA_NATIVE, DDATA_NATIVE_DESCR, DDATA_NATIVE_ID,
 		FeatureSignaturealg::FeatureSignature::BasicType(), 

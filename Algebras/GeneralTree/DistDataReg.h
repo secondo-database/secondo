@@ -70,7 +70,7 @@ New distdata-types must be registered in the "DistDataReg::initialize"[4] method
 #include "ListUtils.h"
 
 
-#ifndef NO_IMAGESIMILARITY
+#ifdef HAS_IMAGESIMILARITY
 #include "../ImageSimilarity/JPEGImage.h"
 #include "../ImageSimilarity/ImageSimilarityAlgebra.h"
 #include "../../Tools/Flob/DbArray.h"
@@ -736,7 +736,7 @@ Getdata function for the ~tuple~ type
 */
     static DistData *getDataTuple(const void *attr);
 
-#ifndef NO_MP3
+#ifdef HAS_MP3
 //--------------------cru----------------------
  /*
  Getdata function for the ~fvector~ type constructor
@@ -747,7 +747,7 @@ Getdata function for the ~tuple~ type
 #endif
 
 
-#ifndef NO_IMAGESIMILARITY
+#ifdef HAS_IMAGESIMILARITY
 
 /*
 GetData function for the ~featuresignature~ type

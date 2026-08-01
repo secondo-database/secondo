@@ -39,7 +39,7 @@ January-May 2008, Mirko Dibbert
 #include "SpatialAlgebra.h"
 #include "Algorithms.h"
 #include "PictureFuns.h"
-#ifndef NO_MP3
+#ifdef HAS_MP3
 //---------------cru----------------
 #include "FVector.h"
 //----------------------------------
@@ -510,7 +510,7 @@ void DistfunReg::symTrajDistance1(const DistData *data1, const DistData *data2,
   result = traj1.Distance(traj2);
 }
 
-#ifndef NO_MP3
+#ifdef HAS_MP3
 //------------cru--------------------------
 /*
 Method ~DistfunReg::euclidFVector~:
@@ -911,7 +911,7 @@ void DistfunReg::initialize()
 //         DistDataReg::getInfo(stj::MPlaces::BasicType(), DDATA_NATIVE),
 //         DFUN_IS_METRIC | DFUN_IS_DEFAULT));
 
-#ifndef NO_MP3
+#ifdef HAS_MP3
 //----------------------cru--------------------------
     addInfo(DistfunInfo(
         DFUN_EUCLID, DFUN_EUCLID_DESCR,
