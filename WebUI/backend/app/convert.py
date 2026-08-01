@@ -10,7 +10,19 @@ from . import geojson, table, temporal
 from .nlparser import parse
 
 
-def convert(nested_text: str) -> tuple[dict | None, dict | None, dict | None]:
-    """Return ``(geojson, temporal, table)`` for a result nested list (text)."""
+def convert(
+    nested_text: str, *, page: int | None = None
+) -> tuple[dict | None, dict | None, dict | None]:
+    """Return ``(geojson, temporal, table)`` for a result nested list (text).
+
+    ``page`` cuts the table payload down to the first ``page`` rows of a stored
+    relation. It is passed in rather than applied to a finished payload because
+    building the rows is the expensive half -- a row of ``Trains`` is an mpoint
+    written back out as text -- so the rows past the page are never built.
+    """
     tree = parse(nested_text)
-    return geojson.from_tree(tree), temporal.from_tree(tree), table.from_tree(tree)
+    tabular = (
+        table.first_page(tree, limit=page) if page is not None
+        else table.from_tree(tree)
+    )
+    return geojson.from_tree(tree), temporal.from_tree(tree), tabular

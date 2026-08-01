@@ -30,6 +30,9 @@ TUPLE_TYPES = frozenset({"tuple", "mtuple"})
 # The attribute `addid` appends. Never editable, and skipped when inserting.
 TID_TYPE = "tid"
 
+# The head of a result nested list -- `((rel (tuple ...`. See `looks_like_relation`.
+_RELATION_HEAD = re.compile(r"\s*\(\s*\(\s*(\w+)")
+
 # A relation of Trains is 562 tuples of multi-megabyte mpoint text. Neither the
 # wire nor the browser wants that, so both dimensions are capped and the payload
 # says so rather than silently showing a prefix.
@@ -193,8 +196,44 @@ def from_tree(
     }
 
 
-def to_table(nested_text: str) -> dict | None:
-    return from_tree(parse(nested_text))
+def looks_like_relation(nested_text: str) -> bool:
+    """Whether a result *starts* like a flat relation: ``((rel (tuple ...``.
+
+    Cheap enough to run on a multi-megabyte answer, because it only decides
+    whether asking the catalog about the name is worth a round trip. The real
+    check is `columns_of` on the parsed tree, so guessing wrong costs at most one
+    `list objects` -- or, the other way, a relation served whole instead of as a
+    first page, which is what a result with no relation behind it gets anyway.
+    """
+    m = _RELATION_HEAD.match(nested_text or "")
+    return m is not None and m.group(1) in RELATION_TYPES
+
+
+def first_page(tree: Node, *, limit: int = DEFAULT_PAGE_ROWS) -> dict | None:
+    """The first page of a relation whose rows are all already here.
+
+    The same payload shape a page from ``/api/table/load`` has, so the grid and
+    the pager cannot tell the two apart -- but the total is exact and free:
+    there is nothing to count when every row is in hand, where the load path
+    pays a full scan for it.
+    """
+    if not (isinstance(tree, list) and len(tree) >= 2):
+        return None
+    tuples = tree[1]
+    if not isinstance(tuples, list):
+        return None
+    # Sliced here rather than inside `from_tree`: on the load path the tree
+    # already *is* the page, so `from_tree` reads every tuple it is given.
+    return from_tree(
+        [tree[0], tuples[:limit]], offset=0, limit=limit, total=len(tuples)
+    )
+
+
+def to_table(nested_text: str, *, page: int | None = None) -> dict | None:
+    """Rows for a result nested list; ``page`` cuts it down to a first page (see
+    ``first_page``) rather than reading the whole relation as one table."""
+    tree = parse(nested_text)
+    return first_page(tree, limit=page) if page is not None else from_tree(tree)
 
 
 def base_relation(command: str, plan: str | None = None) -> str | None:

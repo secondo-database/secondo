@@ -216,6 +216,32 @@ async def query(
     m = re.match(r"\s*open\s+database\s+(\w+)", req.command, re.IGNORECASE)
     if m:
         session.open_db = m.group(1)
+    # `query plz` is a whole stored relation, so it is served as its *first page*
+    # rather than as a capped copy of the answer: the rows the cap would have
+    # dropped are only ever a Next away, and the table behaves the same before
+    # and after pressing Edit. Only a genuinely derived result -- a join, a
+    # projection, anything the backend did not write the query for -- is still
+    # capped, because there is no relation to ask for page two of.
+    #
+    # The page is cut out of the answer that is already in hand. Reading it back
+    # from the server would be a *second* full transfer of the relation this very
+    # request just received -- for `query Trains` that was about a third of the
+    # response time -- plus a `count` scan for a total that len() gives away for
+    # nothing.
+    relation = (
+        table_mod.base_relation(req.command, result.plan)
+        # Answers that are not rows at all -- `query mehringdamm` is a point --
+        # are settled here rather than by a catalog round trip they would fail.
+        if req.view != "none" and table_mod.looks_like_relation(result.text)
+        else None
+    )
+    # Whether that guessed name really is a relation of the open database, which
+    # is what decides if the client can go on to ask for page two of it.
+    page = (
+        table_mod.DEFAULT_PAGE_ROWS
+        if relation and await _is_stored_relation(session, relation)
+        else None
+    )
     # Best-effort conversion; never let it break a successful query. For SQL the
     # result half is byte-identical to what the plan would produce on its own,
     # so this is the unchanged Milestone 2/3 pipeline.
@@ -225,20 +251,15 @@ async def query(
             pass  # run for the effect; the answer is not going to be rendered
         elif req.view == "table":
             # Asked for rows and nothing else, so only the rows are derived.
-            tabular = table_mod.to_table(result.text)
+            tabular = table_mod.to_table(result.text, page=page)
         else:
-            geojson, temporal, tabular = convert(result.text)
+            geojson, temporal, tabular = convert(result.text, page=page)
     except Exception:  # noqa: BLE001 - conversion must not fail the request
         logger.exception("Result conversion failed for command: %s", req.command)
-    relation = table_mod.base_relation(req.command, result.plan) if tabular else None
-    # `query plz` is a whole stored relation, so it is served as its *first page*
-    # rather than as a capped copy of the answer: the rows the cap would have
-    # dropped are only ever a Next away, and the table behaves the same before
-    # and after pressing Edit. Only a genuinely derived result -- a join, a
-    # projection, anything the backend did not write the query for -- is still
-    # capped, because there is no relation to ask for page two of.
-    if relation:
-        tabular = await _page_of(session, relation) or tabular
+    if tabular is None:
+        relation = None  # the command named something that is not rows at all
+    elif page is not None:
+        tabular["relation"] = relation
     return QueryResponse(
         # `let x = <a long track> consume` answers with the whole created
         # object. A caller that asked for no payloads is not going to show it
@@ -511,23 +532,22 @@ async def _load_page(session: Session, req: TableLoadRequest) -> tuple[dict, str
     return payload, command
 
 
-async def _page_of(session: Session, relation: str) -> dict | None:
-    """The first page of a stored relation, read-only, or None if the name does
-    not turn out to be one in the open database.
+async def _is_stored_relation(session: Session, relation: str) -> bool:
+    """Whether `relation` names a relation of the open database.
 
     `base_relation` only *guesses* a name out of the command text, so this is
-    allowed to come back empty; the caller then keeps the payload it already had.
+    allowed to come back False; the caller then serves the answer whole instead
+    of as a page there is no page two of. It is the only thing the query path
+    still asks the server about a relation it has already received.
     """
     try:
-        payload, _ = await _load_page(
-            session, TableLoadRequest(relation=relation, tids=False)
-        )
+        await _relation_schema(session, relation)
     except HTTPException:
-        return None
+        return False
     except Exception:  # noqa: BLE001 - a bonus payload must not fail the request
-        logger.exception("Could not page %s", relation)
-        return None
-    return payload
+        logger.exception("Could not check whether %s is a relation", relation)
+        return False
+    return True
 
 
 @app.post("/api/table/load")

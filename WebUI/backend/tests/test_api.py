@@ -35,10 +35,11 @@ OBJECTS = (
     "(OBJECT rowno () ((rel (tuple ((RowNo int)))))) "
     ")))"
 )
-TEN = "((rel (tuple ((No int)))) ((1) (2)))"
-TEN_WITH_TIDS = "((rel (tuple ((No int) (TID tid)))) ((1 11) (2 12)))"
 # `ten` really does hold ten tuples here, so a page can be smaller than it.
 TEN_TUPLES = [(n, 10 + n) for n in range(1, 11)]
+# What `query ten` itself answers: the whole relation, which is where the table's
+# first page is now cut from rather than from a second read of the same rows.
+TEN = "((rel (tuple ((No int)))) (%s))" % " ".join(f"({n})" for n, _ in TEN_TUPLES)
 
 # Two algebras' worth of `list operators`, including an operator registered
 # twice (overloaded) and one spelled as a symbol the editor cannot type.
@@ -500,6 +501,7 @@ def test_querying_a_whole_relation_pages_it_instead_of_capping_it(client):
     first page -- not a capped copy of the answer. The rows a cap would have
     dropped are a Next away, and pressing Edit changes nothing about the view."""
     client.post("/api/query", json={"command": "open database berlintest"})
+    client.fake.commands.clear()
     body = client.post("/api/query", json={"command": "query ten"}).json()
     table = body["table"]
     assert body["relation"] == "ten"
@@ -509,6 +511,11 @@ def test_querying_a_whole_relation_pages_it_instead_of_capping_it(client):
     # Read-only until Edit asks for the TIDs, so the column is not in the way.
     assert table["tidIndex"] is None
     assert [c["name"] for c in table["columns"]] == ["No"]
+    # And the page is cut out of the answer already in hand: the relation is
+    # never read a second time, and its total is len() rather than a count scan.
+    # Re-reading it was about a third of the response time for `query Trains`.
+    assert client.fake.commands == ["query ten", "list objects"]
+    assert table["totalKnown"] is True
 
 
 def test_a_derived_result_is_still_capped(client, monkeypatch):
@@ -526,8 +533,13 @@ def test_a_derived_result_is_still_capped(client, monkeypatch):
 def test_a_command_that_only_looks_like_a_relation_keeps_its_own_answer(client):
     """`base_relation` guesses a name out of the command text. When the guess is
     not a relation here, the query's own result is what is shown."""
+    client.fake.commands.clear()
     body = client.post("/api/query", json={"command": "query mehringdamm"}).json()
     assert body["table"] is None
+    # An answer that is not rows settles that without asking the catalog: the
+    # round trip could only ever come back "not a relation", and on berlintest
+    # `list objects` is ~90 ms -- most of what such a query costs at all.
+    assert client.fake.commands == ["query mehringdamm"]
 
 
 def test_table_load_asks_for_tids(client):
