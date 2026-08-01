@@ -827,32 +827,17 @@ Flushes all output data from the buffer to the associated socket.
 
 */
   virtual int pbackfail( int ch = EOF );
-
-
-  std::streamsize showmanyc() { 
-      std::cerr << "showmanyc called!" << std::endl; return 0;
-  }
-
-  std::streampos seekpos ( std::streampos __attribute__((unused)) sp,
-    std::ios_base::openmode __attribute__((unused))  which 
-        = std::ios_base::in | std::ios_base::out )
-  {
-    std::cerr << "streampos called!" << std::endl;
-    return EOF;
-  }
-
-  std::streambuf * setbuf ( char __attribute__((unused)) * s, 
-                            std::streamsize __attribute__((unused))  n )
-  {
-      std::cerr << "setbuf called!" << std::endl; return this;
-  };
-  void imbue ( const std::locale __attribute__((unused)) & loc ) { 
-        std::cerr << "imbue called!" << std::endl;
-  }
-
-
 /*
 Disallows to unget a character.
+
+*/
+  virtual pos_type
+  seekpos( pos_type __attribute__((unused)) sp,
+           std::ios_base::openmode __attribute__((unused)) which
+               = std::ios_base::in | std::ios_base::out )
+    { return EOF; }
+/*
+Disallows seeking in the stream buffer, see ~seekoff~ above.
 
 */
  private:
