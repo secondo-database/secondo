@@ -131,6 +131,23 @@ jobs:
           printf 'create database berlintest;\nrestore database berlintest from berlintest;\nclose database;\nquit;\n' \
             | ./SecondoTTYBDB
 
+      # -----------------------------------------------------------------------
+      # Closes the loop the restore above opens: write the database back out and
+      # require it to come back byte for byte.
+      # -----------------------------------------------------------------------
+      - name: Save the berlintest database and compare it with the original
+        working-directory: bin
+        run: |
+          saved="${RUNNER_TEMP}/berlintest.saved"
+          cat > "${RUNNER_TEMP}/save.sec" <<EOF
+          open database berlintest;
+          save database to '${saved}';
+          close database;
+          quit;
+          EOF
+          ./SecondoTTYBDB -i "${RUNNER_TEMP}/save.sec"
+          cmp berlintest "$saved"
+
       - name: Start the SECONDO monitor
         working-directory: bin
         run: |
