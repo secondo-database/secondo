@@ -17,6 +17,7 @@ from fastapi.testclient import TestClient
 
 from app import table as table_mod
 from app.config import settings
+from app.nlparser import parse
 
 
 # A relation of points, the shape the GeoJSON conversion recognizes. Used as an
@@ -106,7 +107,15 @@ def _fake_native(optimizer: bool = True):
             fake.directives.append(directive)
             return "ok"
 
-        def secondo(self, command: str) -> str:
+        def secondo(self, command: str, want_tree: bool = True) -> dict:
+            # The real bridge answers with the list both as text and as objects,
+            # building the tree from the ListExpr it holds. Parsing the fake's
+            # text here is the stand-in for that -- it is what the C++ walk
+            # produces, and it keeps every canned answer below plain text.
+            text = self._secondo_text(command)
+            return {"text": text, "tree": parse(text)}
+
+        def _secondo_text(self, command: str) -> str:
             fake.commands.append(command)
             if command.strip() == "list databases":
                 return "(inquiry (databases (BERLINTEST OPT)))"
@@ -150,13 +159,15 @@ def _fake_native(optimizer: bool = True):
             raise RuntimeError("SECONDO error 3 (pos 0): not evaluable")
 
         # The answers the server gives once it classifies the command itself.
-        def secondo_auto(self, command: str, optimizer_addressed: bool = False):
+        def secondo_auto(self, command: str, optimizer_addressed: bool = False,
+                         want_tree: bool = True):
             assert optimizer, "secondo_auto must not be used without an optimizer"
             cmd = command.strip()
             if cmd == "select * from kinos":
                 return {
                     "level": 2,
                     "text": KINOS,
+                    "tree": parse(KINOS),
                     "plan": "kinos feed consume",
                     "costs": 12.5,
                     "message": None,
@@ -166,6 +177,7 @@ def _fake_native(optimizer: bool = True):
                 return {
                     "level": 2,
                     "text": "()",
+                    "tree": [],
                     "plan": "done",
                     "costs": 0.0,
                     "message": None,
@@ -174,6 +186,7 @@ def _fake_native(optimizer: bool = True):
                 return {
                     "level": 3,
                     "text": "()",
+                    "tree": [],
                     "plan": None,
                     "costs": None,
                     "message": "  subqueries: on\n  rewriteInference: off",
@@ -185,7 +198,8 @@ def _fake_native(optimizer: bool = True):
                 )
             return {
                 "level": 1,
-                "text": self.secondo(cmd),
+                # text and tree both, as the bridge sends them.
+                **self.secondo(cmd),
                 "plan": None,
                 "costs": None,
                 "message": None,
@@ -346,7 +360,7 @@ def test_unexpected_error_still_returns_json(client, monkeypatch):
         def optimizer_available(self):
             return False
 
-        def secondo(self, command):
+        def secondo(self, command, want_tree: bool = True):
             raise ValueError("kaboom")
 
         def close(self):

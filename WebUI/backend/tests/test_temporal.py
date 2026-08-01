@@ -73,12 +73,14 @@ def test_relation_of_mpoint():
 
 
 def test_convert_returns_every_channel_independently():
-    geo, temp, tab = convert("(point (1.0 2.0))")
+    # `convert` takes the tree the bridge hands over, so these parse the text
+    # themselves -- in the running system nothing does.
+    geo, temp, tab = convert(parse("(point (1.0 2.0))"))
     assert geo is not None and temp is None and tab is None
-    geo, temp, tab = convert(MPOINT)
+    geo, temp, tab = convert(parse(MPOINT))
     assert geo is None and temp is not None and tab is None
     # A relation of scalars has no geometry and no motion -- only rows.
-    geo, temp, tab = convert("((rel (tuple ((No int)))) ((1)))")
+    geo, temp, tab = convert(parse("((rel (tuple ((No int)))) ((1)))"))
     assert geo is None and temp is None and tab is not None
 
 

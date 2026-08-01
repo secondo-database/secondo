@@ -7,6 +7,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from app.catalog import parse_objects, parse_operators
+from app.nlparser import parse
 from app.geojson import to_geojson
 
 # A slice of a real `list operators` from this build -- the entries picked to
@@ -26,13 +27,13 @@ OBJECTS = (
 
 
 def test_parse_objects_names_sorted():
-    objs = parse_objects(OBJECTS)
+    objs = parse_objects(parse(OBJECTS))
     names = [o["name"] for o in objs]
     assert names == ["EdgesExtDo", "Orte", "Part", "thecenter"]
 
 
 def test_parse_objects_kinds():
-    by_name = {o["name"]: o for o in parse_objects(OBJECTS)}
+    by_name = {o["name"]: o for o in parse_objects(parse(OBJECTS))}
     assert by_name["Part"]["kind"] == "temporal"  # has mpoint
     assert by_name["EdgesExtDo"]["kind"] == "spatial"  # has sline
     assert by_name["thecenter"]["kind"] == "spatial"  # region
@@ -64,7 +65,7 @@ def test_operators_are_named_and_deduplicated():
     """One entry per operator, whatever it is registered as. `abs` and `feed`
     are in the catalog twice each (different algebras); a completion menu wants
     them once."""
-    ops = parse_operators(LIST_OPERATORS)
+    ops = parse_operators(parse(LIST_OPERATORS))
     names = [o["name"] for o in ops]
     assert names.count("abs") == 1
     assert names.count("feed") == 1
@@ -74,7 +75,7 @@ def test_operators_are_named_and_deduplicated():
 def test_operators_carry_their_syntax():
     """The line the menu shows next to the name, whitespace-collapsed: a
     Signature runs over several lines in more than one algebra."""
-    syntax = {o["name"]: o["syntax"] for o in parse_operators(LIST_OPERATORS)}
+    syntax = {o["name"]: o["syntax"] for o in parse_operators(parse(LIST_OPERATORS))}
     assert syntax["createsuffixtree"] == "createsuffixtree (_)"
     assert syntax["feed"] == "_ feed"
     assert syntax["addcounter"] == "stream addcounter[AttrName, Initial]"
@@ -83,18 +84,18 @@ def test_operators_carry_their_syntax():
 def test_untypeable_operator_names_are_left_out():
     """`#` and `+` are real operators, but the editor's token regex cannot
     produce a word for them, so offering them would only pad the response."""
-    names = {o["name"] for o in parse_operators(LIST_OPERATORS)}
+    names = {o["name"] for o in parse_operators(parse(LIST_OPERATORS))}
     assert "#" not in names and "+" not in names
 
 
 def test_a_missing_field_loses_the_field_not_the_entry():
     """The label set is up to the algebra, so labels and values are zipped
     rather than indexed."""
-    ops = parse_operators(
+    ops = parse_operators(parse(
         "(inquiry (operators ((odd (\"Meaning\") ('does something')))))"
-    )
+    ))
     assert ops == [{"name": "odd", "syntax": ""}]
 
 
 def test_a_non_inquiry_answer_yields_nothing():
-    assert parse_operators("(int 3)") == []
+    assert parse_operators(parse("(int 3)")) == []

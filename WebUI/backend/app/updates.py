@@ -33,6 +33,7 @@ import re
 from dataclasses import dataclass, field
 
 from .catalog import parse_objects
+from .nlparser import Node
 from .nlwriter import InvalidValue, literal
 from .table import TID_TYPE
 
@@ -58,7 +59,7 @@ class Indexes:
         return bool(self.entries)
 
 
-def find_indexes(objects_text: str, relation: str, attributes: list[str]) -> Indexes:
+def find_indexes(objects: Node, relation: str, attributes: list[str]) -> Indexes:
     """Indexes named ``<relation>_<attr>`` over one of ``attributes``.
 
     Mirrors ``CommandGenerator.retrieveIndices``: the relation part must match
@@ -66,7 +67,7 @@ def find_indexes(objects_text: str, relation: str, attributes: list[str]) -> Ind
     how the Java GUI copes with SECONDO lowercasing an object's initial.
     """
     found = Indexes()
-    for obj in parse_objects(objects_text):
+    for obj in parse_objects(objects):
         kind = str(obj.get("type"))
         if kind not in ("btree", "rtree"):
             continue

@@ -23,6 +23,7 @@ import secrets
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Any
 
 import secondo_native  # provided by ../native (see config.py)
 
@@ -50,6 +51,9 @@ class CommandResult:
     """
 
     text: str
+    # The same list as `text`, already as Python objects -- the bridge builds it
+    # from the ListExpr it is holding anyway, so nothing re-parses the text.
+    tree: Any = None
     level: int | None = None
     plan: str | None = None
     costs: float | None = None
@@ -90,6 +94,15 @@ class Session:
         (`list databases`, `list objects`, and the relation-editing commands in
         app/updates.py); what the user types goes through `execute`.
         """
+        return (await self._run_raw(command))["text"]
+
+    async def run_tree(self, command: str) -> Any:
+        """As `run`, but hands back the result as Python objects rather than as
+        text. For a caller that only wants to walk the answer this skips both
+        `ToString` in the bridge and re-parsing it here."""
+        return (await self._run_raw(command))["tree"]
+
+    async def _run_raw(self, command: str) -> dict:
         async with self.lock:
             self.touch()
             try:
@@ -110,7 +123,7 @@ class Session:
             finally:
                 self.touch()
 
-    async def execute(self, command: str) -> CommandResult:
+    async def execute(self, command: str, *, want_tree: bool = True) -> CommandResult:
         """Execute one command the user typed, in whichever language it is in.
 
         With the optimizer available the command goes out without a language
@@ -128,11 +141,14 @@ class Session:
                         raise RuntimeError(
                             "The optimizer is not available on this server."
                         )
-                    return CommandResult(
-                        text=await asyncio.to_thread(self.conn.secondo, command)
+                    raw = await asyncio.to_thread(
+                        self.conn.secondo, command, want_tree
                     )
+                    return CommandResult(text=raw["text"], tree=raw["tree"])
 
-                raw = await asyncio.to_thread(self.conn.secondo_auto, rest, addressed)
+                raw = await asyncio.to_thread(
+                    self.conn.secondo_auto, rest, addressed, want_tree
+                )
                 level = raw["level"]
                 plan = raw["plan"]
                 # For a create/drop the optimizer did the work itself while
@@ -148,6 +164,7 @@ class Session:
                     await self._update_catalog_if_wanted(rest)
                 return CommandResult(
                     text=raw["text"],
+                    tree=raw["tree"],
                     level=level,
                     plan=plan,
                     costs=raw["costs"],

@@ -33,13 +33,15 @@ def _install_fake(monkeypatch, *, optimizer=True, probe_raises=False):
             directives.append(directive)
             return "ok"
 
-        def secondo(self, command: str) -> str:
-            return "()"
+        def secondo(self, command: str, want_tree: bool = True) -> dict:
+            return {"text": "()", "tree": []}
 
-        def secondo_auto(self, command: str, optimizer_addressed: bool = False):
+        def secondo_auto(self, command: str, optimizer_addressed: bool = False,
+                         want_tree: bool = True):
             return {
                 "level": 1,
                 "text": "()",
+                "tree": [],
                 "plan": None,
                 "costs": None,
                 "message": None,
@@ -170,11 +172,11 @@ def test_close_waits_for_a_command_in_flight(session_mod):
         def optimizer_available(self) -> bool:
             return False
 
-        def secondo(self, command: str) -> str:
+        def secondo(self, command: str, want_tree: bool = True) -> dict:
             started.set()
             time.sleep(0.2)  # still on the socket
             order.append("command finished")
-            return "()"
+            return {"text": "()", "tree": []}
 
         def close(self) -> None:
             order.append("closed")

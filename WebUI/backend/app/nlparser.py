@@ -1,10 +1,20 @@
 """Parser for SECONDO nested lists in their *text* representation.
 
-The heavy lifting (wire protocol, binary list decoding) happens in the trusted
-C++ client; what reaches Python is a nested list already rendered as text by
-``NestedList::ToString``. This module turns that text into a Python tree so the
-GeoJSON converter can walk it. Keeping only text parsing on the Python side is
-deliberate -- it is small and easy to fixture-test.
+This is **not** how a server answer reaches the converters. The bridge walks the
+``ListExpr`` the C++ client is already holding and hands over the Python tree
+directly (``treeOf`` in ``native/secondo_native.cpp``), which is both the native
+way to read a nested list and one traversal instead of three -- printing it,
+scanning the print, and rebuilding it.
+
+What is left for this module is the text nobody else can decode:
+
+* a nested-list value **the user typed** into a table cell, which has no
+  ``ListExpr`` behind it and has to be rejected with a readable message before
+  it reaches the server as a syntax error (``nlwriter.literal``);
+* fixtures in the tests, where a text literal is easier to read than a
+  hand-built tree, and where it stands in for what the C++ walk produces.
+
+The two must therefore keep agreeing on the shape below.
 
 Grammar (informal):
 

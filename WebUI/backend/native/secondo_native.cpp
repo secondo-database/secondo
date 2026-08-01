@@ -56,6 +56,10 @@ struct AutoResult
 {
   int level = CMD_LEVEL_TEXT;
   std::string text;        // the result nested list, as text
+  // The same list as ~text~, still as nodes. Kept so the Python tree can be
+  // built from it once the GIL is back; it stays valid until the next command
+  // on this connection, which cannot start before this one has returned.
+  ListExpr result = 0;
   std::string plan;        // level 2: the plan the optimizer generated
   std::string message;     // level 3: what the directive printed
   double costs = 0.0;      // level 2: estimated costs
@@ -73,6 +77,44 @@ static std::string trimmed(const std::string& s)
   const size_t b = s.find_first_not_of(ws);
   if (b == std::string::npos) return "";
   return s.substr(b, s.find_last_not_of(ws) - b + 1);
+}
+
+/*
+1.1 Nested list -> Python objects
+
+Builds the Python tree straight from the ~ListExpr~, in exactly the shape
+~app/nlparser.parse~ produces from text: a list becomes a list, and an atom
+becomes the matching Python scalar.
+
+The GIL must be held: this allocates Python objects.
+
+*/
+static py::object treeOf(NestedList* nl, ListExpr list)
+{
+  if (nl->IsEmpty(list)) {
+    return py::list();
+  }
+  if (nl->IsAtom(list)) {
+    switch (nl->AtomType(list)) {
+      case IntType:    return py::int_(nl->IntValue(list));
+      case RealType:   return py::float_(nl->RealValue(list));
+      case BoolType:   return py::bool_(nl->BoolValue(list));
+      // Strings, symbols and texts all arrive as str, as the text parser had
+      // them: nothing downstream distinguishes a symbol from a quoted string.
+      case StringType: return latin1(nl->StringValue(list));
+      case SymbolType: return latin1(nl->SymbolValue(list));
+      case TextType:   return latin1(nl->Text2String(list));
+      default:         return py::none();
+    }
+  }
+  // Iterative over the spine, so only *nesting* costs C stack -- a relation of
+  // a million tuples is one long list, not a million-deep one.
+  py::list items;
+  while (!nl->IsEmpty(list)) {
+    items.append(treeOf(nl, nl->First(list)));
+    list = nl->Rest(list);
+  }
+  return items;
 }
 
 // An error the SECONDO server reported. Surfaces in Python as
@@ -178,18 +220,25 @@ class Connection
   // and the relation-editing commands in app/updates.py): they are kernel
   // commands and must never involve the optimizer. What the user types goes
   // through secondo_auto.
-  py::str secondo(const std::string& command)
+  // Returns a dict: `text` (the result nested list as text, what the console
+  // shows) and `tree` (the same list as Python objects, ready to convert). Both
+  // come from the one answer; building the tree here rather than parsing the
+  // text in Python is what keeps a large result from being walked twice.
+  // `want_tree` off for a caller that will not look at the answer: building the
+  // Python objects is a walk of the whole list, and for `let x = <a long track>
+  // consume` there is nothing on the other end to walk it for.
+  py::dict secondo(const std::string& command, const bool want_tree)
   {
     if (!si) {
       throw std::runtime_error("connection is closed");
     }
     SecErrInfo err;
     std::string out;
+    ListExpr res = nl->TheEmptyList();
     {
       // The call blocks on network I/O; let other Python threads run, and
       // let commands on other connections run alongside this one.
       py::gil_scoped_release release;
-      ListExpr res = nl->TheEmptyList();
       si->Secondo(command, res, err);
       if (err.code == 0) {
         out = nl->ToString(res);
@@ -198,7 +247,10 @@ class Connection
     if (err.code != 0) {
       throw secondoError(err.code, err.pos, err.msg, "");
     }
-    return latin1(out);
+    py::dict result;
+    result["text"] = latin1(out);
+    result["tree"] = want_tree ? treeOf(nl, res) : py::object(py::none());
+    return result;
   }
 
   // Asks the connected server whether it can run the SQL dialect (the optimizer
@@ -235,7 +287,8 @@ class Connection
   // saying the user wrote the "optimizer " prefix: SQL is then only optimized
   // and not executed, and anything else is taken to be a directive.
   py::dict secondo_auto(const std::string& command,
-                        const bool optimizer_addressed)
+                        const bool optimizer_addressed,
+                        const bool want_tree)
   {
     if (!si) {
       throw std::runtime_error("connection is closed");
@@ -266,6 +319,7 @@ class Connection
     py::dict out;
     out["level"] = r.level;
     out["text"] = latin1(r.text);
+    out["tree"] = want_tree ? treeOf(nl, r.result) : py::object(py::none());
     out["plan"] = r.hasPlan ? py::object(latin1(r.plan))
                             : py::object(py::none());
     out["costs"] = r.hasCosts ? py::object(py::cast(r.costs))
@@ -320,7 +374,8 @@ class Connection
       // command's level together with an empty result list.
       r.plan = planOf(nl->First(res));
       r.hasPlan = true;
-      r.text = nl->ToString(nl->Second(res));
+      r.result = nl->Second(res);
+      r.text = nl->ToString(r.result);
       // The costs were appended to the answer, so a server that does not send
       // them still works.
       if (len >= 3 && nl->AtomType(nl->Third(res)) == RealType) {
@@ -335,8 +390,10 @@ class Connection
                                                 : nl->ToString(res);
       r.hasMessage = true;
       r.text = "()";
+      r.result = nl->TheEmptyList();
       return;
     }
+    r.result = res;
     r.text = nl->ToString(res);
   }
 
@@ -406,13 +463,16 @@ PYBIND11_MODULE(secondo_native, m)
            py::arg("config") = "",
            "Open a client-server connection to a running SecondoMonitor.")
       .def("secondo", &Connection::secondo, py::arg("command"),
-           "Execute a SECONDO command; return the result nested list as text.")
+           py::arg("want_tree") = true,
+           "Execute a SECONDO command; returns a dict with the result nested "
+           "list as text and, unless want_tree is off, as Python objects.")
       .def("optimizer_available", &Connection::optimizer_available,
            "Whether this server can run the SQL dialect (optimizer).")
       .def("secondo_auto", &Connection::secondo_auto, py::arg("command"),
            py::arg("optimizer_addressed") = false,
+           py::arg("want_tree") = true,
            "Execute a command the server classifies itself; returns a dict "
-           "with level/text/plan/costs/message.")
+           "with level/text/tree/plan/costs/message.")
       .def("optimizer_command", &Connection::optimizer_command,
            py::arg("directive"),
            "Run an optimizer control directive; return the text it printed.")

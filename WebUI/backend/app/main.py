@@ -28,7 +28,7 @@ from . import updates as updates_mod
 from .catalog import object_type_expr, parse_objects, parse_operators
 from .config import config_error, settings
 from .convert import convert
-from .nlparser import parse
+from .nlparser import Node
 from .nlwriter import InvalidValue
 from .session import Session, manager
 
@@ -203,8 +203,11 @@ async def query(
 ) -> QueryResponse:
     session = await _session_for(response, secondo_sid)
     try:
-        # Whichever language the command is in -- the server classifies it.
-        result = await session.execute(req.command)
+        # Whichever language the command is in -- the server classifies it. A
+        # caller that wants no payloads gets no tree either: building it walks
+        # the whole answer, and `let x = <a long track> consume` has nobody to
+        # walk it for.
+        result = await session.execute(req.command, want_tree=req.view != "none")
     except RuntimeError as exc:  # SECONDO error / connection error
         # The server's own message is passed through unchanged. In particular
         # ERR_OPTIMIZER_NOT_AVAILABLE is not translated: SecondoServer uses that
@@ -251,9 +254,12 @@ async def query(
             pass  # run for the effect; the answer is not going to be rendered
         elif req.view == "table":
             # Asked for rows and nothing else, so only the rows are derived.
-            tabular = table_mod.to_table(result.text, page=page)
+            tabular = (
+                table_mod.first_page(result.tree, limit=page) if page is not None
+                else table_mod.from_tree(result.tree)
+            )
         else:
-            geojson, temporal, tabular = convert(result.text, page=page)
+            geojson, temporal, tabular = convert(result.tree, page=page)
     except Exception:  # noqa: BLE001 - conversion must not fail the request
         logger.exception("Result conversion failed for command: %s", req.command)
     if tabular is None:
@@ -303,10 +309,10 @@ async def objects(
     """List objects in the currently open database (name/type/kind)."""
     session = await _session_for(response, secondo_sid)
     try:
-        text = await session.run("list objects")
+        tree = await session.run_tree("list objects")
     except RuntimeError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
-    return {"objects": parse_objects(text), "open": session.open_db}
+    return {"objects": parse_objects(tree), "open": session.open_db}
 
 
 # --- uploading a file for an import operator to read -----------------------
@@ -398,10 +404,10 @@ async def operators(
     """
     session = await _session_for(response, secondo_sid)
     try:
-        text = await session.run("list operators")
+        tree = await session.run_tree("list operators")
     except RuntimeError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
-    return {"operators": parse_operators(text)}
+    return {"operators": parse_operators(tree)}
 
 
 # --- the table view: reading a relation with TIDs, and writing it back -----
@@ -451,35 +457,31 @@ class TableCommitRequest(BaseModel):
     inserts: list[TableInsert] = []
 
 
-async def _relation_schema(session: Session, name: str) -> tuple[str, list[dict]]:
+async def _relation_schema(session: Session, name: str) -> tuple[Node, list[dict]]:
     """Validate a relation name against the open database and read its schema.
 
-    Returns the raw ``list objects`` answer alongside the columns, so the caller
-    can find the relation's indexes in it without asking a second time. The
-    schema is the *stored* one -- no TID column, which is exactly what an insert
-    or update has to supply.
+    Returns the whole ``list objects`` answer alongside the columns, so the
+    caller can find the relation's indexes in it without asking a second time.
+    The schema is the *stored* one -- no TID column, which is exactly what an
+    insert or update has to supply.
     """
     if not _OBJECT_NAME.match(name or ""):
         raise HTTPException(status_code=400, detail=f"Not a valid object name: {name!r}")
     try:
-        objects_text = await session.run("list objects")
+        objects = await session.run_tree("list objects")
     except RuntimeError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
-    columns = table_mod.columns_of(object_type_expr(objects_text, name))
+    columns = table_mod.columns_of(object_type_expr(objects, name))
     if columns is None:
         raise HTTPException(
             status_code=400,
             detail=f"{name} is not a relation in the open database",
         )
-    return objects_text, columns
+    return objects, columns
 
 
-def _count(text: str) -> int | None:
+def _count(tree: Node) -> int | None:
     """The number a ``(query (count …))`` answered with."""
-    try:
-        tree = parse(text)
-    except ValueError:
-        return None
     if isinstance(tree, list) and len(tree) >= 2 and isinstance(tree[1], int):
         return tree[1]
     return None
@@ -499,7 +501,7 @@ async def _load_page(session: Session, req: TableLoadRequest) -> tuple[dict, str
     total: int | None = None
     if req.want_total:
         try:
-            total = _count(await session.run(
+            total = _count(await session.run_tree(
                 updates_mod.count_command(req.relation, req.filters)
             ))
         except RuntimeError as exc:
@@ -518,11 +520,13 @@ async def _load_page(session: Session, req: TableLoadRequest) -> tuple[dict, str
         counter=updates_mod.counter_name(columns),
     )
     try:
-        text = await session.run(command)
+        # A page of mpoints is megabytes of nested list; take it as objects
+        # rather than as text nobody here would read.
+        tree = await session.run_tree(command)
     except RuntimeError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     payload = table_mod.from_tree(
-        parse(text), offset=req.offset, limit=limit, total=total
+        tree, offset=req.offset, limit=limit, total=total
     )
     if payload is None:
         raise HTTPException(
@@ -585,9 +589,9 @@ async def table_commit(
     maintained alongside the data.
     """
     session = await _session_for(response, secondo_sid)
-    objects_text, columns = await _relation_schema(session, req.relation)
+    objects, columns = await _relation_schema(session, req.relation)
     indexes = updates_mod.find_indexes(
-        objects_text, req.relation, [c["name"] for c in columns]
+        objects, req.relation, [c["name"] for c in columns]
     )
 
     # Build every command up front: a value that will not convert must fail
@@ -632,16 +636,16 @@ async def table_commit(
     inserted: list[int] = []
     try:
         for kind, command in commands:
-            text = await session.run(command)
+            tree = await session.run_tree(command)
             if kind == "insert":
-                new = table_mod.to_table(text)
+                new = table_mod.from_tree(tree)
                 tid_index = (new or {}).get("tidIndex")
                 if new and tid_index is not None and new["rows"]:
                     inserted.append(new["rows"][0][tid_index])
             else:
                 # UpdateViewerController:598 -- the operator reports how many
                 # tuples it touched. Zero means somebody else got there first.
-                if _count(text) != 1:
+                if _count(tree) != 1:
                     raise RuntimeError(
                         f"The tuple this {kind} addresses no longer exists "
                         "(deleted by another session?)"

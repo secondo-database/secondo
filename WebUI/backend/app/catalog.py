@@ -1,4 +1,8 @@
-"""Parse SECONDO's ``list objects`` and ``list operators`` inquiries.
+"""Read SECONDO's ``list objects`` and ``list operators`` inquiries.
+
+These take the answer as the tree the bridge builds from the ``ListExpr``
+(``secondo_native``), not as text: nothing here needs the textual form, and
+``list operators`` alone is on the order of 1500 entries.
 
 ``list objects``:
 
@@ -18,7 +22,7 @@ from __future__ import annotations
 
 import re
 
-from .nlparser import Node, parse
+from .nlparser import Node
 from .table import RELATION_TYPES
 
 _SPATIAL = {"point", "points", "line", "sline", "dline", "region", "rect"}
@@ -44,9 +48,8 @@ def _first_symbol(node: Node) -> str | None:
     return None
 
 
-def _entries(text: str) -> list[Node]:
+def _entries(tree: Node) -> list[Node]:
     """The ``(OBJECT name (args) (typeexpr))`` entries of a ``list objects``."""
-    tree = parse(text)
     try:
         # (inquiry (objects (OBJECTS obj*)))
         objects = tree[1][1]  # type: ignore[index]
@@ -57,7 +60,7 @@ def _entries(text: str) -> list[Node]:
     return objects[1:]
 
 
-def object_type_expr(text: str, name: str) -> Node | None:
+def object_type_expr(tree: Node, name: str) -> Node | None:
     """One object's *full* type expression, so a relation's schema can be read
     without a second command. ``parse_objects`` only keeps a label.
 
@@ -65,7 +68,7 @@ def object_type_expr(text: str, name: str) -> Node | None:
     ``region`` is listed as ``((region))`` -- which is peeled off here so the
     result is the type expression itself.
     """
-    for obj in _entries(text):
+    for obj in _entries(tree):
         if isinstance(obj, list) and len(obj) >= 4 and obj[0] == "OBJECT" and obj[1] == name:
             wrapper = obj[3]
             if isinstance(wrapper, list) and len(wrapper) == 1:
@@ -74,8 +77,8 @@ def object_type_expr(text: str, name: str) -> Node | None:
     return None
 
 
-def parse_objects(text: str) -> list[dict]:
-    entries = _entries(text)
+def parse_objects(tree: Node) -> list[dict]:
+    entries = _entries(tree)
 
     result: list[dict] = []
     for obj in entries:
@@ -109,7 +112,7 @@ def parse_objects(text: str) -> list[dict]:
 _OPERATOR_NAME = re.compile(r"\A[A-Za-z_]\w*\Z")
 
 
-def parse_operators(text: str) -> list[dict]:
+def parse_operators(tree: Node) -> list[dict]:
     """Every operator the connected server has, from ``list operators``.
 
     Result shape (``SecondoCatalog::ListOperators``, SecondoCatalog.cpp:3048):
@@ -127,7 +130,6 @@ def parse_operators(text: str) -> list[dict]:
     An overloaded operator is registered once per algebra, so names repeat; the
     first spelling of each wins.
     """
-    tree = parse(text)
     try:
         # (inquiry (operators (op*)))
         entries = tree[1][1]  # type: ignore[index]

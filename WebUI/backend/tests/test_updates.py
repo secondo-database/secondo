@@ -10,6 +10,7 @@ from __future__ import annotations
 import pytest
 
 from app import updates
+from app.nlparser import parse
 from app.nlwriter import InvalidValue, literal
 
 STAEDTE = [
@@ -159,14 +160,14 @@ def test_update_with_no_change_is_refused():
 
 
 def test_find_indexes_by_naming_convention():
-    idx = updates.find_indexes(OBJECTS, "Staedte", ["SName", "Bev", "PLZ"])
+    idx = updates.find_indexes(parse(OBJECTS), "Staedte", ["SName", "Bev", "PLZ"])
     assert [(i.name, i.attribute, i.kind) for i in idx.entries] == [
         ("Staedte_Bev", "Bev", "btree")
     ]
 
 
 def test_find_indexes_ignores_other_relations_and_unknown_attributes():
-    idx = updates.find_indexes(OBJECTS, "Staedte", ["SName", "Bev", "PLZ", "GeoData"])
+    idx = updates.find_indexes(parse(OBJECTS), "Staedte", ["SName", "Bev", "PLZ", "GeoData"])
     names = [i.name for i in idx.entries]
     assert "Staedte_GeoData" in names
     # Orte_Bev belongs to Orte; Staedte_Nope indexes an attribute that is gone.
@@ -178,7 +179,7 @@ def test_find_indexes_tolerates_a_lowercased_initial():
     """SECONDO lowercases an object's first letter in some paths, which is why
     CommandGenerator.java:419 compares the first character case-insensitively."""
     objs = OBJECTS.replace("(OBJECT Staedte_Bev", "(OBJECT staedte_Bev")
-    idx = updates.find_indexes(objs, "Staedte", ["Bev"])
+    idx = updates.find_indexes(parse(objs), "Staedte", ["Bev"])
     assert [i.name for i in idx.entries] == ["staedte_Bev"]
 
 
@@ -186,7 +187,7 @@ def test_index_maintenance_is_chained_onto_every_command():
     """SECONDO does not keep secondary indexes in step by itself; leaving them
     stale is a silent wrong answer to any later query that uses one. The chained
     form is Algebras/BTree/BTree.examples:49."""
-    idx = updates.find_indexes(OBJECTS, "Staedte", ["SName", "Bev", "PLZ", "GeoData"])
+    idx = updates.find_indexes(parse(OBJECTS), "Staedte", ["SName", "Bev", "PLZ", "GeoData"])
 
     assert updates.delete_command("Staedte", 5, idx) == (
         "query Staedte deletebyid[[const tid value 5]]"
