@@ -94,19 +94,27 @@ class Session:
         (`list databases`, `list objects`, and the relation-editing commands in
         app/updates.py); what the user types goes through `execute`.
         """
-        return (await self._run_raw(command))["text"]
+        return (await self._run_raw(command, want_tree=False))["text"]
 
     async def run_tree(self, command: str) -> Any:
         """As `run`, but hands back the result as Python objects rather than as
         text. For a caller that only wants to walk the answer this skips both
         `ToString` in the bridge and re-parsing it here."""
-        return (await self._run_raw(command))["tree"]
+        return (await self._run_raw(command, want_text=False))["tree"]
 
-    async def _run_raw(self, command: str) -> dict:
+    async def _run_raw(
+        self, command: str, *, want_tree: bool = True, want_text: bool = True
+    ) -> dict:
+        # Both halves are a walk of the whole answer, and `run`/`run_tree` each
+        # read exactly one of them -- asking for both meant `list objects` built
+        # a Python tree to throw away, and every `run` a nested-list string to
+        # throw away.
         async with self.lock:
             self.touch()
             try:
-                return await asyncio.to_thread(self.conn.secondo, command)
+                return await asyncio.to_thread(
+                    self.conn.secondo, command, want_tree, want_text
+                )
             finally:
                 self.touch()
 
@@ -123,7 +131,9 @@ class Session:
             finally:
                 self.touch()
 
-    async def execute(self, command: str, *, want_tree: bool = True) -> CommandResult:
+    async def execute(
+        self, command: str, *, want_tree: bool = True, want_text: bool = True
+    ) -> CommandResult:
         """Execute one command the user typed, in whichever language it is in.
 
         With the optimizer available the command goes out without a language
@@ -131,6 +141,10 @@ class Session:
         is what the JavaGUI and the TTY do -- the rules live in one place and no
         client carries a copy. Without it, SQL is not on offer at all and the
         level is derived from the command text as before.
+
+        `want_tree` and `want_text` gate the two halves of the answer
+        independently: the render payloads are built from the tree, the console
+        shows the text, and a command run for its effect wants neither.
         """
         addressed, rest = secondo_native.strip_optimizer_prefix(command)
         async with self.lock:
@@ -142,12 +156,12 @@ class Session:
                             "The optimizer is not available on this server."
                         )
                     raw = await asyncio.to_thread(
-                        self.conn.secondo, command, want_tree
+                        self.conn.secondo, command, want_tree, want_text
                     )
                     return CommandResult(text=raw["text"], tree=raw["tree"])
 
                 raw = await asyncio.to_thread(
-                    self.conn.secondo_auto, rest, addressed, want_tree
+                    self.conn.secondo_auto, rest, addressed, want_tree, want_text
                 )
                 level = raw["level"]
                 plan = raw["plan"]

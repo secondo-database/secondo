@@ -301,10 +301,18 @@ class Connection
   // shows) and `tree` (the same list as Python objects, ready to convert). Both
   // come from the one answer; building the tree here rather than parsing the
   // text in Python is what keeps a large result from being walked twice.
-  // `want_tree` off for a caller that will not look at the answer: building the
-  // Python objects is a walk of the whole list, and for `let x = <a long track>
-  // consume` there is nothing on the other end to walk it for.
-  py::dict secondo(const std::string& command, const bool want_tree)
+  //
+  // Each half is built only if it is asked for, because each is a walk of the
+  // whole list and most callers want exactly one of them: `Session.run` reads
+  // only the text, `Session.run_tree` only the tree, and a command run for its
+  // effect (`let x = <a long track> consume`) wants neither. `query roads` on a
+  // 212k-tuple relation is 81 MB of text and ~48M Python objects, so the half
+  // nobody reads is not a rounding error.
+  //
+  // The text is "" rather than None when it was not built: it stays a str, so
+  // no caller downstream needs a null check.
+  py::dict secondo(const std::string& command, const bool want_tree,
+                   const bool want_text)
   {
     if (!si) {
       throw std::runtime_error("connection is closed");
@@ -317,7 +325,7 @@ class Connection
       // let commands on other connections run alongside this one.
       py::gil_scoped_release release;
       si->Secondo(command, res, err);
-      if (err.code == 0) {
+      if (err.code == 0 && want_text) {
         out = nl->ToString(res);
       }
     }
@@ -365,7 +373,8 @@ class Connection
   // and not executed, and anything else is taken to be a directive.
   py::dict secondo_auto(const std::string& command,
                         const bool optimizer_addressed,
-                        const bool want_tree)
+                        const bool want_tree,
+                        const bool want_text)
   {
     if (!si) {
       throw std::runtime_error("connection is closed");
@@ -379,7 +388,7 @@ class Connection
       si->SecondoAuto(command, optimizer_addressed, r.level, res,
                       r.errCode, r.errPos, r.errMsg);
       if (r.errCode == 0) {
-        extract(res, r);
+        extract(res, r, want_text);
       } else if (r.level == CMD_LEVEL_SQL && nl->ListLength(res) >= 2) {
         // A plan that failed to execute still comes back with the answer; every
         // other client throws it away. Carry it on the exception so the console
@@ -438,7 +447,12 @@ class Connection
  private:
   // Splits the answer into the pieces Python needs, according to the level the
   // server resolved the command to.
-  void extract(ListExpr res, AutoResult& r) const
+  //
+  // ~want_text~ gates only ~r.text~, the result rendered as a nested list --
+  // the walk a caller who will not show it should not pay for. The plan, the
+  // costs and a directive's message are always extracted: they are small, and
+  // they are the answer for the levels that produce them.
+  void extract(ListExpr res, AutoResult& r, const bool want_text) const
   {
     const int len = nl->ListLength(res);
     if (r.level == CMD_LEVEL_SQL && len >= 2) {
@@ -452,7 +466,9 @@ class Connection
       r.plan = planOf(nl->First(res));
       r.hasPlan = true;
       r.result = nl->Second(res);
-      r.text = nl->ToString(r.result);
+      if (want_text) {
+        r.text = nl->ToString(r.result);
+      }
       // The costs were appended to the answer, so a server that does not send
       // them still works.
       if (len >= 3 && nl->AtomType(nl->Third(res)) == RealType) {
@@ -471,7 +487,9 @@ class Connection
       return;
     }
     r.result = res;
-    r.text = nl->ToString(res);
+    if (want_text) {
+      r.text = nl->ToString(res);
+    }
   }
 
   // The plan half of an SQL answer. The server builds it as a text atom, so
@@ -547,15 +565,19 @@ PYBIND11_MODULE(secondo_native, m)
            "Open a client-server connection to a running SecondoMonitor.")
       .def("secondo", &Connection::secondo, py::arg("command"),
            py::arg("want_tree") = true,
+           py::arg("want_text") = true,
            "Execute a SECONDO command; returns a dict with the result nested "
-           "list as text and, unless want_tree is off, as Python objects.")
+           "list as text (unless want_text is off, when it is \"\") and as "
+           "Python objects (unless want_tree is off, when it is None).")
       .def("optimizer_available", &Connection::optimizer_available,
            "Whether this server can run the SQL dialect (optimizer).")
       .def("secondo_auto", &Connection::secondo_auto, py::arg("command"),
            py::arg("optimizer_addressed") = false,
            py::arg("want_tree") = true,
+           py::arg("want_text") = true,
            "Execute a command the server classifies itself; returns a dict "
-           "with level/text/tree/plan/costs/message.")
+           "with level/text/tree/plan/costs/message. want_tree and want_text "
+           "gate the two halves of the result independently.")
       .def("optimizer_command", &Connection::optimizer_command,
            py::arg("directive"),
            "Run an optimizer control directive; return the text it printed.")

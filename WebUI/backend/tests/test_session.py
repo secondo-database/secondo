@@ -19,6 +19,9 @@ def _install_fake(monkeypatch, *, optimizer=True, probe_raises=False):
 
     closed: list[str] = []
     directives: list[str] = []
+    # One entry per bridge call, with the two half-of-the-answer flags as they
+    # arrived, so the tests can assert nobody asks for a half it will not read.
+    calls: list[dict] = []
 
     class FakeConnection:
         def __init__(self, *_a, **_k):
@@ -33,15 +36,21 @@ def _install_fake(monkeypatch, *, optimizer=True, probe_raises=False):
             directives.append(directive)
             return "ok"
 
-        def secondo(self, command: str, want_tree: bool = True) -> dict:
-            return {"text": "()", "tree": []}
+        def secondo(self, command: str, want_tree: bool = True,
+                    want_text: bool = True) -> dict:
+            calls.append({"command": command,
+                          "want_tree": want_tree, "want_text": want_text})
+            return {"text": "()" if want_text else "",
+                    "tree": [] if want_tree else None}
 
         def secondo_auto(self, command: str, optimizer_addressed: bool = False,
-                         want_tree: bool = True):
+                         want_tree: bool = True, want_text: bool = True):
+            calls.append({"command": command,
+                          "want_tree": want_tree, "want_text": want_text})
             return {
                 "level": 1,
-                "text": "()",
-                "tree": [],
+                "text": "()" if want_text else "",
+                "tree": [] if want_tree else None,
                 "plan": None,
                 "costs": None,
                 "message": None,
@@ -56,6 +65,7 @@ def _install_fake(monkeypatch, *, optimizer=True, probe_raises=False):
     monkeypatch.setattr(session_mod, "secondo_native", fake)
     session_mod._closed = closed  # expose for assertions
     session_mod._directives = directives
+    session_mod._calls = calls
     return session_mod
 
 
@@ -127,6 +137,54 @@ def test_failing_probe_degrades_to_no_optimizer(monkeypatch):
     assert asyncio.run(mod.SessionManager().create()).optimizer is False
 
 
+def test_run_asks_for_no_tree(session_mod):
+    """`run` reads only the text, and building the Python objects is a walk of
+    the whole answer -- `list objects` used to build a tree to throw away."""
+    mgr = session_mod.SessionManager()
+
+    async def scenario():
+        session = await mgr.create()
+        assert await session.run("list objects") == "()"
+        return session_mod._calls
+
+    assert asyncio.run(scenario()) == [
+        {"command": "list objects", "want_tree": False, "want_text": True}
+    ]
+
+
+def test_run_tree_asks_for_no_text(session_mod):
+    """The mirror image: `run_tree` discards the text, so rendering the answer
+    as a nested list is pure waste. For `query roads` that string is 81 MB."""
+    mgr = session_mod.SessionManager()
+
+    async def scenario():
+        session = await mgr.create()
+        assert await session.run_tree("list objects") == []
+        return session_mod._calls
+
+    assert asyncio.run(scenario()) == [
+        {"command": "list objects", "want_tree": True, "want_text": False}
+    ]
+
+
+def test_execute_can_ask_for_neither_half(session_mod):
+    """What /api/query does for `view:"none"` -- a command run for its effect."""
+    mgr = session_mod.SessionManager()
+
+    async def scenario():
+        session = await mgr.create()
+        result = await session.execute(
+            "query ten", want_tree=False, want_text=False
+        )
+        assert result.text == ""
+        assert result.tree is None
+        return session_mod._calls
+
+    assert asyncio.run(scenario()) == [
+        {"command": "query ten", "want_tree": False, "want_text": False}
+    ]
+
+
 def test_object_changing_command_refreshes_the_optimizer_catalog(session_mod):
     """The optimizer only rereads the schema when the database changes, so a
     kernel `let` would otherwise stay invisible to SQL for the whole session."""
@@ -172,7 +230,8 @@ def test_close_waits_for_a_command_in_flight(session_mod):
         def optimizer_available(self) -> bool:
             return False
 
-        def secondo(self, command: str, want_tree: bool = True) -> dict:
+        def secondo(self, command: str, want_tree: bool = True,
+                    want_text: bool = True) -> dict:
             started.set()
             time.sleep(0.2)  # still on the socket
             order.append("command finished")

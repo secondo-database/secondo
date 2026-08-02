@@ -204,10 +204,16 @@ async def query(
     session = await _session_for(response, secondo_sid)
     try:
         # Whichever language the command is in -- the server classifies it. A
-        # caller that wants no payloads gets no tree either: building it walks
-        # the whole answer, and `let x = <a long track> consume` has nobody to
-        # walk it for.
-        result = await session.execute(req.command, want_tree=req.view != "none")
+        # caller that wants no payloads gets neither half of the answer: each is
+        # a walk of the whole result, and `let x = <a long track> consume` has
+        # nobody to walk it for. They stay two arguments because they are
+        # independently useful -- the text is what the console shows, the tree
+        # is what the render payloads are built from.
+        result = await session.execute(
+            req.command,
+            want_tree=req.view != "none",
+            want_text=req.view != "none",
+        )
     except RuntimeError as exc:  # SECONDO error / connection error
         # The server's own message is passed through unchanged. In particular
         # ERR_OPTIMIZER_NOT_AVAILABLE is not translated: SecondoServer uses that
@@ -275,8 +281,9 @@ async def query(
     return QueryResponse(
         # `let x = <a long track> consume` answers with the whole created
         # object. A caller that asked for no payloads is not going to show it
-        # either, so it does not cross the wire.
-        text="" if req.view == "none" else result.text,
+        # either, so for `view:"none"` it was never rendered to text in the
+        # first place and `result.text` is already "".
+        text=result.text,
         geojson=geojson,
         temporal=temporal,
         table=tabular,

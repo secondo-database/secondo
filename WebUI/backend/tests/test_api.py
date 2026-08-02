@@ -107,13 +107,21 @@ def _fake_native(optimizer: bool = True):
             fake.directives.append(directive)
             return "ok"
 
-        def secondo(self, command: str, want_tree: bool = True) -> dict:
+        def secondo(self, command: str, want_tree: bool = True,
+                    want_text: bool = True) -> dict:
             # The real bridge answers with the list both as text and as objects,
             # building the tree from the ListExpr it holds. Parsing the fake's
             # text here is the stand-in for that -- it is what the C++ walk
             # produces, and it keeps every canned answer below plain text.
+            #
+            # The flags are honoured rather than ignored so that a caller that
+            # asks for a half it does not need shows up as a failing assertion
+            # here instead of as silent work in production.
             text = self._secondo_text(command)
-            return {"text": text, "tree": parse(text)}
+            return {
+                "text": text if want_text else "",
+                "tree": parse(text) if want_tree else None,
+            }
 
         def _secondo_text(self, command: str) -> str:
             fake.commands.append(command)
@@ -160,14 +168,24 @@ def _fake_native(optimizer: bool = True):
 
         # The answers the server gives once it classifies the command itself.
         def secondo_auto(self, command: str, optimizer_addressed: bool = False,
-                         want_tree: bool = True):
+                         want_tree: bool = True, want_text: bool = True):
             assert optimizer, "secondo_auto must not be used without an optimizer"
             cmd = command.strip()
+
+            # Mirrors Connection::extract: the flags gate the two halves of the
+            # *result*, while the plan, the costs and a directive's message are
+            # always extracted -- they are small, and they are the answer for
+            # the levels that produce them.
+            def halves(text: str) -> dict:
+                return {
+                    "text": text if want_text else "",
+                    "tree": parse(text) if want_tree else None,
+                }
+
             if cmd == "select * from kinos":
                 return {
                     "level": 2,
-                    "text": KINOS,
-                    "tree": parse(KINOS),
+                    **halves(KINOS),
                     "plan": "kinos feed consume",
                     "costs": 12.5,
                     "message": None,
@@ -176,8 +194,7 @@ def _fake_native(optimizer: bool = True):
                 # The optimizer carried it out itself while translating.
                 return {
                     "level": 2,
-                    "text": "()",
-                    "tree": [],
+                    **halves("()"),
                     "plan": "done",
                     "costs": 0.0,
                     "message": None,
@@ -185,8 +202,10 @@ def _fake_native(optimizer: bool = True):
             if cmd == "showOptions":
                 return {
                     "level": 3,
+                    # A directive's text is the constant "()", not a rendering
+                    # of a result, so extract() does not gate it on want_text.
                     "text": "()",
-                    "tree": [],
+                    "tree": [] if want_tree else None,
                     "plan": None,
                     "costs": None,
                     "message": "  subqueries: on\n  rewriteInference: off",
@@ -199,7 +218,7 @@ def _fake_native(optimizer: bool = True):
             return {
                 "level": 1,
                 # text and tree both, as the bridge sends them.
-                **self.secondo(cmd),
+                **self.secondo(cmd, want_tree, want_text),
                 "plan": None,
                 "costs": None,
                 "message": None,
@@ -360,7 +379,8 @@ def test_unexpected_error_still_returns_json(client, monkeypatch):
         def optimizer_available(self):
             return False
 
-        def secondo(self, command, want_tree: bool = True):
+        def secondo(self, command, want_tree: bool = True,
+                    want_text: bool = True):
             raise ValueError("kaboom")
 
         def close(self):
