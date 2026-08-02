@@ -47,35 +47,54 @@ const DEFAULT_GEO: Geometry = {
   consoleCollapsed: false,
 };
 const RAIL = 34; // collapsed catalog width
+// Below either of these the stylesheet drops the desktop grid for the
+// one-column phone layout; keep them in step with the media query in
+// styles.css. The height counts too: a phone in landscape is wide enough for
+// the desktop grid and nowhere near tall enough.
+const NARROW_W = 760;
+const NARROW_H = 480;
 
 function loadGeometry(): Geometry {
+  // A phone opens on the map: both panels start out of the way, since the
+  // catalog is a full-screen sheet there and the console a docked prompt. Only
+  // the first visit is decided here -- a stored geometry still wins, and the
+  // media query caps it either way.
+  const initial =
+    window.innerWidth <= NARROW_W || window.innerHeight <= NARROW_H
+      ? { ...DEFAULT_GEO, catalogCollapsed: true, consoleCollapsed: true }
+      : DEFAULT_GEO;
   try {
     const raw = localStorage.getItem(GEO_KEY);
-    return raw ? { ...DEFAULT_GEO, ...JSON.parse(raw) } : DEFAULT_GEO;
+    return raw ? { ...DEFAULT_GEO, ...JSON.parse(raw) } : initial;
   } catch {
-    return DEFAULT_GEO;
+    return initial;
   }
 }
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
 
-// Drag a splitter: capture the size at mousedown and apply deltas until mouseup.
+// Drag a splitter: capture the size at pointerdown and apply deltas until the
+// pointer is released. Pointer events rather than mouse events, so a tablet --
+// which is above the narrow breakpoint and therefore keeps the desktop grid --
+// can resize by finger as well.
 function startDrag(
-  e: React.MouseEvent,
+  e: React.PointerEvent,
   start: number,
   apply: (start: number, dx: number, dy: number) => void
 ) {
   e.preventDefault();
   const sx = e.clientX;
   const sy = e.clientY;
-  const move = (ev: MouseEvent) => apply(start, ev.clientX - sx, ev.clientY - sy);
+  const move = (ev: PointerEvent) => apply(start, ev.clientX - sx, ev.clientY - sy);
   const up = () => {
-    window.removeEventListener("mousemove", move);
-    window.removeEventListener("mouseup", up);
+    window.removeEventListener("pointermove", move);
+    window.removeEventListener("pointerup", up);
+    window.removeEventListener("pointercancel", up);
     document.body.classList.remove("dragging");
   };
-  window.addEventListener("mousemove", move);
-  window.addEventListener("mouseup", up);
+  window.addEventListener("pointermove", move);
+  window.addEventListener("pointerup", up);
+  window.addEventListener("pointercancel", up);
   document.body.classList.add("dragging");
 }
 
@@ -492,7 +511,7 @@ export function App() {
       {/* Catalog | rest splitter (no resizing while collapsed) */}
       <div
         className="split split-a"
-        onMouseDown={(e) =>
+        onPointerDown={(e) =>
           geo.catalogCollapsed
             ? undefined
             : startDrag(e, geo.catalogW, (start, dx) =>
@@ -525,7 +544,7 @@ export function App() {
           there is nothing to resize then. */}
       <div
         className="split split-b"
-        onMouseDown={(e) =>
+        onPointerDown={(e) =>
           geo.consoleCollapsed
             ? undefined
             : startDrag(e, geo.consoleH, (start, _dx, dy) =>
@@ -556,11 +575,15 @@ export function App() {
         {/* The map stays mounted behind an open table: it owns its view state
             and its WebGL context, so covering it is what makes switching back
             free. `--bottom-inset` is where the bottom-anchored overlays stop:
-            above the timeline when there is one, at the pane's edge when not. */}
+            above the timeline when there is one, at the pane's edge when not.
+            How tall the timeline actually is belongs to the stylesheet -- it
+            wraps to two rows on a phone -- so only the choice is made here. */}
         <div
           className="result-body"
           style={
-            { "--bottom-inset": domain ? "4.5rem" : "0.75rem" } as React.CSSProperties
+            {
+              "--bottom-inset": domain ? "var(--timeline-h)" : "0.75rem",
+            } as React.CSSProperties
           }
         >
         {busy && (
@@ -617,7 +640,9 @@ export function App() {
             {!openDb ? (
               <>
                 <strong>No database open</strong>
-                <p>Pick one in the catalog on the left to see what it holds.</p>
+                {/* Not "on the left": on a phone the catalog is a sheet behind
+                    the button over the map, not a column beside it. */}
+                <p>Pick one in the catalog to see what it holds.</p>
               </>
             ) : (
               <>

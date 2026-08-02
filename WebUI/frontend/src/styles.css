@@ -34,6 +34,12 @@
   --overlay: rgba(15, 17, 21, 0.92);
   --overlay-2: rgba(23, 26, 33, 0.9);
 
+  /* How much room the timeline needs at the bottom of the map, so the zoom
+     buttons and the bottom-left overlays stop above it. App.tsx reads this for
+     `--bottom-inset` when a result has a time domain; the phone layout raises
+     it, since the timeline wraps to two rows there. */
+  --timeline-h: 4.5rem;
+
   font-family: ui-sans-serif, system-ui, sans-serif;
 }
 
@@ -124,7 +130,11 @@ body {
    belongs, by capping the box against `--conh`; see `.input textarea`. */
 .app {
   display: grid;
+  /* `dvh` where it is understood: on a touch browser 100vh is measured against
+     the viewport with the address bar *hidden*, so a 100vh app is taller than
+     what is on screen and the console's input row is cut off below the fold. */
   height: 100vh;
+  height: 100dvh;
   grid-template-columns: var(--cat) 5px 1fr;
   grid-template-rows: 1fr 5px var(--conh);
 }
@@ -2242,4 +2252,251 @@ pre.plan {
   border-radius: 5px;
   padding: 0.2rem 0.3rem;
   font-size: 0.75rem;
+}
+
+/* ---------------------------------------------------------------------------
+   Phones. The desktop grid gives the catalog 210px of a 390px screen and the
+   overlays are sized in fixed pixels, so a phone got a ~175px map with a 264px
+   layers panel over it. Below this width there is one column and the map has
+   it: the catalog becomes a full-screen sheet reached from a button over the
+   map, and the console a docked prompt that opens its log on demand.
+
+   No component knows about any of this -- every control the layout needs is
+   one the desktop UI already has (the rail button, the catalog's own collapse
+   arrow, the console's "history" toggle, the layers panel's header), so this
+   is a restyling of those, not a second layout mode. `loadGeometry` in App.tsx
+   only decides which of them start collapsed on a first visit.
+
+   Height counts as well as width: the same phone in landscape is 844x390, wide
+   enough for the desktop grid but far too short for it -- a 220px console over
+   a 390px screen leaves the map a strip.
+   --------------------------------------------------------------------------- */
+@media (max-width: 760px), (max-height: 480px) {
+  /* The timeline wraps to two rows here (see below), so what sits above it has
+     to start higher. */
+  :root {
+    --timeline-h: 7rem;
+  }
+
+  /* One column, map over console. Opening the log is deliberate on a phone --
+     the console starts collapsed -- so it is worth a readable height; the cap
+     is measured against the viewport because the splitter that would give the
+     map its height back is gone here. */
+  .app {
+    grid-template-columns: 1fr;
+    grid-template-rows: 1fr minmax(0, clamp(40dvh, var(--conh), 60dvh));
+  }
+
+  .app .map-pane {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .app .console-pane {
+    grid-column: 1;
+    grid-row: 2;
+  }
+
+  /* The three-row rule above the media query names a splitter row this grid
+     does not have. */
+  .app.con-collapsed {
+    grid-template-rows: 1fr min-content;
+  }
+
+  /* Nothing to drag with one column and a capped console. */
+  .app .split {
+    display: none;
+  }
+
+  /* The catalog leaves the grid: open it is a sheet over everything (its own
+     "◂" closes it again), collapsed it is a button floating over the map.
+     Above `.tableview` (z-index 6), or an open table would swallow the only
+     way back to the catalog. */
+  .app .catalog-pane {
+    position: fixed;
+    inset: 0;
+    z-index: 20;
+    background: var(--bg);
+  }
+
+  .app.cat-collapsed .catalog-pane {
+    inset: auto;
+    top: 0.6rem;
+    left: 0.6rem;
+    width: auto;
+    height: auto;
+    background: var(--overlay);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    backdrop-filter: blur(4px);
+  }
+
+  .app.cat-collapsed .rail-btn {
+    width: 2.75rem;
+    height: 2.75rem;
+    border-bottom: none;
+    border-radius: 999px;
+    font-size: 1.2rem;
+  }
+
+  /* Everything the top-left corner would otherwise hold gets out from under the
+     catalog button: the projection select, and -- once a table is open and the
+     tab strip takes that corner -- the "Map" tab, which the button covered
+     completely. The indent is padding rather than a margin so the strip's
+     background and its bottom hairline still run the full width. */
+  .projection-ctl {
+    left: 3.9rem;
+  }
+
+  .result-tabs {
+    padding-left: 3.9rem;
+  }
+
+  /* Tabs are switched by thumb here. The map tab is the button itself; a table
+     tab is a span whose label and close button carry their own padding, so
+     padding both would stack. */
+  .rt-tab {
+    font-size: 0.85rem;
+  }
+
+  button.rt-tab,
+  .rt-label,
+  .rt-close {
+    padding: 0.6rem 0.45rem;
+  }
+
+  /* The overlays were sized for a pane several times this wide, and each of
+     them could cover the map whole. They keep their corners; they just stop
+     at what is left of the screen. */
+  .layers-panel {
+    width: min(264px, calc(100vw - 1rem));
+    max-height: 40dvh;
+    overflow-y: auto;
+  }
+
+  /* Full width less the zoom column: the details panel is right-anchored here
+     rather than 320px wide, and the zoom buttons have the higher z-index -- its
+     close button ended up under them and could not be tapped at all. */
+  .ov-left {
+    left: 0.5rem;
+    right: 3.4rem;
+    align-items: stretch;
+  }
+
+  .details {
+    max-width: none;
+    max-height: 35dvh;
+  }
+
+  .plots {
+    min-width: 0;
+    max-height: 35dvh;
+  }
+
+  .map-empty-card {
+    padding: 0.85rem 1rem;
+  }
+
+  /* Fingers, not a mouse: the same reasoning as the 24px targets at the top of
+     this file, one size up. The timeline wraps so the scrubber gets the full
+     width instead of the sliver left between two clocks. */
+  .timeline {
+    flex-wrap: wrap;
+  }
+
+  .tl-play {
+    width: 2.75rem;
+    height: 2.75rem;
+    font-size: 0.95rem;
+  }
+
+  .tl-range {
+    order: 1;
+    min-width: 100%;
+    height: 1.5rem;
+  }
+
+  .dock-btn,
+  .cat-collapse,
+  .cat-db,
+  .cat-obj,
+  .cat-table,
+  .input button {
+    min-height: 2.5rem;
+  }
+
+  /* The console header carries a wordmark, two status chips and three buttons.
+     That is more than 390px holds, and with nothing to give it was the buttons
+     on the right -- clear and the theme toggle -- that fell off the edge. The
+     wordmark goes first (the page title says it), then the buttons keep their
+     glyph and drop their label, which is enough to fit the row. It stays one
+     row: the console is docked above the map, so every line it grows is a line
+     the map loses even while collapsed. */
+  .console header {
+    gap: 0.4rem;
+    padding: 0.5rem 0.6rem;
+  }
+
+  .console header > strong {
+    display: none;
+  }
+
+  /* Zero only kills the label beside the glyph -- the glyph sets its own size
+     on the line below, and the text stays in the accessibility tree. */
+  .console header .dock-btn {
+    font-size: 0;
+    gap: 0;
+    padding: 0 0.55rem;
+  }
+
+  .console header .dock-ic {
+    font-size: 1.1rem;
+  }
+
+  /* A long database name shortens instead of pushing the buttons off. */
+  .st-chip {
+    max-width: 38vw;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .tv-head {
+    flex-wrap: wrap;
+  }
+
+  /* iOS Safari zooms the page in when focus enters a control set below 16px,
+     and does not zoom back out when it leaves -- one tap on the query box and
+     the whole app is left magnified. Nothing else here needs the size. */
+  .input textarea,
+  .cat-filter,
+  .tl-speed,
+  .projection-ctl select,
+  .tv-pagesize select,
+  .tv-grid td input,
+  .tv-grid td select {
+    font-size: 16px;
+  }
+}
+
+/* The layers panel is 264px against the right edge and the projection select
+   reaches ~230px in from the left, so below roughly 520px of width the select
+   covers the panel's own "▾ Layers" toggle -- and it has the higher z-index, so
+   the toggle was there but unreachable. No width the select can shrink to fixes
+   that on a 360px screen: 264 + the button + the select does not fit a row. So
+   the panel takes a row of its own, and spans it -- a 264px block floating
+   under a half-width select reads as misplaced, a band reads as a toolbar. On a
+   tablet the two sit side by side with room to spare and neither rule applies. */
+@media (max-width: 520px) {
+  .layers-panel {
+    top: 3.6rem;
+    left: 0.5rem;
+    width: auto;
+  }
+
+  /* And the select gives back what it can: it is a two-item control whose
+     labels are short, so only its padding was making it wide. */
+  .projection-ctl select {
+    padding: 0.25rem 0.3rem;
+  }
 }
