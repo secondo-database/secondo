@@ -123,7 +123,7 @@ def _fake_native(optimizer: bool = True):
                 return OBJECTS
             if command.strip() == "list operators":
                 return OPERATORS_INQUIRY
-            if command.startswith("open database"):
+            if command.startswith(("open database", "close database")):
                 return "()"
             if command == "query mehringdamm":
                 return "(point (9396.0 9871.0))"
@@ -397,6 +397,15 @@ def test_databases_and_open_tracking(client):
     assert "BERLINTEST" in body["databases"]
     assert body["open"] == "berlintest"
     assert body["optimizer"] is True
+
+
+def test_close_database_clears_open(client):
+    """Closing from the console must drop the selection, or the catalog keeps
+    the database highlighted and its objects listed."""
+    client.post("/api/query", json={"command": "open database berlintest"})
+    r = client.post("/api/query", json={"command": "close database"})
+    assert r.status_code == 200
+    assert client.get("/api/databases").json()["open"] is None
 
 
 # --- SQL through the optimizer -------------------------------------------

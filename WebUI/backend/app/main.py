@@ -215,10 +215,16 @@ async def query(
         # open, the SQL failed to optimize, a directive failed), and only its
         # message says which.
         raise HTTPException(status_code=400, detail=str(exc)) from exc
-    # Track the open database so the UI can show it.
+    # Track the open database so the UI can show it. Only these two commands
+    # change which one is open -- `delete` and `restore database` both require
+    # it closed already, so the close they follow has been seen here.
     m = re.match(r"\s*open\s+database\s+(\w+)", req.command, re.IGNORECASE)
     if m:
         session.open_db = m.group(1)
+    elif re.match(r"\s*close\s+database\b", req.command, re.IGNORECASE):
+        # Without this the catalog keeps the database selected and its objects
+        # listed after the user closes it from the console.
+        session.open_db = None
     # `query plz` is a whole stored relation, so it is served as its *first page*
     # rather than as a capped copy of the answer: the rows the cap would have
     # dropped are only ever a Next away, and the table behaves the same before
