@@ -28,102 +28,80 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #ifndef BIGARRAY_H
 #define BIGARRAY_H
 
-#include <iostream>
-#include <fstream>
-#include <exception>
+#include "SecondoConfig.h"   // decides SECONDO_WIN32
+
+#include <cstdint>       // uint64_t (the Win32 branch)
+#include <cstring>       // strerror
+#include <fstream>       // the "already exists" check in newInstance
 #include <string>
-#include <string.h> // memset
-#include <assert.h>
-#include <vector>
-#include "WinUnix.h"
+#include <type_traits>   // the static_asserts below
 
-#ifdef THREAD_SAFE
-#include <boost/thread.hpp>
-#endif
-
-
-
-#include "SecondoException.h"
-#include "LRU.h"
-
-
-
+#include <iostream>
 using std::cout;
 using std::endl;
 
-
-
-
-/*
-1 Definition of ~CastFun~
-
-This function is required to reconstruct virtual function pointers 
-if classes a stored to a big array. 
-
-*/
-
-#ifndef CastFun
-typedef void* (*CastFun)( void* );
+#ifndef SECONDO_WIN32
+#include <fcntl.h>
+#include <sys/mman.h>
+#include <unistd.h>
+#include <cerrno>
+#else
+#include <windows.h>
 #endif
 
 
-inline static void* stdCast(void* arg){
-  return arg;
-}
+#include "SecondoException.h"
 
 
-/*
-2 Auxiliary class ~SlotEntry~
 
-This class is just a combination of value and 
-a flag wether this thing was changed in the last time.
-
-*/
-
-
-template<class A>
-class SlotEntry{
-public:
-   SlotEntry(): index(0), value(), changed(true){}
-
-   SlotEntry(const size_t _index, const A& _value):index(_index), 
-             value(_value), changed(true){}
-   SlotEntry(const size_t _index,const A& _value, const bool _changed): 
-             index(_index),value(_value), changed(_changed){}
-   void set(const A& value){
-      this->value = value;
-      changed = true;
-   }
-
-   void set(const size_t index,const A& value){
-      this->index = index;
-      this->value = value;
-      changed = true;
-   }
-
-   size_t index;
-   A value;
-   bool changed;
-};
 
 
 /*
-3 Class ~BigArray~
+1 Class ~BigArray~
 
 This class provides functionality of an vector. Using ~append~
 it may grow automatically. The class used for the template parameter
 must provide a standard and a copy constructor. Furthermore the class
 must be a compact class of fixed size, i.e., the class cannot have any
-pointer structures. The cast function must be implemented if the used
-template class used virtual functions.
+pointer structures.
+
+The array may be larger than main memory, hence the name. It is backed by a
+temporary file that is *mapped into the address space*, so the operating system
+does the paging: reading an element is one dereference, the kernel's page cache
+decides what stays resident -- sized by how much memory the machine actually has
+-- and dirty pages are written back to the file under memory pressure. The
+mapping grows with the array, and the file is unlinked the moment it is opened,
+so it cannot outlive the process even if that process is killed.
+
+*This class is not thread safe, and no longer tries to be.* It used to take a
+recursive mutex on every access, which was necessary when a read mutated shared
+state -- reading an element could evict a slot, touch the LRU and write a page
+back. Reading is now a dereference and mutates nothing; only ~append~ can move
+the mapping, by growing it.
+
+That leaves ~append~ against a concurrent ~Get~, which is serialized one level
+up instead: ~NestedList~ is the only user of this class, and it takes its own
+recursive mutex in every method before touching a table (~First~, ~Rest~,
+~IsAtom~, ...), so the lock here could never be reached uncontended by a thread
+that was not already serialized. It cost two atomic operations per element
+access on the hottest path in the system for nothing.
+
+A future caller that uses a ~BigArray~ directly from several threads has to
+provide that serialization itself.
 
 */
 
 template<class T>
 class BigArray{
 
-static_assert(!std::is_pointer<T>::value, 
+static_assert(!std::is_pointer<T>::value,
    "Template parameter cannot be a pointer type");
+
+// Elements are assigned over raw mapped storage that no constructor ever ran
+// on. That is what the "compact class of fixed size" requirement above means;
+// this states it in a way the compiler checks.
+static_assert(std::is_trivially_copyable<T>::value,
+   "Elements live in a memory mapping and are assigned over raw storage");
 
   public:
 
@@ -131,10 +109,16 @@ static_assert(!std::is_pointer<T>::value,
 This function returns a new instance of an BigArray. The
 result must be destroyed by the caller.
 
+~slotCacheSize~ is a number of elements, and is now only the *initial* capacity:
+the array grows past it on demand, so it decides how often the mapping has to be
+grown rather than how much may stay in memory. Sizing it generously costs
+nothing but address space -- the file is sparse, so pages nobody touches take
+neither memory nor disk.
+
 */
-    static BigArray* newInstance(const std::string& filename, 
-                                 size_t slotCacheSize, 
-                          bool overwrite, CastFun cast = stdCast){
+    static BigArray* newInstance(const std::string& filename,
+                                 size_t slotCacheSize,
+                          bool overwrite){
       if(!overwrite){
            std::ifstream in(filename.c_str(), std::ios::in);
            if(in.good()){
@@ -142,14 +126,7 @@ result must be destroyed by the caller.
              throw SecondoException("File already exists");
            }
       }
-     std::fstream* out = new std::fstream(filename.c_str(), 
-                               std::ios::in | std::ios::out | std::ios::trunc
-                             | std::ios::binary);
-      if(!out->good()){
-          delete out;
-          throw SecondoException("Could not open file " + filename);
-      }
-      return new BigArray<T>(out, filename,  slotCacheSize, cast);
+      return new BigArray<T>(filename, slotCacheSize);
    }
 
 
@@ -160,19 +137,7 @@ result must be destroyed by the caller.
 */
 
    ~BigArray(){
-      #ifdef THREAD_SAFE
-         boost::lock_guard<boost::recursive_mutex> guard(mtx);
-      #endif
-      file->close(); 
-      delete file;
-      std::remove(fname.c_str());
-      LRUEntry<size_t, char*>* victim;
-      while( (victim = lru.deleteLast())){
-           delete[] victim->value;
-           delete victim;
-      }
-
-
+      closeStorage();   // which is also what deletes the file; see openStorage
    }
 
 /*
@@ -182,14 +147,11 @@ Returns the number of elements within the array.
 
 */
     size_t NoEntries() {
-      #ifdef THREAD_SAFE
-         boost::lock_guard<boost::recursive_mutex> guard(mtx);
-      #endif
       return size;
     }
 
     bool IsValid(const size_t index) const{
-      return (index > 0) && (index <= size); 
+      return (index > 0) && (index <= size);
     }
 
 
@@ -209,9 +171,6 @@ Returns the element at a specified position.
 
 */
     T operator[](const size_t index) {
-      #ifdef THREAD_SAFE
-         boost::lock_guard<boost::recursive_mutex> guard(mtx);
-      #endif
         T res;
         if(!Get(index,res)){
             throw SecondoException("Array index out of bounds");
@@ -233,22 +192,13 @@ Replaces an existing element.
 /*
 ~EmptySlot~
 
-A static assert in the class ensures that T is a non-pointer. So, 
-the variable 't' is initialized at this point.
+Appends a slot for the caller to fill in, and returns its index.
 
 */
-
-#if defined(__GNUC__) && !defined(__clang__) 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
-#endif
    size_t EmptySlot(){
-      T t;
+      T t{};
       return  append(t);
    }
-#if defined(__GNUC__) && !defined(__clang__) 
-#pragma GCC diagnostic pop
-#endif
 
 /*
 ~append~
@@ -258,249 +208,262 @@ Appends a new element at the end of the array.
 */
     size_t append(const T& value);
 
-    
+
   private:
-     std::vector<SlotEntry<T> > cache; // cache
-     size_t cacheSize;                 // maximum size of cache
-     std::fstream* file;               // background storage
-     std::string fname;                // file name of background storage
-     size_t size;                      // current number of elements
-     CastFun cast;                     // cast function
-     const size_t pagesize;
-     size_t entriesPerPage;
-     LRU<size_t, char*> lru;
-     size_t pagesInFile;
+     std::string fname;      // file name of background storage
+     size_t size;            // current number of elements
+     char* base;             // the mapping, or 0 while there is none
+     size_t mapped;          // its length in bytes
+     size_t capacity;        // elements that fit without regrowing
+     size_t pagesize;        // the *operating system's* page size
 
-
-#ifdef THREAD_SAFE
-   boost::recursive_mutex mtx;          // a mutex
+#ifndef SECONDO_WIN32
+     int fd;                 // background storage
+#else
+     HANDLE hFile;           // background storage
+     HANDLE hMap;            // its current file mapping object
 #endif
 
 
 /*
 Constructor
 
+~WinUnix::getPageSize~ is deliberately not used here: it answers with a fixed
+4096 so that database files stay portable across machines, while a mapping has
+to be told about the page size the machine really has (16384 on Apple Silicon).
+
 */
-     BigArray(std::fstream* _out, const std::string& _fname, 
-              size_t  _cacheSize, CastFun _cast): cache(),
-         cacheSize(_cacheSize),file(_out), fname(_fname),
-         size(0), cast(_cast), pagesize(WinUnix::getPageSize()*4), 
-         entriesPerPage(0), lru(8), pagesInFile(0)
+     BigArray(const std::string& _fname, size_t _initialEntries)
+       : fname(_fname), size(0), base(0), mapped(0), capacity(0),
+         pagesize(0)
+#ifndef SECONDO_WIN32
+       , fd(-1)
+#else
+       , hFile(INVALID_HANDLE_VALUE), hMap(0)
+#endif
      {
-        if(cacheSize<100){ // ensure a minimum cache size
-           cacheSize = 100;
+        pagesize = systemPageSize();
+        openStorage();
+        try {
+          // Sized up front so the common case never has to regrow.
+          grow(_initialEntries > 0 ? _initialEntries : 1);
+        } catch(...) {
+          closeStorage();
+          throw;
         }
-        assert(sizeof(T) <= pagesize);
-        entriesPerPage = pagesize / (sizeof(T));
-        assert(entriesPerPage > 1);
-        entriesPerPage--;
      }
 
-     void retrieve(const size_t arrayIndex);
+/*
+~grow~
 
-     void save(const size_t cacheIndex); 
+Makes room for at least ~entries~ elements, rounded up to whole pages.
 
-     void bringToPageCache(const size_t pageNo, const size_t offset, 
-                           const char* content, const size_t size);
-
-     char* ensurePageInCache(const size_t pageNo);
-
-     void use(size_t pageNo, char* page);
-
-
-     size_t filesize(){
-         file->seekg(0,std::ios_base::end);
-         return file->tellg();
+*/
+     void grow(const size_t entries){
+        if(entries <= capacity){
+          return;
+        }
+        size_t bytes = entries * sizeof(T);
+        bytes = ((bytes + pagesize - 1) / pagesize) * pagesize;
+        mapAtLeast(bytes);
+        capacity = mapped / sizeof(T);
      }
+
+     T* elements(){ return (T*) base; }
+
+
+/*
+The three operations that differ between platforms. Everything above is written
+in terms of them, so both platforms run the same logic.
+
+Each of them leaves the array usable if it fails: ~mapAtLeast~ in particular
+puts the new mapping in place before taking the old one down, so a failed
+growth throws with the data still mapped and reachable.
+
+*/
+
+#ifndef SECONDO_WIN32
+
+     static size_t systemPageSize(){
+        const long ps = ::sysconf(_SC_PAGESIZE);
+        return ps > 0 ? (size_t) ps : 4096;
+     }
+
+     void openStorage(){
+        fd = ::open(fname.c_str(), O_RDWR | O_CREAT | O_TRUNC, 0600);
+        if(fd < 0){
+          throw SecondoException("Could not open file " + fname + ": "
+                                 + strerror(errno));
+        }
+        // Deleted straight away: the descriptor and the mapping keep the inode
+        // alive for exactly as long as this array needs it, and the kernel
+        // reclaims it however this process ends. Deleting in the destructor
+        // instead meant that a crash, a kill or a power cut left the file
+        // behind.
+        ::unlink(fname.c_str());
+     }
+
+     void mapAtLeast(const size_t bytes){
+        if(::ftruncate(fd, (off_t) bytes) != 0){
+          throw SecondoException("Could not extend file " + fname + ": "
+                                 + strerror(errno));
+        }
+        void* p;
+#ifdef __linux__
+        // Preferred where it exists: it leaves the old mapping in place if it
+        // fails, where unmapping first would lose the array.
+        p = base ? ::mremap(base, mapped, bytes, MREMAP_MAYMOVE)
+                 : ::mmap(0, bytes, PROT_READ | PROT_WRITE,
+                          MAP_SHARED | MAP_NORESERVE, fd, 0);
+#else
+        p = ::mmap(0, bytes, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+        if(p != MAP_FAILED && base){
+          ::munmap(base, mapped);
+        }
+#endif
+        if(p == MAP_FAILED){
+          throw SecondoException("Could not map file " + fname + ": "
+                                 + strerror(errno));
+        }
+        base = (char*) p;
+        mapped = bytes;
+     }
+
+     void closeStorage(){
+        if(base){
+          ::munmap(base, mapped);
+          base = 0;
+          mapped = 0;
+        }
+        if(fd >= 0){
+          ::close(fd);
+          fd = -1;
+        }
+     }
+
+#else
+
+/*
+The Windows equivalents. ~CreateFileMapping~ extends the file to the requested
+size by itself, so there is no separate step for that, and there is no
+~mremap~: growing means a second mapping object over the same file, which is
+created and mapped before the old view is taken down.
+
+FILE\_FLAG\_DELETE\_ON\_CLOSE is how the POSIX branch's ~unlink~ is spelled here:
+the file goes away once the last handle closes, however the process ends. It
+needs FILE\_SHARE\_DELETE to be allowed at all. FILE\_ATTRIBUTE\_TEMPORARY asks
+Windows to avoid writing pages back while it has the memory to hold them, which
+is what this file is for.
+
+*/
+
+     static size_t systemPageSize(){
+        SYSTEM_INFO si;
+        ::GetSystemInfo(&si);
+        return si.dwPageSize > 0 ? (size_t) si.dwPageSize : 4096;
+     }
+
+     static std::string lastError(){
+        return "error " + std::to_string((unsigned long) ::GetLastError());
+     }
+
+     void openStorage(){
+        hFile = ::CreateFileA(fname.c_str(),
+                              GENERIC_READ | GENERIC_WRITE,
+                              FILE_SHARE_READ | FILE_SHARE_WRITE
+                                | FILE_SHARE_DELETE,
+                              0, CREATE_ALWAYS,
+                              FILE_ATTRIBUTE_TEMPORARY
+                                | FILE_FLAG_DELETE_ON_CLOSE, 0);
+        if(hFile == INVALID_HANDLE_VALUE){
+          throw SecondoException("Could not open file " + fname + ": "
+                                 + lastError());
+        }
+     }
+
+     void mapAtLeast(const size_t bytes){
+        const uint64_t want = (uint64_t) bytes;
+        HANDLE newMap = ::CreateFileMappingA(hFile, 0, PAGE_READWRITE,
+                                             (DWORD) (want >> 32),
+                                             (DWORD) (want & 0xFFFFFFFFull),
+                                             0);
+        if(newMap == 0){
+          throw SecondoException("Could not extend file " + fname + ": "
+                                 + lastError());
+        }
+        void* p = ::MapViewOfFile(newMap, FILE_MAP_ALL_ACCESS, 0, 0,
+                                  (SIZE_T) bytes);
+        if(p == 0){
+          const std::string why = lastError();
+          ::CloseHandle(newMap);
+          throw SecondoException("Could not map file " + fname + ": " + why);
+        }
+        // Only now that the new view exists is the old one given up.
+        if(base){
+          ::UnmapViewOfFile(base);
+        }
+        if(hMap){
+          ::CloseHandle(hMap);
+        }
+        hMap = newMap;
+        base = (char*) p;
+        mapped = bytes;
+     }
+
+     void closeStorage(){
+        if(base){
+          ::UnmapViewOfFile(base);
+          base = 0;
+          mapped = 0;
+        }
+        if(hMap){
+          ::CloseHandle(hMap);
+          hMap = 0;
+        }
+        if(hFile != INVALID_HANDLE_VALUE){
+          ::CloseHandle(hFile);
+          hFile = INVALID_HANDLE_VALUE;
+        }
+     }
+
+#endif
 
 };
 
 
 template<class T>
 size_t BigArray<T>::append(const T& value){
-    #ifdef THREAD_SAFE
-       boost::lock_guard<boost::recursive_mutex> guard(mtx);
-    #endif
-    // no problem, use cache
-    if(cache.size() < cacheSize){
-       cache.push_back(SlotEntry<T>(size,value));
-       size++;
-       return size;
+    if(size == capacity){
+       grow(capacity * 2);
     }
+    elements()[size] = value;
     size++;
-    Put(size, value);
     return size;
 }
 
 template<class T>
 bool BigArray<T>::Get(size_t index1, T& result){
     size_t index = index1;
-    #ifdef THREAD_SAFE
-       boost::lock_guard<boost::recursive_mutex> guard(mtx);
-    #endif
    if((index > size) || (index < 1)){
-     cout << "index = " << index << ", size = " << size << endl;
-     throw SecondoException("get: array index out of bounds");
+     throw SecondoException("get: array index out of bounds: index = "
+                            + std::to_string(index) + ", size = "
+                            + std::to_string(size));
    }
-   index--;
-   retrieve(index);
-   size_t vindex = index % cacheSize;
-   result =  cache[vindex].value;
+   result = elements()[index-1];
    return true;
 }
-
 
 
 template<class T>
 void BigArray<T>::Put(size_t index1, const T& value){
   size_t index = index1;
-  #ifdef THREAD_SAFE
-     boost::lock_guard<boost::recursive_mutex> guard(mtx);
-  #endif
    if((index < 1) || (index > size)){
-     cout << "index = " << index << ", size = " << size << endl;
-     throw SecondoException("put: array index out of bounds");
+     throw SecondoException("put: array index out of bounds: index = "
+                            + std::to_string(index) + ", size = "
+                            + std::to_string(size));
    }
-   index--;
-   size_t vindex = index % cacheSize;
-
-   if(cache[vindex].index == index){
-     // overwrite the value in cache
-      cache[vindex].value = value;
-      cache[vindex].changed = true;
-      return;
-   }
-   save(vindex);
-   cache[vindex] = SlotEntry<T>(index,value);
+   elements()[index-1] = value;
 }
-
-
-template<class T>
-void BigArray<T>::save(size_t cacheIndex){
-   if(!cache[cacheIndex].changed){
-     // already in the same form on disk
-     return;
-   }
-
-   size_t arrayIndex = cache[cacheIndex].index;
-   T arrayEntry = cache[cacheIndex].value;
-   size_t pageNo = arrayIndex / entriesPerPage;
-   size_t posOnPage = arrayIndex % entriesPerPage;
-   size_t offset  = posOnPage * sizeof(T);
-   bringToPageCache(pageNo, offset, (char*) &arrayEntry, sizeof(T));
-}
-
-
-template<class T>
-void BigArray<T>::retrieve(size_t arrayIndex){
-  size_t vindex = arrayIndex%cacheSize;
-  if(cache[vindex].index==arrayIndex){
-    // in main cache
-    return;
-  }
-  // store the old value to disk
-  save(vindex);
-
-  size_t pageNo = arrayIndex / entriesPerPage;
-
-  char* page = ensurePageInCache(pageNo);
-
-  size_t posOnPage = arrayIndex % entriesPerPage;
-  size_t offset  = posOnPage * sizeof(T);
-
-  cache[vindex].changed = false;
-  cache[vindex].index = arrayIndex;
-
-  T* entry =(T*) (page + offset);
-  cache[vindex] = SlotEntry<T>(arrayIndex,*entry);
-
-}
-
-
-template<class T>
-void BigArray<T>::bringToPageCache(const size_t pageNo, const size_t offset, 
-                                   const char* content, const size_t size){
-    char** pagePtr = lru.get(pageNo);
-    if(pagePtr != 0){
-       memcpy( (*pagePtr) + offset, content, size);
-       return;
-    }
-
-    // create new page having given pageno
-    char* page;
-
-    if(pagesInFile > pageNo){ // data already on disk, get from thereA
-        page = new char[pagesize];
-        file->seekg(pageNo*pagesize);
-        file->read(page, pagesize);
-    } else {
-        page = new char[pagesize]; 
-        // memset(page,0,pagesize); not necessary
-    }
-    memcpy(page+offset, content, size);
-
-    // bring new page to cache
-    use(pageNo, page);
-}
-
-template<class T>
-char* BigArray<T>::ensurePageInCache(size_t pageNo){
-
-   char** pagePtr = lru.get(pageNo);
-   if(pagePtr){
-      return *pagePtr;
-   }
-
-   char* page = new char[pagesize];
-   if(pagesInFile > pageNo){ // data already on disk, get from there
-      file->seekg(pageNo*pagesize);
-      file->read(page, pagesize);
-      assert((size_t)file->tellg() == (pageNo+1) * pagesize);
-   } else {
-      //memset(page,0,pagesize);
-   }
-   use(pageNo, page);
-   return page;
-}
-
-template<class T> 
-void BigArray<T>::use(size_t pageNo, char* page){
-
-    LRUEntry<size_t, char*>* victim = lru.use(pageNo, page);
-
-
-    if(victim){
-       if(victim->key <=  pagesInFile){
-          file->seekp(victim->key*pagesize);
-       } else { // fill file with dummy pages
-
-          file->seekp(pagesInFile*pagesize);
-          char* emptypage = new char[pagesize];
-          memset(emptypage,0,pagesize);
-          while(pagesInFile < victim->key){
-             file->write(emptypage, pagesize);
-             pagesInFile++;
-          }
-          delete[] emptypage;
-       }
-       // write content of victim to file
-       file->write(victim->value,pagesize);
-
-       pagesInFile = std::max(victim->key + 1, pagesInFile);
-
-
-       delete[] victim->value;
-       delete victim;
-    }
-
-
-
-
-}
-
-
 
 
 #endif
-
-

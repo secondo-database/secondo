@@ -54,6 +54,15 @@ jobs:
       - name: Show ccache statistics (after build)
         run: ccache -s
 
+      # The C++ unit tests are not part of `make`, and run-tests.sh below only
+      # drives the TTY level suites -- so nothing was exercising the nested list
+      # storage layer directly. tnestedlist covers the atom types, CopyList and
+      # the ToString round trip, and exits with its error count.
+      - name: Test the nested list storage layer
+        run: |
+          make -C Tests tnestedlist
+          Tests/tnestedlist
+
       - name: Test SECONDO
         run: |
           cd CM-Scripts/; ./run-tests.sh -tty /tmp/secondotest 12000
@@ -320,6 +329,15 @@ jobs:
 
       - name: Show ccache statistics (after build)
         run: ccache -s
+
+      # The C++ unit tests are not part of `make`, and run-tests.sh below only
+      # drives the TTY level suites -- so nothing was exercising the nested list
+      # storage layer directly. tnestedlist covers the atom types, CopyList and
+      # the ToString round trip, and exits with its error count.
+      - name: Test the nested list storage layer
+        run: |
+          make -C Tests tnestedlist
+          Tests/tnestedlist
 
       - name: Test SECONDO
         run: |

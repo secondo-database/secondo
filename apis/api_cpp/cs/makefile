@@ -13,7 +13,11 @@ HEADERS1=$$($(CPPC) -MM -Wno-deprecated  -I$(INCL) -I$(LAT) $(Interface1) $(DEFA
 DEPS1=$(HEADERS1)
 
 
-HEADERS2=$$($(CPPC) -MM -Wno-deprecated -D CTABLE_PERSISTENT -D SECONDO_WIN32 -I$(INCL) -I$(LAT) $(Interface1) $(DEFAULTCCFLAGS) | sed "s/.*://"  | sed -e 's/\\//g' | sort | uniq | tr -d "\n"    )
+ifeq ($(platform),win32)
+USEWIN:=-D SECONDO_WIN32
+endif
+
+HEADERS2=$$($(CPPC) -MM -Wno-deprecated -D CTABLE_PERSISTENT $(USEWIN) -I$(INCL) -I$(LAT) $(Interface1) $(DEFAULTCCFLAGS) | sed "s/.*://"  | sed -e 's/\\//g' | sort | uniq | tr -d "\n"    )
 DEPS2=$(HEADERS2)
 
 

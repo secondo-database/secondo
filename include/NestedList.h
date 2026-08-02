@@ -245,6 +245,13 @@ works with both implementaions.
 #include <errno.h>
 #include <float.h>
 
+#include <algorithm>
+#include <iostream>
+#include <set>
+#include <sstream>
+#include <string>
+#include <vector>
+
 #include "../Tools/BigArray/BigArray.h"
 
 #ifdef THREAD_SAFE
@@ -846,7 +853,7 @@ A wrapper for ~WriteToString~ which directly returns a string object.
 */
 
   void WriteListExpr( const ListExpr list,
-                      std::ostream& ostr = cout,
+                      std::ostream& ostr = std::cout,
                       const bool toScreen = true,
                       const int offset=4 );
 
