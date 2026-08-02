@@ -118,6 +118,22 @@ try {
     `the four objects are previewed with their kinds (${JSON.stringify(preview)})`
   );
 
+  // The commands are folded away, not absent: what the four rows above will
+  // actually run is readable before pressing Import.
+  check(
+    await page.$eval(".gpx-cmds", (el) => !el.open),
+    "the commands start collapsed"
+  );
+  await page.click(".gpx-cmds > summary");
+  const cmds = await page.$$eval(".gpx-cmds li code", (els) =>
+    els.map((e) => e.textContent.trim())
+  );
+  check(
+    cmds.length === 4 && cmds[0].startsWith(`let ${NAME} = gpximport(`),
+    `unfolding shows the four commands (${cmds[0] ?? "none"})`
+  );
+  await page.click(".gpx-cmds > summary");
+
   // The Import button is only enabled once the upload has landed a path.
   await page.waitForFunction(
     () => {

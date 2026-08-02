@@ -269,6 +269,29 @@ export function GpxImportDialog({
                     );
                   })}
                 </ol>
+
+                {/* The same four commands the console will show, but here
+                    before they run and next to the objects they create --
+                    folded away, because the import is meant to be usable
+                    without reading them, and unfolded by anyone who wants to
+                    know what `gpximport` is being handed or to type the
+                    pipeline again by hand. */}
+                <details className="gpx-cmds">
+                  <summary>Commands</summary>
+                  <ol>
+                    {PLAN.map((step, i) => (
+                      <li key={step.suffix}>
+                        <code>{step.command(name, path ?? "…")}</code>
+                        {i === 0 && path === null && !uploadError && (
+                          <span className="gpx-cmds-note">
+                            {" "}
+                            (the path is filled in when the upload lands)
+                          </span>
+                        )}
+                      </li>
+                    ))}
+                  </ol>
+                </details>
               </>
             )}
           </>

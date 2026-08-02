@@ -762,6 +762,66 @@ body.dragging {
   color: var(--err-text);
 }
 
+/* The commands behind the four rows above, folded away. Closed it is one more
+   muted line under the steps; open it is the pipeline verbatim. */
+.gpx-cmds {
+  margin-top: 0.5rem;
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+
+/* A full-width target rather than the width of the word: the summary is the
+   only way to open this, and it sits between two things that are clicked. */
+.gpx-cmds > summary {
+  cursor: pointer;
+  padding: 0.3rem 0.1rem;
+  min-height: 24px;
+  color: var(--text-2);
+  list-style-position: inside;
+  user-select: none;
+}
+
+.gpx-cmds > summary:hover {
+  color: var(--text);
+}
+
+.gpx-cmds > summary:focus-visible {
+  outline: 1px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Numbered to line up with the four steps above -- the nth command is what
+   makes the nth object. */
+.gpx-cmds > ol {
+  margin: 0.15rem 0 0;
+  padding: 0.45rem 0.55rem 0.45rem 1.6rem;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.gpx-cmds li {
+  color: var(--faint);
+}
+
+/* Wrapped, not scrolled: these are long enough to run off a 28rem dialog, and
+   a command that is half hidden is not worth unfolding. */
+.gpx-cmds code {
+  color: var(--text-2);
+  font-family: ui-monospace, Menlo, monospace;
+  font-size: 0.72rem;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.gpx-cmds-note {
+  color: var(--faint);
+}
+
 .gpx-actions {
   display: flex;
   justify-content: flex-end;
