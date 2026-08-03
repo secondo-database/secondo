@@ -101,6 +101,39 @@ jobs:
         # make does not build.
         run: make -C apis/api_cpp/cs
 
+      # -----------------------------------------------------------------------
+      # tnestedlist above drives one thread, and csloadtest's `parse` mode gives
+      # every thread a NestedList of its own -- so nothing was covering several
+      # threads on *one* list, which is what NestedList's recursive mutex exists
+      # for and what the running system actually does: Distributed2 copies each
+      # worker's result into the global list (ConnectionInfo::simpleCommand) and
+      # reads it back, and every Out function an operator runs in a worker
+      # thread uses the global nl too.
+      #
+      # Plain first, because the value checks catch corruption on their own;
+      # then under ThreadSanitizer, which catches the unsynchronized access
+      # before it corrupts anything. Needs no server, so it runs here rather
+      # than with the connection tests further down.
+      #
+      # --list-mem is what makes this reach the storage layer: it sizes the
+      # tables to a single page, so BigArray runs out of room within the first
+      # rounds and has to ftruncate and mremap while the other threads are
+      # reading through the mapping it is moving. At the default sizes the
+      # whole workload fits in the mapping made at construction and never grows
+      # it once. The run prints how far the node table grew and fails if it did
+      # not outgrow that first mapping, so this cannot lapse unnoticed.
+      # -----------------------------------------------------------------------
+      - name: Test concurrent access to one nested list
+        working-directory: Tests/csloadtest
+        timeout-minutes: 10
+        run: |
+          make
+          ./app --mode shared --threads 8 --rounds 5 --list-mem 1
+          make tsan-check-sources
+          make tsan
+          TSAN_OPTIONS="halt_on_error=0 history_size=4" \
+            ./app-tsan --mode shared --threads 4 --rounds 2 --list-mem 1
+
       - name: Setup Node
         uses: actions/setup-node@v7
         with:
@@ -229,12 +262,17 @@ jobs:
       # -----------------------------------------------------------------------
       - name: Test concurrent client connections
         working-directory: Tests/csloadtest
+        # These two drive a server over a socket, so a wedged connection hangs
+        # rather than fails; and see the cap on the nested-list step above for
+        # how a sanitizer run can spin instead of reporting.
+        timeout-minutes: 10
         run: |
           make
           ./app --db berlintest --threads 10 --rounds 5 --expect-binary
 
       - name: Test concurrent client connections under ThreadSanitizer
         working-directory: Tests/csloadtest
+        timeout-minutes: 10
         run: |
           # Fails if the list of instrumented sources has drifted from the
           # archive: an object we forget to instrument makes TSan quietly blind.

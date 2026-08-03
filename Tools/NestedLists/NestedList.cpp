@@ -693,6 +693,9 @@ NestedList::Destroy(ListExpr& list )
 }
 
 void NestedList::IncReferences(ListExpr& list){
+#ifdef THREAD_SAFE
+   boost::lock_guard<boost::recursive_mutex> guard1(mtx);
+#endif
   if(list){
      NodeRecord node;
      nodeTable->Get(list, node);
