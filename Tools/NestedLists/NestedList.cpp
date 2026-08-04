@@ -337,6 +337,13 @@ NestedList::initializeListMemory()
                                                    textEntries,true);
 
    typeError = SymbolAtom("typeerror");
+   // Handed to every caller of TypeError(), so nothing may write to it again.
+   {
+     NodeRecord te;
+     nodeTable->Get(typeError, te);
+     te.references = IMMORTAL_REFERENCES;
+     nodeTable->Put(typeError, te);
+   }
    errorList = OneElemList( SymbolAtom("ERRORS") );
 }
 
@@ -477,20 +484,24 @@ NestedList::Cons( const ListExpr left, const ListExpr right,
   if ( ! IsEmpty( left ) )
   {
     nodeTable->Get(left, tmpNodeVal);
-    tmpNodeVal.isRoot = 0;
-    if(incRefs){
-       tmpNodeVal.references++;
+    if(!isImmortal(tmpNodeVal)){
+      tmpNodeVal.isRoot = 0;
+      if(incRefs){
+         tmpNodeVal.references++;
+      }
+      (*nodeTable).Put(left, tmpNodeVal);
     }
-    (*nodeTable).Put(left, tmpNodeVal);
   }
   if ( !IsEmpty( right ) )
   {
     (*nodeTable).Get(right, tmpNodeVal);
-    if(incRefs){
-      tmpNodeVal.references++;
+    if(!isImmortal(tmpNodeVal)){
+      if(incRefs){
+        tmpNodeVal.references++;
+      }
+      tmpNodeVal.isRoot = 0;
+      (*nodeTable).Put(right, tmpNodeVal);
     }
-    tmpNodeVal.isRoot = 0;
-    (*nodeTable).Put(right, tmpNodeVal);
   }
 
   return (newNode);
@@ -534,11 +545,13 @@ NestedList::Append ( const ListExpr lastElem,
 
     NodeRecord newSonRec;
     (*nodeTable).Get(newSon, newSonRec);
-    newSonRec.isRoot = 0;
-    if(incRef){
-      newSonRec.references++;
+    if(!isImmortal(newSonRec)){
+      newSonRec.isRoot = 0;
+      if(incRef){
+        newSonRec.references++;
+      }
+      (*nodeTable).Put(newSon, newSonRec);
     }
-    (*nodeTable).Put(newSon, newSonRec);
   }
   return (newNode);
 }
@@ -570,6 +583,9 @@ void NestedList::DestroyRec(ListExpr& list){
   case RealType     : {
                       NodeRecord root; 
                       nodeTable->Get(list, root);
+                      if(isImmortal(root)){
+                        return;
+                      }
                       assert(root.references>0);
                       root.references--;
                       if(root.references>0){
@@ -582,6 +598,9 @@ void NestedList::DestroyRec(ListExpr& list){
   case StringType   : { 
                       NodeRecord root; 
                       nodeTable->Get(list, root);
+                      if(isImmortal(root)){
+                        return;
+                      }
                       assert(root.references>0);
                       root.references--;
                       if(root.references>0){
@@ -597,6 +616,9 @@ void NestedList::DestroyRec(ListExpr& list){
   case TextType     : {
                       NodeRecord root; 
                       nodeTable->Get(list, root);
+                      if(isImmortal(root)){
+                        return;
+                      }
                       assert(root.references>0);
                       root.references--;
                       if(root.references>0){
@@ -609,6 +631,9 @@ void NestedList::DestroyRec(ListExpr& list){
   case NoAtom        : {
                          NodeRecord root; 
                          nodeTable->Get(list, root);
+                         if(isImmortal(root)){
+                            return;
+                         }
                          assert(root.references>0);
                          root.references--;
                          if(root.references>0){
@@ -632,6 +657,9 @@ void NestedList::DestroyRec(ListExpr& list){
                          while(scan){
                             NodeRecord node;
                             nodeTable->Get(scan, node);
+                            if(isImmortal(node)){
+                               break;
+                            }
                             assert(node.references>0);
                             node.references--;
                             if(node.references>0){
@@ -680,6 +708,9 @@ void NestedList::IncReferences(ListExpr& list){
   if(list){
      NodeRecord node;
      nodeTable->Get(list, node);
+     if(isImmortal(node)){
+       return;
+     }
      assert(node.references>0); 
      node.references++;
      nodeTable->Put(list,node);

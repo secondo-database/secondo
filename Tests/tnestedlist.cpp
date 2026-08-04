@@ -277,6 +277,57 @@ TestSharedTailDestroy(CTestFrame& t)
 
 /*
 
+The cached ~typeerror~ node survives being handed around.
+
+Every type mapping in the system returns `nl->TypeError()`, which is one node
+index shared by every caller and every thread. Putting it into a list used to
+be a read-modify-write on that node -- lower its isRoot, raise its count -- and
+no discipline on the caller's part could make two threads doing that at once
+safe, because they are not co-operating and do not know about each other.
+
+It is marked immortal instead, so nothing writes it at all. This checks the
+consequences: the count does not move however many lists it goes into, the node
+survives those lists being destroyed, and it is still the same node afterwards
+-- two call sites in DBService compare against it by identity.
+
+*/
+
+void
+TestImmortalTypeError(CTestFrame& t)
+{
+   NestedList nl;
+
+   t.TestCase("The cached typeerror node is never written");
+
+   const ListExpr te = nl.TypeError();
+   const uint32_t before = nl.ReferenceCount(te);
+
+   ListExpr l1 = nl.OneElemList(te);
+   ListExpr l2 = nl.TwoElemList(te, nl.IntAtom(7));
+   ListExpr l3 = nl.Cons(nl.IntAtom(8), nl.OneElemList(te));
+   ListExpr again = te;
+   nl.IncReferences(again);                    // the explicit path, too
+
+   cout << "*** references before=" << before
+        << " after building three lists=" << nl.ReferenceCount(te) << endl;
+
+   t.CheckResult("the count does not move when it is put into lists",
+                 nl.ReferenceCount(te) == before, true);
+
+   nl.Destroy(l1);
+   nl.Destroy(l2);
+   nl.Destroy(l3);
+
+   t.CheckResult("the count does not move when those lists are destroyed",
+                 nl.ReferenceCount(te) == before, true);
+   t.CheckResult("it is still the same node", nl.TypeError() == te, true);
+   t.CheckResult("and still reads as typeerror",
+                 nl.IsEqual(nl.TypeError(), "typeerror"), true);
+}
+
+
+/*
+
 The next functions contain code which is extraced from
 the secondo system to isolate bugs.
 
@@ -878,6 +929,8 @@ TestRun_Persistent() {
    TestNLCopy();
 
    TestSharedTailDestroy(*this);
+
+   TestImmortalTypeError(*this);
    
    //cout << "Commit: " 
    //<< SmiEnvironment::CommitTransaction() << endl;

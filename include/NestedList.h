@@ -424,6 +424,23 @@ A text entry is represented as a simple linked list of text chunks.
 
 */
 
+/*
+A node whose ~references~ is ~IMMORTAL\_REFERENCES~ belongs to everybody and to
+nobody. It is one of the handful the list hands out from a cache -- ~TypeError~
+is the one that matters, returned by every type mapping in the system -- so
+every thread holds the same node index, and no discipline on the caller's part
+can stop two of them updating it at once.
+
+The point is not that the update is made safe but that it never happens: a node
+marked this way is never written. ~Cons~ and ~Append~ leave it alone instead of
+lowering its ~isRoot~ and raising its count, ~IncReferences~ ignores it, and
+~Destroy~ walks past it. Reading it is safe because nothing writes it, which is
+a stronger guarantee than any atomic on the count would give -- the update is
+not a bare increment but a read, a copy, and a write-back of the whole record.
+
+*/
+const uint32_t IMMORTAL_REFERENCES = UINT32_MAX;
+
 struct NodeRecord
 {
   NodeRecord();
@@ -1095,6 +1112,13 @@ There are corresponding procedures to get typed values from atoms:
 */
 
  ListExpr TypeError() const { return typeError; }
+/*
+Note that this is a *shared* node, the same index for every caller and every
+thread -- comparing a result against it by identity is meaningful and two call
+sites do. It is marked ~IMMORTAL\_REFERENCES~ so that handing it around cannot
+write to it; see there.
+
+*/
  ListExpr& GetErrorList() { return errorList; }
 
 /*
@@ -1302,6 +1326,14 @@ finding it wrong.
 
 
   void DestroyRec( ListExpr& list );
+
+/*
+Whether a node is one of the shared cached ones. See ~IMMORTAL\_REFERENCES~.
+
+*/
+  static bool isImmortal(const NodeRecord& node){
+    return node.references == IMMORTAL_REFERENCES;
+  }
 
   void DeleteListMemory(); 
 
