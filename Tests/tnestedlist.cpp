@@ -78,12 +78,10 @@ struct IntPairs {
 void reportTableSizes(const std::string& name, NestedList& nl){
   cout << "---------  " << name << "  ----------" << endl;
   cout << " used list storage " << endl;
-  cout << "Nodes   : " << nl.sizeOfNodeTable()   
-       << " (" << nl.freeNodes() << " free )" << endl;
-  cout << "Strings : " << nl.sizeOfStringTable() 
-       << " (" << nl.freeStrings() << " free )" << endl;
-  cout << "Texts   : " << nl.sizeOfStringTable() 
-       << " (" << nl.freeTexts() << " free )" << endl;
+  cout << "Nodes   : " << nl.sizeOfNodeTable()
+       << " (in " << nl.chunksOfNodeTable() << " chunks)" << endl;
+  cout << "Strings : " << nl.sizeOfStringTable() << endl;
+  cout << "Texts   : " << nl.sizeOftextTable() << endl;
   cout << "----------------------------" << endl << endl; 
 }
 

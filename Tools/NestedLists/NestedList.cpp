@@ -191,20 +191,6 @@ ostream& operator<<(ostream& out, const NodeRecord& nr){
 
 
 
-template<class Array>
-Cardinal emptySlot(Array& a, set<Cardinal>& freeSlots){
-   if(freeSlots.empty()){
-     return a.EmptySlot();
-   } 
-   set<Cardinal>::iterator it = freeSlots.begin();
-   Cardinal res = *it;
-   freeSlots.erase(it);
-   return res;
-}
-
-
-
-
 /*
 This constant defines whether the ~Destroy~ method really destroys a
 nested list. Only if ~doDestroy~ is ~true~, nested lists are destroyed.
@@ -318,9 +304,6 @@ NestedList::DeleteListMemory()
      delete textTable;
      textTable = 0;
    }
-   freeNodeSlots.clear();
-   freeStringSlots.clear();
-   freeTextSlots.clear();
 }
 
 
@@ -479,7 +462,7 @@ NestedList::Cons( const ListExpr left, const ListExpr right,
 #endif
   assert( !IsAtom( right ) );
 
-  Cardinal newNode = emptySlot(*nodeTable, freeNodeSlots);
+  Cardinal newNode = nodeTable->EmptySlot();
 
   // concatenate nodes
   NodeRecord tmpNodeVal;
@@ -532,7 +515,7 @@ NestedList::Append ( const ListExpr lastElem,
   NodeRecord lastElemNodeRec;
   (*nodeTable).Get(lastElem, lastElemNodeRec);
 
-  Cardinal newNode = emptySlot(*nodeTable, freeNodeSlots);
+  Cardinal newNode = nodeTable->EmptySlot();
 
   NodeRecord newNodeRec;
   (*nodeTable).Get(newNode, newNodeRec);
@@ -591,9 +574,7 @@ void NestedList::DestroyRec(ListExpr& list){
                       root.references--;
                       if(root.references>0){
                          nodeTable->Put(list,root);
-                         return;
                       }
-                      freeNodeSlots.insert(list);
                       }
                       break;
 
@@ -605,22 +586,10 @@ void NestedList::DestroyRec(ListExpr& list){
                       root.references--;
                       if(root.references>0){
                          nodeTable->Put(list,root);
-                         return;
                       }
-                      freeNodeSlots.insert(list);
-                      if(!root.inLine){
-                        Cardinal next = root.s.first;
-                        root.s.first = 0;
-                        while(next){
-                           StringRecord sr;
-                           stringTable->Get(next,sr);
-                           freeStringSlots.insert(next);
-                           Cardinal last = next;
-                           next = sr.next;
-                           sr.next = 0;
-                           stringTable->Put(last, sr);
-                        }
-                      }  
+                      // The chain of string fragments hanging off this node is
+                      // simply left behind: it was walked only to hand each
+                      // fragment back to the free set.
                       }
                       break;
 
@@ -632,20 +601,8 @@ void NestedList::DestroyRec(ListExpr& list){
                       root.references--;
                       if(root.references>0){
                          nodeTable->Put(list,root);
-                         return;
                       }
-                      Cardinal next = root.t.start;
-                      root.t.start = 0;
-                      freeNodeSlots.insert(list);
-                      while(next){
-                         TextRecord tr;
-                         textTable->Get(next,tr);
-                         freeTextSlots.insert(next);
-                         Cardinal last = next;
-                         next = tr.next;
-                         tr.next = 0;
-                         textTable->Put(last, tr);
-                      }
+                      // As above: the text fragments are left where they are.
                       }
                       break;
 
@@ -658,17 +615,17 @@ void NestedList::DestroyRec(ListExpr& list){
                             nodeTable->Put(list,root);
                             return;
                          }
-                         freeNodeSlots.insert(list);
-                         // destroy first
+                         // Still walked, because the children's reference
+                         // counts have to come down with it.
                          DestroyRec(root.n.left);
-                         // destroy rest
                          Cardinal scan = root.n.right;
                          while(scan){
                             nodeTable->Get(scan, root);
+                            // Note that this decrement is not written back,
+                            // and never was: `root` is a copy and no Put
+                            // follows. Left as it stands -- it is older than
+                            // this change and orthogonal to it.
                             root.references--;
-                            if(root.references==0){
-                                freeNodeSlots.insert(scan);
-                            } 
                             DestroyRec(root.n.left);
                             scan = root.n.right; 
                          }
@@ -2025,7 +1982,7 @@ NestedList::IntAtom( const long  value )
 #ifdef THREAD_SAFE
    boost::lock_guard<boost::recursive_mutex> guard1(mtx);
 #endif
-  Cardinal newNode = emptySlot(*nodeTable, freeNodeSlots);
+  Cardinal newNode = nodeTable->EmptySlot();
   NodeRecord newNodeRec;
   nodeTable->Get(newNode, newNodeRec);
   newNodeRec.nodeType = IntType;
@@ -2047,7 +2004,7 @@ NestedList::RealAtom( const double value )
 #ifdef THREAD_SAFE
    boost::lock_guard<boost::recursive_mutex> guard1(mtx);
 #endif
-  Cardinal newNode = emptySlot(*nodeTable, freeNodeSlots);
+  Cardinal newNode = nodeTable->EmptySlot();
 
   NodeRecord newNodeRec;
   nodeTable->Get(newNode, newNodeRec);
@@ -2070,7 +2027,7 @@ NestedList::BoolAtom( const bool value )
 #ifdef THREAD_SAFE
    boost::lock_guard<boost::recursive_mutex> guard1(mtx);
 #endif
-  Cardinal newNode = emptySlot(*nodeTable, freeNodeSlots);
+  Cardinal newNode = nodeTable->EmptySlot();
 
   NodeRecord newNodeRec;
   nodeTable->Get(newNode, newNodeRec);
@@ -2098,7 +2055,7 @@ NestedList::StringAtom( const string& value, bool isString /*=true*/ )
 
   NodeRecord newNodeRec;
 
-  Cardinal newNode = emptySlot(*nodeTable, freeNodeSlots);
+  Cardinal newNode = nodeTable->EmptySlot();
 
   nodeTable->Get(newNode, newNodeRec);
 
@@ -2123,7 +2080,7 @@ NestedList::StringAtom( const string& value, bool isString /*=true*/ )
   newNodeRec.inLine = 0;   // create records in the string table
 
   StringRecord strRec;
-  Cardinal index  = emptySlot(*stringTable, freeStringSlots);
+  Cardinal index  = stringTable->EmptySlot();
   stringTable->Get(index, strRec);
   newNodeRec.s.first = index;
   nodeTable->Put(newNode, newNodeRec);
@@ -2144,7 +2101,7 @@ NestedList::StringAtom( const string& value, bool isString /*=true*/ )
 
       Cardinal pred = index;  // save reference
 
-      index = emptySlot(*stringTable, freeStringSlots);
+      index = stringTable->EmptySlot();
       strRec.next = index;
       stringTable->Put(pred, strRec);
       stringTable->Get(index, strRec);
@@ -2185,13 +2142,13 @@ NestedList::TextAtom()
 #ifdef THREAD_SAFE
    boost::lock_guard<boost::recursive_mutex> guard1(mtx);
 #endif
-  Cardinal newNode = emptySlot(*nodeTable, freeNodeSlots);
+  Cardinal newNode = nodeTable->EmptySlot();
 
   NodeRecord newNodeRec;
   (*nodeTable).Get(newNode, newNodeRec);
   newNodeRec.nodeType = TextType;
   newNodeRec.references = 1;
-  newNodeRec.t.start  = emptySlot(*textTable, freeTextSlots);
+  newNodeRec.t.start  = textTable->EmptySlot();
   newNodeRec.t.last   = newNodeRec.t.start;
   //newNodeRec.t.length = 0;
   (*nodeTable).Put(newNode, newNodeRec);
@@ -2277,7 +2234,7 @@ empty or it is filled with up to TextFragmentSize-1 characters.
     while ( textLength > 0 )
     {
       // create a new text record
-      newFragmentID = emptySlot(*textTable, freeTextSlots);
+      newFragmentID = textTable->EmptySlot();
       (*textTable).Get(newFragmentID, newTextRec);
 
       memset( newTextRec.field, 0, TextFragmentSize );
@@ -2747,12 +2704,8 @@ std::ostream& NestedList::printTables(std::ostream& out) const{
      out << "nodeTable has " << nodeTable->NoEntries()  << " entries" << endl;
      for(size_t i=1;i<=nodeTable->NoEntries(); i++){
         out << i << " : " ;
-        if(freeNodeSlots.find(i)!=freeNodeSlots.end()){
-          out << " free " << endl; 
-        } else {
-          nodeTable->Get(i,node);
-          out << node << endl;
-        }
+        nodeTable->Get(i,node);
+        out << node << endl;
      } 
    }
    out << endl << " Strings : " << endl;
@@ -2764,12 +2717,8 @@ std::ostream& NestedList::printTables(std::ostream& out) const{
          << " entries" << endl;
      for(size_t i=1;i<=stringTable->NoEntries(); i++){
         out << i << " : " ;
-        if(freeStringSlots.find(i)!=freeStringSlots.end()){
-          out << " free " << endl; 
-        } else {
-          stringTable->Get(i,sr);
-          out << sr << endl;
-        }
+        stringTable->Get(i,sr);
+        out << sr << endl;
      } 
    }
    out << endl << " Texts : " << endl;

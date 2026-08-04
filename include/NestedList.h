@@ -225,7 +225,6 @@ The operations are defined below.
 #include <sstream>
 
 #include <assert.h>
-#include <set>
 
 
 /*
@@ -247,7 +246,6 @@ works with both implementaions.
 
 #include <algorithm>
 #include <iostream>
-#include <set>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -1270,18 +1268,6 @@ operation. Thus destroying sublists is possible.
     return nodeTable?nodeTable->ChunkCount():0;
   }
 
-  Cardinal freeNodes() const{
-    return freeNodeSlots.size();
-  }
-
-  Cardinal freeStrings() const{
-    return freeStringSlots.size();
-  }
-
-  Cardinal freeTexts() const{
-    return freeTextSlots.size();
-  }
-
 
   std::ostream& printTables(std::ostream& out)const;
 
@@ -1452,11 +1438,6 @@ prototypes for functions used for the binary encoding/decoding of lists
   BigArray<NodeRecord>   *nodeTable;   // storage for nodes
 
   BigArray<TextRecord>   *textTable  ; // storage for text atoms
-
-  // management of free slots
-  std::set<Cardinal> freeNodeSlots;
-  std::set<Cardinal> freeStringSlots;
-  std::set<Cardinal> freeTextSlots;
 
 
   ListExpr typeError;
