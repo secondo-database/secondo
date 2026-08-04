@@ -618,16 +618,28 @@ void NestedList::DestroyRec(ListExpr& list){
                          // Still walked, because the children's reference
                          // counts have to come down with it.
                          DestroyRec(root.n.left);
+
+                         // Every node further down the spine gets the same
+                         // treatment as the head above: lower the count, write
+                         // it back, and stop if someone else is still holding
+                         // it -- everything beyond such a node is reachable
+                         // only through it, so it is not ours to take down.
+                         //
+                         // A separate record, because `root` is still the head
+                         // and reusing it here is what made the decrement go
+                         // missing.
                          Cardinal scan = root.n.right;
                          while(scan){
-                            nodeTable->Get(scan, root);
-                            // Note that this decrement is not written back,
-                            // and never was: `root` is a copy and no Put
-                            // follows. Left as it stands -- it is older than
-                            // this change and orthogonal to it.
-                            root.references--;
-                            DestroyRec(root.n.left);
-                            scan = root.n.right; 
+                            NodeRecord node;
+                            nodeTable->Get(scan, node);
+                            assert(node.references>0);
+                            node.references--;
+                            if(node.references>0){
+                               nodeTable->Put(scan, node);
+                               break;
+                            }
+                            DestroyRec(node.n.left);
+                            scan = node.n.right;
                          }
                        }
                        break;
@@ -647,6 +659,18 @@ NestedList::Destroy(ListExpr& list )
   
   DestroyRec(list); 
   list = 0;
+}
+
+uint32_t NestedList::ReferenceCount(const ListExpr list) const {
+#ifdef THREAD_SAFE
+   boost::lock_guard<boost::recursive_mutex> guard1(mtx);
+#endif
+  if(!list){
+    return 0;
+  }
+  NodeRecord node;
+  nodeTable->Get(list, node);
+  return node.references;
 }
 
 void NestedList::IncReferences(ListExpr& list){

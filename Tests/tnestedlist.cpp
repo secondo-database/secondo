@@ -193,6 +193,90 @@ TestNLCopy()
 
 /*
 
+Destroying one of two lists that share a tail must leave the other alone.
+
+The spine of a list is a chain of nodes linked through their right sons, and
+two lists share a tail when one of them is built on a node the other already
+reaches. ~DestroyRec~ handles the *head* of the list it is given correctly --
+it lowers the reference count, writes it back, and stops if anyone else is
+still holding the node -- but it used to do neither for the nodes further down
+the spine: their decrement was applied to a copy that was never written back,
+and the recursion into their children ran whether or not the node had actually
+died. Destroying one list therefore released the elements of the other.
+
+There is no way to see this from the list contents. Slots are not recycled, so
+the released records still hold their values and both lists still read back
+correctly; only the bookkeeping is wrong, and the first symptom is the
+~assert~ at the top of ~DestroyRec~ firing on some later, unrelated destroy.
+So this checks the reference counts directly, and only destroys the second
+list once they look right -- on a broken build it reports and returns rather
+than aborting the run.
+
+*/
+
+void
+TestSharedTailDestroy(CTestFrame& t)
+{
+   NestedList nl;
+
+   t.TestCase("Destroying a list that shares its tail with another");
+
+   // list1 = (1 2 3), then list2 = (99 2 3) built on list1's own tail, so the
+   // second node of the spine is reachable from both.
+   ListExpr list1 = nl.ThreeElemList(nl.IntAtom(1), nl.IntAtom(2),
+                                     nl.IntAtom(3));
+   ListExpr tail  = nl.Rest(list1);            // the shared spine node
+   ListExpr list2 = nl.Cons(nl.IntAtom(99), tail, true);
+
+   const ListExpr shared2 = nl.First(tail);              // the atom 2
+   const ListExpr shared3 = nl.First(nl.Rest(tail));     // the atom 3
+
+   const uint32_t tailBefore  = nl.ReferenceCount(tail);
+   const uint32_t elem2Before = nl.ReferenceCount(shared2);
+   const uint32_t elem3Before = nl.ReferenceCount(shared3);
+
+   cout << "*** before: tail=" << tailBefore
+        << " elem2=" << elem2Before << " elem3=" << elem3Before << endl;
+
+   nl.Destroy(list1);
+
+   const uint32_t tailAfter  = nl.ReferenceCount(tail);
+   const uint32_t elem2After = nl.ReferenceCount(shared2);
+   const uint32_t elem3After = nl.ReferenceCount(shared3);
+
+   cout << "*** after destroying the first list: tail=" << tailAfter
+        << " elem2=" << elem2After << " elem3=" << elem3After << endl;
+
+   // The shared node loses exactly the one reference the destroyed list held.
+   const bool tailOk = (tailAfter + 1 == tailBefore);
+   // ... and the elements below it, which only the surviving list reaches,
+   // are not touched at all.
+   const bool elemsOk = (elem2After == elem2Before)
+                     && (elem3After == elem3Before);
+
+   t.CheckResult("the shared spine node loses one reference", tailOk, true);
+   t.CheckResult("the elements below it keep theirs", elemsOk, true);
+
+   // Reading the survivor is not evidence either way -- the records still hold
+   // their values whatever the counts say -- but it should hold regardless.
+   t.CheckResult("the surviving list still reads back",
+                 nl.ToString(list2) == "(99 2 3)", true);
+
+   if (!tailOk || !elemsOk) {
+     cout << "*** counts are wrong; not destroying the second list, "
+             "since that is what would abort" << endl;
+     return;
+   }
+
+   // Now the survivor can go, and taking it down must be clean: with the old
+   // behaviour its elements were already at zero and this tripped the assert.
+   nl.Destroy(list2);
+   t.CheckResult("destroying the survivor afterwards is clean", true, true);
+}
+
+
+/*
+
 The next functions contain code which is extraced from
 the secondo system to isolate bugs.
 
@@ -792,6 +876,8 @@ TestRun_Persistent() {
    
    //pause();
    TestNLCopy();
+
+   TestSharedTailDestroy(*this);
    
    //cout << "Commit: " 
    //<< SmiEnvironment::CommitTransaction() << endl;

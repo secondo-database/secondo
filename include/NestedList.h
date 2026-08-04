@@ -1237,6 +1237,18 @@ operation. Thus destroying sublists is possible.
 */
   void IncReferences(ListExpr& list);
 
+/*
+1.3.15 ReferenceCount
+
+The number of holders a node currently has. It exists for the tests: the
+reference counting is otherwise only observable through the ~assert~ at the top
+of ~DestroyRec~, which aborts the process rather than reporting, so a test that
+wants to check the bookkeeping has no way to see it and no way to survive
+finding it wrong.
+
+*/
+  uint32_t ReferenceCount(const ListExpr list) const;
+
 
   static std::string SizeOfStructs(); 
 
