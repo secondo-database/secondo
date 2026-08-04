@@ -252,6 +252,7 @@ works with both implementaions.
 #include <string>
 #include <vector>
 
+#include "SecondoConfig.h"
 #include "../Tools/BigArray/BigArray.h"
 
 #ifdef THREAD_SAFE
@@ -274,7 +275,32 @@ overwritten in the constructor.
 
 */
 
+/*
+~unsigned long~ is 8 bytes under LP64 (Linux, macOS) but **4 bytes under LLP64**,
+which is what a 64 bit Windows compiler uses. Left as it was, a Windows build
+would silently get 4 byte list indices, halving ~NodeRecord~ from 24 to 16 bytes
+and ~STRING\_INTERNAL\_SIZE~ from 16 to 8 characters -- a different in-memory
+representation on one platform, which nobody intended and nothing tests. The
+~static\_assert~ below states the assumption so it cannot lapse quietly again.
+
+Not written as ~uint64\_t~ on purpose: on Linux that is the very same type, but
+on macOS it is ~unsigned long long~ -- a distinct type of equal width, which
+would perturb overload resolution across 200 algebra directories to fix a
+platform that is neither of them.
+
+The wire format does not depend on this: ~WriteBinaryRec~ emits explicit type
+tags with 1, 2 or 4 byte lengths and never a raw ~Cardinal~, so a peer built
+either way reads the same bytes.
+
+*/
+#ifdef SECONDO_WIN32
+typedef unsigned long long ListExpr;
+#else
 typedef unsigned long ListExpr;
+#endif
+
+static_assert(sizeof(ListExpr) == 8,
+   "SECONDO assumes 64 bit list indices; see the comment above.");
 /*
 Is the type to represent nested lists.
 
@@ -297,7 +323,15 @@ Is an enumeration of the different node types of a nested list.
 
 */
 
+#ifdef SECONDO_WIN32
+typedef unsigned long long Cardinal;   // LLP64; see ListExpr above
+#else
 typedef unsigned long Cardinal;
+#endif
+
+static_assert(sizeof(Cardinal) == sizeof(ListExpr),
+   "Table indices and list references must be the same width");
+
 typedef Cardinal NodesEntry;
 typedef Cardinal IntsEntry;
 typedef Cardinal StringsEntry;
@@ -1230,6 +1264,10 @@ operation. Thus destroying sublists is possible.
   
   Cardinal  sizeOftextTable() const{
     return textTable?textTable->NoEntries():0;
+  }
+
+  Cardinal  chunksOfNodeTable() const{
+    return nodeTable?nodeTable->ChunkCount():0;
   }
 
   Cardinal freeNodes() const{

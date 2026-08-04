@@ -188,6 +188,7 @@ makefile.algebras
 /Tests/libtdynlib1.dylib
 /Tests/libtdynlib2.dylib
 /Tests/nlchecker
+/Tests/tbigarray
 /Tests/tctable
 /Tests/tdlmain
 /Tests/tdynlib1.lo

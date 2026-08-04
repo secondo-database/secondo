@@ -25,6 +25,7 @@ LIBD=$(BD)/lib
 
 CSLIBS+=$(LIBD)/SecondoInterfaceCS.o
 CSLIBS+=$(LIBD)/SecondoInterfaceGeneral.o
+CSLIBS+=$(BD)/Tools/BigArray/BigArray.o
 CSLIBS+=$(BD)/Tools/NestedLists/NestedList.o
 CSLIBS+=$(BD)/Tools/Utilities/WinUnix.o
 CSLIBS+=$(BD)/Tools/Utilities/Environment.o

@@ -30,7 +30,7 @@ include ../makefile.options
 # compile and link it, otherwise add special rules
 
 # Nested List and Compact Tables
-TESTNAMES += tctable tpctable tnestedlist
+TESTNAMES += tctable tpctable tnestedlist tbigarray
 
 # Some Tools
 TESTNAMES += tfilesystem tprofiles

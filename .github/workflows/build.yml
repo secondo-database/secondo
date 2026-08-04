@@ -63,6 +63,16 @@ jobs:
           make -C Tests tnestedlist
           Tests/tnestedlist
 
+      # BigArray is what NestedList stores its tables in, and tnestedlist never
+      # grows one far enough to leave its first chunk. tbigarray does, and
+      # checks the invariant the class is built around: a chunk, once mapped,
+      # is never moved -- which is what lets a reader dereference an element
+      # while another thread appends.
+      - name: Test the BigArray chunked storage
+        run: |
+          make -C Tests tbigarray
+          Tests/tbigarray
+
       - name: Test SECONDO
         run: |
           cd CM-Scripts/; ./run-tests.sh -tty /tmp/secondotest 12000
@@ -376,6 +386,16 @@ jobs:
         run: |
           make -C Tests tnestedlist
           Tests/tnestedlist
+
+      # BigArray is what NestedList stores its tables in, and tnestedlist never
+      # grows one far enough to leave its first chunk. tbigarray does, and
+      # checks the invariant the class is built around: a chunk, once mapped,
+      # is never moved -- which is what lets a reader dereference an element
+      # while another thread appends.
+      - name: Test the BigArray chunked storage
+        run: |
+          make -C Tests tbigarray
+          Tests/tbigarray
 
       - name: Test SECONDO
         run: |

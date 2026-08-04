@@ -1,6 +1,6 @@
 #This file is part of SECONDO.
 #
-#Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+#Copyright (C) 2015, University in Hagen, Department of Computer Science,
 #Database Systems for New Applications.
 #
 #SECONDO is free software; you can redistribute it and/or modify
@@ -16,50 +16,18 @@
 #You should have received a copy of the GNU General Public License
 #along with SECONDO; if not, write to the Free Software
 #Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-
-########################################################################
-#
-# SECONDO makefile for tool and utility modules
 #
 ########################################################################
+#
+# SECONDO makefile for the storage under the nested lists
+#
+########################################################################
 
-include ../makefile.env
+include ../../makefile.env
 
 .PHONY: all
-all: makedirs
-
-.PHONY: makedirs
-makedirs: makedirsnormal makedirsjni
-
-.PHONY: makedirsnormal
-makedirsnormal:
-	$(MAKE) -C DFS
-	$(MAKE) -C Flob 
-	$(MAKE) -C BigArray
-	$(MAKE) -C NestedLists
-	$(MAKE) -C Parser
-	$(MAKE) -C Utilities
-	$(MAKE) -C pd 
-	$(MAKE) -C SyntaxParser
-	$(MAKE) -C TypeMap
-
-.PHONY: makedirsjni
-makedirsjni:
- ifeq ($(USE_JNI),"true")
-	$(MAKE) -C Jni
- endif
+all:  $(OBJECTS)
 
 .PHONY: clean
 clean:
-	$(MAKE) -C BigArray clean
-	$(MAKE) -C NestedLists clean
-	$(MAKE) -C Parser clean
-	$(MAKE) -C Utilities clean
-	$(MAKE) -C Jni clean
-	$(MAKE) -C pd clean
-	$(MAKE) -C Flob clean
-	$(MAKE) -C RStarTree clean
-	$(MAKE) -C SyntaxParser clean
-	$(MAKE) -C TypeMap clean
-	$(MAKE) -C DFS clean
-
+	$(RM) $(OBJECTS) $(DEP_FILES)

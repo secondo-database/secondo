@@ -31,7 +31,12 @@ all: $(MODULE)
 # class of ours holding one as a member (SecondoCall) would otherwise be more
 # visible than its field and GCC warns about it. PYBIND11_MODULE still exports
 # the module init function explicitly.
-$(MODULE): secondo_native.cpp
+# The archive is a prerequisite, not just the source: this module is a thin
+# wrapper around it, so a kernel rebuild is exactly when it has to be relinked.
+# Without it make answers "nothing to be done" and leaves a .so built against
+# the previous kernel in place indefinitely -- which does not error, it hangs
+# /api/* at the first call.
+$(MODULE): secondo_native.cpp $(CS_DIR)/lib/libsecondo.a
 	$(CPPC) -O2 -Wall -shared -std=c++17 -fPIC -fvisibility=hidden \
 	    $(CCFLAGS) $(INCLUDES) \
 	    secondo_native.cpp -o $(MODULE) $(LIBS)

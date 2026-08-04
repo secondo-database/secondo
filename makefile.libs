@@ -62,6 +62,7 @@ LIB_SDBUTILS_BASENAMES:=\
 
 #libSDBNL
 LIB_SDBNL_BASENAMES:=\
+	Tools/BigArray/BigArray \
 	Tools/NestedLists/NestedList \
 	Tools/NestedLists/NList \
 	Tools/NestedLists/ListUtils \

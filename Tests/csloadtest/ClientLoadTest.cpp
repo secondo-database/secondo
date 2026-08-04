@@ -44,16 +44,19 @@ Two workloads, because they stress different things:
   * ~shared~ puts every thread on *one* NestedList at the same time, which is
     the case ~parse~ deliberately leaves out and the one that says whether
     ~NestedList~'s own recursive mutex is still carrying weight. Writers here
-    grow the node table, which remaps it, so a reader that is not synchronized
-    against them is reading through a pointer that has just been invalidated --
-    a crash, not a wrong answer. Needs no server.
+    grow the node table while readers walk it, which is the case the storage
+    layer is built for: BigArray adds a chunk rather than moving what is
+    already mapped, so a reader holding a pointer into an earlier chunk keeps
+    a valid one. Needs no server.
 
     Reaching that at all takes ~--list-mem~, which sizes the tables far below
     what a NestedList takes by default. At the default sizes this workload
-    fits inside the mapping BigArray makes at construction and never grows it
+    fits inside the chunk BigArray maps at construction and never grows it
     once, so the mode used to run without touching the persistence layer it
-    was written for. The run now says how far the node table grew and fails if
-    it did not outgrow its first mapping, so that cannot quietly come back.
+    was written for. The run keeps going past ~--rounds~ until the table has
+    left its first chunk, says how many chunks it reached, and fails if it
+    never left the first -- so that cannot quietly come back, and no round
+    count has to be re-tuned when the chunk size changes.
 
 The list transfer mode is not selectable here: since the format is negotiated,
 the *server* decides it (see csp::BINARY\_TRANSFER\_TAG). To cover the textual
@@ -128,9 +131,9 @@ struct Options
   // Node/string/text memory for the lists this test builds, in kB, and
   // deliberately far below the 1024/512/512 a NestedList takes by default.
   // The tables then run out of room within the first few rounds and BigArray
-  // has to grow -- which means ftruncate and mremap, the mapping moving under
-  // whatever else is reading it. At the default sizes this workload fits
-  // inside the initial mapping and never reaches that code at all.
+  // has to grow -- extending the file and mapping another chunk of it while
+  // other threads are reading the chunks before it. At the default sizes this
+  // workload fits inside the first chunk and never reaches that code at all.
   int listMem = 1;
 };
 
@@ -305,15 +308,14 @@ static void parseWorker(const Options& o, int id)
   // Its own list, as every connection has: the instance is what carries the
   // node tables, so sharing one here would be testing something else.
   //
-  // Left at the normal sizes on purpose, where the shared mode shrinks them:
-  // several threads each regrowing their *own* mapping makes ThreadSanitizer
-  // report races that are not there. mremap unmaps the old range as it moves,
-  // TSan does not model that half of it, and the stale shadow then collides
-  // with whichever thread's mapping the kernel next puts at that address --
-  // reported against two threads holding two different lists' mutexes. Growth
-  // is covered by the shared mode, where there is only one list and so no
-  // second mapping to be confused with.
-  NestedList* nl = new NestedList("");
+  // Sized down like the shared mode, so that these lists grow too. That used
+  // to be impossible: BigArray grew by remapping, mremap unmaps the old range
+  // as it moves, and TSan does not model that half of it -- the stale shadow
+  // then collided with whichever thread's mapping the kernel next put at that
+  // address, and the report named two threads holding two *different* lists'
+  // mutexes. Growth never unmaps anything now, so the artifact has no cause
+  // and this mode covers many lists growing at once.
+  NestedList* nl = new NestedList("", o.listMem, o.listMem, o.listMem);
 
   const string text = sampleList(id);
   for (int r = 0; r < o.rounds * 10; r++) {
@@ -353,34 +355,12 @@ list memory, then read back what you built while others keep building.
 
 What it would catch if the locking were wrong: TSan reports the unsynchronized
 access, and the value checks catch a list that came back as something other than
-what this thread put in -- an index handed to two threads, or a read through a
-mapping that a concurrent grow has moved.
+what this thread put in -- an index handed to two threads, or a slot written by
+one thread and read by another without an ordering between them.
 
 */
 
 static NestedList* sharedList = 0;
-
-/*
-How many bytes a table of ~listMem~ kB actually gets mapped at construction.
-Mirrors BigArray's own rounding (~grow~), including that it asks the operating
-system for the real page size rather than assuming 4096 -- Apple Silicon uses
-16384, and a threshold that ignored it would make this check vacuous there.
-
-*/
-
-static size_t initialMappingBytes(int listMem)
-{
-#ifndef SECONDO_WIN32
-  const long ps = ::sysconf(_SC_PAGESIZE);
-  const size_t page = ps > 0 ? (size_t) ps : 4096;
-#else
-  SYSTEM_INFO si;
-  ::GetSystemInfo(&si);
-  const size_t page = si.dwPageSize > 0 ? (size_t) si.dwPageSize : 4096;
-#endif
-  const size_t bytes = (size_t) listMem * 1024;
-  return ((bytes + page - 1) / page) * page;
-}
 
 static void sharedWorker(const Options& o, int id)
 {
@@ -388,13 +368,28 @@ static void sharedWorker(const Options& o, int id)
 
   // Most rounds keep their list rather than giving it straight back, so that
   // the tables grow through the run instead of settling at a steady state on
-  // the free lists. Growing is the whole point: it is what makes BigArray
-  // remap, and a reader holding a pointer into the old mapping is the failure
-  // this mode exists to find. Every fourth round still destroys, so the free
-  // lists are written under contention too.
+  // the free lists. Growing is the whole point: it is what makes BigArray map
+  // another chunk while readers are walking the ones before it. Every fourth
+  // round still destroys, so the free lists are written under contention too.
   vector<ListExpr> kept;
 
-  for (int r = 0; r < o.rounds * 10; r++) {
+  // How much work growing takes is set by the *chunk size*, not by --rounds:
+  // BigArray maps whole chunks, and one chunk is thousands of nodes however
+  // small --list-mem is. So --rounds is a floor, and the workers keep going
+  // past it until the table has actually left its first chunk. Tying it to the
+  // observed state rather than to a tuned round count is what keeps this mode
+  // honest when the chunk size changes -- picking numbers that happen to
+  // exceed it today is how it came to pass while testing nothing.
+  //
+  // Bounded, so that a change which stops the table growing fails the
+  // assertion after the run rather than hanging here.
+  const int minRounds = o.rounds * 10;
+  const int maxRounds = minRounds + 20000;
+
+  for (int r = 0; r < maxRounds; r++) {
+    if (r >= minRounds && sharedList->chunksOfNodeTable() > 1) {
+      break;
+    }
     // Build: atoms of every kind, so the string and text tables are written
     // too and not just the node table.
     ListExpr mine = nl->OneElemList(nl->IntAtom(id));
@@ -487,19 +482,18 @@ int main(int argc, char** argv)
     sharedList = new NestedList("", o.listMem, o.listMem, o.listMem);
     run(sharedWorker, o, "one shared nested list");
 
-    // Assert that the run really did outgrow the mapping it started with,
-    // rather than assuming it. BigArray rounds the initial request up to whole
-    // pages, so that -- not the requested kB -- is what has to be exceeded
-    // before a single mremap has happened. Without this the mode keeps
-    // passing while quietly testing nothing about growth, which is what it
-    // did until the tables were made small.
-    const size_t page = initialMappingBytes(o.listMem);
-    const size_t nodesAtStart = page / sizeof(NodeRecord);
+    // Assert that the run really did grow the storage, rather than assuming
+    // it. BigArray maps whole chunks, and one chunk is a good deal more than
+    // the requested kB, so the entry count is not the thing to compare -- the
+    // number of chunks is. Without this the mode keeps passing while quietly
+    // testing nothing about growth, which is what it did until the tables
+    // were made small.
     cout << "  node table grew to " << sharedList->sizeOfNodeTable()
-         << " entries, from " << nodesAtStart << " mapped initially" << endl;
-    check(sharedList->sizeOfNodeTable() > nodesAtStart,
-          "the node table never outgrew its first mapping -- raise --threads "
-          "or --rounds, or lower --list-mem, or this mode is not testing "
+         << " entries in " << sharedList->chunksOfNodeTable() << " chunks"
+         << endl;
+    check(sharedList->chunksOfNodeTable() > 1,
+          "the node table never left its first chunk -- raise --threads or "
+          "--rounds, or lower --list-mem, or this mode is not testing "
           "BigArray growth at all");
 
     delete sharedList;

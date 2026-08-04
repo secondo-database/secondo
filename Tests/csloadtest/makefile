@@ -65,6 +65,7 @@ CS_SOURCES = \
   $(BD)/ClientServer/SecondoInterfaceCS.cpp \
   $(BD)/ClientServer/SocketIO.cpp \
   $(BD)/QueryProcessor/SecondoInterfaceGeneral.cpp \
+  $(BD)/Tools/BigArray/BigArray.cpp \
   $(BD)/Tools/NestedLists/NestedList.cpp \
   $(BD)/Tools/NestedLists/NList.cpp \
   $(BD)/Tools/NestedLists/NLParser.cpp \

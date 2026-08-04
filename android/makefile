@@ -35,6 +35,7 @@ SECLIBS+=$(LIB2)
 SECOBJ:=$(LIBD)/SecondoInterface.o
 SECOBJ+=$(LIBD)/SecondoInterfaceGeneral.o
 SECOBJ+=$(LIBD)/SecondoInterface.o
+SECOBJ+=$(BD)/Tools/BigArray/BigArray.o
 SECOBJ+=$(BD)/Tools/NestedLists/NestedList.o
 SECOBJ+=$(BD)/Tools/Utilities/*.o
 SECOBJ+=$(BD)/UserInterfaces/cmsg.o

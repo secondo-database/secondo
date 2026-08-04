@@ -28,36 +28,96 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #ifndef BIGARRAY_H
 #define BIGARRAY_H
 
-#include "SecondoConfig.h"   // decides SECONDO_WIN32
-
-#include <cstdint>       // uint64_t (the Win32 branch)
-#include <cstring>       // strerror
-#include <fstream>       // the "already exists" check in newInstance
+#include <atomic>
+#include <cstddef>
+#include <mutex>
 #include <string>
 #include <type_traits>   // the static_asserts below
 
+// Only for the benefit of headers that reach std::cout and std::endl through
+// this one -- CSProtocol.h, Operator.h, SecondoCatalog.h, SystemInfoRel.h and
+// SystemTables.h all write a bare cout or endl. Nothing here needs it.
+// Qualifying those five, and whatever surfaces behind them, would let it go.
 #include <iostream>
 using std::cout;
 using std::endl;
 
-#ifndef SECONDO_WIN32
-#include <fcntl.h>
-#include <sys/mman.h>
-#include <unistd.h>
-#include <cerrno>
-#else
-#include <windows.h>
-#endif
-
-
 #include "SecondoException.h"
 
 
+/*
+1 Class ~MappedChunkFile~
 
+The storage under a ~BigArray~: a temporary file, and the mappings of the
+slices of it that hold the elements. It is deliberately not a template -- none
+of what it does depends on the element type -- so all of the platform code
+lives in BigArray.cpp and is compiled once, instead of being pulled into every
+translation unit that includes a nested list. That is most of the tree.
+
+Nothing here is a handle type from a platform header either: ~fd~ is the POSIX
+descriptor and ~handle~ the Win32 HANDLE, each unused on the other platform, so
+that this header stays free of <sys/mman.h> and of <windows.h> in particular.
+
+The file is unlinked the moment it is created, so it cannot outlive the process
+however that process ends -- a crash, a kill and a power cut included.
+
+*/
+
+class MappedChunkFile {
+
+  public:
+
+/*
+The Win32 allocation granularity, which is what ~MapViewOfFile~ requires of an
+offset. 64 kB is also a multiple of every page size we build for -- 16 kB on
+Apple Silicon included -- so satisfying it satisfies ~mmap~ as well, and neither
+platform needs arithmetic of its own. ~BigArray~ sizes its chunks by it.
+
+*/
+    static constexpr size_t GRANULARITY = ((size_t) 1) << 16;
+
+/*
+Creates the file and unlinks it. Throws ~SecondoException~ if it cannot.
+
+*/
+    explicit MappedChunkFile(const std::string& filename);
+    ~MappedChunkFile();
+
+    MappedChunkFile(const MappedChunkFile&) = delete;
+    MappedChunkFile& operator=(const MappedChunkFile&) = delete;
+
+/*
+~map~ extends the file to cover ~offset, offset+bytes~ and maps that range.
+Both arguments have to be multiples of ~GRANULARITY~. It throws rather than
+returning 0, and leaves every mapping already handed out untouched -- that is
+what lets ~BigArray~ grow while another thread is reading.
+
+*/
+    void* map(const size_t offset, const size_t bytes);
+
+/*
+~unmap~ releases one range obtained from ~map~.
+
+*/
+    void unmap(void* base, const size_t bytes);
+
+/*
+Whether a file of that name is there already. Used before overwriting one.
+
+*/
+    static bool exists(const std::string& filename);
+
+    const std::string& name() const { return fname; }
+
+  private:
+    std::string fname;
+    int         fd;       // POSIX descriptor; -1 on Windows
+    void*       handle;   // Win32 HANDLE; 0 on POSIX
+};
 
 
 /*
-1 Class ~BigArray~
+2 Class ~BigArray~
 
 This class provides functionality of an vector. Using ~append~
 it may grow automatically. The class used for the template parameter
@@ -65,29 +125,47 @@ must provide a standard and a copy constructor. Furthermore the class
 must be a compact class of fixed size, i.e., the class cannot have any
 pointer structures.
 
-The array may be larger than main memory, hence the name. It is backed by a
-temporary file that is *mapped into the address space*, so the operating system
+The array may be larger than main memory, hence the name. The operating system
 does the paging: reading an element is one dereference, the kernel's page cache
 decides what stays resident -- sized by how much memory the machine actually has
--- and dirty pages are written back to the file under memory pressure. The
-mapping grows with the array, and the file is unlinked the moment it is opened,
-so it cannot outlive the process even if that process is killed.
+-- and dirty pages are written back to the file under memory pressure.
 
-*This class is not thread safe, and no longer tries to be.* It used to take a
-recursive mutex on every access, which was necessary when a read mutated shared
-state -- reading an element could evict a slot, touch the LRU and write a page
-back. Reading is now a dereference and mutates nothing; only ~append~ can move
-the mapping, by growing it.
+The storage is *chunked*: a fixed table of pointers, each entry one mapping of
+one slice of the file. Growing appends a chunk; it never moves or unmaps an
+existing one, so **the address of an element never changes once it has been
+mapped**. That is what lets a reader dereference without holding a lock while
+another thread appends -- the two touch different chunks, or different slots of
+the same chunk. A single mapping cannot offer that: growing it means ~mremap~
+(or, on Windows, a second view), which may relocate the whole array out from
+under a concurrent reader.
 
-That leaves ~append~ against a concurrent ~Get~, which is serialized one level
-up instead: ~NestedList~ is the only user of this class, and it takes its own
-recursive mutex in every method before touching a table (~First~, ~Rest~,
-~IsAtom~, ...), so the lock here could never be reached uncontended by a thread
-that was not already serialized. It cost two atomic operations per element
-access on the hottest path in the system for nothing.
+Chunking is also what keeps this one implementation on every platform. Nothing
+is reserved up front, so there is no dependence on a 64-bit address space, and
+no need for ~MAP\_FIXED~, ~PROT\_NONE~ or the Win32 placeholder APIs -- each
+platform contributes one call that maps a slice and one that unmaps it.
 
-A future caller that uses a ~BigArray~ directly from several threads has to
-provide that serialization itself.
+*Threading.* Reads need no lock at all, and neither does ~append~: a slot is
+claimed with one ~fetch\_add~ on ~size~, and the rare growth that follows it is
+the only thing that takes a lock. Two threads may therefore read freely, and
+either may append while the other reads.
+
+What is *not* provided, and is the caller's to arrange:
+
+  * Two threads writing the *same* slot, or one reading a slot the other is
+    writing, order it themselves. Nothing here can help with that -- it is
+    ~Put~ against ~Put~ on one index, which is a question about the caller's
+    data, not about this container.
+  * A slot may be read once the ~append~ that produced it has *returned*.
+    ~size~ counts slots that are claimed, and the element is written just after
+    the claim, so for a moment a slot can be counted but not yet filled in.
+    This is not a restriction in practice: the index is the return value, so
+    until the append returns no one else can name the slot. The slot is always
+    *mapped*, though -- room is made before it is claimed, so ~size~ never
+    exceeds ~capacity~ -- which is what lets ~at~ dereference without checking
+    that the chunk is there.
+
+~NestedList~, the only user, holds a recursive mutex across all of this today,
+which subsumes both.
 
 */
 
@@ -106,27 +184,61 @@ static_assert(std::is_trivially_copyable<T>::value,
   public:
 
 /*
+*A note on the cost of ~std::atomic~ here.* The shared fields below are
+~std::atomic~, which is what they are, and the orderings are written out at
+every use rather than left to the default -- the accessors are the hottest path
+in the system and it should be visible that they carry no barriers.
+
+*/
+
+/*
+Chunk sizes are counted in elements and are always a power of two, so that
+indexing is a shift and a mask.
+
+The smallest of them follows from ~MappedChunkFile::GRANULARITY~, which is a
+constraint on *bytes*: the smallest chunk spanning a whole number of those is
+$GRANULARITY / \gcd(sizeof(T), GRANULARITY)$ elements -- 8192 for a 24 byte
+~NodeRecord~, 1024 for a 64 byte ~TextRecord~. Expressing it this way rather
+than as a flat count of elements keeps the many small lists small: Distributed2
+gives every connection one, and their tables never grow at all.
+
+*/
+    static constexpr size_t gcdOf(const size_t a, const size_t b){
+       return b == 0 ? a : gcdOf(b, a % b);
+    }
+
+    static constexpr size_t MIN_CHUNK_ELEMENTS =
+                MappedChunkFile::GRANULARITY
+              / gcdOf(sizeof(T), MappedChunkFile::GRANULARITY);
+    static constexpr size_t MAX_CHUNK_ELEMENTS = ((size_t) 1) << 24;
+    static constexpr size_t DEFAULT_MAX_CHUNKS = 4096;
+
+static_assert((MIN_CHUNK_ELEMENTS * sizeof(T))
+                 % MappedChunkFile::GRANULARITY == 0,
+   "A chunk must span a multiple of the Win32 allocation granularity");
+
+/*
 This function returns a new instance of an BigArray. The
 result must be destroyed by the caller.
 
-~slotCacheSize~ is a number of elements, and is now only the *initial* capacity:
-the array grows past it on demand, so it decides how often the mapping has to be
-grown rather than how much may stay in memory. Sizing it generously costs
-nothing but address space -- the file is sparse, so pages nobody touches take
-neither memory nor disk.
+~initialEntries~ is the capacity to map up front, and also decides the chunk
+size -- so it controls how often the array has to grow rather than how much may
+stay in memory. Sizing it generously costs nothing but address space: the file
+is sparse, so pages nobody touches take neither memory nor disk.
+
+~maxChunks~ bounds the array at ~maxChunks~ chunks. It exists to be lowered by
+the unit test, which would otherwise have to append hundreds of millions of
+elements to reach the limit.
 
 */
     static BigArray* newInstance(const std::string& filename,
-                                 size_t slotCacheSize,
-                          bool overwrite){
-      if(!overwrite){
-           std::ifstream in(filename.c_str(), std::ios::in);
-           if(in.good()){
-             in.close();
-             throw SecondoException("File already exists");
-           }
+                                 size_t initialEntries,
+                                 bool overwrite,
+                                 size_t maxChunks = DEFAULT_MAX_CHUNKS){
+      if(!overwrite && MappedChunkFile::exists(filename)){
+        throw SecondoException("File already exists");
       }
-      return new BigArray<T>(filename, slotCacheSize);
+      return new BigArray<T>(filename, initialEntries, maxChunks);
    }
 
 
@@ -137,7 +249,11 @@ neither memory nor disk.
 */
 
    ~BigArray(){
-      closeStorage();   // which is also what deletes the file; see openStorage
+      const size_t mapped = ChunkCount();
+      for(size_t i = 0; i < mapped; i++){
+        storage.unmap(chunks[i].load(std::memory_order_relaxed), chunkBytes);
+      }
+      delete[] chunks;
    }
 
 /*
@@ -146,12 +262,12 @@ neither memory nor disk.
 Returns the number of elements within the array.
 
 */
-    size_t NoEntries() {
-      return size;
+    size_t NoEntries() const {
+      return size.load(std::memory_order_relaxed);
     }
 
     bool IsValid(const size_t index) const{
-      return (index > 0) && (index <= size);
+      return (index > 0) && (index <= size.load(std::memory_order_relaxed));
     }
 
 
@@ -209,247 +325,216 @@ Appends a new element at the end of the array.
     size_t append(const T& value);
 
 
-  private:
-     std::string fname;      // file name of background storage
-     size_t size;            // current number of elements
-     char* base;             // the mapping, or 0 while there is none
-     size_t mapped;          // its length in bytes
-     size_t capacity;        // elements that fit without regrowing
-     size_t pagesize;        // the *operating system's* page size
+/*
+The three below report on the storage layout. They exist so that the unit test
+can check the invariant this class is built around -- that a chunk, once
+mapped, is never moved -- rather than infer it from values reading back
+correctly.
 
-#ifndef SECONDO_WIN32
-     int fd;                 // background storage
-#else
-     HANDLE hFile;           // background storage
-     HANDLE hMap;            // its current file mapping object
-#endif
+*/
+    size_t ChunkCount() const {
+       return nChunks.load(std::memory_order_relaxed);
+    }
+    size_t ChunkElements() const { return chunkElements; }
+    const void* chunkBase(const size_t n) const {
+       return n < ChunkCount()
+                ? (const void*) chunks[n].load(std::memory_order_relaxed) : 0;
+    }
+
+
+  private:
+     MappedChunkFile storage;      // the file and its mappings
+
+     std::atomic<size_t> size;     // slots claimed -- see the note on threading
+     std::atomic<size_t> capacity; // elements the mapped chunks hold
+     std::atomic<T*>* chunks;      // the chunk table; allocated once, never
+                                   // moved, and each entry written once
+     std::atomic<size_t> nChunks;  // entries of it in use
+
+     size_t maxChunks;             // the table's length; fixed at construction
+     std::mutex growth;            // taken only to add a chunk
+
+     // Fixed by the constructor before anything can reach the object, so these
+     // are read without synchronization.
+     size_t chunkElements;         // elements per chunk, a power of two
+     size_t chunkBytes;            // its size in bytes
+     unsigned shift;               // log2(chunkElements)
+     size_t mask;                  // chunkElements - 1
 
 
 /*
 Constructor
 
-~WinUnix::getPageSize~ is deliberately not used here: it answers with a fixed
-4096 so that database files stay portable across machines, while a mapping has
-to be told about the page size the machine really has (16384 on Apple Silicon).
-
 */
-     BigArray(const std::string& _fname, size_t _initialEntries)
-       : fname(_fname), size(0), base(0), mapped(0), capacity(0),
-         pagesize(0)
-#ifndef SECONDO_WIN32
-       , fd(-1)
-#else
-       , hFile(INVALID_HANDLE_VALUE), hMap(0)
-#endif
+     BigArray(const std::string& _fname, size_t _initialEntries,
+              size_t _maxChunks)
+       : storage(_fname), size(0), capacity(0), chunks(0), nChunks(0),
+         maxChunks(_maxChunks > 0 ? _maxChunks : 1),
+         chunkElements(0), chunkBytes(0), shift(0), mask(0)
      {
-        pagesize = systemPageSize();
-        openStorage();
+        chooseChunkSize(_initialEntries);
+        chunks = new std::atomic<T*>[maxChunks]();
         try {
-          // Sized up front so the common case never has to regrow.
-          grow(_initialEntries > 0 ? _initialEntries : 1);
+          // Mapped up front so the common case never has to grow.
+          ensureCapacity(_initialEntries > 0 ? _initialEntries : 1);
         } catch(...) {
-          closeStorage();
+          const size_t mapped = ChunkCount();
+          for(size_t i = 0; i < mapped; i++){
+            storage.unmap(chunks[i].load(std::memory_order_relaxed),
+                          chunkBytes);
+          }
+          delete[] chunks;
           throw;
         }
      }
 
 /*
-~grow~
+~chooseChunkSize~
 
-Makes room for at least ~entries~ elements, rounded up to whole pages.
+A chunk holds an eighth of what the caller asked for, so an array that stays
+within its initial size is eight mappings rather than one, and one that grows
+does so in steps proportional to its own scale. Both bounds matter: the lower
+one is the granularity rule described above, the upper one keeps a single
+mapping from becoming unreasonably large for an array that only just crossed a
+threshold.
 
 */
-     void grow(const size_t entries){
-        if(entries <= capacity){
-          return;
+     void chooseChunkSize(const size_t initialEntries){
+        size_t want = initialEntries / 8;
+        if(want < MIN_CHUNK_ELEMENTS){
+          want = MIN_CHUNK_ELEMENTS;
         }
-        size_t bytes = entries * sizeof(T);
-        bytes = ((bytes + pagesize - 1) / pagesize) * pagesize;
-        mapAtLeast(bytes);
-        capacity = mapped / sizeof(T);
+        chunkElements = MIN_CHUNK_ELEMENTS;
+        shift = 0;
+        while((((size_t) 1) << shift) < chunkElements){
+          shift++;
+        }
+        while(chunkElements < want && chunkElements < MAX_CHUNK_ELEMENTS){
+          chunkElements <<= 1;
+          shift++;
+        }
+        mask = chunkElements - 1;
+        chunkBytes = chunkElements * sizeof(T);
      }
-
-     T* elements(){ return (T*) base; }
-
 
 /*
-The three operations that differ between platforms. Everything above is written
-in terms of them, so both platforms run the same logic.
+~ensureCapacity~
 
-Each of them leaves the array usable if it fails: ~mapAtLeast~ in particular
-puts the new mapping in place before taking the old one down, so a failed
-growth throws with the data still mapped and reachable.
+Maps chunks until at least ~entries~ elements fit. This is the one path that
+takes a lock, and it runs once per chunk -- once per 48 MiB of nodes at the
+kernel's configured size -- rather than once per element. The check is repeated
+under the lock, so several appenders that find the array full at the same moment
+add one chunk between them and not one each.
 
 */
-
-#ifndef SECONDO_WIN32
-
-     static size_t systemPageSize(){
-        const long ps = ::sysconf(_SC_PAGESIZE);
-        return ps > 0 ? (size_t) ps : 4096;
-     }
-
-     void openStorage(){
-        fd = ::open(fname.c_str(), O_RDWR | O_CREAT | O_TRUNC, 0600);
-        if(fd < 0){
-          throw SecondoException("Could not open file " + fname + ": "
-                                 + strerror(errno));
-        }
-        // Deleted straight away: the descriptor and the mapping keep the inode
-        // alive for exactly as long as this array needs it, and the kernel
-        // reclaims it however this process ends. Deleting in the destructor
-        // instead meant that a crash, a kill or a power cut left the file
-        // behind.
-        ::unlink(fname.c_str());
-     }
-
-     void mapAtLeast(const size_t bytes){
-        if(::ftruncate(fd, (off_t) bytes) != 0){
-          throw SecondoException("Could not extend file " + fname + ": "
-                                 + strerror(errno));
-        }
-        void* p;
-#ifdef __linux__
-        // Preferred where it exists: it leaves the old mapping in place if it
-        // fails, where unmapping first would lose the array.
-        p = base ? ::mremap(base, mapped, bytes, MREMAP_MAYMOVE)
-                 : ::mmap(0, bytes, PROT_READ | PROT_WRITE,
-                          MAP_SHARED | MAP_NORESERVE, fd, 0);
-#else
-        p = ::mmap(0, bytes, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
-        if(p != MAP_FAILED && base){
-          ::munmap(base, mapped);
-        }
-#endif
-        if(p == MAP_FAILED){
-          throw SecondoException("Could not map file " + fname + ": "
-                                 + strerror(errno));
-        }
-        base = (char*) p;
-        mapped = bytes;
-     }
-
-     void closeStorage(){
-        if(base){
-          ::munmap(base, mapped);
-          base = 0;
-          mapped = 0;
-        }
-        if(fd >= 0){
-          ::close(fd);
-          fd = -1;
+     void ensureCapacity(const size_t entries){
+        std::lock_guard<std::mutex> guard(growth);
+        // Relaxed: under the lock there is no other writer to race with.
+        while(capacity.load(std::memory_order_relaxed) < entries){
+          addChunk();
         }
      }
-
-#else
 
 /*
-The Windows equivalents. ~CreateFileMapping~ extends the file to the requested
-size by itself, so there is no separate step for that, and there is no
-~mremap~: growing means a second mapping object over the same file, which is
-created and mapped before the old view is taken down.
+~addChunk~
 
-FILE\_FLAG\_DELETE\_ON\_CLOSE is how the POSIX branch's ~unlink~ is spelled here:
-the file goes away once the last handle closes, however the process ends. It
-needs FILE\_SHARE\_DELETE to be allowed at all. FILE\_ATTRIBUTE\_TEMPORARY asks
-Windows to avoid writing pages back while it has the memory to hold them, which
-is what this file is for.
+Maps one more slice of the file. Called with ~growth~ held.
+
+If this throws, every chunk mapped so far is still mapped and still readable --
+nothing is taken down in order to put something else up, which is the property
+the whole design rests on.
+
+The store of the chunk pointer is a *release*, and ~at~ reads it with an
+*acquire*: that pair, and not the value of ~size~, is what makes a chunk another
+thread has just mapped safe to dereference. Keeping the edge local to the
+pointer means the orderings on ~size~ can stay relaxed, where they are on the
+hottest path in the system.
 
 */
-
-     static size_t systemPageSize(){
-        SYSTEM_INFO si;
-        ::GetSystemInfo(&si);
-        return si.dwPageSize > 0 ? (size_t) si.dwPageSize : 4096;
+     void addChunk(){
+        const size_t n = nChunks.load(std::memory_order_relaxed);
+        if(n == maxChunks){
+          throw SecondoException("Array " + storage.name()
+                                 + " reached its maximum of "
+                                 + std::to_string(maxChunks * chunkElements)
+                                 + " entries");
+        }
+        T* const chunk = (T*) storage.map(n * chunkBytes, chunkBytes);
+        chunks[n].store(chunk, std::memory_order_release);
+        nChunks.store(n + 1, std::memory_order_relaxed);
+        capacity.store((n + 1) * chunkElements, std::memory_order_release);
      }
 
-     static std::string lastError(){
-        return "error " + std::to_string((unsigned long) ::GetLastError());
-     }
+/*
+~at~
 
-     void openStorage(){
-        hFile = ::CreateFileA(fname.c_str(),
-                              GENERIC_READ | GENERIC_WRITE,
-                              FILE_SHARE_READ | FILE_SHARE_WRITE
-                                | FILE_SHARE_DELETE,
-                              0, CREATE_ALWAYS,
-                              FILE_ATTRIBUTE_TEMPORARY
-                                | FILE_FLAG_DELETE_ON_CLOSE, 0);
-        if(hFile == INVALID_HANDLE_VALUE){
-          throw SecondoException("Could not open file " + fname + ": "
-                                 + lastError());
-        }
-     }
+Locates an element. ~index~ counts from 0 here, unlike the public interface.
 
-     void mapAtLeast(const size_t bytes){
-        const uint64_t want = (uint64_t) bytes;
-        HANDLE newMap = ::CreateFileMappingA(hFile, 0, PAGE_READWRITE,
-                                             (DWORD) (want >> 32),
-                                             (DWORD) (want & 0xFFFFFFFFull),
-                                             0);
-        if(newMap == 0){
-          throw SecondoException("Could not extend file " + fname + ": "
-                                 + lastError());
-        }
-        void* p = ::MapViewOfFile(newMap, FILE_MAP_ALL_ACCESS, 0, 0,
-                                  (SIZE_T) bytes);
-        if(p == 0){
-          const std::string why = lastError();
-          ::CloseHandle(newMap);
-          throw SecondoException("Could not map file " + fname + ": " + why);
-        }
-        // Only now that the new view exists is the old one given up.
-        if(base){
-          ::UnmapViewOfFile(base);
-        }
-        if(hMap){
-          ::CloseHandle(hMap);
-        }
-        hMap = newMap;
-        base = (char*) p;
-        mapped = bytes;
-     }
+There is deliberately no check that the chunk is there. ~append~ makes room
+before it claims a slot, so ~size~ never exceeds ~capacity~, and every caller
+reaches this through a bounds check against ~size~ -- an index that passes it
+has a mapped chunk by construction. The *acquire* on the load is what makes
+that chunk visible to a thread that did not map it.
 
-     void closeStorage(){
-        if(base){
-          ::UnmapViewOfFile(base);
-          base = 0;
-          mapped = 0;
-        }
-        if(hMap){
-          ::CloseHandle(hMap);
-          hMap = 0;
-        }
-        if(hFile != INVALID_HANDLE_VALUE){
-          ::CloseHandle(hFile);
-          hFile = INVALID_HANDLE_VALUE;
-        }
-     }
+This is the hottest line in the system: it runs once per node visit, and
+~query roads~ visits tens of millions of nodes several times over. A check
+here that can only fire for an index the caller was never given cost about a
+second of the query, measured, and bought nothing that the invariant does not
+already give.
 
-#endif
+*/
+     T& at(const size_t index){
+        return chunks[index >> shift].load(std::memory_order_acquire)
+                                          [index & mask];
+     }
 
 };
 
 
+/*
+~append~
+
+The slot is claimed with one compare-and-exchange, which is what lets two
+threads append at once without either of them holding anything: the winner gets
+the index, the loser is handed the value it lost to and tries the next one.
+
+*Room is made before the slot is claimed*, not after, and that ordering is
+load-bearing in two ways. It keeps ~size~ from ever exceeding ~capacity~, so a
+bounds check that passes means the slot is mapped; and it means an append that
+cannot grow -- the chunk table is full -- throws without having claimed
+anything, leaving the array exactly as it was. Claiming first with a plain
+~fetch\_add~ is cheaper by a hair and gets both of those wrong: the failed
+append would leave ~size~ counting an entry that does not exist.
+
+*/
 template<class T>
 size_t BigArray<T>::append(const T& value){
-    if(size == capacity){
-       grow(capacity * 2);
+    size_t index = size.load(std::memory_order_relaxed);
+    for(;;){
+      if(index >= capacity.load(std::memory_order_acquire)){
+        ensureCapacity(index + 1);            // throws if there is no room
+      }
+      if(size.compare_exchange_weak(index, index + 1,
+                                    std::memory_order_relaxed,
+                                    std::memory_order_relaxed)){
+        break;
+      }
+      // Lost the race; `index` now holds what the winner left behind.
     }
-    elements()[size] = value;
-    size++;
-    return size;
+    at(index) = value;
+    return index + 1;
 }
 
 template<class T>
 bool BigArray<T>::Get(size_t index1, T& result){
     size_t index = index1;
-   if((index > size) || (index < 1)){
+   const size_t entries = size.load(std::memory_order_relaxed);
+   if((index > entries) || (index < 1)){
      throw SecondoException("get: array index out of bounds: index = "
                             + std::to_string(index) + ", size = "
-                            + std::to_string(size));
+                            + std::to_string(entries));
    }
-   result = elements()[index-1];
+   result = at(index-1);
    return true;
 }
 
@@ -457,12 +542,13 @@ bool BigArray<T>::Get(size_t index1, T& result){
 template<class T>
 void BigArray<T>::Put(size_t index1, const T& value){
   size_t index = index1;
-   if((index < 1) || (index > size)){
+   const size_t entries = size.load(std::memory_order_relaxed);
+   if((index < 1) || (index > entries)){
      throw SecondoException("put: array index out of bounds: index = "
                             + std::to_string(index) + ", size = "
-                            + std::to_string(size));
+                            + std::to_string(entries));
    }
-   elements()[index-1] = value;
+   at(index-1) = value;
 }
 
 
