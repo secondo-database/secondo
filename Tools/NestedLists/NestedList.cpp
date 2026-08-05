@@ -1146,23 +1146,25 @@ without their brackets.
   bool after = false;
 
 
+  // '\n' rather than endl: these newlines are formatting, and endl would
+  // flush the stream once per list node
   if ( IsEmpty( list ) )
   {
-    os << endl << tab(indent) << "()";
+    os << '\n' << tab(indent) << "()";
     return (afterList);
   }
   else if ( IsAtom( list ))
   {
     if ( afterList || (AtomType( list) == TextType ) )
     {
-      os << endl << tab(indent);
+      os << '\n' << tab(indent);
     }
     WriteAtom( list, toScreen, os );
     return (afterList);
   }
   else
   {
-    os << endl << tab(indent) << "(";
+    os << '\n' << tab(indent) << "(";
     after = WriteList( First( list ), level+1, false, toScreen, os, offset );
     while (!IsEmpty( Rest( list ) ))
     {
