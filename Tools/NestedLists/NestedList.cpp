@@ -141,7 +141,162 @@ Definitions implied by convention:
 */
 
 
-size_t NestedList::NLinstance = 0;
+std::atomic<size_t> NestedList::NLinstance(0);
+
+#ifdef NL_CHECK_CONCURRENCY
+
+/*
+The contract checker. See the note at ~NodeAccessGuard~ in the header for what
+it does and does not detect; this is only how.
+
+A slot is one 64 bit word: the node index biased by one in the high half -- so
+that an all-zero word means free -- then the marking thread and the nesting
+depth. Everything is a single word so that claiming a slot is one
+compare-and-exchange and cannot be observed half written.
+
+*/
+
+namespace {
+
+const size_t GUARD_SLOTS = 1u << 16;   // 512 kB, debug builds only
+const size_t GUARD_MASK  = GUARD_SLOTS - 1;
+
+std::atomic<uint64_t> guardTable[GUARD_SLOTS];
+
+inline uint64_t guardPack( ListExpr node, uint16_t thread, uint16_t depth )
+{
+  return ((uint64_t) node + 1) << 32 | (uint64_t) thread << 16 | depth;
+}
+inline uint64_t guardNode  ( uint64_t v ) { return (v >> 32) - 1; }
+inline uint16_t guardThread( uint64_t v ) { return (uint16_t) (v >> 16); }
+inline uint16_t guardDepth ( uint64_t v ) { return (uint16_t) v; }
+
+/*
+A small dense id per thread, because the slot has 16 bits for it and a
+~std::thread::id~ does not fit. Handed out once per thread and never reused --
+a process that gets through 65535 threads wraps, which costs a missed check and
+not a wrong report, since a collision then just looks like the same thread.
+
+*/
+uint16_t guardThreadKey()
+{
+  static std::atomic<uint16_t> next(1);
+  static thread_local uint16_t key = next++;
+  return key;
+}
+
+/*
+Built into one string and written with one call: every thread that trips the
+check is reporting at the same moment, and a chain of ~<<~ interleaves them into
+something unreadable -- which is what this printed before. A single ~fwrite~ is
+atomic against other stdio on the same stream, so each report arrives whole.
+
+*/
+void guardReport( const char* what, ListExpr node, uint16_t other )
+{
+  std::ostringstream msg;
+  msg << "\nFATAL: the NestedList threading contract was broken.\n"
+      << "  " << what << " of node " << node << " by thread "
+      << guardThreadKey() << " while thread " << other << " is writing it.\n"
+      << "  Concurrent operations on the same list need the caller's own "
+         "lock; only disjoint lists may be used from several threads at "
+         "once. See the threading contract in include/NestedList.h.\n";
+
+  const std::string s = msg.str();
+  fwrite( s.data(), 1, s.size(), stderr );
+  fflush( stderr );
+  std::abort();
+}
+
+} // namespace
+
+NodeAccessGuard::NodeAccessGuard( ListExpr node ) : node( node ), held( false )
+{
+  if ( node == 0 ) return;
+
+  std::atomic<uint64_t>& slot = guardTable[node & GUARD_MASK];
+  const uint16_t me = guardThreadKey();
+
+  for (;;)
+  {
+    uint64_t cur = slot.load( std::memory_order_acquire );
+
+    if ( cur == 0 )
+    {
+      if ( slot.compare_exchange_weak( cur, guardPack( node, me, 1 ),
+                                       std::memory_order_acq_rel,
+                                       std::memory_order_acquire ) )
+      {
+        held = true;
+      }
+      continue;                          // lost the race, or claimed it
+    }
+
+    if ( guardNode( cur ) != node )
+    {
+      // Another node hashes here. Skip the check rather than wait: the table
+      // is a detector, and blocking in it would add the very serialisation
+      // this work removed.
+      return;
+    }
+
+    if ( guardThread( cur ) != me )
+    {
+      guardReport( "write", node, guardThread( cur ) );
+    }
+
+    // Same thread again -- these operations nest, e.g. Cons(x, x).
+    if ( slot.compare_exchange_weak( cur,
+                                     guardPack( node, me, guardDepth( cur ) + 1 ),
+                                     std::memory_order_acq_rel,
+                                     std::memory_order_acquire ) )
+    {
+      held = true;
+      return;
+    }
+  }
+}
+
+NodeAccessGuard::~NodeAccessGuard()
+{
+  if ( !held ) return;
+
+  std::atomic<uint64_t>& slot = guardTable[node & GUARD_MASK];
+  const uint16_t me = guardThreadKey();
+
+  for (;;)
+  {
+    uint64_t cur = slot.load( std::memory_order_acquire );
+    // Ours by construction: held is only set after claiming it.
+    assert( guardNode( cur ) == node && guardThread( cur ) == me );
+
+    const uint16_t depth = guardDepth( cur );
+    const uint64_t next  = depth > 1 ? guardPack( node, me, depth - 1 ) : 0;
+
+    if ( slot.compare_exchange_weak( cur, next,
+                                     std::memory_order_acq_rel,
+                                     std::memory_order_acquire ) )
+    {
+      return;
+    }
+  }
+}
+
+void NodeAccessGuard::CheckRead( ListExpr node )
+{
+  if ( node == 0 ) return;
+
+  const uint64_t cur =
+      guardTable[node & GUARD_MASK].load( std::memory_order_acquire );
+
+  if ( cur != 0 && guardNode( cur ) == node
+       && guardThread( cur ) != guardThreadKey() )
+  {
+    guardReport( "read", node, guardThread( cur ) );
+  }
+}
+
+#endif // NL_CHECK_CONCURRENCY
 
 NodeRecord::NodeRecord() :
     nodeType(BoolType),
@@ -204,10 +359,6 @@ you comment out the line below.
 
 
 
-#ifdef THREAD_SAFE
-   boost::mutex smtx;
-#endif
-
 /*
 Resolves ~dir~ against the current working directory, so that it keeps naming
 the same place after the process has moved elsewhere.
@@ -238,9 +389,6 @@ NestedList::NestedList(string dir /* ="" */,
                        const uint32_t strMem,
                        const uint32_t textMem )
 {
-#ifdef THREAD_SAFE
-   boost::lock_guard<boost::mutex> guard1(smtx);
-#endif
   assert( sizeof(float) == 4);
   // How can we convert a N byte floating point representation
   // to a M byte representation?
@@ -275,18 +423,12 @@ NestedList::NestedList(string dir /* ="" */,
 
 NestedList::~NestedList()
 {
-#ifdef THREAD_SAFE
-   boost::lock_guard<boost::recursive_mutex> guard1(mtx);
-#endif
    DeleteListMemory();
 }
 
 void
 NestedList::DeleteListMemory()
 {
-#ifdef THREAD_SAFE
-   boost::lock_guard<boost::recursive_mutex> guard1(mtx);
-#endif
    //cerr << "DeleteListMem this = " << (void*)this << endl;
    //cerr << "stringTable = " << (void*) stringTable << endl;
    //cerr << "nodeTable = " << (void*) nodeTable << endl;
@@ -310,9 +452,6 @@ NestedList::DeleteListMemory()
 void
 NestedList::setMem( Cardinal nodeMem, Cardinal strMem, Cardinal textMem)
 {
-#ifdef THREAD_SAFE
-   boost::lock_guard<boost::recursive_mutex> guard1(mtx);
-#endif
   nodeEntries = (nodeMem * 1024) / sizeof(NodeRecord);
   stringEntries = (strMem * 1024) / sizeof(StringRecord);
   textEntries = (textMem * 1024) / sizeof(TextRecord);
@@ -323,9 +462,6 @@ NestedList::setMem( Cardinal nodeMem, Cardinal strMem, Cardinal textMem)
 void
 NestedList::initializeListMemory()
 {
-#ifdef THREAD_SAFE
-   boost::lock_guard<boost::recursive_mutex> guard1(mtx);
-#endif
    //cout << endl << "### NestedList::initializeListMemory" << endl;
    DeleteListMemory(); //cleans also free sets
 
@@ -373,9 +509,6 @@ not used anywhere in the current version of the module.
 void
 NestedList::PrintTableTexts() const
 {
-#ifdef THREAD_SAFE
-   boost::lock_guard<boost::recursive_mutex> guard1(mtx);
-#endif
   Cardinal i, numEntries;
 
   numEntries = textTable->NoEntries();
@@ -423,10 +556,8 @@ NestedList::NodeType2Text( NodeType type )
 ListExpr
 NestedList::First( const ListExpr list ) const
 {
-#ifdef THREAD_SAFE
-   boost::lock_guard<boost::recursive_mutex> guard1(mtx);
-#endif
   assert( !IsEmpty( list ) && !IsAtom( list ) );
+  NL_READING_NODE(list);
   return ((*nodeTable)[list].n.left);
 };
 
@@ -434,19 +565,14 @@ NestedList::First( const ListExpr list ) const
 ListExpr
 NestedList::Rest( const ListExpr list ) const
 {
-#ifdef THREAD_SAFE
-   boost::lock_guard<boost::recursive_mutex> guard1(mtx);
-#endif
   assert( !IsEmpty( list ) && !IsAtom( list ) );
+  NL_READING_NODE(list);
   return ((*nodeTable)[list].n.right);
 };
 
 ListExpr
 NestedList::End( ListExpr list ) const
 {
-#ifdef THREAD_SAFE
-   boost::lock_guard<boost::recursive_mutex> guard1(mtx);
-#endif
   ListExpr last = Empty();
   while ( !IsEmpty(list) ) {
      last = list;
@@ -464,9 +590,6 @@ ListExpr
 NestedList::Cons( const ListExpr left, const ListExpr right, 
                   bool incRefs)
 {
-#ifdef THREAD_SAFE
-   boost::lock_guard<boost::recursive_mutex> guard1(mtx);
-#endif
   assert( !IsAtom( right ) );
 
   Cardinal newNode = nodeTable->EmptySlot();
@@ -481,8 +604,13 @@ NestedList::Cons( const ListExpr left, const ListExpr right,
   tmpNodeVal.references = 1;
   (*nodeTable).Put(newNode, tmpNodeVal);
 
+  // newNode above is fresh out of EmptySlot and known to no one else, so only
+  // the two operands can be shared. Each read-modify-write below is one span:
+  // two threads consing the same node both read references as n and both write
+  // n+1, and the node is then freed one release too early.
   if ( ! IsEmpty( left ) )
   {
+    NL_WRITING_NODE(left);
     nodeTable->Get(left, tmpNodeVal);
     if(!isImmortal(tmpNodeVal)){
       tmpNodeVal.isRoot = 0;
@@ -494,6 +622,7 @@ NestedList::Cons( const ListExpr left, const ListExpr right,
   }
   if ( !IsEmpty( right ) )
   {
+    NL_WRITING_NODE(right);
     (*nodeTable).Get(right, tmpNodeVal);
     if(!isImmortal(tmpNodeVal)){
       if(incRefs){
@@ -518,10 +647,12 @@ NestedList::Append ( const ListExpr lastElem,
                      const ListExpr newSon,
                      bool incRef )
 {
-#ifdef THREAD_SAFE
-   boost::lock_guard<boost::recursive_mutex> guard1(mtx);
-#endif
         assert( EndOfList(lastElem) );
+
+  // Two threads appending to one lastElem is the textbook breach: both read the
+  // same record, both set n.right to a node of their own, and the second write
+  // drops the first thread's element off the list entirely.
+  NL_WRITING_NODE(lastElem);
 
   NodeRecord lastElemNodeRec;
   (*nodeTable).Get(lastElem, lastElemNodeRec);
@@ -543,6 +674,7 @@ NestedList::Append ( const ListExpr lastElem,
 
   if ( !IsEmpty( newSon ) ) {
 
+    NL_WRITING_NODE(newSon);
     NodeRecord newSonRec;
     (*nodeTable).Get(newSon, newSonRec);
     if(!isImmortal(newSonRec)){
@@ -575,6 +707,12 @@ void NestedList::DestroyRec(ListExpr& list){
   if(IsEmpty(list)){
     return;
   }
+
+  // One guard for all five arms below: each of them is a read, a decrement and
+  // a conditional write back of this node. The recursion into children takes
+  // its own guard on its own node, and re-entering this one on the same thread
+  // -- a list that reaches itself -- is counted rather than reported.
+  NL_WRITING_NODE(list);
 
   switch( AtomType(list) ) {
 
@@ -681,18 +819,12 @@ void NestedList::DestroyRec(ListExpr& list){
 void
 NestedList::Destroy(ListExpr& list )
 {
-#ifdef THREAD_SAFE
-   boost::lock_guard<boost::recursive_mutex> guard1(mtx);
-#endif
   
   DestroyRec(list); 
   list = 0;
 }
 
 uint32_t NestedList::ReferenceCount(const ListExpr list) const {
-#ifdef THREAD_SAFE
-   boost::lock_guard<boost::recursive_mutex> guard1(mtx);
-#endif
   if(!list){
     return 0;
   }
@@ -702,10 +834,8 @@ uint32_t NestedList::ReferenceCount(const ListExpr list) const {
 }
 
 void NestedList::IncReferences(ListExpr& list){
-#ifdef THREAD_SAFE
-   boost::lock_guard<boost::recursive_mutex> guard1(mtx);
-#endif
   if(list){
+     NL_WRITING_NODE(list);
      NodeRecord node;
      nodeTable->Get(list, node);
      if(isImmortal(node)){
@@ -729,9 +859,6 @@ void NestedList::IncReferences(ListExpr& list){
 int
 NestedList::ListLength( ListExpr list ) const
 {
-#ifdef THREAD_SAFE
-   boost::lock_guard<boost::recursive_mutex> guard1(mtx);
-#endif
 /*
 ~list~ may be any list expression. Returns the number of elements, if it is
 a list, and -1, if it is an atom.
@@ -757,9 +884,6 @@ a list, and -1, if it is an atom.
 bool
 NestedList::HasLength( ListExpr list, const int n ) const
 {
-#ifdef THREAD_SAFE
-   boost::lock_guard<boost::recursive_mutex> guard1(mtx);
-#endif
   if ( IsAtom(list) ){
     return false;
   }
@@ -783,9 +907,6 @@ Returns true iff the Given Listexpr contains at least n elements.
 bool
 NestedList::HasMinLength( ListExpr list, const int n ) const
 {
-#ifdef THREAD_SAFE
-   boost::lock_guard<boost::recursive_mutex> guard1(mtx);
-#endif
   if ( IsAtom(list) ){
     return false;
   }
@@ -804,9 +925,6 @@ NestedList::HasMinLength( ListExpr list, const int n ) const
 int
 NestedList::ExprLength( ListExpr expr ) const
 {
-#ifdef THREAD_SAFE
-   boost::lock_guard<boost::recursive_mutex> guard1(mtx);
-#endif
 /*
 Reads a list expression ~expr~ and counts the number ~length~ of
 subexpressions.
@@ -846,9 +964,6 @@ struct CopyStackRecord
 ListExpr
 NestedList::SimpleCopy(const ListExpr list, NestedList* target) const
 {
-#ifdef THREAD_SAFE
-   boost::lock_guard<boost::recursive_mutex> guard1(mtx);
-#endif
   //cout << "NestedList::SimpleCopy" << endl;
   stringstream ss;
   ListExpr temp = list;
@@ -864,9 +979,6 @@ bool
 NestedList::IsEqual( const ListExpr atom, const string& str,
                      const bool caseSensitive                ) const
 {
-#ifdef THREAD_SAFE
-   boost::lock_guard<boost::recursive_mutex> guard1(mtx);
-#endif
 /*
 returns TRUE if ~atom~ is a symbol atom and has the same value as ~str~.
 
@@ -909,9 +1021,6 @@ NestedList::ReadFromFile ( const string& fileName, ListExpr& list )
      FileSystem::IsDirectory(fileName)){
      return false;
   }
-#ifdef THREAD_SAFE
-   boost::lock_guard<boost::recursive_mutex> guard1(mtx);
-#endif
   bool success = false;
   list = 0;
   ifstream ifile( fileName.c_str() );
@@ -945,9 +1054,6 @@ void
 NestedList::WriteAtom( const ListExpr atom,
                        bool toScreen, ostream& ostr ) const
 {
-#ifdef THREAD_SAFE
-   boost::lock_guard<boost::recursive_mutex> guard1(mtx);
-#endif
   switch ((*nodeTable)[atom].nodeType)
   {
     case IntType:
@@ -1026,9 +1132,6 @@ NestedList::WriteList( ListExpr list,
                        ostream& os,
                        const int offset /*=4*/ ) const
 {
-#ifdef THREAD_SAFE
-   boost::lock_guard<boost::recursive_mutex> guard1(mtx);
-#endif
 /*
 Write a list ~List~ indented by 4 blanks for each ~Level~ of nesting. Atoms
 are written sequentially into a line as long as they do not follow a
@@ -1082,9 +1185,6 @@ without their brackets.
 bool
 NestedList::WriteToFile( const string& fileName, const ListExpr list ) const
 {
-#ifdef THREAD_SAFE
-   boost::lock_guard<boost::recursive_mutex> guard1(mtx);
-#endif
   assert( !IsAtom( list ) );
   bool ok = false;
   ofstream outFile( fileName.c_str() );
@@ -1106,9 +1206,6 @@ NestedList::WriteToFile( const string& fileName, const ListExpr list ) const
 bool
 NestedList::ReadFromString( const string& nlChars, ListExpr& list )
 {
-#ifdef THREAD_SAFE
-   boost::lock_guard<boost::recursive_mutex> guard1(mtx);
-#endif
 /*
    The job of this procedure is to read a string and to convert it to a nested
    list.
@@ -1157,9 +1254,6 @@ NestedList::ToString( const ListExpr list ) const
 bool
 NestedList::WriteToString( string& nlChars, const ListExpr list ) const
 {
-#ifdef THREAD_SAFE
-   boost::lock_guard<boost::recursive_mutex> guard1(mtx);
-#endif
   bool ok =false;
   ostringstream nlos;
 
@@ -1182,9 +1276,6 @@ Write a list in its textual representation into an ostream object
 bool
 NestedList::WriteStringTo(  const ListExpr list, ostream& os ) const
 {
-#ifdef THREAD_SAFE
-   boost::lock_guard<boost::recursive_mutex> guard1(mtx);
-#endif
   bool ok =false;
   ok=WriteToStringLocal( os, list  );
   return ok;
@@ -1198,9 +1289,6 @@ Internal procedure *WriteToStringLocal*
 bool
 NestedList::WriteToStringLocal( ostream& nlChars, ListExpr list ) const
 {
-#ifdef THREAD_SAFE
-   boost::lock_guard<boost::recursive_mutex> guard1(mtx);
-#endif
 /*
 Error Handling in this procedure: If anything goes wrong, the execution of the
 function is finished immediately, and the function result is ~false~, if the
@@ -1319,9 +1407,6 @@ within the structure of the list, otherwise, the function result is ~true~.
 bool
 NestedList::WriteBinaryTo(const ListExpr list, ostream& os) const {
 
-#ifdef THREAD_SAFE
-   boost::lock_guard<boost::recursive_mutex> guard1(mtx);
-#endif
   assert( os.good() );
 
   const nlbyte v[7] = {'b','n','l',0,1,0,2};
@@ -1341,9 +1426,6 @@ NestedList::WriteBinaryTo(const ListExpr list, ostream& os) const {
 bool
 NestedList::ReadBinaryFrom(istream& in, ListExpr& list) {
 
-#ifdef THREAD_SAFE
-   boost::lock_guard<boost::recursive_mutex> guard1(mtx);
-#endif
   assert( in.good() );
 
   char version[8] = {0,0,0,0,0,0,0,0};
@@ -1373,9 +1455,6 @@ NestedList::ReadBinaryFrom(istream& in, ListExpr& list) {
 
 void 
 NestedList::hton(long value, char* buffer) const {
-#ifdef THREAD_SAFE
-   boost::lock_guard<boost::recursive_mutex> guard1(mtx);
-#endif
    static const int n = sizeof(long);
    for (int i=0; i<n; i++) {
      buffer[n-1-i] = (nlbyte) (value & 255);
@@ -1414,9 +1493,6 @@ static const nlbyte BIN_DOUBLE = 20;
 
 nlbyte
 NestedList::GetBinaryType(const ListExpr list) const {
-#ifdef THREAD_SAFE
-   boost::lock_guard<boost::recursive_mutex> guard1(mtx);
-#endif
   switch( AtomType(list) ) {
 
   case BoolType     : return  BIN_BOOLEAN;
@@ -1471,9 +1547,6 @@ NestedList::GetBinaryType(const ListExpr list) const {
 
 int32_t
 NestedList::ReadInt(istream& in, const int len /*= 4*/) const{
-#ifdef THREAD_SAFE
-   boost::lock_guard<boost::recursive_mutex> guard1(mtx);
-#endif
 
   static const bool debug = RTFlag::isActive("NL:BinaryListDebug");
   char buffer[4] = { 0, 0, 0, 0 };
@@ -1512,9 +1585,6 @@ NestedList::ReadInt(istream& in, const int len /*= 4*/) const{
 
 int32_t
 NestedList::ReadShort(istream& in) const {
-#ifdef THREAD_SAFE
-   boost::lock_guard<boost::recursive_mutex> guard1(mtx);
-#endif
   int32_t result = ReadInt(in, 2);
   if((result & 0x8000)  == 0x8000) {
      //result is negativ, adjust first bytes
@@ -1534,9 +1604,6 @@ NestedList::ReadShort(istream& in) const {
 inline void
 NestedList::swap(char* buffer, const int n) const
 {
-#ifdef THREAD_SAFE
-   boost::lock_guard<boost::recursive_mutex> guard1(mtx);
-#endif
   for (int i = 0; i < n/2; i++)
   {
     char c = buffer[n-1-i];
@@ -1558,9 +1625,6 @@ void
 NestedList::ReadString( istream& in,
                         string& outStr, unsigned long length) const
 {
-#ifdef THREAD_SAFE
-   boost::lock_guard<boost::recursive_mutex> guard1(mtx);
-#endif
   char* strBuf = new char[length+1];
   in.read(strBuf, length);
   strBuf[length]=0;
@@ -1574,9 +1638,6 @@ NestedList::ReadBinarySubLists( ListExpr& LE, istream& in,
                                 unsigned long length, 
                                 unsigned long& pos   )
 {
-#ifdef THREAD_SAFE
-   boost::lock_guard<boost::recursive_mutex> guard1(mtx);
-#endif
   if(length==0) {
      LE = TheEmptyList();
      return true;
@@ -1962,9 +2023,6 @@ NestedList::WriteListExpr( const ListExpr list,
                            const bool toScreen, /*=true*/
                            const int offset /*= 4*/   )
 {
-#ifdef THREAD_SAFE
-   boost::lock_guard<boost::recursive_mutex> guard1(mtx);
-#endif
   WriteList( list, 0, false, toScreen, ostr, offset );
 }
 
@@ -1980,9 +2038,6 @@ NestedList::NthElement( const Cardinal n,
                         const Cardinal initialN,
                         const ListExpr list      ) const
 {
-#ifdef THREAD_SAFE
-   boost::lock_guard<boost::recursive_mutex> guard1(mtx);
-#endif
 /*
 Return the ~n~-th element of ~List~. Since this is used recursively,
 ~initialN~ keeps the argument of the first call to be able to give intelligent
@@ -2034,9 +2089,6 @@ least ~N~ elements.
 ListExpr
 NestedList::IntAtom( const long  value )
 {
-#ifdef THREAD_SAFE
-   boost::lock_guard<boost::recursive_mutex> guard1(mtx);
-#endif
   Cardinal newNode = nodeTable->EmptySlot();
   NodeRecord newNodeRec;
   nodeTable->Get(newNode, newNodeRec);
@@ -2056,9 +2108,6 @@ NestedList::IntAtom( const long  value )
 ListExpr
 NestedList::RealAtom( const double value )
 {
-#ifdef THREAD_SAFE
-   boost::lock_guard<boost::recursive_mutex> guard1(mtx);
-#endif
   Cardinal newNode = nodeTable->EmptySlot();
 
   NodeRecord newNodeRec;
@@ -2079,9 +2128,6 @@ NestedList::RealAtom( const double value )
 ListExpr
 NestedList::BoolAtom( const bool value )
 {
-#ifdef THREAD_SAFE
-   boost::lock_guard<boost::recursive_mutex> guard1(mtx);
-#endif
   Cardinal newNode = nodeTable->EmptySlot();
 
   NodeRecord newNodeRec;
@@ -2102,9 +2148,6 @@ NestedList::BoolAtom( const bool value )
 ListExpr
 NestedList::StringAtom( const string& value, bool isString /*=true*/ )
 {
-#ifdef THREAD_SAFE
-   boost::lock_guard<boost::recursive_mutex> guard1(mtx);
-#endif
   int strLen = value.length();
   assert( strLen <= MAX_STRINGSIZE );
 
@@ -2178,9 +2221,6 @@ NestedList::StringAtom( const string& value, bool isString /*=true*/ )
 ListExpr
 NestedList::SymbolAtom( const string& value )
 {
-#ifdef THREAD_SAFE
-   boost::lock_guard<boost::recursive_mutex> guard1(mtx);
-#endif
   ListExpr newNode = StringAtom( value, false );
   return (newNode);
 }
@@ -2194,9 +2234,6 @@ NestedList::SymbolAtom( const string& value )
 ListExpr
 NestedList::TextAtom()
 {
-#ifdef THREAD_SAFE
-   boost::lock_guard<boost::recursive_mutex> guard1(mtx);
-#endif
   Cardinal newNode = nodeTable->EmptySlot();
 
   NodeRecord newNodeRec;
@@ -2226,9 +2263,6 @@ void
 NestedList::AppendText( const ListExpr atom,
                         const string& textBuffer )
 {
-#ifdef THREAD_SAFE
-   boost::lock_guard<boost::recursive_mutex> guard1(mtx);
-#endif
   assert( AtomType( atom ) == TextType );
 
   NodeRecord atomContentRec;
@@ -2334,9 +2368,6 @@ empty or it is filled with up to TextFragmentSize-1 characters.
 long
 NestedList::IntValue( const ListExpr atom ) const
 {
-#ifdef THREAD_SAFE
-   boost::lock_guard<boost::recursive_mutex> guard1(mtx);
-#endif
   assert( AtomType( atom ) == IntType );
   return ((*nodeTable)[atom].a.value.intValue);
 }
@@ -2349,9 +2380,6 @@ NestedList::IntValue( const ListExpr atom ) const
 double
 NestedList::RealValue( const ListExpr atom ) const
 {
-#ifdef THREAD_SAFE
-   boost::lock_guard<boost::recursive_mutex> guard1(mtx);
-#endif
   assert( AtomType( atom ) == RealType );
   return ((*nodeTable)[atom].a.value.realValue);
 }
@@ -2364,9 +2392,6 @@ NestedList::RealValue( const ListExpr atom ) const
 bool
 NestedList::BoolValue( const ListExpr atom ) const
 {
-#ifdef THREAD_SAFE
-   boost::lock_guard<boost::recursive_mutex> guard1(mtx);
-#endif
   assert( AtomType( atom ) == BoolType );
   return ((*nodeTable)[atom].a.value.boolValue);
 }
@@ -2379,9 +2404,6 @@ NestedList::BoolValue( const ListExpr atom ) const
 string
 NestedList::StringSymbolValue( const ListExpr atom ) const
 {
-#ifdef THREAD_SAFE
-   boost::lock_guard<boost::recursive_mutex> guard1(mtx);
-#endif
 
   const NodeRecord& atomRef = (*nodeTable)[atom];
   char buffer[MAX_STRINGSIZE + 1];
@@ -2449,9 +2471,6 @@ NestedList::SymbolValue( const ListExpr atom ) const
 TextScan
 NestedList::CreateTextScan (const ListExpr atom ) const
 {
-#ifdef THREAD_SAFE
-   boost::lock_guard<boost::recursive_mutex> guard1(mtx);
-#endif
   assert( AtomType( atom ) == TextType );
 
   TextScan textScan = new TextScanRecord;
@@ -2474,9 +2493,6 @@ NestedList::GetText ( TextScan       textScan,
                       const Cardinal noChars,
                       string&        textBuffer ) const
 {
-#ifdef THREAD_SAFE
-   boost::lock_guard<boost::recursive_mutex> guard1(mtx);
-#endif
   // load the current fragment
   TextRecord fragment;
   (*textTable).Get(textScan->currentFragment, fragment);
@@ -2536,9 +2552,6 @@ TextRecord::used() const {
 Cardinal
 NestedList::TextLength ( const ListExpr textAtom ) const
 {
-#ifdef THREAD_SAFE
-   boost::lock_guard<boost::recursive_mutex> guard1(mtx);
-#endif
   assert( AtomType( textAtom ) == TextType );
 
   TextRecord fragment;
@@ -2564,9 +2577,6 @@ NestedList::TextLength ( const ListExpr textAtom ) const
 bool
 NestedList::EndOfText( const TextScan textScan ) const
 {
-#ifdef THREAD_SAFE
-   boost::lock_guard<boost::recursive_mutex> guard1(mtx);
-#endif
   if ( textScan->currentFragment == 0 )
   {
     cerr << "textScan->currentFragment == 0: "
@@ -2604,9 +2614,6 @@ SECONDO code.
                           Cardinal size, 
                           TextScanInfo& info           ) const
  {
-#ifdef THREAD_SAFE
-   boost::lock_guard<boost::recursive_mutex> guard1(mtx);
-#endif
  
    if (info.last) { // end of text reached ?
      textFragment = "";
@@ -2654,9 +2661,6 @@ SECONDO code.
 void
 NestedList::DestroyTextScan( TextScan& textScan ) const
 {
-#ifdef THREAD_SAFE
-   boost::lock_guard<boost::recursive_mutex> guard1(mtx);
-#endif
   if ( textScan != 0 )
   {
     delete textScan;
@@ -2673,9 +2677,6 @@ NestedList::DestroyTextScan( TextScan& textScan ) const
 void
 NestedList::Text2String( const ListExpr& textAtom, string& resultStr ) const
 {
-#ifdef THREAD_SAFE
-   boost::lock_guard<boost::recursive_mutex> guard1(mtx);
-#endif
 
   ostringstream outStream;
   string textFragment = "";
@@ -2690,9 +2691,6 @@ NestedList::Text2String( const ListExpr& textAtom, string& resultStr ) const
 string
 NestedList::Text2String( const ListExpr& textAtom ) const {
 
-#ifdef THREAD_SAFE
-   boost::lock_guard<boost::recursive_mutex> guard1(mtx);
-#endif
   ostringstream outStream;
   string textFragment = "";
   TextScanInfo info;
@@ -2727,9 +2725,6 @@ string transformText2Outtext(const string& value)
 NodeType
 NestedList::AtomType (const ListExpr atom ) const
 {
-#ifdef THREAD_SAFE
-   boost::lock_guard<boost::recursive_mutex> guard1(mtx);
-#endif
   if ( !IsAtom( atom ) )
   {
     return (NoAtom);

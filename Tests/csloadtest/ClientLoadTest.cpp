@@ -146,8 +146,11 @@ static void usage(const char* prog)
        << "  --config FILE     config file   (default: Config.ini)\n"
        << "  --threads N       concurrent threads      (default: 10)\n"
        << "  --rounds N        connections per thread  (default: 10)\n"
-       << "  --mode M          connect | parse | shared | both"
+       << "  --mode M          connect | parse | shared | both | contract"
        << "   (default: both)\n"
+       << "                    contract breaks the threading contract on\n"
+       << "                    purpose and must abort; needs a build with\n"
+       << "                    -DNL_CHECK_CONCURRENCY\n"
        << "  --list-mem KB     node/string/text memory per list (default: 1,\n"
        << "                    small on purpose so the tables have to grow)\n"
        << "  --expect-binary   require the server to transfer lists binary\n"
@@ -172,7 +175,7 @@ static bool parseOptions(int argc, char** argv, Options& o)
     else { usage(argv[0]); return false; }
   }
   if (o.mode != "connect" && o.mode != "parse" && o.mode != "shared" &&
-      o.mode != "both") {
+      o.mode != "both" && o.mode != "contract") {
     usage(argv[0]);
     return false;
   }
@@ -455,6 +458,40 @@ static void sharedWorker(const Options& o, int id)
 
 */
 
+/*
+1.6 The workload that is *supposed* to be rejected
+
+Every other mode here obeys the threading contract: threads share one
+~NestedList~ but never one list inside it. This one breaks it on purpose --
+all threads append to the same node -- so that the checker built for exactly
+this can be shown to fire, rather than assumed to.
+
+Only meaningful under ~-DNL~_~CHECK~_~CONCURRENCY~, and it is expected to abort:
+a run that *completes* is the failure. Without the checker compiled in this is
+undefined behaviour and nothing should be concluded from it, which is why the
+mode refuses to run unless the checker is there.
+
+*/
+
+#ifdef NL_CHECK_CONCURRENCY
+
+static NestedList* contractList = 0;
+static ListExpr    contractTail = 0;
+
+static void contractWorker(const Options&, int id)
+{
+  NestedList* nl = contractList;
+
+  for (int r = 0; r < 100000; r++) {
+    // No lock, one shared tail: two threads read the same record and both
+    // write their own node into its right son, so one of the two elements is
+    // simply lost. The checker should stop the process on the first overlap.
+    contractTail = nl->Append(contractTail, nl->IntAtom(id * 1000 + r));
+  }
+}
+
+#endif // NL_CHECK_CONCURRENCY
+
 static void run(void (*worker)(const Options&, int), const Options& o,
                 const char* what)
 {
@@ -498,6 +535,22 @@ int main(int argc, char** argv)
 
     delete sharedList;
     sharedList = 0;
+  }
+  // Deliberately not part of "both": this one is meant to die.
+  if (o.mode == "contract") {
+#ifndef NL_CHECK_CONCURRENCY
+    cerr << "--mode contract needs the build to define NL_CHECK_CONCURRENCY; "
+            "without it this workload is undefined behaviour and proves "
+            "nothing." << endl;
+    return 2;
+#else
+    contractList = new NestedList("", o.listMem, o.listMem, o.listMem);
+    contractTail = contractList->OneElemList(contractList->IntAtom(0));
+    run(contractWorker, o, "one shared list, unsynchronised");
+    cerr << "FAILURE: the concurrency checker did not fire -- " << o.threads
+         << " threads appended to one node and the run completed." << endl;
+    return 1;
+#endif
   }
   if (o.mode == "connect" || o.mode == "both") {
     cout << "connecting to " << o.host << ":" << o.port

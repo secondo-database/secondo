@@ -250,12 +250,10 @@ works with both implementaions.
 #include <string>
 #include <vector>
 
+#include <atomic>
+
 #include "SecondoConfig.h"
 #include "../Tools/BigArray/BigArray.h"
-
-#ifdef THREAD_SAFE
-#include <boost/thread.hpp>
-#endif
 
 
 
@@ -594,7 +592,110 @@ class TextScanInfo{
 
 
 /*
+1.3.16 Enforcing the threading contract
+
+Compiled in only under ~-DNL~_~CHECK~_~CONCURRENCY~; without it every macro
+below is nothing and the class is exactly what it would otherwise be.
+
+What it catches is the second half of the contract stated below being broken:
+two threads operating on the *same node* at the same time, with at least one of
+them writing. It is worth catching precisely, because its symptom otherwise is
+a lost update -- two ~Cons~ calls that both read ~references~ as 1 and both
+write 2, after which the node is freed once too often, arbitrarily far away
+and much later.
+
+Detection is by *temporal overlap*, not by happens-before. A writer marks the
+node for the whole operation, and any other thread that enters an operation on
+that node, or reads it, while the mark is up aborts the process on the spot,
+naming both threads and the node. Overlap is what can be checked cheaply and,
+more importantly, without false positives: handing a finished list from one
+thread to another through a proper synchronisation point is legal and common,
+and a checker based on "who wrote this node last" would reject it. The price of
+that choice is that two accesses which race but do not overlap in time are not
+seen here -- those are ThreadSanitizer's, and CI runs
+~Tests/csloadtest --mode shared~ under it for exactly that reason.
+
+The marks live in a fixed direct-mapped table rather than alongside the nodes:
+~NodeRecord~ has to stay trivially copyable for ~BigArray~, and the node table
+grows while the table below never does. A slot already occupied by a *different*
+node means the check is skipped for this call -- a missed check, never a false
+report.
+
+*/
+
+#ifdef NL_CHECK_CONCURRENCY
+
+class NodeAccessGuard
+{
+ public:
+  explicit NodeAccessGuard( ListExpr node );
+  ~NodeAccessGuard();
+
+  NodeAccessGuard( const NodeAccessGuard& ) = delete;
+  NodeAccessGuard& operator=( const NodeAccessGuard& ) = delete;
+
+/*
+Marks ~node~ as being written by this thread until the guard goes out of scope.
+
+*/
+  static void CheckRead( ListExpr node );
+/*
+Reports if ~node~ is currently marked by *another* thread. Reads do not mark, so
+any number of them may run at once.
+
+*/
+
+ private:
+  ListExpr node;
+  bool     held;
+};
+
+#define NL_WRITING_NODE(n) NodeAccessGuard nlNodeGuard__(n)
+#define NL_READING_NODE(n) NodeAccessGuard::CheckRead(n)
+
+#else
+
+#define NL_WRITING_NODE(n) ((void) 0)
+#define NL_READING_NODE(n) ((void) 0)
+
+#endif
+
+/*
 1.4 Class "NestedList"[2]
+
+1.4.1 Threading contract
+
+One instance used from several threads is supported to exactly this extent:
+
+  * Concurrent operations on *disjoint lists* in one instance are safe.
+
+  * Concurrent operations on the *same list* need the caller's own lock.
+
+There is no mutex in this class any more. There used to be one -- a
+~boost::recursive~_~mutex~ taken at 71 sites -- and removing it is what the
+storage layer below was rebuilt for: ~BigArray~ stores its nodes in chunks that
+are never moved or unmapped once published, and its shared counters are
+~std::atomic~, so an accessor is a plain read of memory no writer can pull away.
+That, and not the mutex, is what makes the first bullet true.
+
+The second bullet is not a new burden. The mutex never made two threads
+~Append~ing to the same ~lastElem~ produce a correct list; it only stopped them
+from corrupting the node table while producing a wrong one. Callers that shared
+a list always needed their own lock, and the ones that have it -- see
+~copylistmutex~ in ~Algebras/Distributed2/ConnectionInfo.cpp~ -- kept working
+unchanged.
+
+Two nodes are shared by construction and would otherwise break the first bullet
+however careful the caller is; both are handled here rather than by discipline.
+~TypeError~ is handed to all 782 of its call sites, so it is marked
+~IMMORTAL~_~REFERENCES~ and no path writes it. ~GetErrorList~ returns a
+reference to a member that callers reassign, which is a shared mutable list, so
+it falls under the second bullet like any other.
+
+Violations are caught rather than left to corrupt: compile with
+~-DNL~_~CHECK~_~CONCURRENCY~ and any two threads that touch one node with at
+least one of them writing abort the process with both thread ids and the node
+index. See ~NodeGuard~ below.
 
 */
 
@@ -676,9 +777,6 @@ Returns "true"[4] if ~list~ is the empty list.
 */
   inline bool IsAtom( const ListExpr list ) const
   {
-#ifdef THREAD_SAFE
-   boost::lock_guard<boost::recursive_mutex> guard1(mtx);
-#endif
 
     if ( IsEmpty( list ) )
     {
@@ -695,9 +793,6 @@ Returns "true"[4] if ~list~ is an atom.
 */
   inline bool IsNodeType( const NodeType n, const ListExpr list ) const
   {
-#ifdef THREAD_SAFE
-   boost::lock_guard<boost::recursive_mutex> guard(mtx);
-#endif
     if ( IsEmpty( list ) )
     {
        return (false);
@@ -711,9 +806,6 @@ Returns "true"[4] if ~list~ is an atom.
 
   inline bool EndOfList( ListExpr list ) const
   {
-#ifdef THREAD_SAFE
-   boost::lock_guard<boost::recursive_mutex> guard(mtx);
-#endif
     if ( IsEmpty( list ) )
     {
       return (false);
@@ -829,9 +921,6 @@ Returns (a pointer to) the right son of ~list~. Result can be the empty list.
 
   inline void Replace( ListExpr oldList, ListExpr newList )
   {
-#ifdef THREAD_SAFE
-   boost::lock_guard<boost::recursive_mutex> guard(mtx);
-#endif
      NodeRecord tmpNode;
      nodeTable->Get(oldList, tmpNode);
      tmpNode = (*nodeTable)[newList];
@@ -917,18 +1006,12 @@ etc. up to six elements.
 */
   inline ListExpr OneElemList( const ListExpr elem1, bool incRef=true )
   {
-#ifdef THREAD_SAFE
-   boost::lock_guard<boost::recursive_mutex> guard(mtx);
-#endif
     return (Cons( elem1, TheEmptyList(), incRef )); };
 
   inline ListExpr TwoElemList( const ListExpr elem1,
                                const ListExpr elem2,
                                bool incRefs = true )
   {
-#ifdef THREAD_SAFE
-   boost::lock_guard<boost::recursive_mutex> guard(mtx);
-#endif
     return (Cons( elem1, OneElemList(elem2,incRefs),incRefs )); };
 
   inline ListExpr ThreeElemList( const ListExpr elem1,
@@ -936,9 +1019,6 @@ etc. up to six elements.
                                  const ListExpr elem3,
                                  bool incRefs = true )
   {
-#ifdef THREAD_SAFE
-   boost::lock_guard<boost::recursive_mutex> guard(mtx);
-#endif
     return (Cons( elem1, TwoElemList(elem2, elem3,incRefs),incRefs )); };
 
 
@@ -948,9 +1028,6 @@ etc. up to six elements.
                                 const ListExpr elem4,
                                 bool incRefs = true )
   {
-#ifdef THREAD_SAFE
-   boost::lock_guard<boost::recursive_mutex> guard(mtx);
-#endif
     return (Cons( elem1, ThreeElemList(elem2, elem3, elem4,incRefs),
                   incRefs )); };
 
@@ -961,9 +1038,6 @@ etc. up to six elements.
                                 const ListExpr elem5,
                                 bool incRefs = true )
   {
-#ifdef THREAD_SAFE
-   boost::lock_guard<boost::recursive_mutex> guard(mtx);
-#endif
     return (Cons( elem1, FourElemList(elem2, elem3, elem4, 
                   elem5, incRefs),incRefs )); };
 
@@ -975,9 +1049,6 @@ etc. up to six elements.
                                const ListExpr elem6,
                                bool incRefs = true )
   {
-#ifdef THREAD_SAFE
-   boost::lock_guard<boost::recursive_mutex> guard(mtx);
-#endif
     return (Cons( elem1, FiveElemList(elem2, elem3, elem4, elem5, elem6,
                                       incRefs)
                   ,incRefs )); };
@@ -1065,9 +1136,6 @@ two operations are offered:
   ListExpr TextAtom();
   inline ListExpr TextAtom(const std::string& value)
   {
-#ifdef THREAD_SAFE
-   boost::lock_guard<boost::recursive_mutex> guard(mtx);
-#endif
     ListExpr l = TextAtom();
     AppendText(l,value);
     return l;
@@ -1190,9 +1258,6 @@ Transforms the text atom into C++ string object
   NodeType AtomType( const ListExpr atom ) const;
   void ExtractAtoms( const ListExpr list, std::vector<ListExpr>& atomVec) const
   {
-#ifdef THREAD_SAFE
-   boost::lock_guard<boost::recursive_mutex> guard(mtx);
-#endif
 
     if ( IsEmpty(list) )
        return;
@@ -1311,9 +1376,6 @@ finding it wrong.
   void PrintTableTexts() const;
 
  private:
-#ifdef THREAD_SAFE
-   mutable boost::recursive_mutex mtx;
-#endif
    NestedList(const NestedList& ); 
    NestedList& operator=(const NestedList&);
 
@@ -1370,9 +1432,6 @@ template functions
                   const ListExpr list2,
                   const Tolerance& t    ) const
   {
-#ifdef THREAD_SAFE
-   boost::lock_guard<boost::recursive_mutex> guard(mtx);
-#endif
    if ( IsEmpty( list1 ) && IsEmpty( list2 ) )
    {
      return true;
@@ -1486,7 +1545,9 @@ prototypes for functions used for the binary encoding/decoding of lists
 
   ListExpr typeError;
   ListExpr errorList;
-  static size_t NLinstance; // number of nested list instances
+  // Shared by every instance in the process, and instances are constructed
+  // from several threads, so the hand-out has to be atomic.
+  static std::atomic<size_t> NLinstance; // number of nested list instances
   size_t instanceNo;        // number of this instance
 
   // stores how much slots can be hold in memory  for each nodetype

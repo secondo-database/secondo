@@ -8172,10 +8172,18 @@ private:
       funarg = array->getObjectNameForSlot(index);
     } else {
       string home = ci->getSecondoHome(showCommands, commandLog);
-      ListExpr ft = nl->TwoElemList(listutils::basicSymbol<frel>(),
-                                    nl->Second(nl->Second(sourceType)));
+      // sourceType is one list shared by every slot's thread, and consing a
+      // node of it raises that node's reference count -- a write. See
+      // copylistmutex in ConnectionInfo.h.
+      string ftStr;
+      {
+        boost::lock_guard<boost::mutex> guard(copylistmutex);
+        ListExpr ft = nl->TwoElemList(listutils::basicSymbol<frel>(),
+                                      nl->Second(nl->Second(sourceType)));
+        ftStr = nl->ToString(ft);
+      }
       string fn = array->getFilePath(home, dbname, index);
-      funarg = "(" + nl->ToString(ft) + " '" + fn + "')";
+      funarg = "(" + ftStr + " '" + fn + "')";
     }
     ci->simpleCommand("delete " + bn, err, strres, false, runtime, showCommands,
                       commandLog, false, algInstance->getTimeout());
@@ -11612,11 +11620,17 @@ private:
           string fname1 = ci->getSecondoHome(showCommands, commandLog) +
                           "/dfarrays/" + dbname + "/" +
                           mapper->array->getName() + "/" + n + ".bin";
-          ListExpr frelType =
-              nl->TwoElemList(listutils::basicSymbol<frel>(),
-                              nl->Second(nl->Second(mapper->aType)));
-
-          funarg = "(" + nl->ToString(frelType) + " '" + fname1 + "' )";
+          // mapper->aType is shared by every slot's thread; consing a node of
+          // it is a write. See copylistmutex in ConnectionInfo.h.
+          string frelTypeStr;
+          {
+            boost::lock_guard<boost::mutex> guard(copylistmutex);
+            ListExpr frelType =
+                nl->TwoElemList(listutils::basicSymbol<frel>(),
+                                nl->Second(nl->Second(mapper->aType)));
+            frelTypeStr = nl->ToString(frelType);
+          }
+          funarg = "(" + frelTypeStr + " '" + fname1 + "' )";
         } else {
           // otherwise, we can is use directly
           funarg = n;
@@ -11770,10 +11784,16 @@ private:
           if (mapper->array->getType() == DFARRAY) {
             string path = ci->getSecondoHome(showCommands, commandLog);
             string fname1 = mapper->array->getFilePath(path, dbname, nr);
-            ListExpr frelType =
-                nl->TwoElemList(listutils::basicSymbol<frel>(),
-                                nl->Second(nl->Second(mapper->aType)));
-            funarg = "( " + nl->ToString(frelType) + " " + "'" + fname1 + "')";
+            // Shared aType again; see copylistmutex in ConnectionInfo.h.
+            string frelTypeStr;
+            {
+              boost::lock_guard<boost::mutex> guard(copylistmutex);
+              ListExpr frelType =
+                  nl->TwoElemList(listutils::basicSymbol<frel>(),
+                                  nl->Second(nl->Second(mapper->aType)));
+              frelTypeStr = nl->ToString(frelType);
+            }
+            funarg = "( " + frelTypeStr + " " + "'" + fname1 + "')";
           } else {
             funarg = n + " ";
           }
@@ -13921,13 +13941,24 @@ private:
       DArrayElement w0 = pi->arg0->getWorkerForSlot(slot);
       ConnectionInfo *c0;
       c0 = algInstance->getWorkerConnection(w0, pi->dbname);
+      // pi->a0Type and pi->a1Type are shared by every slot's thread, and
+      // consing a node of either raises its reference count -- a write. See
+      // copylistmutex in ConnectionInfo.h.
+      string a0TypeStr, a1TypeStr;
+      {
+        boost::lock_guard<boost::mutex> guard(copylistmutex);
+        a0TypeStr =
+            nl->ToString(nl->TwoElemList(listutils::basicSymbol<frel>(),
+                                         nl->Second(nl->Second(pi->a0Type))));
+        a1TypeStr =
+            nl->ToString(nl->TwoElemList(listutils::basicSymbol<fsrel>(),
+                                         nl->Second(nl->Second(pi->a1Type))));
+      }
       if (pi->arg0->getType() == DARRAY) {
         funarg1 = pi->arg0->getObjectNameForSlot(slot);
       } else {
         funarg1 =
-            "(" +
-            nl->ToString(nl->TwoElemList(listutils::basicSymbol<frel>(),
-                                         nl->Second(nl->Second(pi->a0Type)))) +
+            "(" + a0TypeStr +
             "'" +
             pi->arg0->getFilePath(c0->getSecondoHome(showCommands, commandLog),
                                   pi->dbname, slot) +
@@ -13935,11 +13966,7 @@ private:
       }
       string funarg2;
       // funarg2 consists of the concatenation of all slots of argument1
-      funarg2 =
-          "(" +
-          nl->ToString(nl->TwoElemList(listutils::basicSymbol<fsrel>(),
-                                       nl->Second(nl->Second(pi->a1Type)))) +
-          "( ";
+      funarg2 = "(" + a1TypeStr + "( ";
       for (size_t i = 0; i < pi->arg1->getSize(); i++) {
         string slotFile =
             getSlotFile(pi->arg0->getWorkerForSlot(slot), i, c0, ch);

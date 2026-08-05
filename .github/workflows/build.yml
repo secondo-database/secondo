@@ -124,11 +124,15 @@ jobs:
       # -----------------------------------------------------------------------
       # tnestedlist above drives one thread, and csloadtest's `parse` mode gives
       # every thread a NestedList of its own -- so nothing was covering several
-      # threads on *one* list, which is what NestedList's recursive mutex exists
-      # for and what the running system actually does: Distributed2 copies each
-      # worker's result into the global list (ConnectionInfo::simpleCommand) and
-      # reads it back, and every Out function an operator runs in a worker
-      # thread uses the global nl too.
+      # threads on *one* list, which is what the running system actually does:
+      # Distributed2 copies each worker's result into the global list
+      # (ConnectionInfo::simpleCommand) and reads it back, and every Out
+      # function an operator runs in a worker thread uses the global nl too.
+      #
+      # NestedList has no mutex any more, so this is the step that has to hold
+      # the line: what makes concurrent use safe now is that BigArray never
+      # moves a chunk once it is published and keeps its counters atomic, and
+      # nothing but a test says so.
       #
       # Plain first, because the value checks catch corruption on their own;
       # then under ThreadSanitizer, which catches the unsynchronized access
@@ -153,6 +157,32 @@ jobs:
           make tsan
           TSAN_OPTIONS="halt_on_error=0 history_size=4" \
             ./app-tsan --mode shared --threads 4 --rounds 2 --list-mem 1
+
+          # The other half of the contract -- "operations on the same list need
+          # the caller's own lock" -- is the caller's to keep, so NestedList
+          # ships a checker that turns breaking it into an immediate abort
+          # naming both threads and the node. Built here from the same sources
+          # (TSAN_FLAGS is just the flag set for that self-contained build; no
+          # sanitizer this time, the checker is the instrument).
+          #
+          # Both directions are asserted, because a checker that never fires
+          # and a checker that always fires both look like a passing build from
+          # one side only.
+          rm -rf tsan app-tsan
+          make tsan TSAN_FLAGS="-g -O1 -DNL_CHECK_CONCURRENCY"
+          ./app-tsan --mode shared --threads 8 --rounds 5 --list-mem 1
+          if ./app-tsan --mode contract --threads 4 --rounds 1 --list-mem 1; then
+            echo "FAIL: the concurrency checker did not fire although four" \
+                 "threads appended to one node without a lock"
+            exit 1
+          fi
+
+          # Leave nothing instrumented-looking behind: the connection test
+          # further down builds its own app-tsan in this same directory, and
+          # make would find these objects up to date and reuse them. They were
+          # built without -fsanitize=thread, so that step would run a blind
+          # binary and pass no matter what.
+          rm -rf tsan app-tsan
 
       - name: Setup Node
         uses: actions/setup-node@v7

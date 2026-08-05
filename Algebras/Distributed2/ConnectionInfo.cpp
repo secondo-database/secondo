@@ -1174,6 +1174,25 @@ bool ConnectionInfo::storeObjectToFile(const std::string& objName,
                                        ListExpr typeList,
                                        const std::string& fileName)
 {
+    // Everything here happens in the *global* nl, and several workers run it at
+    // once: PPutter::start hands one and the same type list to a SinglePutter
+    // per slot, each with a thread of its own
+    // (Distributed2Algebra.cpp, PPutter::start).
+    //
+    // Allocating disjoint lists concurrently in one NestedList is safe, so the
+    // fresh nodes below need nothing. typeList is the exception: FiveElemList
+    // conses it, and Cons reads that node's record, raises its reference count
+    // and writes it back. Two workers doing that to the same node both read n
+    // and both write n+1, so the type list ends up under-counted and is freed
+    // while the rest of the query is still holding it. OutObject is inside the
+    // guard as well -- it is the algebra's Out function, and there are too many
+    // of those to promise that none of them touches the type list it is given.
+    //
+    // This is a file-write path, so serialising it costs nothing worth
+    // measuring. copylistmutex is the same lock the other global-nl writers in
+    // this file take.
+    boost::lock_guard < boost::mutex > guard(copylistmutex);
+
     SecondoCatalog* ctl = SecondoSystem::GetCatalog();
     ListExpr valueList = ctl->OutObject(typeList, value);
     ListExpr objList = nl->FiveElemList(nl->SymbolAtom("OBJECT"),

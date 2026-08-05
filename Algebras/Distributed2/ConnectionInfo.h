@@ -29,12 +29,29 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #ifndef ALGEBRAS_DISTRIBUTED2_CONNECTIONINFO_H_
 #define ALGEBRAS_DISTRIBUTED2_CONNECTIONINFO_H_
 
+#include <boost/thread.hpp>
+
 #include "SecondoInterfaceCS.h"
 #include "NestedList.h"
 #include "CommandLog.h"
 #include "CommandLogger.h"
 
+/*
+Serialises writes to the *global* nested list from worker threads.
 
+NestedList itself has no lock any more; its contract is that disjoint lists may
+be built concurrently in one instance, while operations on the same list are the
+caller's to serialise. This is that lock, for the one list every worker shares.
+
+Taking it is only needed where a worker touches a node it does not own -- most
+often by consing a type list the query handed to all of them, which raises that
+node's reference count and so is a write. Building fresh lists in the global nl
+needs nothing.
+
+Defined in ConnectionInfo.cpp, at global scope like the ~nl~ it guards.
+
+*/
+extern boost::mutex copylistmutex;
 
 namespace distributed2
 {
