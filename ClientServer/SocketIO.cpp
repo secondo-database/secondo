@@ -55,17 +55,16 @@ Socket::GetSocketStream()
 
 // --- SocketBuffer ---
 
-#ifndef BUFSIZ
-#  define BUFSIZ 1024
-#endif
+
+static const int SOCKET_BUFFER_SIZE = 64 * 1024;
 
 SocketBuffer::SocketBuffer( Socket& socket )
-  : socketHandle( &socket ), bufferSize( BUFSIZ )
+  : socketHandle( &socket ), bufferSize( SOCKET_BUFFER_SIZE )
 {
-  inBuffer  = new char[BUFSIZ];
-  outBuffer = new char[BUFSIZ];
-  setg( inBuffer, inBuffer + BUFSIZ, inBuffer + BUFSIZ );
-  setp( outBuffer, outBuffer + BUFSIZ );
+  inBuffer  = new char[bufferSize];
+  outBuffer = new char[bufferSize];
+  setg( inBuffer, inBuffer + bufferSize, inBuffer + bufferSize );
+  setp( outBuffer, outBuffer + bufferSize );
 }
 
 SocketBuffer::~SocketBuffer()

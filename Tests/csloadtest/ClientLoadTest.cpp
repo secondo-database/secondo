@@ -466,7 +466,7 @@ Every other mode here obeys the threading contract: threads share one
 all threads append to the same node -- so that the checker built for exactly
 this can be shown to fire, rather than assumed to.
 
-Only meaningful under ~-DNL~_~CHECK~_~CONCURRENCY~, and it is expected to abort:
+Only meaningful under ~-DNL\_CHECK\_CONCURRENCY~, and it is expected to abort:
 a run that *completes* is the failure. Without the checker compiled in this is
 undefined behaviour and nothing should be concluded from it, which is why the
 mode refuses to run unless the checker is there.
