@@ -594,7 +594,7 @@ class TextScanInfo{
 /*
 1.3.16 Enforcing the threading contract
 
-Compiled in only under ~-DNL~_~CHECK~_~CONCURRENCY~; without it every macro
+Compiled in only under ~-DNL\_CHECK\_CONCURRENCY~; without it every macro
 below is nothing and the class is exactly what it would otherwise be.
 
 What it catches is the second half of the contract stated below being broken:
@@ -672,10 +672,10 @@ One instance used from several threads is supported to exactly this extent:
   * Concurrent operations on the *same list* need the caller's own lock.
 
 There is no mutex in this class any more. There used to be one -- a
-~boost::recursive~_~mutex~ taken at 71 sites -- and removing it is what the
-storage layer below was rebuilt for: ~BigArray~ stores its nodes in chunks that
+~boost::recursive\_mutex~ taken at 71 sites -- and removing it is what the
+storage layer below was rebuilt for: BigArray stores its nodes in chunks that
 are never moved or unmapped once published, and its shared counters are
-~std::atomic~, so an accessor is a plain read of memory no writer can pull away.
+std::atomic, so an accessor is a plain read of memory no writer can pull away.
 That, and not the mutex, is what makes the first bullet true.
 
 The second bullet is not a new burden. The mutex never made two threads
@@ -688,14 +688,14 @@ unchanged.
 Two nodes are shared by construction and would otherwise break the first bullet
 however careful the caller is; both are handled here rather than by discipline.
 ~TypeError~ is handed to all 782 of its call sites, so it is marked
-~IMMORTAL~_~REFERENCES~ and no path writes it. ~GetErrorList~ returns a
+~IMMORTAL\_REFERENCES~ and no path writes it. ~GetErrorList~ returns a
 reference to a member that callers reassign, which is a shared mutable list, so
 it falls under the second bullet like any other.
 
 Violations are caught rather than left to corrupt: compile with
-~-DNL~_~CHECK~_~CONCURRENCY~ and any two threads that touch one node with at
+~-DNL\_CHECK\_CONCURRENCY~ and any two threads that touch one node with at
 least one of them writing abort the process with both thread ids and the node
-index. See ~NodeGuard~ below.
+index. See NodeGuard below.
 
 */
 
@@ -1528,7 +1528,13 @@ prototypes for functions used for the binary encoding/decoding of lists
   void  ReadString( std::istream& in, std::string& outStr, 
                     unsigned long length ) const;
 
-  nlbyte  GetBinaryType(const ListExpr list) const;
+/*
+Classifies ~list~ for the binary format. For a list -- as opposed to an atom --
+~listLength~ receives the number of elements, which classifying it had to count
+anyway and which the caller needs for the header; atoms leave it at -1.
+
+*/
+  nlbyte  GetBinaryType(const ListExpr list, int& listLength) const;
   void hton(long value, char* buffer) const;
   inline void swap(char* buffer,int size) const;
 

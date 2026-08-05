@@ -247,7 +247,8 @@ NodeAccessGuard::NodeAccessGuard( ListExpr node ) : node( node ), held( false )
 
     // Same thread again -- these operations nest, e.g. Cons(x, x).
     if ( slot.compare_exchange_weak( cur,
-                                     guardPack( node, me, guardDepth( cur ) + 1 ),
+                                     guardPack( node, me, guardDepth( cur ) 
+                                        + 1 ),
                                      std::memory_order_acq_rel,
                                      std::memory_order_acquire ) )
     {
@@ -1492,7 +1493,8 @@ static const nlbyte BIN_DOUBLE = 20;
 */
 
 nlbyte
-NestedList::GetBinaryType(const ListExpr list) const {
+NestedList::GetBinaryType(const ListExpr list, int& listLength) const {
+  listLength = -1;
   switch( AtomType(list) ) {
 
   case BoolType     : return  BIN_BOOLEAN;
@@ -1527,7 +1529,13 @@ NestedList::GetBinaryType(const ListExpr list) const {
                            return BIN_TEXT;
                         return BIN_LONGTEXT;
                        }
-  case NoAtom        : { if(HasMinLength(list,256)){
+  // The caller needs the length as well -- it goes into the header it is about
+  // to write -- so measure the spine once here and hand it back, rather than
+  // asking HasMinLength for the first 256 elements and then walking the whole
+  // thing again in WriteBinaryRec. Same answer: HasMinLength(list,256) is true
+  // exactly when the list has 256 elements or more.
+  case NoAtom        : { listLength = ListLength(list);
+                         if(listLength >= 256){
                             return BIN_LONGLIST;
                          } else {
                             return BIN_SHORTLIST;
@@ -1862,7 +1870,11 @@ NestedList::WriteBinaryRec(ListExpr list, ostream& os) const {
 
   assert( os.good() );
 
-  nlbyte typeId = GetBinaryType(list);
+  // Filled in for lists, -1 for atoms. Measuring the spine is the expensive
+  // part of classifying a list, and the length is needed again below, so it is
+  // carried out of GetBinaryType rather than recomputed.
+  int listLength = -1;
+  nlbyte typeId = GetBinaryType(list, listLength);
   os << typeId;
 
       switch( typeId ) {
@@ -1972,11 +1984,11 @@ NestedList::WriteBinaryRec(ListExpr list, ostream& os) const {
 
   if (debug) {
     cerr << "TypeId: " << (unsigned int) (255 & typeId) << endl;
-    cerr << "ListLength: " << ListLength(list) << endl;
+    cerr << "ListLength: " << listLength << endl;
     cerr << "sizeof(long): " << sizeof(long) << endl;
-   }                       
+   }
                            char pv[sizeof(long)];
-                           hton(ListLength(list),pv);
+                           hton(listLength,pv);
                            if (typeId == BIN_SHORTLIST) {
                              len = 1;
                            } else {
