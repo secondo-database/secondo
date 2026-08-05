@@ -3787,7 +3787,7 @@ OutLine( ListExpr typeInfo, Word value )
 {
   ListExpr result, last;
   HalfSegment hs;
-  ListExpr halfseg, halfpoints, flatseg;
+  ListExpr flatseg;
   Line* l = (Line*)(value.addr);
 
   if(!l->IsDefined()){
@@ -3807,13 +3807,16 @@ OutLine( ListExpr typeInfo, Word value )
     l->Get( i, hs );
     if( hs.IsLeftDomPoint() == true )
     {
-      halfseg = OutHalfSegment( nl->TheEmptyList(), SetWord( (void*)&hs ) );
-      halfpoints = nl->Second( halfseg );
+      // build the four coordinates directly: going through OutHalfSegment
+      // would allocate a 13 node list per segment of which only the four
+      // real atoms below are kept
+      const Point& lp = hs.GetLeftPoint();
+      const Point& rp = hs.GetRightPoint();
       flatseg = nl->FourElemList(
-                  nl->First( nl->First( halfpoints ) ),
-                  nl->Second( nl->First( halfpoints ) ),
-                  nl->First( nl->Second( halfpoints ) ),
-                  nl->Second( nl->Second( halfpoints ) ) );
+                  nl->RealAtom( lp.GetX() ),
+                  nl->RealAtom( lp.GetY() ),
+                  nl->RealAtom( rp.GetX() ),
+                  nl->RealAtom( rp.GetY() ) );
       if( first == true )
       {
         result = nl->OneElemList( flatseg );
@@ -4114,7 +4117,7 @@ Word
  ListExpr OutSimpleLine( ListExpr typeInfo, Word value ) {
    ListExpr result, last;
    HalfSegment hs;
-   ListExpr halfseg, halfpoints, flatseg;
+   ListExpr flatseg;
    SimpleLine* l = static_cast<SimpleLine*>(value.addr);
 
    if(!l->IsDefined()){
@@ -4169,13 +4172,15 @@ Word
         used.insert(lrs.hsPos);
         //cout << "LRS " << lrs << endl;
         l->Get(lrs.hsPos,hs);
-        halfseg = OutHalfSegment( nl->TheEmptyList(), SetWord( (void*)&hs ) );
-        halfpoints = nl->Second( halfseg );
+        // see OutLine: the four coordinates are built directly instead of
+        // extracting them from a temporary OutHalfSegment list
+        const Point& lp = hs.GetLeftPoint();
+        const Point& rp = hs.GetRightPoint();
         flatseg = nl->FourElemList(
-                   nl->First( nl->First( halfpoints ) ),
-                   nl->Second( nl->First( halfpoints ) ),
-                   nl->First( nl->Second( halfpoints ) ),
-                   nl->Second( nl->Second( halfpoints ) ) );
+                   nl->RealAtom( lp.GetX() ),
+                   nl->RealAtom( lp.GetY() ),
+                   nl->RealAtom( rp.GetX() ),
+                   nl->RealAtom( rp.GetY() ) );
         if( first == true ) {
           result = nl->OneElemList( flatseg );
           last = result;

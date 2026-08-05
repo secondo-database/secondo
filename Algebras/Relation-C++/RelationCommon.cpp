@@ -540,12 +540,14 @@ ListExpr Relation::Out( ListExpr typeInfo, GenericRelationIterator* rit )
 
   //RelationIterator* rit = MakeScan();
 
+  // the same for every tuple, so it is built once instead of once per tuple
+  tupleTypeInfo = nl->TwoElemList(
+    nl->Second(typeInfo),
+    nl->IntAtom(nl->ListLength(nl->Second(nl->Second(typeInfo)))));
+
   //cerr << "OutRel " << endl;
   while ( (t = rit->GetNextTuple()) != 0 )
   {
-    tupleTypeInfo = nl->TwoElemList(
-      nl->Second(typeInfo),
-      nl->IntAtom(nl->ListLength(nl->Second(nl->Second(typeInfo)))));
     tlist = t->Out(tupleTypeInfo);
     //cout << "REL:" << nl->ToString(tlist) << endl;
     t->DeleteIfAllowed();
