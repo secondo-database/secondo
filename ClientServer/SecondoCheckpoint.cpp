@@ -32,6 +32,7 @@ time intervals.
 
 
 #include <db_cxx.h>
+#include <ctime>
 #include <fstream>
 #include <sstream>
 
@@ -52,6 +53,33 @@ const unsigned LOCK_WARN_PERCENT   = 80;
 const unsigned LOCK_RECOVER_PERCENT = 60;
 
 using namespace std;
+
+/*
+Timestamps a line in Checkpoint.msg.
+
+Without this the log cannot be lined up with the monitor's, and lining the two
+up is the whole point: when the monitor reports that the checkpoint service
+ignored its shutdown request, the question is what this process was doing at
+that moment, and only a clock answers it.
+
+*/
+static ostream&
+Stamp( ostream& log )
+{
+  time_t    now = time( 0 );
+  struct tm tmv;
+  char      buf[32] = "";
+
+#ifdef SECONDO_WIN32
+  if ( localtime_s( &tmv, &now ) == 0 )
+#else
+  if ( localtime_r( &now, &tmv ) != 0 )
+#endif
+  {
+    strftime( buf, sizeof(buf), "%Y-%m-%d %H:%M:%S", &tmv );
+  }
+  return log << "[" << buf << "] ";
+}
 
 /*
 Watches the shared Berkeley DB lock region for approaching exhaustion.
@@ -205,9 +233,17 @@ SecondoCheckpoint::Execute()
   }
 
   // --- Create checkpoints
+  //
+  // Every Berkeley DB call below takes a region mutex and can therefore block
+  // for as long as some other process holds it. That is not theoretical: when
+  // this process fails to react to a shutdown request, being stuck in one of
+  // these is the reason, and the monitor then kills it -- so bracket them in
+  // the log. A pair of lines with no closing half names the call it died in.
   while (!ShouldAbort())
   {
+    Stamp( f ) << "txn_checkpoint ..." << endl;
     rc = bdbEnv->txn_checkpoint( 0, minutes, 0 );
+    Stamp( f ) << "txn_checkpoint returned " << rc << endl;
     if ( rc != 0 ) {
       bdbEnv->err(rc, "%s", "txn_checkpoint failed!");
       break;
@@ -222,10 +258,12 @@ SecondoCheckpoint::Execute()
     }
   }
 
+  Stamp( f ) << "shutdown requested, closing the environment ..." << endl;
 
   // --- Clean up the environment
   rc = bdbEnv->close( 0 );
-  
+  Stamp( f ) << "environment close returned " << rc << endl;
+
   int result = EXIT_CHECKPOINT_OK;
 
   if (rc != 0) {

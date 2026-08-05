@@ -137,6 +137,38 @@ descendants() {
     }'
 }
 
+# Dump what a wedged process is actually doing. "ps -o stat=" only says it is
+# sleeping; the call it is sleeping in is the whole question when a shutdown
+# hangs, and the process is about to be SIGKILLed, so this is the last chance to
+# ask. Best effort by design: whichever tool exists on the runner is used, and
+# if none does, the caller still gets its ps line. sample(1) is present on every
+# macOS runner and needs no privileges; on Linux, eu-stack and gdb usually need
+# none for a process we own.
+dump_backtrace() {
+  local pid=$1 label=$2
+  echo "=== backtrace of $label (pid $pid) ==="
+  # Free and never refused, unlike the debuggers below: on Linux this names the
+  # kernel function the process is blocked in, which already separates "waiting
+  # on a futex" -- an orphaned Berkeley DB region mutex -- from "waiting on I/O".
+  if [ -r "/proc/$pid/wchan" ]; then
+    echo "wchan: $(cat "/proc/$pid/wchan" 2>/dev/null)"
+  fi
+  if command -v sample >/dev/null 2>&1; then
+    # 2 seconds at 10ms: enough samples to show a stack that is not moving.
+    sample "$pid" 2 10 -mayDie 2>&1 | head -120
+  elif command -v eu-stack >/dev/null 2>&1; then
+    # Both this and gdb below need ptrace. Under the Ubuntu default
+    # (yama/ptrace_scope=1) only an ancestor may trace, and these run as
+    # siblings of the target, so the attach may well be refused -- the error
+    # goes to the log and wchan above still stands.
+    eu-stack -p "$pid" 2>&1 | head -120
+  elif command -v gdb >/dev/null 2>&1; then
+    gdb -p "$pid" --batch -ex "thread apply all bt" 2>&1 | head -120
+  else
+    echo "(no sample/eu-stack/gdb available)"
+  fi
+}
+
 # Assert every pid passed is gone. Used by the shutdown tests in later commits;
 # defined here so the helper lands with the harness.
 assert_no_orphans() {
@@ -614,12 +646,39 @@ if [ ! -S "$regSocket" ]; then
   rc=1
 fi
 
+# Note the checkpoint service now, while it is still running. It is the one
+# daemon that lives inside Berkeley DB, so it is the one that can ignore the
+# shutdown request by being blocked in there -- and the monitor kills it after
+# 30s, destroying the evidence. Catching it mid-grace-period below is the only
+# way to see the call it is stuck in.
+#
+# Matched on args, not comm: Linux truncates comm to 15 characters, and
+# "SecondoCheckpoint" is 17, so a comm match silently never fires and the
+# sampling below would quietly never happen.
+cpPid=""
+for pid in $kids; do
+  case "$(ps -p "$pid" -o args= 2>/dev/null)" in
+    *SecondoCheckpoint*) cpPid=$pid; break;;
+  esac
+done
+
 # Wait well past the monitor's own worst case before calling it a deadlock.
 shutdownWait=150
 kill -TERM "$monPid" 2>/dev/null
 shutdownGone=0
-for _ in $(seq 1 $((shutdownWait * 2))); do
+cpProbed=0
+for i in $(seq 1 $((shutdownWait * 2))); do
   kill -0 "$monPid" 2>/dev/null || { shutdownGone=1; break; }
+  # 15s in: past the point where a healthy checkpoint service has exited (it
+  # polls its abort flag every 5s), and still well inside the monitor's 30s
+  # grace period, so the process is alive to be sampled.
+  if [ "$cpProbed" -eq 0 ] && [ "$i" -ge 30 ] && [ -n "$cpPid" ] \
+     && kill -0 "$cpPid" 2>/dev/null; then
+    cpProbed=1
+    echo "NOTE (shutdown): checkpoint service $cpPid still alive 15s after" \
+         "SIGTERM; sampling it before the monitor kills it"
+    dump_backtrace "$cpPid" "checkpoint service"
+  fi
   sleep 0.5
 done
 if [ "$shutdownGone" -ne 1 ]; then
@@ -630,12 +689,25 @@ if [ "$shutdownGone" -ne 1 ]; then
   echo "FAIL (shutdown): monitor still alive ${shutdownWait}s after SIGTERM" \
        "(deadlock?)"
   ps -p "$monPid" -o pid=,ppid=,stat=,comm= 2>/dev/null
+  dump_backtrace "$monPid" "monitor"
   for pid in $kids; do
-    kill -0 "$pid" 2>/dev/null && ps -p "$pid" -o pid=,ppid=,stat=,comm= \
-      2>/dev/null
+    if kill -0 "$pid" 2>/dev/null; then
+      ps -p "$pid" -o pid=,ppid=,stat=,comm= 2>/dev/null
+      # A surviving child is as interesting as the monitor: if it is the one
+      # holding the region mutex the monitor is waiting for, its stack names
+      # the Berkeley DB call that owns it.
+      dump_backtrace "$pid" "monitor child"
+    fi
   done
   echo "=== monitor log ==="
-  tail -30 "$home/monitor.log"
+  tail -40 "$home/monitor.log"
+  # Written by the checkpoint service to its cwd, which is bin/. It records the
+  # environment it joined and any Berkeley DB error, so it is the other half of
+  # the story whenever the checkpoint service is the one that got stuck.
+  if [ -f "$buildDir/bin/Checkpoint.msg" ]; then
+    echo "=== Checkpoint.msg ==="
+    tail -40 "$buildDir/bin/Checkpoint.msg"
+  fi
   kill -KILL "$monPid" 2>/dev/null
   for pid in $kids; do kill -KILL "$pid" 2>/dev/null; done
   wait "$monPid" 2>/dev/null
@@ -656,6 +728,11 @@ else
        "$home/monitor.log" 2>/dev/null; then
     echo "FAIL (shutdown): a daemon did not shut down on request:"
     grep -E "had to be killed|could not be terminated" "$home/monitor.log"
+    # The daemon is gone by now, so its own log is what is left to go on.
+    if [ -f "$buildDir/bin/Checkpoint.msg" ]; then
+      echo "=== Checkpoint.msg ==="
+      tail -40 "$buildDir/bin/Checkpoint.msg"
+    fi
     rc=1
   else
     echo "OK (shutdown): all daemons shut down on request"

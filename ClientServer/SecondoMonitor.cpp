@@ -78,6 +78,9 @@ class SecondoMonitor : public Application
   int  pidListener;
   bool running;
   bool quit;
+  // Set when the checkpoint service had to be killed instead of shutting down
+  // on request. See Terminate() for what that costs us.
+  bool checkpointKilled;
 
   typedef enum {xUsage, xStartUp, xShutDown, xShow, xQuit} cmdTok;
 };
@@ -101,6 +104,7 @@ SecondoMonitor::SecondoMonitor( const int argc, const char** argv )
   pidCheckpoint = 0;
   running       = false;
   quit          = false;
+  checkpointKilled = false;
 
   // Terminating signals are left to the base Application handler, which just
   // sets the abort flag that ProcessCommands checks. The shutdown work must not
@@ -615,20 +619,45 @@ void SecondoMonitor::Terminate()
       if ( !ProcessFactory::WaitForProcess( pidCheckpoint, 30, &killed ) )
       {
         cout << "Checkpoint service could not be terminated." << endl;
+        checkpointKilled = true;
       }
       else if ( killed )
       {
         cout << "Checkpoint service ignored the shutdown request and had to "
              << "be killed; a BerkeleyDB region lock may have been orphaned."
              << endl;
+        checkpointKilled = true;
       }
       cout << "completed." << endl;
       int status = 0;
       ProcessFactory::GetExitCode( pidCheckpoint, status );
-      cout << "Checkpoint service terminated with return code " 
+      cout << "Checkpoint service terminated with return code "
            << status << "." << endl;
     }
-    if ( !SmiEnvironment::ShutDown() )
+    // The checkpoint service spends its life inside Berkeley DB, so the only
+    // reason it can ignore a shutdown request is that it is blocked in there,
+    // holding a region mutex. Those mutexes are not robust: killing it leaves
+    // the mutex locked forever, and the shutdown below -- which enters the very
+    // same environment -- is then certain to block on it. That is not a
+    // hypothetical, it is what the monitor did in CI.
+    //
+    // So do not enter Berkeley DB at all on that path. Nothing is lost by
+    // skipping it: the monitor opens the environment with DB_RECOVER
+    // (MultiUserMaster, see Initialize), so the next startup discards the
+    // orphaned regions and recovers from the log, exactly as it would after any
+    // other unclean exit. Hanging here, by contrast, wedges the shutdown and
+    // strands every child process the monitor still owns.
+    if ( checkpointKilled )
+    {
+      cout << "Skipping the shutdown of the storage management interface: "
+           << "the killed checkpoint service may hold a Berkeley DB region "
+           << "mutex, and closing the environment would block on it forever. "
+           << "The next startup recovers the environment." << endl;
+      // The temporary environment is still worth removing manually. Called
+      // during ShutDown() and would be skipped if we did not do it here.
+      SmiEnvironment::DeleteTmpEnvironment();
+    }
+    else if ( !SmiEnvironment::ShutDown( &cout ) )
     {
       string errMsg;
       SmiEnvironment::GetLastErrorCode( errMsg );

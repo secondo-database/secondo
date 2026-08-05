@@ -1021,11 +1021,16 @@ Error messages are written to the provided output stream ~errStream~.
 A user transaction is implicitly started.
 
 */
-  static bool ShutDown();
+  static bool ShutDown( std::ostream* trace = 0 );
 /*
 Shuts down the storage manager interface. An open user transaction is aborted
 implicitly. It is necessary to close *all* open ~SmiFiles~, iterators and
 record handles before shutting down the system.
+
+Every step below announces itself on ~trace~ when one is given. Each of them
+can block indefinitely on a Berkeley DB region mutex that some other process
+orphaned, and a hang here leaves no other evidence of where it got stuck --
+the caller that has somewhere to log to should pass its log stream.
 
 */
   static bool IsDatabaseOpen();

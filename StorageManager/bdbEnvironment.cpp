@@ -1658,8 +1658,24 @@ Transactions, logging and locking are enabled.
   return smiStarted;
 }
 
+/*
+Announces the step that is about to run on the shutdown trace stream, and
+flushes: the point of the trace is to survive a step that never returns, so the
+line must reach the file before the call is entered, not when the next one
+completes.
+
+*/
+static void
+TraceShutdownStep( ostream* trace, const char* step )
+{
+  if ( trace != 0 )
+  {
+    *trace << "SmiEnvironment::ShutDown: " << step << " ..." << endl;
+  }
+}
+
 bool
-SmiEnvironment::ShutDown()
+SmiEnvironment::ShutDown( ostream* trace /* = 0 */ )
 {
   #ifdef THREAD_SAFE
      boost::lock_guard<boost::recursive_mutex> guard(env_mtx);
@@ -1679,30 +1695,36 @@ SmiEnvironment::ShutDown()
   assert(!dbOpened);
 
   // destroy files which have been allocated by the FlobManager
+  TraceShutdownStep( trace, "destroying the Flob manager" );
   Flob::destroyManager();
 
+  TraceShutdownStep( trace, "deleting the temporary environment" );
   DeleteTmpEnvironment();
 
   // --- Close Berkeley DB environment
 
   if ( dbctlg )
   {
+    TraceShutdownStep( trace, "closing the database catalog" );
     rc = dbctlg->close( 0 );
     SetBDBError( rc );
     delete dbctlg;
     instance.impl->bdbDatabases = 0;
   }
 
+  TraceShutdownStep( trace, "closing the open database handles" );
   instance.impl->CloseDbHandles();
 
   if (traceDBHandles)
     cerr << "Closing Berkeley-DB environment "
       << instance.impl->bdbHome << endl;
 
+  TraceShutdownStep( trace, "closing the Berkeley DB environment" );
   rc = dbenv->close( 0 );
   SetBDBError( rc );
   instance.impl->envClosed = true;
   smiStarted = false;
+  TraceShutdownStep( trace, "done" );
 
   // --- Check if new errors arised
 

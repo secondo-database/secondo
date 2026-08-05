@@ -98,6 +98,16 @@ jobs:
               echo "########## $f"; tail -80 "$f"
             done
           done || true
+          # The daemons the monitor spawns log to their own cwd, which is bin/,
+          # not to the test's temporary home -- so none of the loops above sees
+          # them. Checkpoint.msg is the only record of what the checkpoint
+          # service was doing when it ignored a shutdown request, and
+          # server.msg/ holds the per-client server output.
+          for f in "${GITHUB_WORKSPACE}"/bin/Checkpoint.msg \
+                   "${GITHUB_WORKSPACE}"/bin/server.msg/*; do
+            [ -f "$f" ] || continue
+            echo "########## $f"; tail -80 "$f"
+          done || true
 
       # -----------------------------------------------------------------------
       # Web UI (WebUI/). Build the JS/Python components against the freshly
@@ -421,4 +431,14 @@ jobs:
             find "$d" -type f 2>/dev/null | while read -r f; do
               echo "########## $f"; tail -80 "$f"
             done
+          done || true
+          # The daemons the monitor spawns log to their own cwd, which is bin/,
+          # not to the test's temporary home -- so none of the loops above sees
+          # them. Checkpoint.msg is the only record of what the checkpoint
+          # service was doing when it ignored a shutdown request, and
+          # server.msg/ holds the per-client server output.
+          for f in "${GITHUB_WORKSPACE}"/bin/Checkpoint.msg \
+                   "${GITHUB_WORKSPACE}"/bin/server.msg/*; do
+            [ -f "$f" ] || continue
+            echo "########## $f"; tail -80 "$f"
           done || true
