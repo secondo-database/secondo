@@ -445,6 +445,23 @@ OutRel(ListExpr typeInfo, Word  value)
   return rel->Out( typeInfo, rel->MakeScan() );
 }
 
+/*
+The same answer, written rather than returned. Registered as ~rel~'s
+~OutStreamedObject~, so a caller with somewhere to send the result never has to
+hold it -- see ~Relation::OutStreamed~ for what that does and does not save.
+
+~GetNoTuples~ is what makes it possible: the encoding needs the length before
+the elements, and a materialised relation knows it.
+
+*/
+bool
+OutRelStreamed(ListExpr typeInfo, Word value, std::ostream& os)
+{
+  Relation* rel = ((Relation *)value.addr);
+  return Relation::OutStreamed( typeInfo, rel->MakeScan(),
+                                rel->GetNoTuples(), os );
+}
+
 
 
 
@@ -4963,6 +4980,13 @@ class RelationAlgebra : public Algebra
                  " It cannot be made persistent.";
 
     static TypeConstructor cpptrel(ci,cf);
+
+    // `rel` is the one type worth streaming out: the answer to `query roads`
+    // is 212,099 tuples, and building it as a list, copying that into the
+    // application list and only then writing it is three passes over the same
+    // 30M nodes. `trel` is deliberately not given one -- it exists only during
+    // query evaluation and is never a result.
+    cpprel.SetOutStreamed( OutRelStreamed );
 
     AddTypeConstructor( &cpptuple );
     AddTypeConstructor( &cpprel );

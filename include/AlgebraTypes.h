@@ -58,6 +58,8 @@ modules but also throughout the whole "Secondo"[3] system.
 #ifndef ALGEBRA_TYPES_H
 #define ALGEBRA_TYPES_H
 
+#include <iosfwd>
+
 #include "NestedList.h"
 #include "SecondoSMI.h"
 
@@ -206,6 +208,21 @@ typedef Word (*InObject)( const ListExpr typeInfo,
 
 typedef ListExpr (*OutObject)( const ListExpr numType,
                                const Word object );
+
+/*
+~OutObject~ for a value too large to want as a list: writes the binary encoding
+of what ~OutObject~ would have returned straight to ~os~, and returns whether
+it managed to. Optional -- a type constructor that does not set one is written
+the ordinary way, which is every type but ~rel~ today.
+
+The caller only offers this when it is sending the result somewhere, so a type
+that implements it is agreeing to produce exactly the bytes
+~NestedList::WriteBinaryTo~ would have produced for its ~OutObject~ answer.
+
+*/
+typedef bool (*OutStreamedObject)( const ListExpr numType,
+                                   const Word object,
+                                   std::ostream& os );
 
 typedef Word (*ObjectCreation)( const ListExpr typeInfo );
 

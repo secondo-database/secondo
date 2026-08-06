@@ -83,7 +83,17 @@ LIBS := ../UserInterfaces/cmsg.o $(LD_LINK_LIBS)
 all:  $(OBJECTS)
 
 # default rule for linking
-%$(EXEEXT): %.o
+#
+# The libraries are prerequisites, not just link arguments. Without them a
+# kernel rebuild leaves every test binary here untouched, so the tests keep
+# passing against the code they were linked with -- which is worse than failing,
+# because a check that a change has teeth then silently runs the build without
+# it. Same trap, same fix, as WebUI/backend/native/Makefile and libsecondo.a.
+LINK_DEPS := $(wildcard $(LIBDIR)/libsdbnl.$(LIBEXT) \
+                        $(LIBDIR)/libsdbutils.$(LIBEXT) \
+                        $(LIBDIR)/libsdbsys.$(LIBEXT))
+
+%$(EXEEXT): %.o $(LINK_DEPS)
 	$(CC) $(EXEFLAGS) -o $@ $< $(LIBS) $(COMMON_LD_FLAGS)
 
 # Test Dynamic Library module

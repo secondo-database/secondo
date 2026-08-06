@@ -2861,6 +2861,20 @@ Writes a relation into a ~ListExpr~ format.
 Corresponds to the ~Out~-function of type constructor ~rel~.
 
 */
+    static bool OutStreamed( ListExpr typeInfo, GenericRelationIterator* rit,
+                             int noTuples, std::ostream& os );
+/*
+~Out~ without the answer. Writes the binary encoding of the tuple list straight
+to ~os~ -- the open, then each tuple as it comes off the iterator -- so the
+relation never exists as a ~ListExpr~ at all. The bytes are the ones
+~NestedList::WriteBinaryTo~ would have produced for the list ~Out~ builds.
+
+~noTuples~ is written *before* the first tuple, because that is how the binary
+encoding frames a list, so it has to be exact. It comes from ~GetNoTuples~; if
+the iterator then yields a different number the stream is already malformed and
+saying so afterwards is all this can do. That is the one hard precondition.
+
+*/
     ListExpr SaveToList( ListExpr typeInfo );
 /*
 Acts like the ~Out~ function, but uses internal representation for

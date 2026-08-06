@@ -198,6 +198,9 @@ class SecondoServer : public Application
   string            dbDir;
   string            port;
   bool              quit;
+  // Set for the one command whose result the sink took over, so WriteResponse
+  // knows there is nothing left to write but the closing tag.
+  bool              streamedResponse = false;
   string            registrar;
   string            user;
   string            pswd;
@@ -207,26 +210,109 @@ class SecondoServer : public Application
 };
 
 
+/*
+The server's ~ResultSink~: writes everything ~WriteResponse~ would have written
+*ahead* of the result, then lets the type write the result itself.
+
+The bytes are the ones ~WriteResponse~ produces -- the same four-element list in
+the same order, only opened by hand because its fourth element is never going to
+exist as a list. That is the whole correctness argument: a client cannot tell a
+streamed answer from a built one, so the existing checksum keeps working as the
+gate.
+
+Two things it deliberately does not do. It declines in textual transfer mode,
+because the textual writer is a pretty-printer over a finished list and there is
+no incremental form of it -- declining leaves the ordinary path to run, which is
+exactly right. And it writes ~errorCode~ 0 before the answer, which is a promise
+it cannot keep in general: ~constructErrMsg~ runs *after* the result is written
+and can still raise ~ERR\_SYSTEM\_ERROR~ from an SMI error, and ~FinishCommand~
+can still fail its commit. Those become a dropped connection instead of an error
+message. See the wire-protocol stage for the framing that fixes it.
+
+*/
+class ServerResultSink : public ResultSink
+{
+ public:
+  ServerResultSink( iostream& sock, NestedList* list, CSProtocol* protocol )
+    : iosock( sock ), nl( list ), csp( protocol ),
+      engaged( false ), whole( true ) {}
+
+  ostream* BeginStreamedResult( NestedList* typeList, ListExpr resultType )
+  {
+    if ( !RTFlag::isActive("Server:BinaryTransfer") ) {
+      return 0;
+    }
+
+    // From here on the socket carries one binary list and nothing else. A
+    // <Message> block interleaved into it would be read as list data and
+    // desynchronise the client for the rest of the connection. WriteResponse
+    // suppresses them at exactly the same point, for exactly this reason; the
+    // difference is only that "the response starts here" is now earlier.
+    csp->IgnoreMsg( true );
+
+    iosock << "<SecondoResponse>" << endl;
+
+    // (errorCode errorPos message result), as WriteResponse builds it.
+    NestedList::WriteBinaryHeader( iosock );
+    NestedList::WriteBinaryListOpen( 4, iosock );
+    nl->WriteBinaryElem( nl->IntAtom( 0 ), iosock );
+    nl->WriteBinaryElem( nl->IntAtom( 0 ), iosock );
+    ListExpr msg = nl->TextAtom();
+    nl->AppendText( msg, "" );
+    nl->WriteBinaryElem( msg, iosock );
+
+    // The result is (type value); the value is the caller's to write. The type
+    // is written with the list it belongs to -- see BeginStreamedResult.
+    NestedList::WriteBinaryListOpen( 2, iosock );
+    typeList->WriteBinaryElem( resultType, iosock );
+
+    engaged = true;
+    return &iosock;
+  }
+
+  void EndStreamedResult( bool sentWhole ) { whole = sentWhole; }
+
+  bool Engaged() const { return engaged; }
+  bool SentWhole() const { return whole; }
+
+ private:
+  iostream&   iosock;
+  NestedList* nl;    // the server's own list: only the status atoms below
+  CSProtocol* csp;
+  bool        engaged;
+  bool        whole;
+};
+
+
 void
 SecondoServer::WriteResponse( const int errorCode, const int errorPos,
                               const string& errorMessage, ListExpr resultList )
 {
+  iostream& iosock = client->GetSocketStream();
+
+  // Already sent, all but the closing tag: the sink engaged during the command
+  // and the result went out as it was produced.
+  if ( streamedResponse )
+  {
+    iosock << "</SecondoResponse>" << endl;
+    iosock.flush();
+    return;
+  }
+
   ListExpr msg = nl->TextAtom();
   nl->AppendText( msg, errorMessage );
-  
+
   ListExpr list = nl->FourElemList(
                     nl->IntAtom( errorCode ),
                     nl->IntAtom( errorPos ),
                     msg,
                     resultList );
 
-  iostream& iosock = client->GetSocketStream();
- 
-  csp->IgnoreMsg(true); 
+  csp->IgnoreMsg(true);
   iosock << "<SecondoResponse>" << endl;
-  csp::sendList(iosock,nl, list);  
+  csp::sendList(iosock,nl, list);
   iosock << "</SecondoResponse>" << endl;
-  iosock.flush(); 
+  iosock.flush();
 }
 
 void
@@ -307,10 +393,30 @@ SecondoServer::CallSecondo()
   ListExpr resultList = nl->TheEmptyList();
   int errorCode=0, errorPos=0;
   string errorMessage="";
+
+  // Offer the interface somewhere to put the result. Whether it takes the
+  // offer depends on the type -- only `rel` streams today -- and on binary
+  // transfer being in force; either way the answer is the same bytes.
+  ServerResultSink sink( iosock, nl, csp );
+  si->SetResultSink( &sink );
   si->Secondo( cmdText, commandLE, type, true, false,
                resultList, errorCode, errorPos, errorMessage );
+  si->SetResultSink( 0 );
+  streamedResponse = sink.Engaged();
+
   NList::setNLRef(nl);
   WriteResponse( errorCode, errorPos, errorMessage, resultList );
+  streamedResponse = false;
+
+  // A result that went out incomplete has left a list on the wire promising
+  // more elements than followed, and the encoding cannot say so. The client
+  // would block waiting for tuples that are not coming, so the connection goes
+  // instead -- a truncated read it can recognise beats a hang it cannot.
+  if ( sink.Engaged() && !sink.SentWhole() )
+  {
+    cerr << "Streamed result was incomplete; closing the connection." << endl;
+    quit = true;
+  }
 }
 
 bool

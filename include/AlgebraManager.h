@@ -376,6 +376,14 @@ Returns the address of the object output function of type constructor
 ~typeId~ of algebra ~algebraId~.
 
 */
+  OutStreamedObject OutStreamedObj( const int algebraId, const int typeId );
+/*
+The streaming counterpart of ~OutObj~, or 0 when this type constructor has
+none -- which is all of them but ~rel~. A caller that has somewhere to write to
+uses it when present and ~OutObj~ otherwise; that fallback is what keeps this
+optional rather than another function every algebra has to supply.
+
+*/
   InObject RestoreFromListObj( const int algebraId, const int typeId );
 /*
 Returns the address of the object's internal input function of type constructor

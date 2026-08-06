@@ -1965,17 +1965,48 @@ SecondoInterfaceTTY::Command_Query( const ListExpr list,
        }
 
        StopWatch outObj;
-       ListExpr valueList = ctlg.OutObject( resultType, result );
+
+       // The one point where the answer is known to exist and known to be
+       // correct: Construct and EvalP have both returned. A caller that gave
+       // us somewhere to put it gets it written here, tuple by tuple, instead
+       // of built into a list, copied into the application list below and
+       // written after that. See ResultSink for why it cannot be any earlier
+       // -- and what it costs that it cannot be any later.
+       bool streamed = false;
+       ResultSink* sink = GetResultSink();
+       if ( sink && ctlg.CanOutObjectStreamed( resultType ) )
+       {
+         // `nl` here, not `al`: resultType was built by the query processor in
+         // the kernel's list, and only the CopyList further down would have
+         // moved it to the application's.
+         std::ostream* os = sink->BeginStreamedResult( &nl, resultType );
+         if ( os )
+         {
+           const bool sentWhole =
+                 ctlg.OutObjectStreamed( resultType, result, *os );
+           sink->EndStreamedResult( sentWhole );
+           streamed = true;
+         }
+       }
+
+       ListExpr valueList = streamed ? nl.TheEmptyList()
+                                     : ctlg.OutObject( resultType, result );
 
        if (printQueryAnalysis)
        {
-         cmsg.info() << padStr("OutObject ...",20)
+         cmsg.info() << padStr(streamed ? "OutObject (streamed) ..."
+                                        : "OutObject ...",20)
                      << outObj.diffTimes() << endl;
          cmsg.send();
        }
        outObjReal = outObj.diffSecondsReal();
 
-       resultList = nl.TwoElemList( resultType, valueList );
+       // Empty rather than (type value) when it has already gone out: there is
+       // no list to hand back, and the empty list is 0, which is exactly what
+       // the `if (resultList)` guard below the copy is looking for -- so the
+       // CopyList into the application list is skipped without a second flag.
+       resultList = streamed ? nl.TheEmptyList()
+                             : nl.TwoElemList( resultType, valueList );
 
        StopWatch destroyTime;
        qp.Destroy( tree, true );

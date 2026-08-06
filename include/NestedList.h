@@ -983,6 +983,23 @@ implementations
 
 */
 
+  static bool WriteBinaryHeader( std::ostream& os );
+  static bool WriteBinaryListOpen( int length, std::ostream& os );
+  bool WriteBinaryElem( const ListExpr list, std::ostream& os ) const;
+/*
+~WriteBinaryTo~ in three pieces, for a producer that has no whole list to give
+it: write the header once, open a list of a known length, then write that many
+elements. The bytes are the ones ~WriteBinaryTo~ would have written for the
+finished list -- these call the very same code -- so a reader cannot tell the
+two apart and neither can a checksum.
+
+What makes this possible at all is that the format has *no list terminator*.
+The length prefix is the entire framing, so a writer that knows how many
+elements are coming never has to hold them. The cost is exactly that: ~length~
+must be right, and there is no way to discover afterwards that it was not.
+
+*/
+
   std::string ToString( const ListExpr list ) const;
 
 /*

@@ -563,6 +563,34 @@ ListExpr Relation::Out( ListExpr typeInfo, GenericRelationIterator* rit )
   return l;
 }
 
+bool Relation::OutStreamed( ListExpr typeInfo, GenericRelationIterator* rit,
+                            int noTuples, std::ostream& os )
+{
+  // Same list, built once, for the same reason as in Out: it does not depend
+  // on the tuple.
+  ListExpr tupleTypeInfo = nl->TwoElemList(
+    nl->Second(typeInfo),
+    nl->IntAtom(nl->ListLength(nl->Second(nl->Second(typeInfo)))));
+
+  bool ok = NestedList::WriteBinaryListOpen(noTuples, os);
+
+  int written = 0;
+  Tuple* t = 0;
+  while ( ok && (t = rit->GetNextTuple()) != 0 )
+  {
+    ListExpr tlist = t->Out(tupleTypeInfo);
+    t->DeleteIfAllowed();
+    ok = nl->WriteBinaryElem(tlist, os);
+    written++;
+  }
+  delete rit;
+
+  // The count is already on the wire. A mismatch means the reader will look
+  // for tuples that are not coming, or stop before the ones that are, so it is
+  // reported rather than tolerated -- there is nothing left to repair.
+  return ok && written == noTuples;
+}
+
  std::ostream& Relation::Print(std::ostream& os) const
  {
    os << "Start of Relation: " << endl;

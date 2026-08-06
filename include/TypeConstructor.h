@@ -193,6 +193,7 @@ class TypeConstructor
     propFunc             = 0;
 
     outFunc              = cf.out;
+    outStreamedFunc      = 0;
     inFunc               = cf.in;
     saveToListFunc       = cf.saveToList;
     restoreFromListFunc  = cf.restoreFromList;
@@ -222,6 +223,14 @@ Destroys an instance of a type constructor.
   void AssociateKind( const std::string& kindName );
 /*
 Associates the kind ~kindName~ with this type constructor.
+
+*/
+  void SetOutStreamed( OutStreamedObject f ) { outStreamedFunc = f; }
+  OutStreamedObject GetOutStreamed() const { return outStreamedFunc; }
+/*
+The optional streaming counterpart of ~Out~; see ~OutStreamedObject~. Absent
+means "write me the ordinary way", which is the answer for every type that has
+not opted in.
 
 */
   ListExpr Property();
@@ -331,6 +340,11 @@ Dummy methods used as placeholders for type constructor functions.
   std::string                   name;   // Name of type constr.
   TypeProperty             propFunc;
   OutObject                outFunc;
+  // Optional, and null for every type but `rel`. Set with SetOutStreamed
+  // rather than through a constructor argument: there are two constructors and
+  // a ConstructorFunctions template shared by some 200 algebras, and none of
+  // them should have to mention a function they will never provide.
+  OutStreamedObject        outStreamedFunc;
   InObject                 inFunc;
   OutObject                saveToListFunc;
   InObject                 restoreFromListFunc;

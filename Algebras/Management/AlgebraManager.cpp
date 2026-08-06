@@ -347,6 +347,12 @@ AlgebraManager::OutObj( int algebraId, int typeId )
   return (algebra[algebraId]->GetTypeConstructor( typeId )->outFunc);
 }
 
+OutStreamedObject
+AlgebraManager::OutStreamedObj( int algebraId, int typeId )
+{
+  return (algebra[algebraId]->GetTypeConstructor( typeId )->GetOutStreamed());
+}
+
 OutObject
 AlgebraManager::SaveToListObj( int algebraId, int typeId )
 {

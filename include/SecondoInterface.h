@@ -168,6 +168,57 @@ struct SecErrInfo {
 };
 
 
+/*
+Somewhere for a result to go that is not a ~ListExpr~.
+
+A caller that is going to send the answer on -- the server writing it to a
+socket -- can hand one of these in, and the result is then written as it is
+produced instead of built, copied into the application list and written
+afterwards. Nothing is obliged to offer one and no type is obliged to support
+it: with no sink, or a type that cannot stream, the ordinary path runs
+unchanged.
+
+The order matters and is the whole design. ~BeginStreamedResult~ is called only
+once the command has already succeeded -- after ~Construct~ and ~EvalP~ have
+returned -- so everything that can fail before there is a result to write still
+reports through the ordinary error fields. What it cannot cover is a failure
+*during* the write: by then the sink has committed a prologue that says
+"success" and, in the binary encoding, a length that promises exactly so many
+elements. ~EndStreamedResult(false)~ says that happened, and the only honest
+thing left is to break the connection. Reporting such a failure properly needs
+a framing whose status comes *after* the data.
+
+*/
+class ResultSink
+{
+ public:
+  virtual ~ResultSink() {}
+
+  virtual std::ostream* BeginStreamedResult( NestedList* typeList,
+                                             ListExpr resultType ) = 0;
+/*
+The result is about to be written and its type is ~resultType~. Return the
+stream its binary encoding should go to, having written whatever prologue the
+protocol needs, or 0 to decline -- declining is not an error and leaves the
+ordinary path to run.
+
+~typeList~ is the instance ~resultType~ lives in, and it is a parameter rather
+than something the sink knows because it is **not** the sink's own list. A
+result is built in the kernel's list and only reaches the application's list by
+being copied there -- which is the copy this whole path exists to avoid. Reading
+a kernel node index out of the application list finds whatever is at that index,
+or nothing: the first version of this did exactly that and died with
+"array index out of bounds: index = 347, size = 24".
+
+*/
+  virtual void EndStreamedResult( bool ok ) = 0;
+/*
+The value has been written, whole if ~ok~.
+
+*/
+};
+
+
 class SecondoInterface
 {
  public:
@@ -1103,6 +1154,19 @@ virtual std::string getHome() = 0;
    }
 
 
+ public:
+  void SetResultSink( ResultSink* sink ) { resultSink = sink; }
+  ResultSink* GetResultSink() const { return resultSink; }
+/*
+Where to write a result rather than build it; see ~ResultSink~. Null by
+default, which is every caller but a server that has a socket to fill.
+
+A settable member rather than another argument on ~Secondo~ deliberately: that
+one is a pure virtual with three implementations and dozens of call sites, and
+none of them have anything to say about this.
+
+*/
+
  protected:
   void Init();                // Inititalize to  default values
 
@@ -1110,6 +1174,8 @@ virtual std::string getHome() = 0;
 
   bool initialized;       // state of interface
   bool activeTransaction; // state of transaction block
+
+  ResultSink* resultSink; // 0 unless the caller wants the result streamed
 
   NestedList*  nl;        // pointer to nested list instances
   NestedList*  al;

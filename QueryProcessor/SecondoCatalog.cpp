@@ -1601,6 +1601,61 @@ Returns for a given ~object~ of type ~type~ its value in nested list representat
   }
 }
 
+/*
+The numeric-type resolution ~OutObject~ does, once, so a streaming caller does
+not have to repeat it or reach past the catalog for the algebra ids.
+
+*/
+bool
+SecondoCatalog::ResolveOutStreamed( const ListExpr type,
+                                    ListExpr& numtype,
+                                    OutStreamedObject& f )
+{
+  f = 0;
+
+  // Main memory objects are excluded here for the same reason OutObject
+  // excludes them: they answer with their own out(), not through the algebra
+  // manager at all.
+  if( mm2algebra::MPointer::checkType(type) ) {
+    return false;
+  }
+
+  numtype = NumericType( type );
+  if ( nl->IsEmpty( numtype ) ) {
+    return false;
+  }
+
+  const ListExpr pair = nl->IsAtom( nl->First( numtype ) )
+                          ? numtype
+                          : nl->First( numtype );
+  const int alId   = nl->IntValue( nl->First( pair ) );
+  const int typeId = nl->IntValue( nl->Second( pair ) );
+
+  f = am->OutStreamedObj( alId, typeId );
+  return f != 0;
+}
+
+bool
+SecondoCatalog::CanOutObjectStreamed( const ListExpr type )
+{
+  ListExpr numtype = nl->TheEmptyList();
+  OutStreamedObject f = 0;
+  return ResolveOutStreamed( type, numtype, f );
+}
+
+bool
+SecondoCatalog::OutObjectStreamed( const ListExpr type,
+                                   const Word& object,
+                                   std::ostream& os )
+{
+  ListExpr numtype = nl->TheEmptyList();
+  OutStreamedObject f = 0;
+  if ( !ResolveOutStreamed( type, numtype, f ) ) {
+    return false;
+  }
+  return f( numtype, object, os );
+}
+
 void
 SecondoCatalog::CloseObject( const ListExpr type, Word object )
 {

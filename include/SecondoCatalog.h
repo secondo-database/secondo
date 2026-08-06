@@ -434,6 +434,26 @@ representation.
 ListExpr OutObject( const ListExpr type,
                       const Word& object );
 /*
+~OutObject~ written straight to ~os~ instead of returned, for the types that
+offer it. ~CanOutObjectStreamed~ answers whether this one does; only ~rel~ does
+today. The two are separate calls so a caller can decide *before* committing
+anything to the stream -- once the first byte is out there is no going back to
+the ordinary path.
+
+Returns whether the whole value went out. A false here means the stream is
+already malformed, not that nothing happened.
+
+*/
+bool CanOutObjectStreamed( const ListExpr type );
+bool OutObjectStreamed( const ListExpr type,
+                        const Word& object,
+                        std::ostream& os );
+private:
+bool ResolveOutStreamed( const ListExpr type,
+                         ListExpr& numtype,
+                         OutStreamedObject& f );
+public:
+/*
 Closes a given ~object~ of type ~type~.
 
 */

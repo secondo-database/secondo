@@ -457,6 +457,7 @@ TypeConstructor::TypeConstructor( const string& nm,
   name                 = nm;
   propFunc             = prop;
   outFunc              = out;
+  outStreamedFunc      = 0;   // opt in with SetOutStreamed
   inFunc               = in;
   saveToListFunc       = saveToList;
   restoreFromListFunc  = restoreFromList;

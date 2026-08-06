@@ -93,7 +93,11 @@ public:
     std::stringstream caseNr;
     caseNr << ++caseCtr << ". ";
 
-    const std::string white(60-4-(title.length()+caseNr.str().length()), ' ');
+    // Clamped: the width is unsigned, so a title that fills the line used to
+    // ask for a string of 2^64-few spaces and abort the run with a
+    // length_error -- a test frame failing on the length of a test's name.
+    const size_t used = title.length() + caseNr.str().length();
+    const std::string white(used + 4 < 60 ? 60-4-used : 0, ' ');
     std::cout << std::endl
 	 << sep << std::endl
 	 << fillChar << "  " << caseNr.str() 

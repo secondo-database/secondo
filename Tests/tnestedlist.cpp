@@ -277,6 +277,92 @@ TestSharedTailDestroy(CTestFrame& t)
 
 /*
 
+A streamed list and a written list are the same bytes.
+
+~WriteBinaryHeader~ / ~WriteBinaryListOpen~ / ~WriteBinaryElem~ exist so a
+producer can write a result it never holds -- a relation of 212,099 tuples,
+written one tuple at a time. The only thing that makes that safe is that a
+reader cannot tell the difference, so the test is a byte comparison against
+~WriteBinaryTo~ of the finished list, not a read-back: a read-back would pass
+for any encoding both sides agreed on, including a wrong one.
+
+Both length prefixes are covered, because they are the one place the streaming
+writer has to reproduce a decision ~GetBinaryType~ makes elsewhere: a list of
+255 elements takes the one-byte form and 256 takes the four-byte one, and
+getting that boundary wrong shifts every following byte.
+
+*/
+
+void
+TestStreamedBinaryWrite(CTestFrame& t)
+{
+   NestedList nl;
+
+   t.TestCase("A streamed binary list is byte-identical to a written one");
+
+   // 255 and 256 are the two sides of the SHORTLIST/LONGLIST boundary; 3 is
+   // an ordinary short list, and its elements are nested so the element
+   // writer is exercised on more than atoms.
+   const int lengths[] = {3, 255, 256};
+
+   for (unsigned int i = 0; i < sizeof(lengths)/sizeof(lengths[0]); i++) {
+     const int n = lengths[i];
+
+     // Build the list the ordinary way, and write it the ordinary way.
+     ListExpr list = nl.TheEmptyList();
+     ListExpr last = list;
+     for (int k = 0; k < n; k++) {
+       ListExpr elem = nl.TwoElemList(nl.IntAtom(k),
+                                      nl.StringAtom("tuple"));
+       if (nl.IsEmpty(list)) {
+         list = nl.Cons(elem, nl.TheEmptyList());
+         last = list;
+       } else {
+         last = nl.Append(last, elem);
+       }
+     }
+     stringstream whole;
+     nl.WriteBinaryTo(list, whole);
+
+     // Now the same thing without ever holding it: the header, the opening of
+     // a list of known length, then the elements one at a time.
+     stringstream streamed;
+     NestedList::WriteBinaryHeader(streamed);
+     NestedList::WriteBinaryListOpen(n, streamed);
+     for (int k = 0; k < n; k++) {
+       ListExpr elem = nl.TwoElemList(nl.IntAtom(k),
+                                      nl.StringAtom("tuple"));
+       nl.WriteBinaryElem(elem, streamed);
+     }
+
+     stringstream label;
+     label << "streamed == written for a list of " << n;
+     t.CheckResult(label.str(), streamed.str() == whole.str(), true);
+
+     if (streamed.str() != whole.str()) {
+       cout << "*** written  " << whole.str().size() << " bytes" << endl;
+       cout << "*** streamed " << streamed.str().size() << " bytes" << endl;
+     }
+   }
+
+   // And the bytes are not merely equal to each other but readable: a reader
+   // that was handed the streamed form gets the list back.
+   stringstream streamed;
+   NestedList::WriteBinaryHeader(streamed);
+   NestedList::WriteBinaryListOpen(2, streamed);
+   nl.WriteBinaryElem(nl.IntAtom(7), streamed);
+   nl.WriteBinaryElem(nl.StringAtom("seven"), streamed);
+
+   ListExpr readBack = nl.TheEmptyList();
+   const bool ok = nl.ReadBinaryFrom(streamed, readBack);
+   t.CheckResult("a streamed list reads back", ok, true);
+   t.CheckResult("and holds what was streamed into it",
+                 nl.ToString(readBack) == "(7 \"seven\")", true);
+}
+
+
+/*
+
 The cached ~typeerror~ node survives being handed around.
 
 Every type mapping in the system returns `nl->TypeError()`, which is one node
@@ -931,6 +1017,8 @@ TestRun_Persistent() {
    TestSharedTailDestroy(*this);
 
    TestImmortalTypeError(*this);
+
+   TestStreamedBinaryWrite(*this);
    
    //cout << "Commit: " 
    //<< SmiEnvironment::CommitTransaction() << endl;

@@ -1406,19 +1406,22 @@ within the structure of the list, otherwise, the function result is ~true~.
 
 */
 
+static const nlbyte BIN_STREAM_HEADER[7] = {'b','n','l',0,1,0,2};
 
 bool
 NestedList::WriteBinaryTo(const ListExpr list, ostream& os) const {
 
   assert( os.good() );
 
-  const nlbyte v[7] = {'b','n','l',0,1,0,2};
-  os.write((char*)v,7);
+  os.write((const char*)BIN_STREAM_HEADER, 7);
   bool ok = WriteBinaryRec(list, os);
   os.flush();
   return ok;
 
 }
+
+// WriteBinaryHeader / WriteBinaryListOpen / WriteBinaryElem are defined below,
+// after the BIN_* type ids they have to agree with.
 
 /*
 6.4 ReadBinaryFrom: Reconstruct a list from
@@ -1546,6 +1549,60 @@ NestedList::GetBinaryType(const ListExpr list, int& listLength) const {
   default : return (nlbyte) 255;
 
   }
+}
+
+/*
+6.4 WriteBinaryHeader, WriteBinaryListOpen, WriteBinaryElem:
+    ~WriteBinaryTo~ for a producer that never holds the whole list.
+
+Placed here, immediately after ~GetBinaryType~, because the middle one has to
+make the same choice it does for a ~NoAtom~ and write the same prefix
+~WriteBinaryRec~ writes after it. If either of those ever changes, both are on
+one screen.
+
+*/
+
+bool
+NestedList::WriteBinaryHeader(ostream& os) {
+
+  assert( os.good() );
+
+  os.write((const char*)BIN_STREAM_HEADER, 7);
+  return os.good();
+}
+
+bool
+NestedList::WriteBinaryListOpen(int length, ostream& os) {
+
+  assert( os.good() );
+  assert( length >= 0 );
+
+  // BIN_LIST -- the two-byte length -- is deliberately not produced: the
+  // reader accepts it, but GetBinaryType has never chosen it, and a streamed
+  // list must be byte-identical to a written one.
+  const nlbyte typeId = (length >= 256) ? BIN_LONGLIST : BIN_SHORTLIST;
+  os << typeId;
+
+  // The same big-endian truncation to the low `len` bytes that hton plus the
+  // offset arithmetic in WriteBinaryRec performs. Spelled out because hton is
+  // an instance method -- for no reason other than that it always was -- and
+  // this one has no instance.
+  char pv[sizeof(long)];
+  long value = length;
+  for (size_t i = 0; i < sizeof(long); i++) {
+    pv[sizeof(long) - 1 - i] = (char) (value & 0xFF);
+    value >>= 8;
+  }
+  const unsigned int len = (typeId == BIN_SHORTLIST) ? 1 : 4;
+  os.write(pv + (sizeof(long) - len), len);
+
+  return os.good();
+}
+
+bool
+NestedList::WriteBinaryElem(const ListExpr list, ostream& os) const {
+
+  return WriteBinaryRec(list, os);
 }
 
 /*

@@ -303,6 +303,7 @@ SecondoInterface::Init() {
   initialized = false;
   activeTransaction = false;
   serverInstance = false;
+  resultSink = 0;   // no streaming unless a caller asks for it
   nl = 0;
   al = 0;
   derivedObjPtr = 0;
