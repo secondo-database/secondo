@@ -25,6 +25,43 @@ SPATIAL_TYPES = {"point", "points", "line", "sline", "dline", "region", "rect"}
 _UNDEF = {"undef", "undefined"}
 
 
+class _Bounds:
+    """The running extent of everything that made it into the output.
+
+    Accumulated while the geometries are built rather than walked out of the
+    finished FeatureCollection afterwards. The second pass was over every
+    coordinate in the answer -- 1,701,498 of them for ``roads`` -- through a
+    recursive generator, one frame per nesting level per point, for four
+    numbers construction already had in hand.
+
+    ``add`` is only ever called for a coordinate that is being appended to a
+    geometry that is being kept, which is what makes it equivalent to the walk:
+    rings too short to be a ring and segments that failed to parse contribute
+    to neither.
+    """
+
+    __slots__ = ("minx", "miny", "maxx", "maxy")
+
+    def __init__(self) -> None:
+        self.minx = self.miny = math.inf
+        self.maxx = self.maxy = -math.inf
+
+    def add(self, x: float, y: float) -> None:
+        if x < self.minx:
+            self.minx = x
+        if x > self.maxx:
+            self.maxx = x
+        if y < self.miny:
+            self.miny = y
+        if y > self.maxy:
+            self.maxy = y
+
+    def as_list(self) -> list[float] | None:
+        if self.minx is math.inf:
+            return None
+        return [self.minx, self.miny, self.maxx, self.maxy]
+
+
 def _num(x: Any) -> float | None:
     if isinstance(x, bool):
         return None
@@ -43,20 +80,81 @@ def _coord(pair: Any) -> list[float] | None:
     return [x, y]
 
 
-def geometry_from(type_name: str, value: Node) -> dict | None:
-    """Build a GeoJSON geometry from a type name and its *value* nested list."""
+def _stitch(segments: list, bounds: _Bounds | None) -> list[list[list[float]]]:
+    """Half-segments -> polylines.
+
+    A SECONDO ``line`` is a *set* of half-segments, and ``OutLine`` writes each
+    undirected segment once. Emitting one two-point part per segment therefore
+    repeats every interior vertex: a road of *k* segments cost 2*k* coordinates
+    where the polyline it describes needs *k*+1. Across ``roads`` that was
+    1,701,498 coordinates in 850,749 parts for the 1,182,183 in 331,434 that
+    the same geometry needs, and the duplicates are not free downstream either
+    -- deck.gl tessellates each part separately.
+
+    Nothing in the type promises path order, so this chains greedily off the
+    running end and starts a new part whenever the next segment does not attach.
+    An import that walks each way in order -- which is what shapefile data is --
+    collapses to a single part; anything else degrades, part by part, to exactly
+    the old output. Endpoints are compared exactly on purpose: the shared vertex
+    of two adjacent half-segments is the same literal in the nested list, so it
+    parses to the same float, and a tolerance here would join geometry the
+    source kept apart.
+    """
+    parts: list[list[list[float]]] = []
+    cur: list[list[float]] | None = None
+    for seg in segments:
+        if not isinstance(seg, list) or len(seg) < 4:
+            continue
+        a, b, c, d = (_num(seg[0]), _num(seg[1]), _num(seg[2]), _num(seg[3]))
+        if None in (a, b, c, d):
+            continue
+        p, q = [a, b], [c, d]
+        if cur is not None and cur[-1] == p:
+            cur.append(q)
+            if bounds is not None:
+                bounds.add(c, d)
+        elif cur is not None and cur[-1] == q:
+            cur.append(p)
+            if bounds is not None:
+                bounds.add(a, b)
+        else:
+            cur = [p, q]
+            parts.append(cur)
+            if bounds is not None:
+                bounds.add(a, b)
+                bounds.add(c, d)
+    return parts
+
+
+def geometry_from(
+    type_name: str, value: Node, bounds: _Bounds | None = None
+) -> dict | None:
+    """Build a GeoJSON geometry from a type name and its *value* nested list.
+
+    ``bounds``, when given, collects the extent of the coordinates that end up
+    in the result, so the caller never has to walk them again.
+    """
     if isinstance(value, str) and value in _UNDEF:
         return None
 
     if type_name == "point":
         c = _coord(value)
-        return {"type": "Point", "coordinates": c} if c else None
+        if not c:
+            return None
+        if bounds is not None:
+            bounds.add(c[0], c[1])
+        return {"type": "Point", "coordinates": c}
 
     if type_name == "points":
         if not isinstance(value, list):
             return None
         pts = [c for c in (_coord(p) for p in value) if c]
-        return {"type": "MultiPoint", "coordinates": pts} if pts else None
+        if not pts:
+            return None
+        if bounds is not None:
+            for x, y in pts:
+                bounds.add(x, y)
+        return {"type": "MultiPoint", "coordinates": pts}
 
     if type_name in ("line", "sline", "dline"):
         if not isinstance(value, list):
@@ -70,16 +168,11 @@ def geometry_from(type_name: str, value: Node) -> dict | None:
             and isinstance(value[1], bool)
         ):
             segments = value[0]
-        segs = []
-        for seg in segments:
-            if isinstance(seg, list) and len(seg) >= 4:
-                a, b, c, d = (_num(seg[0]), _num(seg[1]), _num(seg[2]), _num(seg[3]))
-                if None not in (a, b, c, d):
-                    segs.append([[a, b], [c, d]])
-        return {"type": "MultiLineString", "coordinates": segs} if segs else None
+        parts = _stitch(segments, bounds)
+        return {"type": "MultiLineString", "coordinates": parts} if parts else None
 
     if type_name == "region":
-        return _region(value)
+        return _region(value, bounds)
 
     if type_name == "rect":
         if isinstance(value, list) and len(value) >= 4:
@@ -87,13 +180,16 @@ def geometry_from(type_name: str, value: Node) -> dict | None:
                               _num(value[2]), _num(value[3]))
             if None not in (x1, x2, y1, y2):
                 ring = [[x1, y1], [x2, y1], [x2, y2], [x1, y2], [x1, y1]]
+                if bounds is not None:
+                    for x, y in ring:
+                        bounds.add(x, y)
                 return {"type": "Polygon", "coordinates": [ring]}
         return None
 
     return None
 
 
-def _region(value: Node) -> dict | None:
+def _region(value: Node, bounds: _Bounds | None = None) -> dict | None:
     """SECONDO region: a list of faces; each face is a list of cycles; the
     first cycle is the outer boundary, the rest are holes."""
     if not isinstance(value, list):
@@ -111,6 +207,9 @@ def _region(value: Node) -> dict | None:
                 continue
             if ring[0] != ring[-1]:  # GeoJSON rings must be closed
                 ring.append(ring[0])
+            if bounds is not None:
+                for x, y in ring:
+                    bounds.add(x, y)
             rings.append(ring)
         if rings:
             polygons.append(rings)
@@ -124,13 +223,28 @@ def _feature(geometry: dict, properties: dict | None = None) -> dict:
 
 
 def _scalar(v: Any) -> Any | None:
-    """Keep only scalar attribute values as GeoJSON properties."""
-    if isinstance(v, (int, float, bool, str)):
+    """Keep only scalar attribute values as GeoJSON properties.
+
+    Trailing whitespace goes. It is fixed-width padding out of the source data
+    -- a shapefile import gives every ``roads`` tuple a 12-character ``Osm_id``,
+    a 28-character ``Fclass``, a 100-character ``Name`` -- and it was 21.9% of
+    the GeoJSON. These properties feed map tooltips, where the padding was never
+    visible in the first place.
+
+    Only here, deliberately: `table.py` serves the editable grid, and a Save
+    writes its cells back to the relation. Trimming values on the way out of
+    that path would silently rewrite the stored strings.
+    """
+    if isinstance(v, str):
+        return v.rstrip()
+    if isinstance(v, (int, float, bool)):
         return v
     return None
 
 
-def _relation_features(type_expr: list, tuples: Node) -> list[dict]:
+def _relation_features(
+    type_expr: list, tuples: Node, bounds: _Bounds | None = None
+) -> list[dict]:
     # type_expr = ['rel', ['tuple', [[name, atype], ...]]]
     try:
         attrs = type_expr[1][1]
@@ -153,34 +267,10 @@ def _relation_features(type_expr: list, tuples: Node) -> list[dict]:
         }
         for i in spatial_idx:
             if i < len(tup):
-                geom = geometry_from(types[i], tup[i])
+                geom = geometry_from(types[i], tup[i], bounds)
                 if geom:
                     features.append(_feature(geom, {**props, "_attr": names[i]}))
     return features
-
-
-def _iter_coords(geometry: dict):
-    def walk(coords):
-        if (isinstance(coords, list) and len(coords) == 2
-                and all(isinstance(v, (int, float)) for v in coords)):
-            yield coords
-        elif isinstance(coords, list):
-            for c in coords:
-                yield from walk(c)
-
-    yield from walk(geometry.get("coordinates", []))
-
-
-def _bbox(features: list[dict]) -> list[float] | None:
-    minx = miny = math.inf
-    maxx = maxy = -math.inf
-    for f in features:
-        for x, y in _iter_coords(f["geometry"]):
-            minx, miny = min(minx, x), min(miny, y)
-            maxx, maxy = max(maxx, x), max(maxy, y)
-    if minx is math.inf:
-        return None
-    return [minx, miny, maxx, maxy]
 
 
 def from_tree(tree: Node) -> dict | None:
@@ -191,18 +281,19 @@ def from_tree(tree: Node) -> dict | None:
 
     type_expr, value = tree[0], tree[1]
     features: list[dict] = []
+    bounds = _Bounds()
 
     if isinstance(type_expr, str):  # atomic spatial type: (point (...)) etc.
-        geom = geometry_from(type_expr, value)
+        geom = geometry_from(type_expr, value, bounds)
         if geom:
             features.append(_feature(geom))
     elif isinstance(type_expr, list) and type_expr and type_expr[0] == "rel":
-        features = _relation_features(type_expr, value)
+        features = _relation_features(type_expr, value, bounds)
 
     if not features:
         return None
     fc: dict = {"type": "FeatureCollection", "features": features}
-    bbox = _bbox(features)
+    bbox = bounds.as_list()
     if bbox:
         fc["bbox"] = bbox
     return fc

@@ -59,6 +59,16 @@ def test_row_cap_is_reported(monkeypatch):
     assert t["truncated"] is True
 
 
+def test_table_cells_keep_their_padding():
+    """The GeoJSON strips fixed-width padding from its properties; the grid must
+    not. These cells are editable and a Save writes them back, so trimming here
+    would rewrite the stored strings on the first unrelated edit of a row."""
+    t = table.from_tree(
+        parse('((rel (tuple ((Name string)))) (("primary      ")))')
+    )
+    assert t["rows"] == [["primary      "]]
+
+
 def test_a_page_is_not_a_truncation():
     """The rows outside a page are one request away, so nothing is dropped and
     the payload says where in the relation the page sits."""

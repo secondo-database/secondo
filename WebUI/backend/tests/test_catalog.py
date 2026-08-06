@@ -52,10 +52,12 @@ def test_sline_wrapped_with_direction_flag():
 
 
 def test_plain_line_still_works():
+    """A `line` value is its segment list directly -- no direction flag to
+    unwrap. The two segments here are adjacent, so they stitch into one part."""
     text = "(line ((0.0 0.0 1.0 1.0) (1.0 1.0 2.0 2.0)))"
     geom = to_geojson(text)["features"][0]["geometry"]
     assert geom["type"] == "MultiLineString"
-    assert len(geom["coordinates"]) == 2
+    assert geom["coordinates"] == [[[0.0, 0.0], [1.0, 1.0], [2.0, 2.0]]]
 
 
 # --- list operators --------------------------------------------------------
