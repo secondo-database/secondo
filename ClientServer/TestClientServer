@@ -280,6 +280,69 @@ else
 fi
 
 #
+# Phase 3b: the Java client. Everything else here drives SecondoCS, i.e. the
+# C++ SecondoInterfaceCS. The Java interface under Javagui/secondoInterface is
+# a second, independent implementation of the same client/server protocol --
+# the one the Java GUI and every JDBC user go through -- and nothing tested it:
+# it is compiled by the top level make (target java2) and no makefile ever ran
+# it, so a protocol change could break it silently.
+#
+# tools.CSTest asserts rather than prints (unlike tools.ExClient, which is why
+# ExClient could never be used as a gate); it exits 2 when an assertion failed
+# and 1 when it could not connect at all. Its assertions cover the handshake,
+# a small and a multi-chunk result, an error, that the connection survives that
+# error, and message delivery. The monitor is already up and $DBNAME already
+# holds 'ten', so this needs nothing of its own.
+#
+# SKIP, not FAIL, when java or the compiled test is missing: `make java2` is
+# guarded by a javac probe that degrades to a warning, so a developer without a
+# JDK has a perfectly good build with no Javagui in it and must not see a red
+# test. CI installs a JDK, so there this phase really runs.
+#
+echo "*** ClientServer test: Java client (tools.CSTest) ***"
+javaGui="$buildDir/Javagui"
+javaJar="$javaGui/secondoInterface/SecondoInterface.jar"
+if ! command -v java >/dev/null 2>&1; then
+  echo "SKIP (java): no java runtime on PATH"
+elif [ ! -f "$javaJar" ] || [ ! -f "$javaGui/tools/CSTest.class" ]; then
+  echo "SKIP (java): Javagui was not compiled (no SecondoInterface.jar or CSTest.class)"
+else
+  # CSTest takes --expect-binary/--expect-text, and neither is passed here on
+  # purpose. Which mode is in force is the monitor's Server:BinaryTransfer
+  # flag, and SECONDO_PARAM_RTFlags replaces the config's RTFlags outright
+  # rather than adding to it -- run-tests.sh, which is how CI reaches this
+  # file, sets it -- so any expectation computed here is a second, subtly
+  # different copy of the server's own resolution, and gets it wrong.
+  # Tests/csloadtest already asserts the mode against a known configuration.
+  # CSTest reports the mode it negotiated; the OK line below repeats it.
+  #
+  # headless: the interface reports through tools.Reporter, which falls back to
+  # a Swing dialog for some messages. On a CI runner that throws rather than
+  # blocking, but there is no reason to find out the hard way.
+  java -Djava.awt.headless=true \
+       -cp "$javaGui:$javaJar" \
+       tools.CSTest 127.0.0.1 "$SEC_PORT" "$DBNAME" \
+       >"$home/java.log" 2>&1
+  javaRc=$?
+
+  # As everywhere here, assert the exit status *and* the log: the status says
+  # the assertions held, the log line says they actually ran.
+  if [ "$javaRc" -ne 0 ]; then
+    echo "FAIL (java): tools.CSTest exited with $javaRc"
+    grep -n "^FAIL" "$home/java.log" | head -10
+    tail -30 "$home/java.log"
+    rc=1
+  elif ! grep -q "^successful$" "$home/java.log"; then
+    echo "FAIL (java): tools.CSTest did not run to completion"
+    tail -30 "$home/java.log"
+    rc=1
+  else
+    echo "OK (java): $(grep -c "^ok   :" "$home/java.log") assertions held," \
+         "$(sed -n 's/^     : //p' "$home/java.log")"
+  fi
+fi
+
+#
 # Phase 4: concurrent SQL optimization. The clients above ran executable plans;
 # here they send the SQL dialect (command level 2), which the server optimizes
 # in-process before executing. Each connection forks its own server, so this

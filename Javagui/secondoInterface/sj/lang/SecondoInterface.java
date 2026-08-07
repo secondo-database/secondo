@@ -135,6 +135,18 @@ not accessible by the user code.
     serverSocket = null;
   }
 
+  /** Reports the list transfer mode this connection negotiated: true when the
+    * server announced BinaryTransfer=YES during the intro, false when it said
+    * NO. Meaningful only on a connection that came up (initialize returned
+    * true) -- a connection that did not negotiate the mode is refused. The
+    * mode is the server's to choose, so this is an observation, not a setting;
+    * it exists so a test can assert which of the two code paths in
+    * receiveList it just exercised (tools.CSTest).
+    */
+  public boolean usesBinaryLists(){
+    return binaryLists;
+  }
+
   public void destroy()
   {
     if ( initialized )
