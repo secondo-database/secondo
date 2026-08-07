@@ -146,11 +146,13 @@ static void usage(const char* prog)
        << "  --config FILE     config file   (default: Config.ini)\n"
        << "  --threads N       concurrent threads      (default: 10)\n"
        << "  --rounds N        connections per thread  (default: 10)\n"
-       << "  --mode M          connect | parse | shared | both | contract"
-       << "   (default: both)\n"
+       << "  --mode M          connect | parse | shared | both | contract |\n"
+       << "                    handover   (default: both)\n"
        << "                    contract breaks the threading contract on\n"
        << "                    purpose and must abort; needs a build with\n"
        << "                    -DNL_CHECK_CONCURRENCY\n"
+       << "                    handover keeps it, passing one list from\n"
+       << "                    thread to thread, and must not abort\n"
        << "  --list-mem KB     node/string/text memory per list (default: 1,\n"
        << "                    small on purpose so the tables have to grow)\n"
        << "  --expect-binary   require the server to transfer lists binary\n"
@@ -175,7 +177,7 @@ static bool parseOptions(int argc, char** argv, Options& o)
     else { usage(argv[0]); return false; }
   }
   if (o.mode != "connect" && o.mode != "parse" && o.mode != "shared" &&
-      o.mode != "both" && o.mode != "contract") {
+      o.mode != "both" && o.mode != "contract" && o.mode != "handover") {
     usage(argv[0]);
     return false;
   }
@@ -492,6 +494,51 @@ static void contractWorker(const Options&, int id)
 
 #endif // NL_CHECK_CONCURRENCY
 
+/*
+1.7 The workload that must *not* be rejected
+
+The checker marks a node while a thread writes it and clears the mark when the
+write is over. Forgetting to clear it does not look like a bug from the outside:
+the mode above still aborts, and the mode that keeps the contract still passes
+as long as no node index happens to reach a second thread. What it costs is
+everything in between -- a mark left behind reports the *next* thread to touch
+that node however long after, and a slot held forever hides every other node
+that hashes to it. That is not hypothetical; it is what the checker did, and
+nothing here noticed, because breaking a detector makes it quieter.
+
+So this mode hands one list from thread to thread: a thread builds it and is
+joined, then a *different* thread walks and frees it. Every node is written by
+two threads with a happens-before between them, which is the contract kept, not
+broken -- the shape ~Distributed2~ produces when a worker's result is copied
+into the global list under ~copylistmutex~ and read back afterwards. A run that
+aborts is the failure.
+
+*/
+
+static NestedList* handoverList  = 0;
+static ListExpr    handoverBuilt = 0;
+
+static void handoverBuilder(const Options& o, int id)
+{
+  NestedList* nl = handoverList;
+  ListExpr l = nl->OneElemList(nl->IntAtom(id));
+  ListExpr last = l;
+  for (int r = 0; r < 200; r++) {
+    last = nl->Append(last, nl->IntAtom(r));
+  }
+  check(nl->ListLength(l) == 201, "the handover list came out the wrong size");
+  handoverBuilt = l;
+}
+
+static void handoverConsumer(const Options&, int)
+{
+  NestedList* nl = handoverList;
+  // Destroy writes every node the builder wrote, which is what makes the two
+  // threads meet on the same node records.
+  nl->Destroy(handoverBuilt);
+  handoverBuilt = 0;
+}
+
 static void run(void (*worker)(const Options&, int), const Options& o,
                 const char* what)
 {
@@ -535,6 +582,23 @@ int main(int argc, char** argv)
 
     delete sharedList;
     sharedList = 0;
+  }
+  if (o.mode == "handover") {
+    handoverList = new NestedList("", o.listMem, o.listMem, o.listMem);
+    int lists = 0;
+    for (int r = 0; r < o.rounds; r++) {
+      for (int t = 0; t < o.threads; t++) {
+        // One at a time, on purpose: joining before the next starts is the
+        // ordering that makes this legal.
+        thread(handoverBuilder, o, t).join();
+        thread(handoverConsumer, o, t).join();
+        lists++;
+      }
+    }
+    cout << "handover: " << lists
+         << " lists built and freed by different threads" << endl;
+    delete handoverList;
+    handoverList = 0;
   }
   // Deliberately not part of "both": this one is meant to die.
   if (o.mode == "contract") {

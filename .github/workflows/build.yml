@@ -171,9 +171,42 @@ jobs:
           rm -rf tsan app-tsan
           make tsan TSAN_FLAGS="-g -O1 -DNL_CHECK_CONCURRENCY"
           ./app-tsan --mode shared --threads 8 --rounds 5 --list-mem 1
-          if ./app-tsan --mode contract --threads 4 --rounds 1 --list-mem 1; then
-            echo "FAIL: the concurrency checker did not fire although four" \
-                 "threads appended to one node without a lock"
+          #
+          # ...and one list passed from thread to thread, each one joined
+          # before the next starts. That keeps the contract, so it has to run
+          # clean -- and unlike the mode above it says so about a node that two
+          # threads really did write, which is what a checker that marks a node
+          # and forgets to unmark it gets wrong. Such a checker still aborts on
+          # the unsynchronised mode below and still passes the mode above, so
+          # this is the direction that has to be asserted separately.
+          ./app-tsan --mode handover --threads 4 --rounds 5 --list-mem 1
+
+          # What the contract run must produce is the checker's *report*, not
+          # merely a non-zero exit: a crash, a binary that was never built, and
+          # the mode refusing to run because -DNL_CHECK_CONCURRENCY never
+          # reached the compiler all look alike from outside, and each of them
+          # is a broken checker passing for a working one. That is not
+          # hypothetical -- it is how a checker that had stopped detecting
+          # anything kept this step green.
+          fired=""
+          for attempt in $(seq 1 10); do
+            if out=$(./app-tsan --mode contract --threads 4 --rounds 1 \
+                       --list-mem 1 2>&1); then
+              echo "$out"
+              echo "FAIL: the concurrency checker did not fire although four" \
+                   "threads appended to one node without a lock"
+              exit 1
+            fi
+            if echo "$out" | grep -q "NestedList threading contract was broken"
+            then
+              fired="yes"
+              break
+            fi
+          done
+          echo "$out"
+          if [ -z "$fired" ]; then
+            echo "FAIL: ten unsynchronised runs all died without the checker" \
+                 "reporting once -- the last one is above"
             exit 1
           fi
 

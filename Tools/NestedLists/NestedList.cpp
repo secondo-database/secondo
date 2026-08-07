@@ -228,8 +228,9 @@ NodeAccessGuard::NodeAccessGuard( ListExpr node ) : node( node ), held( false )
                                        std::memory_order_acquire ) )
       {
         held = true;
+        return;                          // claimed it, at depth one
       }
-      continue;                          // lost the race, or claimed it
+      continue;                          // lost the race, look again
     }
 
     if ( guardNode( cur ) != node )
@@ -648,12 +649,12 @@ NestedList::Append ( const ListExpr lastElem,
                      const ListExpr newSon,
                      bool incRef )
 {
-        assert( EndOfList(lastElem) );
-
   // Two threads appending to one lastElem is the textbook breach: both read the
   // same record, both set n.right to a node of their own, and the second write
   // drops the first thread's element off the list entirely.
   NL_WRITING_NODE(lastElem);
+
+  assert( EndOfList(lastElem) );
 
   NodeRecord lastElemNodeRec;
   (*nodeTable).Get(lastElem, lastElemNodeRec);
