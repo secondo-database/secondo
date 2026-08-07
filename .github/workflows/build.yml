@@ -243,15 +243,15 @@ jobs:
       - name: Start the SECONDO monitor
         working-directory: bin
         run: |
-          nohup ./SecondoMonitor -s > "${RUNNER_TEMP}/secondo-monitor.log" 2>&1 &
-          echo "SECONDO_MONITOR_PID=$!" >> "$GITHUB_ENV"
-          for i in $(seq 1 60); do
-            if (exec 3<>/dev/tcp/127.0.0.1/1234) 2>/dev/null; then
-              exec 3>&- 3<&-; echo "Monitor is listening on port 1234"; exit 0
-            fi
-            sleep 1
-          done
-          echo "SECONDO monitor did not come up"; cat "${RUNNER_TEMP}/secondo-monitor.log"; exit 1
+          echo "SECONDO_MONITOR_PIDFILE=${RUNNER_TEMP}/secondo-monitor.pid" \
+            >> "$GITHUB_ENV"
+          ./SecondoMonitor --daemon \
+            --pidfile "${RUNNER_TEMP}/secondo-monitor.pid" \
+            --log "${RUNNER_TEMP}/secondo-monitor.log"
+          # Stricter than the port probe --daemon already did: this also
+          # requires the registrar, which arbitrates database access, to
+          # answer. The queries below need it.
+          ./SecondoMonitor --health
 
       - name: Start the WebUI backend bridge
         working-directory: WebUI/backend
@@ -339,7 +339,10 @@ jobs:
         if: always()
         run: |
           kill "${WEBUI_BACKEND_PID:-}" 2>/dev/null || true
-          kill "${SECONDO_MONITOR_PID:-}" 2>/dev/null || true
+          if [ -n "${SECONDO_MONITOR_PIDFILE:-}" ]; then
+            SecondoMonitor --shutdown \
+              --pidfile "${SECONDO_MONITOR_PIDFILE}" || true
+          fi
 
       - name: Show WebUI logs on failure
         if: failure()

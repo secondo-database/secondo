@@ -1,14 +1,29 @@
 #!/bin/bash
 
-# Startup script for the Secondo monitor application
+# Startup script for the Secondo monitor application.
+#
+# SecondoMonitor --daemon detaches itself and returns only once the monitor
+# really accepts connections. Its output goes to SecondoMonitor-<port>.log
+# pass --log to put it elsewhere.
+#
+# Run this from the directory holding the Secondo binaries: the monitor starts
+# its Listener, Registrar, Checkpoint and server programs from the working
+# directory.
 
-  nohup SecondoMonitor -s $* </dev/null &
-  pid=$!
-  msg="\n SecondoMonitor started in background with process id = $pid.\n"
-  echo -e $msg >> nohup.out
-  date >> nohup.out
-  echo -e $msg
-  echo -e "Use kill -SIGTERM $pid for shutdown\n"
-  exit $?
+SecondoMonitor --daemon "$@" || exit $?
 
+# Repeat only the options that say *which* monitor to address, so that the
+# hints below are commands which actually work when a port or a pid file was
+# given here. --log and -d do not identify a monitor.
+addr=()
+while [ $# -gt 0 ]; do
+  case "$1" in
+    -c|-p|--pidfile) addr+=("$1" "$2"); shift 2;;
+    *)               shift;;
+  esac
+done
 
+echo
+echo "Use 'SecondoMonitor --health ${addr[*]}' to check on it,"
+echo "and 'SecondoMonitor --shutdown ${addr[*]}' to shut it down."
+echo
