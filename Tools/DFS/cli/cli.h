@@ -80,7 +80,7 @@ public:
     delete[] msg;
   }
 
-  virtual const char *what() { return this->msg; }
+  const char *what() const noexcept override { return this->msg; }
 };
 
 void line(const Str &s) {

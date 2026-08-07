@@ -3417,16 +3417,7 @@ void RegionT<Array>::ComputeRegion()
     return;
    //Insert in the vector the first cycle of the first face
   face.push_back(0);
-  cycle = new bool[Size()];
-#ifdef SECONDO_MAC_OSX
-  // something goes wrong at mac osx and the memset function
-  int size = Size();
-  for(int i=0;i<size;i++){
-    cycle[i] = false;
-  }
-#else
-  memset( cycle, 0, Size()*sizeof(bool) );
-#endif
+  cycle = new bool[Size()]();
   for ( int i=0; i<Size(); i++)
   {
     Get(i,hs);

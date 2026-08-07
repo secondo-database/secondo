@@ -2662,15 +2662,7 @@ void Region2::ComputeRegion()
     return;
    //Insert in the vector the first cycle of the first face
   face.push_back(0);
-  cycle = new bool[size];
-#ifdef SECONDO_MAC_OSX
-  // something goes wrong at mac osx and the memset function
-  for(int i=0;i<size;i++){
-    cycle[i] = false;
-  }
-#else
-  memset( cycle, 0, size*sizeof(bool) );
-#endif
+  cycle = new bool[size]();
   for (int i=0; i<size; i++)
   {
     Reg2PreciseHalfSegment aux(precHSvector[i]);

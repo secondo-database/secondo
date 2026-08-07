@@ -289,17 +289,10 @@ class SimpleFilesystem {
       strncpy(message, msg, 127);
     }
 
-#if defined(SECONDO_MAC_OSX)
-    virtual const char *what() const _NOEXCEPT{
+    const char *what() const noexcept override {
       return message;
     }
   };
-#else
-    virtual const char *what()  {
-      return message;
-    }
-  };
-#endif
 
   class ResultException : public BaseException {
   public:

@@ -90,6 +90,30 @@ using namespace std;
 
 const string unixSocketDir = "/tmp/";
 
+// Writing to a socket whose peer is gone must set the stream's failbit and let
+// the application handle the failure, not raise SIGPIPE since the Application
+// installs an abort handler for that signal. Linux suppresses it per send()
+// call via MSG_NOSIGNAL; the BSDs (macOS) have no such send flag and offer the
+// SO_NOSIGPIPE socket option instead, so the two are not interchangeable.
+#ifndef MSG_NOSIGNAL
+#define MSG_NOSIGNAL 0
+#endif
+
+namespace {
+
+void SuppressSigPipe( int sd )
+{
+#if defined(SO_NOSIGPIPE)
+  int enabled = 1;
+  setsockopt( sd, SOL_SOCKET, SO_NOSIGPIPE, (char*) &enabled,
+              sizeof(enabled) );
+#else
+  (void) sd;
+#endif
+}
+
+} // namespace
+
 bool
 Socket::IsLibraryInitialized()
 {
@@ -133,6 +157,7 @@ UnixSocket::UnixSocket( int newFd,
                         bool _destroyStreams ) : Socket()
 {
   fd = newFd;
+  SuppressSigPipe( fd );
   hostAddress = "";
   hostPort = "";
   createFile = false;
@@ -605,6 +630,7 @@ UnixSocket::Connect( int maxAttempts, time_t timeout )
           return (false);
         }
       }
+      SuppressSigPipe( fd );
       ioSocketBuffer = new SocketBuffer( *this );
       ioSocketStream = new iostream( ioSocketBuffer );
       ioSocketStream->clear();
@@ -752,16 +778,10 @@ UnixSocket::Write( void const* buf, size_t size )
   {
     ssize_t rc;
 
-    // Write the content of the buffer onto the socket, set 
-    // MSG_NOSIGNAL to prevent the SIGPIPE signal when writing 
-    // on an already closed socket. Set the ios::failbit instead 
-    // and let the application code handle the failure.
-
-#ifdef SECONDO_MAC_OSX
-#ifndef MSG_NOSIGNAL
-#define MSG_NOSIGNAL SO_NOSIGPIPE
-#endif
-#endif
+    // Write the content of the buffer onto the socket. MSG_NOSIGNAL (or
+    // SO_NOSIGPIPE, already set on fd) prevents the SIGPIPE signal when
+    // writing on an already closed socket; ios::failbit is set instead and
+    // the application code handles the failure.
 
     while ((rc = ::send(fd, buf, size, MSG_NOSIGNAL)) < 0) {
 
