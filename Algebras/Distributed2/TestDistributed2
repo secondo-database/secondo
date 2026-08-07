@@ -1,0 +1,160 @@
+#!/bin/bash
+#
+# Test for the Distributed2 algebra.
+#
+# Distributed2 is built in CI but was effectively untested: its only coverage
+# is Distributed2.examples, and most of those entries are marked "Result: bug"
+# with "requires a remote server", which the TestRunner reports as a known bug
+# and ignores. Nothing exercised a distributed query.
+#
+# The reason is structural. ConnectionInfo::createConnection opens a
+# SecondoInterfaceCS connection to an *already running* SecondoMonitor; the
+# algebra never starts a worker itself. So this cannot be a .test file that
+# run-tests.sh discovers -- something has to bring the workers up first. That
+# is what this script does: it starts N monitors on private ports, each with a
+# database directory of its own, writes the workers relation naming the ports
+# it actually chose, and then runs distributed2.test against them.
+#
+# The assertions all live in distributed2.test. TestRunner exits with its error
+# count, so unlike TestClientServer -- which drives plain TTY clients and has
+# to read their logs -- there is nothing to grep here.
+
+set -u
+
+buildDir=${SECONDO_BUILD_DIR:-}
+if [ -z "$buildDir" ]; then
+  echo "Error: SECONDO_BUILD_DIR is not set."
+  exit 1
+fi
+
+export SECONDO_CONFIG=${SECONDO_CONFIG:-$buildDir/bin/SecondoConfig.ini}
+export PATH="$buildDir/bin:$PATH"
+
+# Private ports, off 1234 and off TestClientServer's 12234. Three workers is
+# the smallest number that makes "which worker did this slot go to" a real
+# question; the suite distributes into more slots than that so the slot to
+# worker mapping is exercised too.
+#
+# Override to run a wider fan-out locally:
+#   SECONDO_D2_TEST_WORKERS=6 ./TestDistributed2
+BASEPORT=${SECONDO_D2_TEST_PORT:-12250}
+NWORKERS=${SECONDO_D2_TEST_WORKERS:-3}
+
+testFile="$buildDir/Algebras/Distributed2/distributed2.test"
+
+home=$(mktemp -d "${TMPDIR:-/tmp}/TestDistributed2.XXXXXX")
+rc=0
+
+# Run from the temporary home: the TTY binaries drop cwd-relative files
+# (.secondo_history, temp_nested_list/, tmp/), and run-tests.sh invokes this
+# with cwd set to the algebra directory, so without this the test litters the
+# source tree. Everything below uses absolute paths.
+cd "$home" || exit 1
+
+# Shut every worker down, whatever state we are in. --shutdown waits for the
+# monitor to be gone and escalates to SIGKILL by itself, so this cannot hang;
+# see the note on the traps below for why that matters.
+cleanup() {
+  local i port
+  for ((i = 1; i <= NWORKERS; i++)); do
+    port=$((BASEPORT + i - 1))
+    [ -f "$home/worker-$i.pid" ] || continue
+    SecondoMonitor --shutdown --pidfile "$home/worker-$i.pid" >/dev/null 2>&1
+  done
+  rm -rf "$home"
+}
+# EXIT alone is not enough: bash does not run an EXIT trap when it is killed by
+# an *untrapped* signal, which is exactly how run-tests.sh's timeOut helper and
+# CI cancellation kill a hung test. Without INT/TERM here, being timed out
+# would leak every worker monitor and its whole process tree.
+trap 'cleanup; exit 143' INT TERM
+trap cleanup EXIT
+
+#
+# Phase 1: start the workers.
+#
+# Each worker needs a database directory of its own, and the environment is
+# what has to carry it: SECONDO_PARAM_SecondoHome overrides the configuration
+# file for every process that reads it, the servers the monitor forks
+# included. run-tests.sh exports one for the whole run, so passing -d here
+# would be silently ignored further down and all three workers would end up
+# sharing one Berkeley DB environment.
+#
+# Started from bin/, because the monitor looks up its Listener, Registrar,
+# Checkpoint and server programs in the working directory.
+#
+echo "*** Distributed2 test: starting $NWORKERS workers from port $BASEPORT ***"
+for ((i = 1; i <= NWORKERS; i++)); do
+  port=$((BASEPORT + i - 1))
+  mkdir -p "$home/worker-$i"
+  (
+    cd "$buildDir/bin" || exit 1
+    SECONDO_PARAM_SecondoHome="$home/worker-$i" \
+      SecondoMonitor --daemon -p "$port" \
+        --pidfile "$home/worker-$i.pid" \
+        --log "$home/worker-$i.log"
+  )
+  if [ $? -ne 0 ]; then
+    echo "FAIL: worker $i did not come up on port $port"
+    [ -f "$home/worker-$i.log" ] && tail -30 "$home/worker-$i.log"
+    echo "(if the port is in use, rerun with SECONDO_D2_TEST_PORT=<free port>)"
+    exit 1
+  fi
+  # Stricter than the port probe --daemon already did: this also requires the
+  # registrar to answer, and Distributed2 has every worker open a database.
+  if ! SecondoMonitor --health -p "$port"; then
+    echo "FAIL: worker $i on port $port is not healthy"
+    tail -30 "$home/worker-$i.log"
+    exit 1
+  fi
+done
+
+#
+# Phase 2: the workers relation.
+#
+# Distributed2 identifies a worker by (Host, Port, Config) -- see
+# isWorkerRelDesc in Dist2Helper.cpp, which requires exactly these attribute
+# names. Written here rather than checked in, because only this script knows
+# which ports it just used.
+#
+# Config is text, not string: a SECONDO string atom holds at most 48
+# characters and the path below is longer than that in a CI workspace. It is
+# absolute so that the master does not depend on its working directory to find
+# it.
+#
+workerRel="$home/workers.nl"
+{
+  echo "(OBJECT Workers"
+  echo "  ()"
+  echo "  (rel (tuple ((Host string) (Port int) (Config text))))"
+  echo "  ("
+  for ((i = 1; i <= NWORKERS; i++)); do
+    echo "    (\"localhost\" $((BASEPORT + i - 1))" \
+         "<text>$SECONDO_CONFIG</text--->)"
+  done
+  echo "  ))"
+} > "$workerRel"
+
+#
+# Phase 3: run the suite against them.
+#
+# The master gets a database home of its own too -- it is a Secondo instance
+# like any other, and the workers must not see its objects.
+#
+echo "*** Distributed2 test: running $(basename "$testFile") ***"
+SECONDO_PARAM_SecondoHome="$home/master" \
+SECONDO_D2_WORKERS="$workerRel" \
+  TestRunner --no-tmp -i "$testFile" 2>&1 | tee "$home/testrunner.log"
+rc=${PIPESTATUS[0]}
+
+if [ "$rc" -ne 0 ]; then
+  echo "*** Distributed2 test: TestRunner reported $rc error(s) ***"
+  for ((i = 1; i <= NWORKERS; i++)); do
+    echo "=== worker $i log ==="
+    tail -40 "$home/worker-$i.log"
+  done
+else
+  echo "OK: distributed queries produced the expected results on $NWORKERS workers"
+fi
+
+exit $rc

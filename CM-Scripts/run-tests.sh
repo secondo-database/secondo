@@ -180,6 +180,28 @@ else
   runTest ${buildDir}/ClientServer "TestClientServer" "time ./TestClientServer" $timeOutMax
 fi
 
+#
+# Distributed2 tests (skippable via SECONDO_SKIP_DISTRIBUTED2_TESTS). The
+# .test suites above run against a kernel linked into TestRunner, and no
+# Distributed2 operator does anything without workers -- which is why the
+# algebra's coverage was until now a Distributed2.examples file whose entries
+# are mostly marked as known bugs. TestDistributed2 starts real monitors as
+# workers on private ports and drives a .test suite against them.
+#
+# Linux only: gate on uname rather than on libutil.sh's $platform, which
+# compares $OSTYPE against the literal "mac_osx" while macOS reports darwin*,
+# and so calls macOS Linux.
+#
+if [ "$(uname -s)" != "Linux" ]; then
+  echo "*** Skipping Distributed2 tests (not supported on $(uname -s)) ***"
+elif [ "${SECONDO_SKIP_DISTRIBUTED2_TESTS:-}" == "true" ]; then
+  echo "*** Skipping Distributed2 tests (SECONDO_SKIP_DISTRIBUTED2_TESTS=true) ***"
+else
+  echo "*** Executing Distributed2 tests ***"
+  runTest ${buildDir}/Algebras/Distributed2 "TestDistributed2" \
+          "time ./TestDistributed2" $timeOutMax
+fi
+
 #clean up
 printf "\n%s\n\n" "Cleaning up ..."
 rm -rf $dbDir

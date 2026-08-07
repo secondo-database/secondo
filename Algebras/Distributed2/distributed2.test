@@ -1,0 +1,224 @@
+#This file is part of SECONDO.
+#
+#Copyright (C) 2004, University in Hagen, Department of Computer Science,
+#Database Systems for New Applications.
+#
+#SECONDO is free software; you can redistribute it and/or modify
+#it under the terms of the GNU General Public License as published by
+#the Free Software Foundation; either version 2 of the License, or
+#(at your option) any later version.
+#
+#SECONDO is distributed in the hope that it will be useful,
+#but WITHOUT ANY WARRANTY; without even the implied warranty of
+#MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#GNU General Public License for more details.
+#
+#You should have received a copy of the GNU General Public License
+#along with SECONDO; if not, write to the Free Software
+#Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+
+###
+### Distributed2: distributing a relation over several workers and querying it
+### back.
+###
+### This file needs running workers, so it is NOT run by run-tests.sh's
+### "find Tests -name *.test" sweep. Algebras/Distributed2/TestDistributed2
+### starts the monitors, writes the workers relation naming the ports it chose,
+### and points SECONDO_D2_WORKERS at it before invoking the TestRunner. Running
+### this file by hand without that setup fails in the setup section.
+###
+### Every expected result is a count or a sum. Which slot a tuple lands in is
+### the algebra's business and is not stable across worker counts; how many
+### tuples survive the round trip, and what they add up to, is exactly what
+### must not change.
+###
+
+#setup distributed2 Distributed2Algebra
+
+create database d2test;
+
+open database d2test;
+
+# The ports are only known to the driver, so the workers relation is written
+# by it and read back here. $(...) in a restore path is expanded from the
+# environment by SecondoInterfaceTTY.
+restore Workers from '$(SECONDO_D2_WORKERS)';
+
+# 1000 tuples, Elem 1..1000 summing to 500500, and a Grp column with exactly
+# seven distinct values to partition on.
+#
+# Grp is deliberately NOT .Elem mod 7. The stream arrives ordered by Elem, so
+# round robin into seven slots puts Elem in slot (Elem-1) mod 7 -- and then
+# every slot would hold a single value of .Elem mod 7 as well, which makes the
+# partitioning test below pass whether or not ddistribute4 routed by its
+# function. Dividing first breaks that: (Elem div 7) mod 7 is independent of
+# the arrival position, so round robin scatters each Grp across all slots.
+let Src = intstream(1,1000) transformstream
+          extend[Grp: (.Elem div 7) mod 7] consume;
+
+let Limit = 500;
+
+
+# ---------------------------------------------------------------------------
+# The workers themselves
+# ---------------------------------------------------------------------------
+
+# How many workers there are is the driver's choice
+# (SECONDO_D2_TEST_WORKERS), so nothing here may assume a number. Everything
+# below is stated against "Workers count" instead.
+#testcase workers-restored
+#yields (bool TRUE)
+query Workers count > 0;
+
+
+# ---------------------------------------------------------------------------
+# Round robin distribution. The slot count is fixed here and the worker count
+# is not, so this also covers a slot to worker mapping that is not one to one
+# in either direction: at the default three workers the slots are shared out,
+# and above six workers some get nothing.
+# ---------------------------------------------------------------------------
+
+#testcase ddistribute3
+#yields success
+let DA = Src feed ddistribute3["DA", 6, TRUE, Workers];
+
+#testcase size
+#yields (int 6)
+query size(DA);
+
+# The array has to carry every worker it was built from, whatever the driver
+# started -- a stronger statement than a fixed count, and one that holds for
+# any SECONDO_D2_TEST_WORKERS.
+#testcase getWorkers
+#yields (bool TRUE)
+query getWorkers(DA) count = Workers count;
+
+# Every tuple has to arrive somewhere ...
+#testcase dmap-count
+#yields (int 1000)
+query DA dmap["", . feed count] getValue tie[. + ..];
+
+# ... and arrive intact. A count alone would still pass if the slots held the
+# wrong tuples.
+#testcase dmap-sum
+#yields (int 500500)
+query DA dmap["", . feed sum[Elem]] getValue tie[. + ..];
+
+# The same two questions asked through dsummarize, which streams the tuples
+# back to the master instead of reducing them on the workers.
+#testcase dsummarize-count
+#yields (int 1000)
+query DA dsummarize count;
+
+#testcase dsummarize-sum
+#yields (int 500500)
+query DA dsummarize sum[Elem];
+
+
+# ---------------------------------------------------------------------------
+# Partitioning by a function. Seven slots, seven distinct Grp values, and the
+# slot chosen as Grp itself, so every slot must hold exactly one Grp value --
+# which makes the per-slot minimum and the per-slot maximum both add up to
+# 0+1+...+6. This is the case a count cannot catch: a tuple routed to the
+# wrong slot leaves the total untouched.
+# ---------------------------------------------------------------------------
+
+#testcase ddistribute4
+#yields success
+let DB = Src feed ddistribute4["DB", .Grp, 7, Workers];
+
+#testcase partition-by-function-min
+#yields (int 21)
+query DB dmap["", . feed min[Grp]] getValue tie[. + ..];
+
+#testcase partition-by-function-max
+#yields (int 21)
+query DB dmap["", . feed max[Grp]] getValue tie[. + ..];
+
+
+# ---------------------------------------------------------------------------
+# The file based variant: slots travel as files rather than as relations.
+# ---------------------------------------------------------------------------
+
+#testcase dfdistribute3
+#yields success
+let DF = Src feed dfdistribute3["DF", 4, TRUE, Workers];
+
+#testcase dfarray-count
+#yields (int 1000)
+query DF dmap["", . feed count] getValue tie[. + ..];
+
+#testcase dfarray-sum
+#yields (int 500500)
+query DF dmap["", . feed sum[Elem]] getValue tie[. + ..];
+
+
+# ---------------------------------------------------------------------------
+# Replicating an object, and using it inside a function that runs on the
+# workers. Without the share the dmap below cannot resolve Limit.
+# ---------------------------------------------------------------------------
+
+#testcase share
+#yields success
+query share("Limit", TRUE, Workers);
+
+#testcase dmap-uses-shared-object
+#yields (int 500)
+query DA dmap["", . feed filter[.Elem <= Limit] count] getValue tie[. + ..];
+
+
+# ---------------------------------------------------------------------------
+# Two arrays into one function. A self join on Elem matches each tuple with
+# itself and nothing else, so the result is the tuple count again -- and it is
+# only that if both arguments really reached the worker.
+# ---------------------------------------------------------------------------
+
+#testcase dmap2-selfjoin
+#yields (int 1000)
+query DA DA dmap2["", . feed {a} .. feed {b} hashjoin[Elem_a, Elem_b] count, 1238] getValue tie[. + ..];
+
+
+# ---------------------------------------------------------------------------
+# Commands sent to the workers rather than functions run on them.
+# ---------------------------------------------------------------------------
+
+# One row per worker, so again stated against Workers rather than a number.
+#testcase dcommand
+#yields (bool TRUE)
+query DA dcommand['query 21 + 21'] count = Workers count;
+
+
+# ---------------------------------------------------------------------------
+# A relation that is not a workers relation must be rejected. isWorkerRelDesc
+# requires the attributes Host, Port and Config; Src has none of them.
+# ---------------------------------------------------------------------------
+
+#testcase reject-non-worker-relation
+#yields error
+let Bad = Src feed ddistribute3["Bad", 4, TRUE, Src];
+
+
+# ---------------------------------------------------------------------------
+# Cleaning up on the worker side.
+# ---------------------------------------------------------------------------
+
+#testcase deleteRemoteObjects
+#yields success
+query deleteRemoteObjects(DB);
+
+
+#teardown
+
+# Closes the connections the operators above opened. Without this the master
+# holds them open and can hang on the way out.
+query closeWorkers();
+
+delete DA;
+
+delete DB;
+
+delete DF;
+
+close database;
+
+delete database d2test;
