@@ -245,7 +245,8 @@ public:
         return false;
       }
 #ifdef DS_CMD_CB_DEBUG
-    cout << "CONNECTING CALLBACK to " << m_cbPort << "@" << m_cbHost << endl;
+    std::cout << "CONNECTING CALLBACK to " << m_cbPort << "@" << m_cbHost
+       << std::endl;
 #endif
     m_cbSock = Socket::Connect(m_cbHost, m_cbPort, Socket::SockGlobalDomain); 
     
@@ -296,7 +297,8 @@ public:
       }
 
 #ifdef DS_CMD_CB_DEBUG
-    cout << "OPENING CALLBACK on " << m_cbPort << "@" << m_cbHost << endl;
+    std::cout << "OPENING CALLBACK on " << m_cbPort << "@" << m_cbHost
+       << std::endl;
 #endif
     m_cbGate =  Socket::CreateGlobal( m_cbHost, 
                                       m_cbPort );
@@ -343,7 +345,8 @@ public:
       }
     
 #ifdef DS_CMD_CB_DEBUG
-    cout << "ACCEPTING SOCKET  on " << m_cbPort << "@" << m_cbHost << endl;
+    std::cout << "ACCEPTING SOCKET  on " << m_cbPort << "@" << m_cbHost
+       << std::endl;
 #endif
     m_cbSock = m_cbGate->Accept();
     
@@ -470,11 +473,11 @@ Client: close a communication channel completly
     receiveLineFromCallBack(line); // ????
     
     // TA: WHY?
-    cout << "FORCE CLOSE; Got Line:" <<  line << endl;
+    std::cout << "FORCE CLOSE; Got Line:" <<  line << std::endl;
 
 #ifdef DS_CMD_CB_DEBUG
      std::cout << "FORCE CLOSE COMMUNICATION " 
-             << m_cbHost << ":" << m_cbPort << endl;
+             << m_cbHost << ":" << m_cbPort << std::endl;
 #endif
 
   }
@@ -506,13 +509,13 @@ Server: close a communication channel completly
         std::cerr << "ERROR: CLOSING cbSock " 
                   << m_cbHost << ":" << m_cbPort;
         if (m_cbSock == NULL)
-          cerr << " : no cbSock!" << std::endl;
+          std::cerr << " : no cbSock!" << std::endl;
         else if (m_cbConnIsSaved)
-          cerr << " : is saved connection!" << std::endl;
+          std::cerr << " : is saved connection!" << std::endl;
         else if (isRestoredConnection())
-          cerr << " : is restored conn!" << std::endl;
+          std::cerr << " : is restored conn!" << std::endl;
         else
-          cerr << " : unknown reason!" << std::endl;
+          std::cerr << " : unknown reason!" << std::endl;
 #endif
       }
     m_cbSock = NULL; 
@@ -557,7 +560,7 @@ sends a single tag (e.g. [<]NOERROR/[>])
   bool sendTagToCallBack(const std::string& inTag)
   {
 #ifdef DS_CMD_CB_DEBUG
-    cout << "sendTagToCallBack1:" << inTag << endl;
+    std::cout << "sendTagToCallBack1:" << inTag << std::endl;
 #endif
     return sendIOS("<" + inTag + "/>", true);
   }
@@ -581,7 +584,7 @@ sends text enclosed in open/closing tag
                           bool reqAck = true)
   {
 #ifdef DS_CMD_CB_DEBUG
-    cout << "sendTagToCallBack2:" << inTag << ":" << inText << endl;
+    std::cout << "sendTagToCallBack2:" << inTag << ":" << inText << std::endl;
 #endif
     return sendIOS("<" + inTag + ">",
                    inText,
@@ -889,7 +892,7 @@ returns connection type of this object
         std::cout << "ERROR ConnType!";
         break;
       }
-    std::cout << endl;
+    std::cout << std::endl;
   }
   
 /*
@@ -937,7 +940,8 @@ private:
          return false;
       }
 #ifdef DS_CMD_CB_DEBUG
-    cout << "STREAM TO " << m_cbHost << ":" << m_cbPort << "IS OPEN!" << endl;
+    std::cout << "STREAM TO " << m_cbHost << ":" << m_cbPort << "IS OPEN!"
+       << std::endl;
 #endif
     m_cbConnIsSaved = false;
     m_callbackIoStrOpen = true;

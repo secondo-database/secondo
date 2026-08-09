@@ -111,9 +111,9 @@ for all necessary data types.
          }
          if(TraceSettings::getInstance()->isFileTraceOn())
          {
-            *traceFile << text << endl;
+            *traceFile << text << std::endl;
             for(auto& v : value){
-              *traceFile << v << endl;
+              *traceFile << v << std::endl;
             }
          }
     }

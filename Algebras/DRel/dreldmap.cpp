@@ -105,9 +105,9 @@ drelfilter operator.
     ListExpr drelfilterTM( ListExpr args ) {
 
         #ifdef DRELDEBUG
-        cout << "drelfilterTM" << endl;
-        cout << "args" << endl;
-        cout << nl->ToString( args ) << endl;
+        std::cout << "drelfilterTM" << std::endl;
+        std::cout << "args" << std::endl;
+        std::cout << nl->ToString( args ) << std::endl;
         #endif
 
         std::string err = "d[f]rel(X) x fun expected";
@@ -147,8 +147,8 @@ drelfilter operator.
                 nl->TwoElemList( map, fun ) ) );
 
         #ifdef DRELDEBUG
-        cout << "filter tm" << endl;
-        cout << nl->ToString( result ) << endl;
+        std::cout << "filter tm" << std::endl;
+        std::cout << nl->ToString( result ) << std::endl;
         #endif
 
         // filter TM ok?
@@ -165,10 +165,10 @@ drelfilter operator.
             ") ) )";
 
         #ifdef DRELDEBUG
-        cout << "funText1" << endl;
-        cout << funText1 << endl;
-        cout << "funText2" << endl;
-        cout << funText2 << endl;
+        std::cout << "funText1" << std::endl;
+        std::cout << funText1 << std::endl;
+        std::cout << "funText2" << std::endl;
+        std::cout << funText2 << std::endl;
         #endif
 
         ListExpr resultType = nl->ThreeElemList(
@@ -196,9 +196,9 @@ operator.
     ListExpr projectTM( ListExpr args ) {
 
         #ifdef DRELDEBUG
-        cout << "projectTM" << endl;
-        cout << "args" << endl;
-        cout << nl->ToString( args ) << endl;
+        std::cout << "projectTM" << std::endl;
+        std::cout << "args" << std::endl;
+        std::cout << nl->ToString( args ) << std::endl;
         #endif
 
         std::string err = "d[f]rel(X) x attrlist expected";
@@ -229,8 +229,8 @@ operator.
                 attrlist ) );
 
         #ifdef DRELDEBUG
-        cout << "project tm" << endl;
-        cout << nl->ToString( result ) << endl;
+        std::cout << "project tm" << std::endl;
+        std::cout << nl->ToString( result ) << std::endl;
         #endif
 
         // project TM ok?
@@ -246,8 +246,8 @@ operator.
             nl->Second( nl->Third( result ) ) );
 
         #ifdef DRELDEBUG
-        cout << "distType with attr pos to check" << endl;
-        cout << nl->ToString( distType ) << endl;
+        std::cout << "distType with attr pos to check" << std::endl;
+        std::cout << nl->ToString( distType ) << std::endl;
         #endif
 
         // distribution by an attribute?
@@ -255,9 +255,10 @@ operator.
 
             int newPos = nl->IntValue( nl->Second( distType ) ) + 1;
             #ifdef DRELDEBUG
-            cout << "distribution by attribute check for new position" << endl;
-            cout << "newPos" << endl;
-            cout << newPos << endl;
+            std::cout << "distribution by attribute check for new position"
+               << std::endl;
+            std::cout << "newPos" << std::endl;
+            std::cout << newPos << std::endl;
             #endif
 
             if( DistTypeHash::computeNewAttrPos( 
@@ -284,8 +285,8 @@ operator.
                 }
                 
                 #ifdef DRELDEBUG
-                cout << "new distType" << endl;
-                cout << nl->ToString( distType ) << endl;
+                std::cout << "new distType" << std::endl;
+                std::cout << nl->ToString( distType ) << std::endl;
                 #endif
             }
             else {
@@ -305,10 +306,10 @@ operator.
             ") ) )";
 
         #ifdef DRELDEBUG
-        cout << "funText1" << endl;
-        cout << funText1 << endl;
-        cout << "funText2" << endl;
-        cout << funText2 << endl;
+        std::cout << "funText1" << std::endl;
+        std::cout << funText1 << std::endl;
+        std::cout << "funText2" << std::endl;
+        std::cout << funText2 << std::endl;
         #endif
 
         ListExpr resultType = nl->ThreeElemList(
@@ -336,9 +337,9 @@ tuples. This is a combination of the operators project and extend.
     ListExpr drelprojectextendTM( ListExpr args ) {
 
         #ifdef DRELDEBUG
-        cout << "drelprojectextendTM" << endl;
-        cout << "args" << endl;
-        cout << nl->ToString( args ) << endl;
+        std::cout << "drelprojectextendTM" << std::endl;
+        std::cout << "args" << std::endl;
+        std::cout << nl->ToString( args ) << std::endl;
         #endif
 
         std::string err = "d[f]rel(X) x attrlist x funlist expected";
@@ -406,8 +407,8 @@ tuples. This is a combination of the operators project and extend.
                 map ) );
 
         #ifdef DRELDEBUG
-        cout << "projectextend tm" << endl;
-        cout << nl->ToString( result ) << endl;
+        std::cout << "projectextend tm" << std::endl;
+        std::cout << nl->ToString( result ) << std::endl;
         #endif
 
         // filter TM ok?
@@ -427,9 +428,10 @@ tuples. This is a combination of the operators project and extend.
 
             int newPos = nl->IntValue( nl->Second( distType ) ) + 1;
             #ifdef DRELDEBUG
-            cout << "distribution by attribute check for new position" << endl;
-            cout << "newPos" << endl;
-            cout << newPos << endl;
+            std::cout << "distribution by attribute check for new position"
+               << std::endl;
+            std::cout << "newPos" << std::endl;
+            std::cout << newPos << std::endl;
             #endif
 
             if( DistTypeHash::computeNewAttrPos(
@@ -461,8 +463,8 @@ tuples. This is a combination of the operators project and extend.
                     nl->Third( drelType ) );
 
                 #ifdef DRELDEBUG
-                cout << "new drelType" << endl;
-                cout << nl->ToString( drelType ) << endl;
+                std::cout << "new drelType" << std::endl;
+                std::cout << nl->ToString( drelType ) << std::endl;
                 #endif
             } else {
                 return listutils::typeError( err +
@@ -481,10 +483,10 @@ tuples. This is a combination of the operators project and extend.
             nl->ToString( attrlist ) + nl->ToString( fun ) + ") ) )";
 
         #ifdef DRELDEBUG
-        cout << "funText1" << endl;
-        cout << funText1 << endl;
-        cout << "funText2" << endl;
-        cout << funText2 << endl;
+        std::cout << "funText1" << std::endl;
+        std::cout << funText1 << std::endl;
+        std::cout << "funText2" << std::endl;
+        std::cout << funText2 << std::endl;
         #endif
 
         ListExpr resultType = nl->ThreeElemList(
@@ -512,9 +514,9 @@ combination of the operator extend.
     ListExpr drelextendTM( ListExpr args ) {
 
         #ifdef DRELDEBUG
-        cout << "drelextendTM" << endl;
-        cout << "args" << endl;
-        cout << nl->ToString( args ) << endl;
+        std::cout << "drelextendTM" << std::endl;
+        std::cout << "args" << std::endl;
+        std::cout << nl->ToString( args ) << std::endl;
         #endif
 
         std::string err = "d[f]rel(X) x funlist expected";
@@ -579,8 +581,8 @@ combination of the operator extend.
                 map ) );
 
         #ifdef DRELDEBUG
-        cout << "extend tm" << endl;
-        cout << nl->ToString( result ) << endl;
+        std::cout << "extend tm" << std::endl;
+        std::cout << nl->ToString( result ) << std::endl;
         #endif
 
         // filter TM ok?
@@ -604,10 +606,10 @@ combination of the operator extend.
             ") ) )";
 
         #ifdef DRELDEBUG
-        cout << "funText1" << endl;
-        cout << funText1 << endl;
-        cout << "funText2" << endl;
-        cout << funText2 << endl;
+        std::cout << "funText1" << std::endl;
+        std::cout << funText1 << std::endl;
+        std::cout << "funText2" << std::endl;
+        std::cout << funText2 << std::endl;
         #endif
 
         ListExpr resultType = nl->ThreeElemList(
@@ -635,9 +637,9 @@ operator.
     ListExpr headTM( ListExpr args ) {
 
         #ifdef DRELDEBUG
-        cout << "headTM" << endl;
-        cout << "args" << endl;
-        cout << nl->ToString( args ) << endl;
+        std::cout << "headTM" << std::endl;
+        std::cout << "args" << std::endl;
+        std::cout << nl->ToString( args ) << std::endl;
         #endif
 
         std::string err = "d[f]rel(X) x int expected";
@@ -675,10 +677,10 @@ operator.
             ") ) )";
 
         #ifdef DRELDEBUG
-        cout << "funText1" << endl;
-        cout << funText1 << endl;
-        cout << "funText2" << endl;
-        cout << funText2 << endl;
+        std::cout << "funText1" << std::endl;
+        std::cout << funText1 << std::endl;
+        std::cout << "funText2" << std::endl;
+        std::cout << funText2 << std::endl;
         #endif
 
         ListExpr resultType = nl->ThreeElemList(
@@ -706,9 +708,9 @@ operator.
     ListExpr renameTM( ListExpr args ) {
 
         #ifdef DRELDEBUG
-        cout << "renameTM" << endl;
-        cout << "args" << endl;
-        cout << nl->ToString( args ) << endl;
+        std::cout << "renameTM" << std::endl;
+        std::cout << "args" << std::endl;
+        std::cout << nl->ToString( args ) << std::endl;
         #endif
 
         std::string err = "d[f]rel(X) x ar expected";
@@ -767,10 +769,10 @@ operator.
             nl->ToString( secondValue ) + ") ) )";
 
         #ifdef DRELDEBUG
-        cout << "funText1" << endl;
-        cout << funText1 << endl;
-        cout << "funText2" << endl;
-        cout << funText2 << endl;
+        std::cout << "funText1" << std::endl;
+        std::cout << funText1 << std::endl;
+        std::cout << "funText2" << std::endl;
+        std::cout << funText2 << std::endl;
         #endif
 
         ListExpr resultType = nl->ThreeElemList(
@@ -798,9 +800,9 @@ operator.
     ListExpr lrdupTM( ListExpr args ) {
 
         #ifdef DRELDEBUG
-        cout << "lrdupTM" << endl;
-        cout << "args" << endl;
-        cout << nl->ToString( args ) << endl;
+        std::cout << "lrdupTM" << std::endl;
+        std::cout << "args" << std::endl;
+        std::cout << nl->ToString( args ) << std::endl;
         #endif
 
         std::string err = "d[f]rel(X) expected";
@@ -829,10 +831,10 @@ operator.
             "(rdup (sort (feed dmapelem_1) ) ) ) )";
 
         #ifdef DRELDEBUG
-        cout << "funText1" << endl;
-        cout << funText1 << endl;
-        cout << "funText2" << endl;
-        cout << funText2 << endl;
+        std::cout << "funText1" << std::endl;
+        std::cout << funText1 << std::endl;
+        std::cout << "funText2" << std::endl;
+        std::cout << funText2 << std::endl;
         #endif
 
         ListExpr resultType = nl->ThreeElemList(
@@ -860,9 +862,9 @@ operator.
     ListExpr lsortTM( ListExpr args ) {
 
         #ifdef DRELDEBUG
-        cout << "lsortTM" << endl;
-        cout << "args" << endl;
-        cout << nl->ToString( args ) << endl;
+        std::cout << "lsortTM" << std::endl;
+        std::cout << "args" << std::endl;
+        std::cout << nl->ToString( args ) << std::endl;
         #endif
 
         std::string err = "d[f]rel(X) expected";
@@ -891,10 +893,10 @@ operator.
             "(sort (feed dmapelem_1) ) ) )";
 
         #ifdef DRELDEBUG
-        cout << "funText1" << endl;
-        cout << funText1 << endl;
-        cout << "funText2" << endl;
-        cout << funText2 << endl;
+        std::cout << "funText1" << std::endl;
+        std::cout << funText1 << std::endl;
+        std::cout << "funText2" << std::endl;
+        std::cout << funText2 << std::endl;
         #endif
 
         ListExpr resultType = nl->ThreeElemList(
@@ -923,9 +925,9 @@ Type mapping for the drellgroup operator.
     ListExpr drellgroupbyTM( ListExpr args ) {
 
         #ifdef DRELDEBUG
-        cout << "drellgroupbyTM" << endl;
-        cout << "args" << endl;
-        cout << nl->ToString( args ) << endl;
+        std::cout << "drellgroupbyTM" << std::endl;
+        std::cout << "args" << std::endl;
+        std::cout << nl->ToString( args ) << std::endl;
         #endif
 
         std::string err = "d[f]rel(X) x attrlist x funlist expected";
@@ -1004,8 +1006,8 @@ Type mapping for the drellgroup operator.
                 map ) );
 
         #ifdef DRELDEBUG
-        cout << "groupby tm" << endl;
-        cout << nl->ToString( result ) << endl;
+        std::cout << "groupby tm" << std::endl;
+        std::cout << nl->ToString( result ) << std::endl;
         #endif
 
         // groupby TM ok?
@@ -1025,9 +1027,10 @@ Type mapping for the drellgroup operator.
 
             int newPos = nl->IntValue( nl->Second( distType ) ) + 1;
             #ifdef DRELDEBUG
-            cout << "distribution by attribute check for new position" << endl;
-            cout << "newPos" << endl;
-            cout << newPos << endl;
+            std::cout << "distribution by attribute check for new position"
+               << std::endl;
+            std::cout << "newPos" << std::endl;
+            std::cout << newPos << std::endl;
             #endif
 
             if( nl->HasMinLength( nl->Second( result ), 2 )
@@ -1055,8 +1058,8 @@ Type mapping for the drellgroup operator.
                 }
 
                 #ifdef DRELDEBUG
-                cout << "new drelType" << endl;
-                cout << nl->ToString( drelType ) << endl;
+                std::cout << "new drelType" << std::endl;
+                std::cout << nl->ToString( drelType ) << std::endl;
                 #endif
             } else {
                 if( !global ) {
@@ -1077,10 +1080,10 @@ Type mapping for the drellgroup operator.
             nl->ToString( fun ) + " ) ) )";
 
         #ifdef DRELDEBUG
-        cout << "funText1" << endl;
-        cout << funText1 << endl;
-        cout << "funText2" << endl;
-        cout << funText2 << endl;
+        std::cout << "funText1" << std::endl;
+        std::cout << funText1 << std::endl;
+        std::cout << "funText2" << std::endl;
+        std::cout << funText2 << std::endl;
         #endif
 
         ListExpr resultType = nl->ThreeElemList(
@@ -1111,9 +1114,9 @@ operator.
     ListExpr lsortbyTM( ListExpr args ) {
 
         #ifdef DRELDEBUG
-        cout << "lsortbyTM" << endl;
-        cout << "args" << endl;
-        cout << nl->ToString( args ) << endl;
+        std::cout << "lsortbyTM" << std::endl;
+        std::cout << "args" << std::endl;
+        std::cout << nl->ToString( args ) << std::endl;
         #endif
 
         std::string err = "d[f]rel(X) x attrlist expected";
@@ -1159,10 +1162,10 @@ operator.
             " ) ) )";
 
         #ifdef DRELDEBUG
-        cout << "funText1" << endl;
-        cout << funText1 << endl;
-        cout << "funText2" << endl;
-        cout << funText2 << endl;
+        std::cout << "funText1" << std::endl;
+        std::cout << funText1 << std::endl;
+        std::cout << "funText2" << std::endl;
+        std::cout << funText2 << std::endl;
         #endif
 
         ListExpr resultType = nl->ThreeElemList(
@@ -1191,8 +1194,8 @@ to define the range.
 
         std::string err = "drel(btree(X)) x drel(rel(X)) x ANY x ANY expected";
 
-        cout << "args" << endl;
-        cout << nl->ToString( args ) << endl;
+        std::cout << "args" << std::endl;
+        std::cout << nl->ToString( args ) << std::endl;
 
         if( !nl->HasLength( args, 4 ) ) {
             return listutils::typeError( err +
@@ -1246,10 +1249,10 @@ to define the range.
             nl->ToString( range2 ) + " ) ) " + getDRelPortString() +" )";
 
         #ifdef DRELDEBUG
-        cout << "funText1" << endl;
-        cout << funText1 << endl;
-        cout << "funText2" << endl;
-        cout << funText2 << endl;
+        std::cout << "funText1" << std::endl;
+        std::cout << funText1 << std::endl;
+        std::cout << "funText2" << std::endl;
+        std::cout << funText2 << std::endl;
         #endif
 
         ListExpr resultType = nl->ThreeElemList(
@@ -1325,10 +1328,10 @@ value.
             nl->ToString( searchValue ) + " ) ) "+ getDRelPortString() + " )";
 
         #ifdef DRELDEBUG
-        cout << "funText1" << endl;
-        cout << funText1 << endl;
-        cout << "funText2" << endl;
-        cout << funText2 << endl;
+        std::cout << "funText1" << std::endl;
+        std::cout << funText1 << std::endl;
+        std::cout << "funText2" << std::endl;
+        std::cout << funText2 << std::endl;
         #endif
 
         ListExpr resultType = nl->ThreeElemList(
@@ -1397,7 +1400,7 @@ arguments.
         std::string tempName = nl->SymbolValue( arg3Value );
 
         // Bring rect to the workers
-        cout << "bring intersect argument to the workers" << endl;
+        std::cout << "bring intersect argument to the workers" << std::endl;
 
         ListExpr shareQuery = nl->FourElemList(
             nl->SymbolAtom( "share" ),
@@ -1420,7 +1423,7 @@ arguments.
             return listutils::typeError( 
                 "error while bring the argument to the workers" );
         }
-        cout << shareResult->GetValue( ) << endl;
+        std::cout << shareResult->GetValue( ) << std::endl;
         delete shareResult;
 
         // create string to call dmap the call is devided in two parts
@@ -1433,10 +1436,10 @@ arguments.
             " ) ) " + getDRelPortString() + " )";
 
         #ifdef DRELDEBUG
-        cout << "funText1" << endl;
-        cout << funText1 << endl;
-        cout << "funText2" << endl;
-        cout << funText2 << endl;
+        std::cout << "funText1" << std::endl;
+        std::cout << funText1 << std::endl;
+        std::cout << "funText2" << std::endl;
+        std::cout << funText2 << std::endl;
         #endif
 
         ListExpr resultType = nl->ThreeElemList(
@@ -1516,10 +1519,10 @@ value.
             + getDRelPortString() + " )";
 
         #ifdef DRELDEBUG
-        cout << "funText1" << endl;
-        cout << funText1 << endl;
-        cout << "funText2" << endl;
-        cout << funText2 << endl;
+        std::cout << "funText1" << std::endl;
+        std::cout << funText1 << std::endl;
+        std::cout << "funText2" << std::endl;
+        std::cout << funText2 << std::endl;
         #endif
 
         ListExpr attr1List = nl->Second( nl->Second( rel1Type ) );
@@ -1558,7 +1561,7 @@ text arguments of the typemapping.
         Word& local, Supplier s ) {
 
         #ifdef DRELDEBUG
-        cout << "dreldmapNewVMT" << endl;
+        std::cout << "dreldmapNewVMT" << std::endl;
         #endif
 
         int x = qp->GetNoSons( s );
@@ -1582,8 +1585,8 @@ text arguments of the typemapping.
         std::string funText = fun1->GetValue( ) + drelptr + fun2->GetValue( );
 
         #ifdef DRELDEBUG
-        cout << "funText" << endl;
-        cout << funText << endl;
+        std::cout << "funText" << std::endl;
+        std::cout << funText << std::endl;
         #endif
 
         ListExpr funList;
@@ -1646,7 +1649,7 @@ The function is in the text arguments of the typemapping.
         Word& local, Supplier s ) {
 
         #ifdef DRELDEBUG
-        cout << "dreldmapVMT" << endl;
+        std::cout << "dreldmapVMT" << std::endl;
         #endif
 
         int x = qp->GetNoSons( s );
@@ -1675,8 +1678,8 @@ The function is in the text arguments of the typemapping.
             fun2->GetValue( );
 
         #ifdef DRELDEBUG
-        cout << "funText" << endl;
-        cout << funText << endl;
+        std::cout << "funText" << std::endl;
+        std::cout << funText << std::endl;
         #endif
 
         ListExpr funList;
@@ -1730,7 +1733,7 @@ The function is in the text arguments of the typemapping.
         Word& local, Supplier s ) {
 
         #ifdef DRELDEBUG
-        cout << "dreldmap3VMT" << endl;
+        std::cout << "dreldmap3VMT" << std::endl;
         #endif
 
         int x = qp->GetNoSons( s );
@@ -1763,8 +1766,8 @@ The function is in the text arguments of the typemapping.
                             + drel2ptr + " " + fun2->GetValue( );
 
         #ifdef DRELDEBUG
-        cout << "funText" << endl;
-        cout << funText << endl;
+        std::cout << "funText" << std::endl;
+        std::cout << funText << std::endl;
         #endif
 
         ListExpr funList;

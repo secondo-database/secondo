@@ -76,8 +76,8 @@ void
 DServerCmdShuffleMultiConn::run()
 {
 #ifdef DS_CMD_OPEN_MULTICONN_SHUFFLE_DEBUG
-  cout << getTypeStr() + "_" + getIndexStr()
-       << " DS_CMD_OPEN_MULTICONN_SHUFFLE - start:"  <<  endl;
+  std::cout << getTypeStr() + "_" + getIndexStr()
+       << " DS_CMD_OPEN_MULTICONN_SHUFFLE - start:"  <<  std::endl;
      
        
   assert(isReceiver() || isSender());
@@ -284,8 +284,8 @@ DServerCmdShuffleMultiConn::run()
 
   delete callBack;
 #ifdef DS_CMD_OPEN_MULTICONN_SHUFFLE_DEBUG
-  cout << (unsigned long)(this) 
-       << " DS_CMD_OPEN_MULTICONN_SHUFFLE - done" << endl;
+  std::cout << (unsigned long)(this) 
+       << " DS_CMD_OPEN_MULTICONN_SHUFFLE - done" << std::endl;
 #endif   
 
 } // run()

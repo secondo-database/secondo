@@ -143,7 +143,7 @@ ListExpr op_analyzeRaster::analyzeRasterTM(ListExpr args)
   newCloudType = Pointcloud2::appendAttributesToCloud(cloudType,
           appendage);
 
-  std::cout<<nl->ToString(newCloudType)<<endl;
+  std::cout<<nl->ToString(newCloudType)<<std::endl;
 
   //position of attributes ObjID and CatID
   int pos = 0;
@@ -210,24 +210,24 @@ int op_analyzeRaster::analyzeRasterVM(Word *args, Word &result, int message,
 
   //statistics about analyzeRaster
   std::cout<<"Number of points of source pointcloud2: "
-        <<pc2Source->getPointCount()<<endl;
+        <<pc2Source->getPointCount()<<std::endl;
   std::cout<<"Grid: "<<Pointcloud2::CELL_SIZE_IN_M<<", ";
   std::cout<<"Point density in points/cell: "
       <<pc2Source->getPointCount() /
       ((distX/Pointcloud2::CELL_SIZE_IN_M) *
-          (distY/Pointcloud2::CELL_SIZE_IN_M))<<endl;
+          (distY/Pointcloud2::CELL_SIZE_IN_M))<<std::endl;
   Rectangle<3> bboxSource = pc2Source->getBoundingBox();
   std::cout<<"Size of Pc2 in Grids: ";
   std::cout<<(bboxSource.MaxD(0) - bboxSource.MinD(0)) /
       Pointcloud2::CELL_SIZE_IN_M<<" x ";
   std::cout<<(bboxSource.MaxD(1) - bboxSource.MinD(1)) /
-      Pointcloud2::CELL_SIZE_IN_M<<endl;
-  std::cout<<"Raster in Memory: "<<analyzeRaster._sizeRaster<<endl;
+      Pointcloud2::CELL_SIZE_IN_M<<std::endl;
+  std::cout<<"Raster in Memory: "<<analyzeRaster._sizeRaster<<std::endl;
   std::cout<<"Using "<<ceil((bboxSource.MaxD(0) - bboxSource.MinD(0)) /
       analyzeRaster._sizeRasterOverlap)<<" x "
           <<ceil((bboxSource.MaxD(1) - bboxSource.MinD(1)) /
               analyzeRaster._sizeRasterOverlap)
-              <<" temporary rasters"<<endl;
+              <<" temporary rasters"<<std::endl;
 
 
   //IDs/Bbox of persisted temporary rasters
@@ -238,7 +238,7 @@ int op_analyzeRaster::analyzeRasterVM(Word *args, Word &result, int message,
   try{
     analyzeRaster.calculateObjects(rasters, rastersBbox);
   }catch(const std::runtime_error&){
-    std::cout<<"error"<<endl;
+    std::cout<<"error"<<std::endl;
     return 0;
   }
 
@@ -260,7 +260,7 @@ int op_analyzeRaster::analyzeRasterVM(Word *args, Word &result, int message,
   }
   //DEBUG
   std::cout<<"Number of points of result pointcloud2: "
-        <<res->getPointCount()<<endl;
+        <<res->getPointCount()<<std::endl;
   return 0;
 }
 
@@ -299,11 +299,11 @@ op_analyzeRaster::calculateObjects(std::vector<SmiFileId>& rasters,
 
   int areaNumber = 0;
 
-  std::cout<<"Start calc Rasters: "<<endl;
+  std::cout<<"Start calc Rasters: "<<std::endl;
   std::cout<<"X: "<<floor(std::get<0>(xDimension))<<
-      "-"<<ceil(std::get<1>(xDimension))<<endl;
+      "-"<<ceil(std::get<1>(xDimension))<<std::endl;
   std::cout<<"Y: "<<floor(std::get<0>(yDimension))<<
-      "-"<<ceil(std::get<1>(yDimension))<<endl;
+      "-"<<ceil(std::get<1>(yDimension))<<std::endl;
 
   double y = std::get<0>(yDimension);
   for (; y < std::get<1>(yDimension); y += _sizeRasterOverlap)
@@ -331,11 +331,11 @@ op_analyzeRaster::calculateObjects(std::vector<SmiFileId>& rasters,
 
       if (rf.Create())
       {
-        std::cout << "temporary SMI_Raster initialized" << endl;
+        std::cout << "temporary SMI_Raster initialized" << std::endl;
       }
       else
       {
-        std::cout << "error initializing temporary SMI_Raster" << endl;
+        std::cout << "error initializing temporary SMI_Raster" << std::endl;
         throw std::runtime_error("error initializing temporary SMI_Raster");
       }
 
@@ -1409,19 +1409,20 @@ op_analyzeRaster::saveRasterToPc2(std::vector<SmiFileId>& rasters,
     std::shared_ptr<std::unordered_map<int,int>> duples,
     Pointcloud2* res) const{
 
-  std::cout<<"Reading "<<rasters.size()<<" temporary rasters"<<endl;
+  std::cout<<"Reading "<<rasters.size()<<" temporary rasters"<<std::endl;
 
   if (Pointcloud2::GET_RASTER_NOT_PC) {
       res->startInsert();
       TupleType *tt = new TupleType(nl->Second(nl->Second(_resultType)));
-      cout<<"pointcloud rastercount should be:"
-              <<std::to_string(rasters.size()*_pointInMem2)<<endl;
+      std::cout<<"pointcloud rastercount should be:"
+              <<std::to_string(rasters.size()*_pointInMem2)<<std::endl;
       //_pc2->clear();
       for (size_t i = 0; i < rasters.size(); i++)
         {
           //open tempRaster
           SmiFileId tempRasterId = rasters[i];
-          std::cout << "Loading temporary raster: " << tempRasterId << endl;
+          std::cout << "Loading temporary raster: " << tempRasterId
+             << std::endl;
 
           //vector<RasterPoint> rasterMem(_pointInMem2);
           RasterPoint rasterMem;
@@ -1498,7 +1499,7 @@ op_analyzeRaster::saveRasterToPc2(std::vector<SmiFileId>& rasters,
     {
       //open tempRaster
       SmiFileId tempRasterId = rasters[i];
-      std::cout << "Loading temporary raster: " << tempRasterId << endl;
+      std::cout << "Loading temporary raster: " << tempRasterId << std::endl;
 
       std::vector<RasterPointSave> rasterMem(_pointInMem2);
 
@@ -1565,7 +1566,7 @@ op_analyzeRaster::saveRasterToPc2(std::vector<SmiFileId>& rasters,
       }
       delete it;
 
-      std::cout << "save to pc2, pass " << i + 1 <<endl;
+      std::cout << "save to pc2, pass " << i + 1 <<std::endl;
     }
     res->finalizeInsert();
   }

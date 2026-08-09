@@ -124,7 +124,7 @@ std::string DbScanPoint<dim>::getStringForBBox(const Rectangle<dim>& bbox) {
             sb << ", ";
         sb << bbox.MinD(d) << " - " << bbox.MaxD(d);
     }
-    sb << ")" << endl;
+    sb << ")" << std::endl;
     return sb.str();
 }
 

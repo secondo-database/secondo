@@ -394,7 +394,7 @@ struct MatrixSq {
       for (unsigned int j = 0; j < size; j++) {
         result << values[i * size + j] << " ";
       }
-      result << endl;
+      result << std::endl;
     }
     return result.str();
   }
@@ -772,10 +772,10 @@ class SplSemTraj : public Attribute {
       tsPlaces.Get(i, tsp);
       str << "  " << tsp.toString();
       if (i < size() - 1) {
-        str << endl;
+        str << std::endl;
       }
     }
-    str << ")" << endl;
+    str << ")" << std::endl;
     return str.str();
   }
   

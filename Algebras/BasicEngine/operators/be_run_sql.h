@@ -51,7 +51,7 @@ int be_runsqlSFVM(Word *args, Word &result, int message, Word &local,
     if (be_control) {
       val = be_control->runsql(path->toText());
     } else {
-      cout << noMaster << endl;
+      std::cout << noMaster << std::endl;
     }
 
     ((CcBool *)result.addr)->Set(true, val);

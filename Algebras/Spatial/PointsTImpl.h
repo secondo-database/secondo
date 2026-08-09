@@ -247,8 +247,8 @@ bool PointsT<Array>::Inside( const RegionT<Array2>& r,
   assert( !geoid || geoid->IsDefined() );
 
   if(geoid){
-    cout << __PRETTY_FUNCTION__ << ": Spherical geometry not implemented."
-         <<endl;
+    std::cout << __PRETTY_FUNCTION__ << ": Spherical geometry not implemented."
+         <<std::endl;
     assert(false); // TODO: Implement spherical geometry case.
   }
 
@@ -313,8 +313,8 @@ bool PointsT<Array>::Intersects( const LineT<Array2>& l,
   assert( !geoid || geoid->IsDefined() );
 
   if(geoid){
-    cout << __PRETTY_FUNCTION__ << ": Spherical geometry not implemented."
-         <<endl;
+    std::cout << __PRETTY_FUNCTION__ << ": Spherical geometry not implemented."
+         <<std::endl;
     assert(false); // TODO: Implement spherical geometry case.
   }
 
@@ -347,8 +347,8 @@ bool PointsT<Array>::Intersects( const RegionT<Array2>& r,
   assert( !geoid || geoid->IsDefined() );
 
   if(geoid){
-    cout << __PRETTY_FUNCTION__ << ": Spherical geometry not implemented."
-         <<endl;
+    std::cout << __PRETTY_FUNCTION__ << ": Spherical geometry not implemented."
+         <<std::endl;
     assert(false); // TODO: Implement spherical geometry case.
   }
 
@@ -380,8 +380,8 @@ bool PointsT<Array>::Adjacent( const RegionT<Array2>& r,
   assert( !geoid || geoid->IsDefined() );
 
   if(geoid){
-    cout << __PRETTY_FUNCTION__ << ": Spherical geometry not implemented."
-         <<endl;
+    std::cout << __PRETTY_FUNCTION__ << ": Spherical geometry not implemented."
+         <<std::endl;
     assert(false); // TODO: Implement spherical geometry case.
   }
 
@@ -1041,7 +1041,7 @@ bool PointsT<Array>::IsValid() const
       return false;
     }
     if( AlmostEqual( p1, p2 ) ){
-      std::cerr << __PRETTY_FUNCTION__ << ": Almost equal Points!" << endl;
+      std::cerr << __PRETTY_FUNCTION__ << ": Almost equal Points!" << std::endl;
       std::cerr << "\tp1 = "; p1.Print(std::cerr);
       std::cerr << "\n\tp2 = "; p2.Print(std::cerr); std::cerr << std::endl;
       return false;

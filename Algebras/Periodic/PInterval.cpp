@@ -388,7 +388,7 @@ LE is in format (type value)  or LE only represents the value list.
 bool PInterval::ReadFrom(const ListExpr LE, const bool typeincluded){
    __TRACE__
   ListExpr value;
-   cout<< "typeincluded : " << typeincluded << endl;
+   std::cout<< "typeincluded : " << typeincluded << std::endl;
    if(typeincluded){
       if(::nl->ListLength(LE)!=2)
          return false;
@@ -399,13 +399,13 @@ bool PInterval::ReadFrom(const ListExpr LE, const bool typeincluded){
        value = LE;
    }
    if(::nl->ListLength(value)!=4){
-      cout << "Invalid ListLength" << endl << endl;
+      std::cout << "Invalid ListLength" << std::endl << std::endl;
       return false;
    }
    bool lc,rc;
    if( ::nl->AtomType(::nl->Third(value))!=BoolType ||
        ::nl->AtomType(::nl->Fourth(value))!=BoolType){
-       cout << "no bool values" << endl;
+       std::cout << "no bool values" << std::endl;
        return false;
    }
    DateTime start(instanttype);

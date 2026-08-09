@@ -194,7 +194,7 @@ void WorkerGen::Run()
                 catch(...)
                 {
                     nomoId = 0;
-                    std::cout << "failed to extract id or address" << endl;
+                    std::cout << "failed to extract id or address" << std::endl;
                 }
 
                 if (nomoId && handlerType=="nomo") addNoMo(nomoId, nomoAddress);
@@ -220,7 +220,8 @@ void WorkerGen::Run()
                 catch(...)
                 {
                     qId = 0;
-                    std::cout << "failed to extract id or function" << endl;
+                    std::cout << "failed to extract id or function"
+                       << std::endl;
                 }
 
                 if (qId) addQuery(qId, function);
@@ -237,7 +238,7 @@ void WorkerGen::Run()
                 msg.cmd == "disconnected") 
             {
                 std::cout << "shutting down due to " << msg.cmd 
-                    << " " << msg.params << endl;
+                    << " " << msg.params << std::endl;
                 
                 _running = false;
             } 

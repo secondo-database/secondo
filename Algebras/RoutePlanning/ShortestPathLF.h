@@ -277,12 +277,12 @@ namespace routeplanningalgebra {
                 #else
                 std::string indexName = "EdgeIndex_Box_rtree";
                 #endif
-                std::cout << "index: " << indexName << endl;
+                std::cout << "index: " << indexName << std::endl;
                 Word value;
                 bool defined = false;
                 ctlg->GetObject(indexName,value,defined);
                 if(!defined){
-                    std::cout << "could not initialise rtree" << endl;
+                    std::cout << "could not initialise rtree" << std::endl;
                     return defined;}
                 rtree = ((RTree2TID*)value.addr);
                 
@@ -292,10 +292,10 @@ namespace routeplanningalgebra {
                 #else
                 std::string dbName = "EdgeIndex";
                 #endif
-                std::cout << "db: " << dbName << endl;
+                std::cout << "db: " << dbName << std::endl;
                 ctlg->GetObject(dbName, value, defined);
                 if(!defined){
-                    std::cout << "db not found: " << dbName << endl;
+                    std::cout << "db not found: " << dbName << std::endl;
                     return defined;}
                 rel = ((Relation*)value.addr);
                 return defined;
@@ -308,21 +308,22 @@ namespace routeplanningalgebra {
                                  collection::Collection* prefs){
                 //get ids of nodes nearest to start and end points 
                 int start = 0, end = 0;
-                std::cout << success << endl;
+                std::cout << success << std::endl;
                 if(success == 0){
-                    std::cout << "indexes not initialised, return" << endl;
+                    std::cout << "indexes not initialised, return" << std::endl;
                     return;}
                 if(!startPoint->IsDefined() || !endPoint->IsDefined()){
-                    std::cout << "input points are undefined, return" << endl;
+                    std::cout << "input points are undefined, return"
+                       << std::endl;
                     return;}
                 start =getNearestTuple(startPoint, sourcePosIndex, sourceIndex);
                 end = getNearestTuple(endPoint, targetPosIndex, targetIndex);
                 if(start <= 0){
-                    std::cout<<"start point not found"<<endl;
+                    std::cout<<"start point not found"<<std::endl;
                     return;
                 }
                  if(end <= 0){
-                    std::cout<<"end point not found"<<endl;
+                    std::cout<<"end point not found"<<std::endl;
                     return;
                 }
                 OrderedRelationIterator* orelIt;
@@ -423,7 +424,7 @@ namespace routeplanningalgebra {
                 if(!found){
                     //delete actNode; //actNode = 0;
                     //delete inQueue; //inQueue = 0;
-                    std::cout<<"no path exists"<<endl;
+                    std::cout<<"no path exists"<<std::endl;
                     attributes.clear();
                     kElems.clear();
                     rtt->DeleteIfAllowed(); // rtt = 0;

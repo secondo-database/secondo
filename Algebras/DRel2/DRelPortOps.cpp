@@ -59,8 +59,8 @@ namespace drel {
   ListExpr setDRelPortTM(ListExpr args){
 
     #ifdef DRELDEBUG
-    cout << "setDRelPortTM" << endl;
-    cout << nl->ToString( args ) << endl;
+    std::cout << "setDRelPortTM" << std::endl;
+    std::cout << nl->ToString( args ) << std::endl;
     #endif
 
     std::string err = "int expected";
@@ -80,8 +80,8 @@ namespace drel {
                     Word& local, Supplier s ) {
 
     #ifdef DRELDEBUG
-    cout << "setDRelPortVM" << endl;
-    cout << nl->ToString( args ) << endl;
+    std::cout << "setDRelPortVM" << std::endl;
+    std::cout << nl->ToString( args ) << std::endl;
     #endif   
 
     result = qp->ResultStorage(s);
@@ -99,8 +99,8 @@ namespace drel {
 ListExpr getDRelPortTM(ListExpr args){
 
   #ifdef DRELDEBUG
-  cout << "getDRelPortTM" << endl;
-  cout << nl->ToString( args ) << endl;
+  std::cout << "getDRelPortTM" << std::endl;
+  std::cout << nl->ToString( args ) << std::endl;
   #endif
 
   if(!nl->IsEmpty(args)){
@@ -114,8 +114,8 @@ ListExpr getDRelPortTM(ListExpr args){
                     Word& local, Supplier s ) {
 
     #ifdef DRELDEBUG
-    cout << "getDRelPortVM" << endl;
-    cout << nl->ToString( args ) << endl;
+    std::cout << "getDRelPortVM" << std::endl;
+    std::cout << nl->ToString( args ) << std::endl;
     #endif
 
     result = qp->ResultStorage(s);

@@ -362,18 +362,18 @@ as an attribute.
           os << "Path: ( ";
           if (IsDefined())
           {
-            os << endl;
+            os << std::endl;
             for( int i = 0; i < myPath.Size(); i++)
             {
               pathStruct ps;
               myPath.Get(i, ps);
-              os << "\t\t"; ps.Print(os); os << endl;
+              os << "\t\t"; ps.Print(os); os << std::endl;
             }
-            os << "      Cost = " << cost << " )" << endl;
+            os << "      Cost = " << cost << " )" << std::endl;
           }
           else
           {
-            os << " undefined )" << endl;
+            os << " undefined )" << std::endl;
           }
           return os;
         }

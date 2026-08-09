@@ -227,7 +227,8 @@ void Monitor::checkBatch()
 
 void Monitor::finishBatch()
 {
-    std::cout << endl << "*******************************************" << endl
+    std::cout << std::endl << "*******************************************"
+       << std::endl
               << "BS: " << _batchstart << "  |  "
               << "BE: " << _batchend << "  |  "
               << "BT: " << _batchend - _batchstart << "  |  "
@@ -235,8 +236,9 @@ void Monitor::finishBatch()
               << "#T: " << _donetuples << "  |  "
               << "#Q: " << _donequeries << "  |  "
               << "AI: " << _additionalInfo
-              << endl << "*******************************************" << endl
-              << endl;
+              << std::endl << "*******************************************"
+                 << std::endl
+              << std::endl;
 
     std::string data = "";
     

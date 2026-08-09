@@ -50,7 +50,7 @@ int be_mcommandSFVM(Word *args, Word &result, int message, Word &local,
     if (be_control && be_control->isMaster()) {
       val = be_control->mcommand(query->toText());
     } else {
-      cout << noWorker << endl;
+      std::cout << noWorker << std::endl;
     }
 
     ((CcBool *)result.addr)->Set(true, val);

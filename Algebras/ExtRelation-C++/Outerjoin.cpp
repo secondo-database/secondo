@@ -159,11 +159,11 @@ private:
 
     int cmp = a->Compare(b);
     if (traceFlag) {
-      cmsg.info() << "CompareTuples:" << endl
-                  << "  BOTH_B = " << BOTH_B << endl
-                  << "  tuple_1  = " << *t1 << endl
-                  << "  tuple_2  = " << *t2 << endl
-                  << "  cmp(t1,t2) = " << cmp << endl;
+      cmsg.info() << "CompareTuples:" << std::endl
+                  << "  BOTH_B = " << BOTH_B << std::endl
+                  << "  tuple_1  = " << *t1 << std::endl
+                  << "  tuple_2  = " << *t2 << std::endl
+                  << "  cmp(t1,t2) = " << cmp << std::endl;
       cmsg.send();
     }
     return cmp;
@@ -296,7 +296,8 @@ public:
     grpB = new TupleBuffer(MAX_MEMORY);
 
     cmsg.info("ERA:ShowMemInfo")
-        << "MergeOuterjoin.MAX_MEMORY (" << MAX_MEMORY / 1024 << " kb)" << endl;
+        << "MergeOuterjoin.MAX_MEMORY (" << MAX_MEMORY / 1024 << " kb)"
+           << std::endl;
     cmsg.send();
   }
 
@@ -622,11 +623,11 @@ private:
 
     int cmp = a->Compare(b);
     if (traceFlag) {
-      cmsg.info() << "CompareTuples:" << endl
-                  << "  BOTH_B = " << BOTH_B << endl
-                  << "  tuple_1  = " << *t1 << endl
-                  << "  tuple_2  = " << *t2 << endl
-                  << "  cmp(t1,t2) = " << cmp << endl;
+      cmsg.info() << "CompareTuples:" << std::endl
+                  << "  BOTH_B = " << BOTH_B << std::endl
+                  << "  tuple_1  = " << *t1 << std::endl
+                  << "  tuple_2  = " << *t2 << std::endl
+                  << "  cmp(t1,t2) = " << cmp << std::endl;
       cmsg.send();
     }
     return cmp;
@@ -784,7 +785,8 @@ public:
     grpB = new TupleBuffer(MAX_MEMORY);
 
     cmsg.info("ERA:ShowMemInfo")
-        << "MergeOuterjoin.MAX_MEMORY (" << MAX_MEMORY / 1024 << " kb)" << endl;
+        << "MergeOuterjoin.MAX_MEMORY (" << MAX_MEMORY / 1024 << " kb)"
+           << std::endl;
     cmsg.send();
   }
 
@@ -1274,7 +1276,7 @@ int symmouterjoin_vm(Word *args, Word &result, int message, Word &local,
   case OPEN: {
     long MAX_MEMORY = (qp->GetMemorySize(s) * 1024 * 1024);
     cmsg.info("ERA:ShowMemInfo") << "SymmOuterJoin.MAX_MEMORY ("
-                                 << MAX_MEMORY / 1024 << " kB): " << endl;
+                                 << MAX_MEMORY / 1024 << " kB): " << std::endl;
     cmsg.send();
     pli = new SymmOuterJoinLocalInfo(args[0], args[1]);
     pli->rightRel = new TupleBuffer(MAX_MEMORY / 2);
@@ -1715,7 +1717,7 @@ int symmouterjoin_vm(Word *args, Word &result, int message, Word &local,
 
     long MAX_MEMORY = (qp->GetMemorySize(s) * 1024 * 1024);
     cmsg.info("ERA:ShowMemInfo") << "SymmOuterJoin.MAX_MEMORY ("
-                                 << MAX_MEMORY / 1024 << " kB): " << endl;
+                                 << MAX_MEMORY / 1024 << " kB): " << std::endl;
     cmsg.send();
 
     if (pli)

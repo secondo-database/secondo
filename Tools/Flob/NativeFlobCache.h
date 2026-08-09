@@ -1380,21 +1380,22 @@ The size is the sum of all stored sizes.
     bool check(){
        if(cache.IsEmpty()){
           if(first!=0){
-             cout << "cache is empty, but first is not null !" << std::endl;
+             std::cout << "cache is empty, but first is not null !"
+                << std::endl;
              return false;
           }
           if(last!=0){
-             cout << "cache is empty, but last is not null !" << std::endl;
+             std::cout << "cache is empty, but last is not null !" << std::endl;
              return false;
           }
           return true;
        }
        if(first==0){
-           cout << "cache is not empty, but first is null" << std::endl;
+           std::cout << "cache is not empty, but first is null" << std::endl;
            return false;
        }
        if(last==0){
-           cout << "cache is not empty, but last is null" << std::endl;
+           std::cout << "cache is not empty, but last is null" << std::endl;
            return false;
        }
        NativeCacheEntry* e = first;
@@ -1405,13 +1406,14 @@ The size is the sum of all stored sizes.
          length++;
          csize += e->size;
          if(testset.find(*e) != testset.end()){
-            cout << "Element found twice in the list " << (*e) << std::endl;
+            std::cout << "Element found twice in the list " << (*e)
+               << std::endl;
             return false;
          }
          testset.insert(*e);
          if(e->next==0){
             if(last!=e){
-              cout << "last does not point to the last list element" 
+              std::cout << "last does not point to the last list element" 
                    << std::endl;
               return false;
             }
@@ -1422,14 +1424,15 @@ The size is the sum of all stored sizes.
 
        // list structure ok, check content with the avltree
        if(length!=cache.Size()){
-         cout << "different number of elements in cache and list " << std::endl;
-         cout << "listLength = " << length << std::endl;
-         cout << "treeSize = " << cache.Size() << std::endl;
+         std::cout << "different number of elements in cache and list "
+            << std::endl;
+         std::cout << "listLength = " << length << std::endl;
+         std::cout << "treeSize = " << cache.Size() << std::endl;
          return false;
        }
 
        if(csize!=(int)size){
-          cout << "different sizes), computed : " << csize
+          std::cout << "different sizes), computed : " << csize
                << " , stored : " << size << std::endl;
           return false;
        }
@@ -1437,7 +1440,7 @@ The size is the sum of all stored sizes.
        set<NativeCacheEntry>::iterator it = testset.begin();
        while(it!=testset.end()){
          if(cache.getMember(*it) == 0){
-            cout << "Element " << (*it)
+            std::cout << "Element " << (*it)
                  << "stored in list but not in tree " << std::endl;
             return false;
          }

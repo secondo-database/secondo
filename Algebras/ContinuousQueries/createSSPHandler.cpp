@@ -65,8 +65,8 @@ namespace continuousqueries {
 ListExpr createSSPHandler_TM(ListExpr args) {
     // the list is coded as ( (<type> <query part>) (<type> <query part>) )
 
-    std::cout << "createSSPHandler: TypeMapping" << endl;
-    std::cout << "Argument: " << nl->ToString(args) << endl;
+    std::cout << "createSSPHandler: TypeMapping" << std::endl;
+    std::cout << "Argument: " << nl->ToString(args) << std::endl;
 
     // Check for text x int -> int
     if (!nl->HasLength(args,2)) 
@@ -117,9 +117,9 @@ int createSSPHandler_VM(Word* args, Word& result, int message,
     std::string host = cchost->GetValue();   
     int port = ccport->GetValue();
 
-    std::cout << "createSSPHandler: ValueMapping" << endl;
-    std::cout << "Creating an idle handler which connects to" << endl;
-    std::cout << host << ":" << port << endl << endl;
+    std::cout << "createSSPHandler: ValueMapping" << std::endl;
+    std::cout << "Creating an idle handler which connects to" << std::endl;
+    std::cout << host << ":" << port << std::endl << std::endl;
     
     HandlerIdle handler(host, port);
     handler.Initialize();

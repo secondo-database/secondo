@@ -189,7 +189,7 @@ bool distributeSimilarToDRel( Relation* rel, ListExpr relType, DRel* drel,
     
     Word qRes;
     if( !QueryProcessor::ExecuteQuery( query, qRes ) ) {
-        cout << "distribution of a stream to d[f]rel failed" << endl;
+        std::cout << "distribution of a stream to d[f]rel failed" << std::endl;
         return false;
     } else {
         dfrel_tmp = (DFRel*) qRes.addr;
@@ -304,7 +304,7 @@ int drelinsertVM(Word* args, Word& result, int message,
 
     //delete temporary objects from remote server
     if( !removeTempObjects(dfrel_tmp, drelType) ){
-        cout<<"temporary objects not deleted" << endl;
+        std::cout<<"temporary objects not deleted" << std::endl;
     }
         
     //check pointers
@@ -510,7 +510,7 @@ int drelinserttupleVM(Word* args, Word& result, int message,
 
     //delete temporary objects from remote server
     if( !removeTempObjects(dfrel_tmp, drelType) ){
-        cout<<"temporary objects not deleted" << endl;
+        std::cout<<"temporary objects not deleted" << std::endl;
     }                    
     
     //check pointers

@@ -132,7 +132,7 @@ int op_analyzeGeom::analyzeGeomVM(Word* args, Word& result, int message,
         Word& local, Supplier s) {
 
     if (REPORT_TO_CONSOLE)
-        cout << endl << "starting analyzeGeom" << endl;
+        std::cout << std::endl << "starting analyzeGeom" << std::endl;
     result = qp->ResultStorage(s);
 
     // get source and result Pointcloud2. These variables must NOT be wrapped
@@ -149,16 +149,17 @@ int op_analyzeGeom::analyzeGeomVM(Word* args, Word& result, int message,
     // create a Timer instance for performance measurement
     Timer timer { Timer::UNIT::millis };
     size_t pointCount = sourceCloud->getPointCount();
-    timer.getReportStream() << endl << "Timer for analyzeGeom, pointCount = "
-            << formatInt(pointCount) << ":" << endl;
+    timer.getReportStream() << std::endl
+       << "Timer for analyzeGeom, pointCount = "
+            << formatInt(pointCount) << ":" << std::endl;
 
     // first we'll clone our cloud, adding "ObjID" and "CatID" attributes
     // if they were missing from the sourceCloud
     timer.startTask("copy cloud");
     if (REPORT_TO_CONSOLE) {
-        cout << "creating copy of source cloud (" << formatInt(pointCount)
+        std::cout << "creating copy of source cloud (" << formatInt(pointCount)
                 << " points) with attributes " << OBJ_ID << " and " << CAT_ID
-                << endl;
+                << std::endl;
     }
     std::vector<std::unique_ptr<Attribute>> attributes;
     if (!hasOldObjIDs) {
@@ -171,10 +172,10 @@ int op_analyzeGeom::analyzeGeomVM(Word* args, Word& result, int message,
 
     // ensure there are points to work with
     if (!resultCloud->isDefined()) {
-        cout << "Pointcloud2 is undefined." << endl;
+        std::cout << "Pointcloud2 is undefined." << std::endl;
         return 0;
     } else if (resultCloud->getPointCount() == 0) {
-        cout << "Pointcloud2 is empty." << endl;
+        std::cout << "Pointcloud2 is empty." << std::endl;
         return 0;
     }
 
@@ -186,8 +187,8 @@ int op_analyzeGeom::analyzeGeomVM(Word* args, Word& result, int message,
     // further refined into several sequences */
     timer.startTask("create MMRCloud");
     if (REPORT_TO_CONSOLE) {
-        cout << "reading all " << formatInt(pointCount) << " points "
-                "to main memory" << endl;
+        std::cout << "reading all " << formatInt(pointCount) << " points "
+                "to main memory" << std::endl;
     }
     std::shared_ptr<MMRCloud> mmrCloud = std::make_shared<MMRCloud>(resultCloud,
             ParamsAnalyzeGeom::_maxMMRCloudSequenceLength);
@@ -224,20 +225,22 @@ int op_analyzeGeom::analyzeGeomVM(Word* args, Word& result, int message,
     // ensure there are points to work with
     bool overwriteObjIDs = false;
     if (unassignedPointCount == 0) {
-        cout << "All " << formatInt(totalPointCount) << " points in this "
+        std::cout << "All " << formatInt(totalPointCount) << " points in this "
                 "cloud have been assigned to an ObjID in a "
                 "previous analysis.";
-        cout << endl << "ObjIDs are reset for a new analysis." << endl;
+        std::cout << std::endl << "ObjIDs are reset for a new analysis."
+           << std::endl;
         unassignedPointCount = totalPointCount;
         maxObjID = 0;
         mmrCloud->_bitMask->initializeAll(true);
         overwriteObjIDs = true;
     } else if (hasOldObjIDs) {
-        cout << formatInt(totalPointCount - unassignedPointCount) << " point "
+        std::cout << formatInt(totalPointCount - unassignedPointCount)
+           << " point "
                 "nave been assigned to " << maxObjID << " objects in a "
-                "previous analysis. " << endl;
-        cout << "Restricting analysis to the remaining " <<
-                formatInt(unassignedPointCount) << " points." << endl;
+                "previous analysis. " << std::endl;
+        std::cout << "Restricting analysis to the remaining " <<
+                formatInt(unassignedPointCount) << " points." << std::endl;
     }
 
     // the ObjectIdManager will provide us with new object ids as needed,
@@ -254,8 +257,8 @@ int op_analyzeGeom::analyzeGeomVM(Word* args, Word& result, int message,
     std::stringstream task;
     task << "take sample of " << formatInt(params._sampleSize )<< " points";
     if (REPORT_TO_CONSOLE) {
-        cout << "taking sample of " << formatInt(params._sampleSize)
-                << " points" << endl;
+        std::cout << "taking sample of " << formatInt(params._sampleSize)
+                << " points" << std::endl;
     }
     timer.startTask(task.str());
     std::vector<SamplePoint> sample = op_analyzeGeom::takeSample(
@@ -265,15 +268,16 @@ int op_analyzeGeom::analyzeGeomVM(Word* args, Word& result, int message,
     // identified (e.g. 1. Planes, 2. Spheres, 3. Cylinders, 4. Scones)
     // and iterate over them
     if (REPORT_TO_CONSOLE) {
-        cout << endl << "starting analysis with parameters:" << endl
+        std::cout << std::endl << "starting analysis with parameters:"
+           << std::endl
             << "- minimum object size             : "
-            << params._minimumObjectExtent << endl
+            << params._minimumObjectExtent << std::endl
             << "- typical point distance in cloud : "
-            << params._typicalPointDistance << endl
+            << params._typicalPointDistance << std::endl
             << "- typical point distance in sample: "
-            << params._typicalSampleDistance << endl
+            << params._typicalSampleDistance << std::endl
             << "- neighborhood diameter           : "
-            << params._neighborhoodDiameter << endl;
+            << params._neighborhoodDiameter << std::endl;
     }
 
     // GpSphere will be analyzed first as currently it is the only finite
@@ -299,7 +303,7 @@ int op_analyzeGeom::analyzeGeomVM(Word* args, Word& result, int message,
     // make results (ObjID and CatID) persistent
     timer.startTask("save results");
     if (REPORT_TO_CONSOLE) {
-        cout << endl << "saving results to cloud" << endl;
+        std::cout << std::endl << "saving results to cloud" << std::endl;
     }
     objectManager->appointFinalObjIDs(params._requiredObjSize);
     op_analyzeGeom::saveResultsToPointcloud(resultCloud, 
@@ -307,24 +311,25 @@ int op_analyzeGeom::analyzeGeomVM(Word* args, Word& result, int message,
                                             objectManager);
 
     // print summary
-    cout << endl << "analyzeGeom summary:" << endl;
+    std::cout << std::endl << "analyzeGeom summary:" << std::endl;
     size_t categoryId = 0;
     size_t unassignedLeft = unassignedPointCount;
     for (std::shared_ptr<AbstractGeomPrimitive> primitive : primitives) {
         ++categoryId;
         size_t assigned = objectManager->getAssignedPointCount(categoryId);
-        cout << " * " << objectManager->getObjectCount(categoryId) << " "
+        std::cout << " * " << objectManager->getObjectCount(categoryId) << " "
                 << primitive->getCaption(true) << " with "
-                << formatInt(assigned) << " points found" << endl;
+                << formatInt(assigned) << " points found" << std::endl;
         unassignedLeft -= assigned;
     }
     if (unassignedLeft == 0) {
-        cout << "All " << formatInt(unassignedPointCount) << " points were "
-                "assigned." << endl;
+        std::cout << "All " << formatInt(unassignedPointCount)
+           << " points were "
+                "assigned." << std::endl;
     } else {
-        cout << formatInt(unassignedLeft) << " of "
+        std::cout << formatInt(unassignedLeft) << " of "
                 << formatInt(unassignedPointCount) << " points unassigned."
-                << endl;
+                << std::endl;
     }
     // print runtime summary
     std::cout << timer.getReportForAllTasks();

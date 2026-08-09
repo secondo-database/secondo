@@ -117,8 +117,8 @@ public:
                        config, "", errMsg, multiUser)) {
 
         // connection failed, handle error
-        cerr << "Cannot initialize secondo system" << endl;
-        cerr << "Error message = " << errMsg << endl;
+        std::cerr << "Cannot initialize secondo system" << std::endl;
+        std::cerr << "Error message = " << errMsg << std::endl;
         shutdown = true;
      } else {
         pid = si -> getPid();
@@ -196,9 +196,9 @@ public:
      );
  
      if(! result) {
-        cout << "Unable to update last executed query in ";
-        cout << "system_progress table" << endl;
-        cout << "CQL Statement: " << ss.str() << endl;
+        std::cout << "Unable to update last executed query in ";
+        std::cout << "system_progress table" << std::endl;
+        std::cout << "CQL Statement: " << ss.str() << std::endl;
         return false;
      }
 
@@ -263,7 +263,7 @@ public:
    
    bool cancelRunningQuery() {
       
-     cout << "[Info] Canceling worker: " << secondoPort << endl;
+     std::cout << "[Info] Canceling worker: " << secondoPort << std::endl;
             
      NestedList* nestedList = new NestedList();
      SecondoInterface* controlSecondo 

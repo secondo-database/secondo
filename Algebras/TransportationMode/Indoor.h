@@ -165,7 +165,7 @@ public:
     /////////////////////////////////////////////////////////////////
     std::ostream& Print( std::ostream& o) const
     {
-      o<<"height "<<floor_height<<"reg "<<reg<<endl; 
+      o<<"height "<<floor_height<<"reg "<<reg<<std::endl; 
       return o;
     }
 
@@ -398,8 +398,8 @@ struct FloorElem{
   }
   void Print()
   {
-    cout<<"obj id "<<id<<" start_pos "<<start_pos
-        <<"num "<<num<<" height "<<h<<endl; 
+    std::cout<<"obj id "<<id<<" start_pos "<<start_pos
+        <<"num "<<num<<" height "<<h<<std::endl; 
   }
 };
 
@@ -526,7 +526,7 @@ class GRoom:public StandardSpatialAttribute<2>{
       if(0 <= i && i < elem_list.Size())
         elem_list.Get(i, felem);
       else{
-        cout<<"not valid index in GetElem()"<<endl;
+        std::cout<<"not valid index in GetElem()"<<std::endl;
         assert(false);
       }
     
@@ -536,7 +536,7 @@ class GRoom:public StandardSpatialAttribute<2>{
       if(0 <= i && i < seg_list.Size())
         seg_list.Get(i, hs);
       else{
-        cout<<"not valid index in GetSeg()"<<endl;
+        std::cout<<"not valid index in GetSeg()"<<std::endl;
         assert(false);
       }
     }
@@ -545,7 +545,7 @@ class GRoom:public StandardSpatialAttribute<2>{
       if(0 <= i && i < seg_list.Size())
         seg_list.Put(i, hs);
       else{
-        cout<<"not valid index in PutSeg()"<<endl;
+        std::cout<<"not valid index in PutSeg()"<<std::endl;
         assert(false);
       }
     }
@@ -685,9 +685,9 @@ struct I_Parameter{
   }
   void Print()
   {
-    cout<<"num of floors "<<num_floors<<" height "<<floor_height
+    std::cout<<"num of floors "<<num_floors<<" height "<<floor_height
         <<"speed_person "<<speed_person
-        <<"speed_elevator "<<speed_elevator<<endl; 
+        <<"speed_elevator "<<speed_elevator<<std::endl; 
   }
 }; 
 class MPoint3D; 
@@ -1093,11 +1093,11 @@ struct IPath_elem:public Path_elem{
 
   void Print()
   {
-    cout<<" tri_index " <<tri_index<<" realweight "<<real_w
-        <<" weight "<<weight<<" Path "<<endl;
+    std::cout<<" tri_index " <<tri_index<<" realweight "<<real_w
+        <<" weight "<<weight<<" Path "<<std::endl;
 //    path.Print();
 //    cout<<endl; 
-    cout<<"groom oid "<<groom_oid<<endl;
+    std::cout<<"groom oid "<<groom_oid<<std::endl;
   }
 };
 
@@ -1119,7 +1119,7 @@ struct PointAndID{
   }
   void Print()
   {
-    cout<<" pid "<<pid<<" loc "<<loc<<endl; 
+    std::cout<<" pid "<<pid<<" loc "<<loc<<std::endl; 
   }
 };
 
@@ -1150,9 +1150,9 @@ struct RPath_elem:public Path_elem{
 
   void Print()
   {
-    cout<<"prev "<<prev_index<<" cur "<<cur_index
+    std::cout<<"prev "<<prev_index<<" cur "<<cur_index
         <<" tri_index " <<tri_index<<
-        " weight1 "<<weight<<" weight2 "<<real_w<<endl;
+        " weight1 "<<weight<<" weight2 "<<real_w<<std::endl;
   }
 };
 
@@ -1410,7 +1410,8 @@ struct RefBuild{
     }
     void Print()
     {
-      cout<<"build id "<<build_id<<" type "<<GetBuildingStr(type)<<endl;
+      std::cout<<"build id "<<build_id<<" type "<<GetBuildingStr(type)
+         <<std::endl;
     }
 };
 

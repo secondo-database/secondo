@@ -117,7 +117,7 @@ void
 DServerCmdReadRel::run()
 { 
 #if DS_CMD_READREL_DEBUG
-  cout << "DServerCmdReadRel::run" << getIndexStr() << endl;
+  std::cout << "DServerCmdReadRel::run" << getIndexStr() << std::endl;
 #endif
 
   if (!checkWorkerAvailable())
@@ -146,7 +146,7 @@ DServerCmdReadRel::run()
     ",r" + getWorker() -> getName() + int2Str(curIdx) + ")";
 
 #if DS_CMD_READREL_DEBUG
-  cout << "sending:" << sendCmd << endl;
+  std::cout << "sending:" << sendCmd << std::endl;
 #endif
   //The sendD-operator on the worker is started 
   if (!sendSecondoCmdToWorkerSOS(sendCmd, true))
@@ -210,7 +210,7 @@ DServerCmdReadRel::run()
     }
 
 #if DS_CMD_READREL_DEBUG
-  cout << "DServerCmdReadRel::run DONE" << endl;
+  std::cout << "DServerCmdReadRel::run DONE" << std::endl;
 #endif
 } // run()
 

@@ -88,7 +88,7 @@ void
 DServerCmdWrite::run()
 { 
 #if DS_CMD_WRITE_DEBUG
-  cout << "DServerCmdWrite::run" << getIndexStr() << endl;
+  std::cout << "DServerCmdWrite::run" << getIndexStr() << std::endl;
 #endif
 
   if (!checkWorkerAvailable())
@@ -116,7 +116,7 @@ DServerCmdWrite::run()
         ",p" + master_port + ")";
 
 #if DS_CMD_WRITE_DEBUG
-      cout << "Sending:" << sendCmd << endl;
+      std::cout << "Sending:" << sendCmd << std::endl;
 #endif
       //The sendD-operator on the worker is started 
       if (!sendSecondoCmdToWorkerSOS(sendCmd, true))
@@ -206,7 +206,7 @@ DServerCmdWrite::run()
         }
 
 #if DS_CMD_WRITE_DEBUG
-      cout << "Send Size:" << size << endl;
+      std::cout << "Send Size:" << size << std::endl;
 #endif
 
       //The actual data are sent
@@ -244,7 +244,7 @@ DServerCmdWrite::run()
           f->read(buf,si,0);
  
 #if DS_CMD_WRITE_DEBUG
-          cout << "Send Flob - Size:" << si << endl;
+          std::cout << "Send Flob - Size:" << si << std::endl;
 #endif
           //Size of the binary data is sent
           if (!callBack.sendTextToCallBack("FLOBSIZE", si))
@@ -309,6 +309,6 @@ DServerCmdWrite::run()
     }
 
 #if DS_CMD_WRITE_DEBUG
-  cout << "DServerCmdWrite::run DONE" << endl;
+  std::cout << "DServerCmdWrite::run DONE" << std::endl;
 #endif
 } // run()

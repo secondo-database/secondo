@@ -202,7 +202,7 @@ public :
     }
     inline virtual std::ostream& Print( std::ostream& os ) const
     {
-      os<<"x "<<x<<" y "<<y<<" z "<<z<<endl;
+      os<<"x "<<x<<" y "<<y<<" z "<<z<<std::endl;
       return os;
     }
     double GetX(){return x;}

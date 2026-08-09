@@ -88,8 +88,8 @@ ServerManager::~ServerManager() {
   }
 
   if (backupCout != 0) {
-    cout.rdbuf(backupCout);
-    cerr.rdbuf(backupCout);
+    std::cout.rdbuf(backupCout);
+    std::cerr.rdbuf(backupCout);
   }
 }
 

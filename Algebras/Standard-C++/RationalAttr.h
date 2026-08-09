@@ -255,9 +255,9 @@ class Rational : public Attribute {
       
     Rational& operator*=(const Rational& r){
 
-       cout << "* called" << endl;
-       cout << "thhis = " << this->ToString() << endl;
-       cout << " r = " << r.ToString() << endl;
+       std::cout << "* called" << std::endl;
+       std::cout << "thhis = " << this->ToString() << std::endl;
+       std::cout << " r = " << r.ToString() << std::endl;
 
        if(!IsDefined() || !r.IsDefined()){
           SetDefined(false);

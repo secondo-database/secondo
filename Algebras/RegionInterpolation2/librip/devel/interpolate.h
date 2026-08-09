@@ -19,7 +19,8 @@
 #include "config.h"
 #include "librip.h"
 
-#define DEBUG(l,m) do { if (l <= DEBUGLEVEL) { cerr << m << endl; } } while (0)
+#define DEBUG(l,m) do { if (l <= DEBUGLEVEL) { std::cerr << m
+   << std::endl; } } while (0)
 
 #if defined(LUA5_1) || defined(LUA5_2)
 #define USE_LUA

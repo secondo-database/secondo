@@ -185,7 +185,7 @@ bool DPDTypeMapper::checkDmap2Type() {
   ListExpr dmap2Type = nl->First(dmap2);
   if(!listutils::isMap<1>(dmap2Type) ){
     msg = "last arg is not a function";
-    cout << msg;
+    std::cout << msg;
     return false;
   }
   if (!Stream<Tuple>::checkType(getLastArgumentOf(dmap2Type))) {

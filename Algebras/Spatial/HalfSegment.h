@@ -482,8 +482,8 @@ attr(-99999)
     std::cerr << "try to create a halfsegment with almost equal points" 
               << std::endl;
     std::cerr << "FACTOR used: " << getAlmostEqualFACTOR() << std::endl;
-    std::cerr << "lp : " << lp << endl;
-    std::cerr << "lr : " << rp << endl;
+    std::cerr << "lp : " << lp << std::endl;
+    std::cerr << "lr : " << rp << std::endl;
     assert(!AlmostEqual(lp,rp));
   }
 

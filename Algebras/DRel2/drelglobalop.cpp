@@ -102,8 +102,8 @@ namespace drel {
     ListExpr sortTM( ListExpr args ) {
 
         #ifdef DRELDEBUG
-        cout << "sortTM" << endl;
-        cout << nl->ToString( args ) << endl;
+        std::cout << "sortTM" << std::endl;
+        std::cout << nl->ToString( args ) << std::endl;
         #endif
 
         std::string err = "d[f]rel(X) expected";
@@ -192,10 +192,10 @@ namespace drel {
             nl->TextAtom( funText2 ) );
 
         #ifdef DRELDEBUG
-        cout << "funText1" << endl;
-        cout << funText1 << endl;
-        cout << "funText2" << endl;
-        cout << funText2 << endl;
+        std::cout << "funText1" << std::endl;
+        std::cout << funText1 << std::endl;
+        std::cout << "funText2" << std::endl;
+        std::cout << funText2 << std::endl;
         #endif
 
         return nl->ThreeElemList(
@@ -211,8 +211,8 @@ namespace drel {
     ListExpr sortbyTM( ListExpr args ) {
 
         #ifdef DRELDEBUG
-        cout << "sortbyTM" << endl;
-        cout << nl->ToString( args ) << endl;
+        std::cout << "sortbyTM" << std::endl;
+        std::cout << nl->ToString( args ) << std::endl;
         #endif
 
         std::string err = "d[f]rel(X) x attrlist expected";
@@ -306,10 +306,10 @@ namespace drel {
             nl->TextAtom( funText2 ) );
 
         #ifdef DRELDEBUG
-        cout << "funText1" << endl;
-        cout << funText1 << endl;
-        cout << "funText2" << endl;
-        cout << funText2 << endl;
+        std::cout << "funText1" << std::endl;
+        std::cout << funText1 << std::endl;
+        std::cout << "funText2" << std::endl;
+        std::cout << funText2 << std::endl;
         #endif
 
         return nl->ThreeElemList(
@@ -325,8 +325,8 @@ namespace drel {
      ListExpr drelgroupbyTM( ListExpr args ) {
 
         #ifdef DRELDEBUG
-        cout << "drelgroupbyTM" << endl;
-        cout << nl->ToString( args ) << endl;
+        std::cout << "drelgroupbyTM" << std::endl;
+        std::cout << nl->ToString( args ) << std::endl;
         #endif
 
         std::string err = "d[f]rel(X) x attrlist  x funlist expected";
@@ -403,7 +403,7 @@ namespace drel {
 
             ListExpr attrList = nl->Second( nl->Second( args ) );
             repartition = true;
-            cout << "repartition true" << endl;
+            std::cout << "repartition true" << std::endl;
             if( dType == spatial2d || dType == spatial3d ) {
                 funText1 = "(areduce (partitionF ";
                 funText2 = " \"\" (fun (elem1_2 FFR) (elem2_2 FFR) "
@@ -463,10 +463,10 @@ namespace drel {
             nl->TextAtom( funText2 ) );
 
         #ifdef DRELDEBUG
-        cout << "funText1" << endl;
-        cout << funText1 << endl;
-        cout << "funText2" << endl;
-        cout << funText2 << endl;
+        std::cout << "funText1" << std::endl;
+        std::cout << funText1 << std::endl;
+        std::cout << "funText2" << std::endl;
+        std::cout << funText2 << std::endl;
         #endif            
 
         return nl->ThreeElemList( 
@@ -482,8 +482,8 @@ namespace drel {
     ListExpr rdupTM( ListExpr args ) {
 
       #ifdef DRELDEBUG
-      cout << "rdupTM" << endl;
-      cout << nl->ToString( args ) << endl;
+      std::cout << "rdupTM" << std::endl;
+      std::cout << nl->ToString( args ) << std::endl;
       #endif
 
         std::string err = "d[f]rel(X) expected";
@@ -561,7 +561,7 @@ namespace drel {
 
                     //Selenyi
                   if (checkCell == 0 && checkOriginal == 0) {
-                     cout << "Cell/Original doesn't exists" << endl;
+                     std::cout << "Cell/Original doesn't exists" << std::endl;
                      funText2 = " \"\" (fun (elem1_1 FFR) (elem2_2 FFR) "
                     "(feed elem1_1) ) (fun (elem1_4 FFR) (elem2_5 FFR) "
                     "(hashvalue (attr elem2_5 "+ nl->ToString(attrName) + 
@@ -600,10 +600,10 @@ namespace drel {
             nl->TextAtom( funText2 ) );
 
         #ifdef DRELDEBUG
-        cout << "funText1" << endl;
-        cout << funText1 << endl;
-        cout << "funText2" << endl;
-        cout << funText2 << endl;
+        std::cout << "funText1" << std::endl;
+        std::cout << funText1 << std::endl;
+        std::cout << "funText2" << std::endl;
+        std::cout << funText2 << std::endl;
         #endif
 
         return nl->ThreeElemList(
@@ -624,8 +624,8 @@ repartitioning the d[f]rel and execute a function on the d[f]rel.
         Word& local, Supplier s ) {
 
         #ifdef DRELDEBUG
-        cout << "drelglobaldmapVMT" << endl;
-        cout << args << endl;
+        std::cout << "drelglobaldmapVMT" << std::endl;
+        std::cout << args << std::endl;
         #endif
 
         int x = qp->GetNoSons( s );
@@ -690,7 +690,7 @@ repartitioning the d[f]rel and execute a function on the d[f]rel.
             boundaryType, drel, drelType, boundary, getDRelPort() );
 
         if( !parti->repartition2DFMatrix( ) ) {
-            cout << "repartition (drelglobalop) failed!!" << endl;
+            std::cout << "repartition (drelglobalop) failed!!" << std::endl;
             result = qp->ResultStorage( s );
             ( ( DFRel* )result.addr )->makeUndefined( );
             return 0;
@@ -706,8 +706,8 @@ repartitioning the d[f]rel and execute a function on the d[f]rel.
         std::string funText = fun1->GetValue( ) + matrixptr + fun2->GetValue( );
 
         #ifdef DRELDEBUG
-        cout << "funText" << endl;
-        cout << funText << endl;
+        std::cout << "funText" << std::endl;
+        std::cout << funText << std::endl;
         #endif
 
         ListExpr funList;

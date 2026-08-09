@@ -328,25 +328,25 @@ Prints some infos about the tree to cmsg.info().
 */
     void printTreeInfos()
     {
-        cmsg.info() << endl
-            << "<mtree infos>" << endl
+        cmsg.info() << std::endl
+            << "<mtree infos>" << std::endl
             << "   entries                : "
-            << entryCount() << endl
+            << entryCount() << std::endl
             << "   height                 : "
-            << height() << endl
+            << height() << std::endl
             << "   internal nodes         : "
-            << internalCount() << endl
+            << internalCount() << std::endl
             << "   leaf nodes             : "
-            << leafCount() << endl
+            << leafCount() << std::endl
             << "   assigned config        : "
-            << configName() << endl
+            << configName() << std::endl
             << "   assigned type          : "
-            << typeName() << endl
+            << typeName() << std::endl
             << "   assigned distfun       : "
-            << header.distfunName << endl
+            << header.distfunName << std::endl
             << "   assigned distdata type : "
-            << df_info.data().name() << endl
-            << endl;
+            << df_info.data().name() << std::endl
+            << std::endl;
         cmsg.send();
     }
 

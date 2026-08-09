@@ -586,9 +586,9 @@ template<template<typename T>class Array>
     if(onSameLine(hs1,hs2)){
        bool ok =  !overlaps(hs1,hs2);
        if(!ok && print){
-          cout << "found overlapping segments " << endl;
-          cout << "S1 : " << hs1.getLineString() << endl;
-          cout << "S2 : " << hs2.getLineString() << endl;
+          std::cout << "found overlapping segments " << std::endl;
+          std::cout << "S1 : " << hs1.getLineString() << std::endl;
+          std::cout << "S2 : " << hs2.getLineString() << std::endl;
        }
        return ok;
     } else {
@@ -621,11 +621,11 @@ template<template<typename T>class Array>
           }
        }
        if(!ok && print){
-         cout << "found crossing segments" << endl;
-         cout << "S1 : " << hs1.getLineString() << endl;
-         cout << "S2 : " << hs2.getLineString() << endl;
-         cout << "delta1 = " << delta1 << endl;
-         cout << "delta2 = " << delta2 << endl;
+         std::cout << "found crossing segments" << std::endl;
+         std::cout << "S1 : " << hs1.getLineString() << std::endl;
+         std::cout << "S2 : " << hs2.getLineString() << std::endl;
+         std::cout << "delta1 = " << delta1 << std::endl;
+         std::cout << "delta2 = " << delta2 << std::endl;
        }
        return ok;
     }

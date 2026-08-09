@@ -141,7 +141,7 @@ Informations about the distribution of the relation.
         distributed2::DArrayT<T>( v, name ), distType( 0 ) {
 
         #ifdef DRELDEBUG
-        cout << "DRelT constructor" << endl;
+        std::cout << "DRelT constructor" << std::endl;
         #endif
     }
 
@@ -150,7 +150,7 @@ Informations about the distribution of the relation.
         distributed2::DArrayT<T>( dummy ), distType( 0 ) {
 
         #ifdef DRELDEBUG
-        cout << "DRelT constructor" << endl;
+        std::cout << "DRelT constructor" << std::endl;
         #endif
     }
 
@@ -163,7 +163,7 @@ Informations about the distribution of the relation.
         distributed2::DArrayT<T>( src ), distType( src.distType ) {
 
         #ifdef DRELDEBUG
-        cout << "DRelT copy constructor" << endl;
+        std::cout << "DRelT copy constructor" << std::endl;
         #endif
     }
 
@@ -172,7 +172,7 @@ Informations about the distribution of the relation.
         distributed2::DArrayT<T>( src ), distType( 0 ) {
 
         #ifdef DRELDEBUG
-        cout << "DRelT copy constructor" << endl;
+        std::cout << "DRelT copy constructor" << std::endl;
         #endif
     }
 
@@ -181,7 +181,7 @@ Informations about the distribution of the relation.
         distributed2::DArrayT<T>( src ), distType( 0 ) {
 
         #ifdef DRELDEBUG
-        cout << "DRelT copy constructor" << endl;
+        std::cout << "DRelT copy constructor" << std::endl;
         #endif
     }
 
@@ -193,7 +193,7 @@ Informations about the distribution of the relation.
     DRelT<T>& DRelT<T>::operator=( const DRelT& src ) {
 
         #ifdef DRELDEBUG
-        cout << "DRelT assignment operator" << endl;
+        std::cout << "DRelT assignment operator" << std::endl;
         #endif
 
         if( this == &src ) {
@@ -208,7 +208,7 @@ Informations about the distribution of the relation.
     DRelT<T>& DRelT<T>::operator=( const distributed2::DArrayBase& src ) {
 
         #ifdef DRELDEBUG
-        cout << "DRelT assignment operator" << endl;
+        std::cout << "DRelT assignment operator" << std::endl;
         #endif
 
   distributed2::DArrayBase::operator=( src );
@@ -220,7 +220,7 @@ Informations about the distribution of the relation.
     DRelT<T>& DRelT<T>::operator=( const distributed2::DArrayT<T>& src ) {
 
         #ifdef DRELDEBUG
-        cout << "DRelT assignment operator" << endl;
+        std::cout << "DRelT assignment operator" << std::endl;
         #endif
 
   distributed2::DArrayT<T>::operator=( src );
@@ -236,7 +236,7 @@ Informations about the distribution of the relation.
     DRelT<T>::~DRelT( ) {
 
         #ifdef DRELDEBUG
-        cout << "DRelT destructor" << endl;
+        std::cout << "DRelT destructor" << std::endl;
         #endif
 
         if( distType != 0 ) {
@@ -254,8 +254,8 @@ Set the distType.
     void DRelT<T>::setDistType( DistTypeBasic* _distType ) {
 
         #ifdef DRELDEBUG
-        cout << "DRelT::setDistType" << endl;
-        cout << "distType" << endl;
+        std::cout << "DRelT::setDistType" << std::endl;
+        std::cout << "distType" << std::endl;
         _distType->print( );
         #endif
 
@@ -272,8 +272,8 @@ Get the distType.
     DistTypeBasic* DRelT<T>::getDistType( ) {
 
         #ifdef DRELDEBUG
-        cout << "DRelT::getDistType" << endl;
-        cout << "distType" << endl;
+        std::cout << "DRelT::getDistType" << std::endl;
+        std::cout << "distType" << std::endl;
         distType->print( );
         #endif
 
@@ -290,9 +290,9 @@ Returns the type name of the darray. (DARRAY or DFARRAY)
     std::string DRelT<T>::getTypeName( ) const {
 
         #ifdef DRELDEBUG
-        cout << "DRelT::getTypeName" << endl;
-        cout << "TypeName" << endl;
-        cout << getName( T ) << endl;
+        std::cout << "DRelT::getTypeName" << std::endl;
+        std::cout << "TypeName" << std::endl;
+        std::cout << getName( T ) << std::endl;
         #endif
 
         return getName( T );
@@ -308,9 +308,9 @@ Returns the DRel as a NestedList.
     ListExpr DRelT<T>::toListExpr( ListExpr typeInfo ) const {
 
         #ifdef DRELDEBUG
-        cout << "DRelT::toListExpr" << endl;
-        cout << "typeInfo" << endl;
-        cout << nl->ToString( typeInfo ) << endl;
+        std::cout << "DRelT::toListExpr" << std::endl;
+        std::cout << "typeInfo" << std::endl;
+        std::cout << nl->ToString( typeInfo ) << std::endl;
         #endif
 
         ListExpr listArray = distributed2::DArrayBase::toListExpr( );
@@ -319,9 +319,9 @@ Returns the DRel as a NestedList.
         }
 
         #ifdef DRELDEBUG
-        cout << "darray" << endl;
-        cout << nl->ToString( listArray ) << endl;
-        cout << "distTypeList" << endl;
+        std::cout << "darray" << std::endl;
+        std::cout << nl->ToString( listArray ) << std::endl;
+        std::cout << "distTypeList" << std::endl;
         distType->print( );
         #endif
 
@@ -330,8 +330,8 @@ Returns the DRel as a NestedList.
             distType->toListExpr( nl->Third( typeInfo ) ) );
 
         #ifdef DRELDEBUG
-        cout << "drelList" << endl;
-        cout << nl->ToString( drelList ) << endl;
+        std::cout << "drelList" << std::endl;
+        std::cout << nl->ToString( drelList ) << std::endl;
         #endif
 
         return drelList;
@@ -348,11 +348,11 @@ list has an error.
     DRelT<T>* DRelT<T>::readFrom( ListExpr typeInfo, ListExpr list ) {
 
         #ifdef DRELDEBUG
-        cout << "DRelT::readFrom" << endl;
-        cout << "typeInfo" << endl;
-        cout << nl->ToString( typeInfo ) << endl;
-        cout << "list" << endl;
-        cout << nl->ToString( list ) << endl;
+        std::cout << "DRelT::readFrom" << std::endl;
+        std::cout << "typeInfo" << std::endl;
+        std::cout << nl->ToString( typeInfo ) << std::endl;
+        std::cout << "list" << std::endl;
+        std::cout << nl->ToString( list ) << std::endl;
         #endif
 
         if( listutils::isSymbolUndefined( list ) ) {
@@ -517,7 +517,7 @@ Compares the disttype of this drel with the disttype of another one.
     const bool DRelT<T>::equalDistType( R* drel ) {
 
         #ifdef DRELDEBUG
-        cout << "DRelT::equalDistType" << endl;
+        std::cout << "DRelT::equalDistType" << std::endl;
         #endif
 
         if( distType == 0 ) {
@@ -544,7 +544,7 @@ Returns the BasicType of the secondo type.
     const std::string DRelT<T>::BasicType( ) {
 
         #ifdef DRELDEBUG
-        cout << "DRelT::BasicType" << endl;
+        std::cout << "DRelT::BasicType" << std::endl;
         #endif
 
         if( T == distributed2::DFARRAY ) {
@@ -574,9 +574,9 @@ Checks the type in the NestedList.
         const ListExpr list, distributionType& type, int& attr, int& key ) {
 
         #ifdef DRELDEBUG
-        cout << "DRelT::checkType" << endl;
-        cout << "list" << endl;
-        cout << nl->ToString( list ) << endl;
+        std::cout << "DRelT::checkType" << std::endl;
+        std::cout << "list" << std::endl;
+        std::cout << nl->ToString( list ) << std::endl;
         #endif
 
         if( T != distributed2::DARRAY && T != distributed2::DFARRAY ) {
@@ -595,8 +595,8 @@ Checks the type in the NestedList.
 
         #ifdef DRELDEBUG
         ListExpr distTypeExpr = nl->Third( list );
-        cout << "distTypeExpr" << endl;
-        cout << nl->ToString( distTypeExpr ) << endl;
+        std::cout << "distTypeExpr" << std::endl;
+        std::cout << nl->ToString( distTypeExpr ) << std::endl;
         #endif
 
         if( !DRelT<T>::checkDistType( nl->Third( list ), type, attr, key ) ) {
@@ -691,7 +691,7 @@ Returns the secondo property informations.
     ListExpr DRelT<T>::Property( ) {
 
         #ifdef DRELDEBUG
-        cout << "DRelT::Property" << endl;
+        std::cout << "DRelT::Property" << std::endl;
         #endif
 
         return ( nl->TwoElemList(
@@ -724,8 +724,8 @@ Secondo In function.
         bool& correct ) {
 
         #ifdef DRELDEBUG
-        cout << "DRelT::In" << endl;
-        cout << nl->ToString( typeInfo ) << endl;
+        std::cout << "DRelT::In" << std::endl;
+        std::cout << nl->ToString( typeInfo ) << std::endl;
         #endif
 
         Word res( ( void* )0 );
@@ -746,11 +746,11 @@ Secondo Out function.
         DRelT<T>* drel = ( DRelT<T>* )value.addr;
 
         #ifdef DRELDEBUG
-        cout << "DRelT::Out" << endl;
-        cout << "typeInfo" << endl;
-        cout << nl->ToString( typeInfo ) << endl;
-        cout << "drel" << endl;
-        cout << nl->ToString( drel->toListExpr( typeInfo ) ) << endl;
+        std::cout << "DRelT::Out" << std::endl;
+        std::cout << "typeInfo" << std::endl;
+        std::cout << nl->ToString( typeInfo ) << std::endl;
+        std::cout << "drel" << std::endl;
+        std::cout << nl->ToString( drel->toListExpr( typeInfo ) ) << std::endl;
         #endif
 
         return drel->toListExpr( typeInfo );
@@ -766,9 +766,9 @@ Secondo Create function.
     Word DRelT<T>::Create( const ListExpr typeInfo ) {
 
         #ifdef DRELDEBUG
-        cout << "DRelT::Create" << endl;
-        cout << "typeInfo" << endl;
-        cout << nl->ToString( typeInfo ) << endl;
+        std::cout << "DRelT::Create" << std::endl;
+        std::cout << "typeInfo" << std::endl;
+        std::cout << nl->ToString( typeInfo ) << std::endl;
         #endif
 
         Word w;
@@ -787,9 +787,9 @@ Secondo Delete function.
     void DRelT<T>::Delete( const ListExpr typeInfo, Word & w ) {
 
         #ifdef DRELDEBUG
-        cout << "DRelT::Delete" << endl;
-        cout << "typeInfo" << endl;
-        cout << nl->ToString( typeInfo ) << endl;
+        std::cout << "DRelT::Delete" << std::endl;
+        std::cout << "typeInfo" << std::endl;
+        std::cout << nl->ToString( typeInfo ) << std::endl;
         #endif
 
         DRelT<T>* rel = ( DRelT<T>* )w.addr;
@@ -809,14 +809,14 @@ Secondo Open function.
         const ListExpr typeInfo, Word& value ) {
 
         #ifdef DRELDEBUG
-        cout << "DRelT::Open" << endl;
-        cout << "typeInfo" << endl;
-        cout << nl->ToString( typeInfo ) << endl;
+        std::cout << "DRelT::Open" << std::endl;
+        std::cout << "typeInfo" << std::endl;
+        std::cout << nl->ToString( typeInfo ) << std::endl;
         #endif
 
         if( !distributed2::DArrayBase::open<distributed2::DArrayT<T>, false>( 
                 valueRecord, offset, typeInfo, value ) ) {
-            cout << "darray open fail" << endl;
+            std::cout << "darray open fail" << std::endl;
             return false;
         }
         distributed2::DArrayT<T>* darray 
@@ -827,14 +827,14 @@ Secondo Open function.
 
         if( !rel->IsDefined( ) ) {
             #ifdef DRELDEBUG
-            cout << "DRel not defined" << endl;
+            std::cout << "DRel not defined" << std::endl;
             #endif
             return true;
         }
 
         if( !nl->HasLength( typeInfo, 3 ) ) {
             #ifdef DRELDEBUG
-            cout << "DRel type info error" << endl;
+            std::cout << "DRel type info error" << std::endl;
             #endif
             return false;
         }
@@ -844,7 +844,7 @@ Secondo Open function.
         if( !nl->IsAtom( nl->First( distTypeInfo ) )
          || nl->AtomType( nl->First( distTypeInfo ) ) != IntType ) {
             #ifdef DRELDEBUG
-            cout << "DRel dist type info error" << endl;
+            std::cout << "DRel dist type info error" << std::endl;
             #endif
             return false;
         }
@@ -853,14 +853,14 @@ Secondo Open function.
         if( !getTypeByNum( ( int )nl->IntValue( nl->First( distTypeInfo ) ), 
             type ) ) {
             #ifdef DRELDEBUG
-            cout << "Distribution type information error" << endl;
+            std::cout << "Distribution type information error" << std::endl;
             #endif
             return false;
         }
 
         #ifdef DRELDEBUG
-        cout << "dist type" << endl;
-        cout << type << endl;
+        std::cout << "dist type" << std::endl;
+        std::cout << type << std::endl;
         #endif
 
         if( type == replicated || type == random ) {
@@ -874,7 +874,7 @@ Secondo Open function.
             || !nl->IsAtom( nl->Second( distTypeInfo ) )
             || nl->AtomType( nl->Second( distTypeInfo ) ) != IntType ) {
             #ifdef DRELDEBUG
-            cout << "Attribute type information error" << endl;
+            std::cout << "Attribute type information error" << std::endl;
             #endif
             return false;
         }
@@ -886,8 +886,8 @@ Secondo Open function.
         }
 
         #ifdef DRELDEBUG
-        cout << "attr open" << endl;
-        cout << attr << endl;
+        std::cout << "attr open" << std::endl;
+        std::cout << attr << std::endl;
         #endif
 
         if( type == hash) {
@@ -900,7 +900,7 @@ Secondo Open function.
         if( !nl->HasMinLength( distTypeInfo, 3 )
             || !nl->IsAtom( nl->Third( distTypeInfo ) )
             || nl->AtomType( nl->Third( distTypeInfo ) ) != IntType ) {
-            cout << "Distribution type key information error" << endl;
+            std::cout << "Distribution type key information error" << std::endl;
             return false;
         }
 
@@ -909,8 +909,9 @@ Secondo Open function.
         if( type == range ) {
 
             #ifdef DRELDEBUG
-            cout << "type of vector" << endl;
-            cout << nl->ToString( nl->Fourth( distTypeInfo ) ) << endl;
+            std::cout << "type of vector" << std::endl;
+            std::cout << nl->ToString( nl->Fourth( distTypeInfo ) )
+               << std::endl;
             #endif
             
             Word value;
@@ -922,9 +923,9 @@ Secondo Open function.
             }
 
             #ifdef DRELDEBUG
-            cout << "open vector" << endl;
-            ( ( collection::Collection* ) value.addr )->Print( cout );
-            cout << endl;
+            std::cout << "open vector" << std::endl;
+            ( ( collection::Collection* ) value.addr )->Print( std::cout );
+            std::cout << std::endl;
             #endif
             
             rel->setDistType( new DistTypeRange( 
@@ -941,9 +942,9 @@ Secondo Open function.
                         nl->Fourth( distTypeInfo ) ) );
 
             #ifdef DRELDEBUG
-            cout << "open cellgrid2d" << endl;
-            grid->Print( cout );
-            cout << endl;
+            std::cout << "open cellgrid2d" << std::endl;
+            grid->Print( std::cout );
+            std::cout << std::endl;
             #endif
 
             rel->setDistType( 
@@ -961,9 +962,9 @@ Secondo Open function.
                         nl->Fourth( distTypeInfo ) ) );
 
             #ifdef DRELDEBUG
-            cout << "open cellgrid3d" << endl;
-            grid->Print( cout );
-            cout << endl;
+            std::cout << "open cellgrid3d" << std::endl;
+            grid->Print( std::cout );
+            std::cout << std::endl;
             #endif
 
             rel->setDistType( 
@@ -974,7 +975,7 @@ Secondo Open function.
         }
 
         #ifdef DRELDEBUG
-        cout << "open error" << endl;
+        std::cout << "open error" << std::endl;
         #endif
 
         return false;
@@ -992,9 +993,9 @@ Secondo Save function.
         const ListExpr typeInfo, Word& value ) {
 
         #ifdef DRELDEBUG
-        cout << "DRelT::Save" << endl;
-        cout << "typeInfo" << endl;
-        cout << nl->ToString( typeInfo ) << endl;
+        std::cout << "DRelT::Save" << std::endl;
+        std::cout << "typeInfo" << std::endl;
+        std::cout << nl->ToString( typeInfo ) << std::endl;
         #endif
 
         if( !distributed2::DArrayBase::save<false>( valueRecord, offset, 
@@ -1017,9 +1018,9 @@ Secondo Close function.
     void DRelT<T>::Close( const ListExpr typeInfo, Word & w ) {
 
         #ifdef DRELDEBUG
-        cout << "DRelT::Close" << endl;
-        cout << "typeInfo" << endl;
-        cout << nl->ToString( typeInfo ) << endl;
+        std::cout << "DRelT::Close" << std::endl;
+        std::cout << "typeInfo" << std::endl;
+        std::cout << nl->ToString( typeInfo ) << std::endl;
         #endif
 
         DRelT<T>* rel = ( DRelT<T>* )w.addr;
@@ -1037,9 +1038,9 @@ Secondo Clone function.
     Word DRelT<T>::Clone( const ListExpr typeInfo, const Word & w ) {
 
         #ifdef DRELDEBUG
-        cout << "DRelT::Clone" << endl;
-        cout << "typeInfo" << endl;
-        cout << nl->ToString( typeInfo ) << endl;
+        std::cout << "DRelT::Clone" << std::endl;
+        std::cout << "typeInfo" << std::endl;
+        std::cout << nl->ToString( typeInfo ) << std::endl;
         #endif
 
         DRelT<T>* rel = ( DRelT<T>* )w.addr;
@@ -1058,7 +1059,7 @@ Secondo Cast function.
     void* DRelT<T>::Cast( void * addr ) {
 
         #ifdef DRELDEBUG
-        cout << "DRelT::Cast" << endl;
+        std::cout << "DRelT::Cast" << std::endl;
         #endif
 
         return ( new ( addr ) DRelT<T>( 0 ) );
@@ -1074,9 +1075,9 @@ Secondo TypeCheck function.
     bool DRelT<T>::TypeCheck( ListExpr type, ListExpr & errorInfo ) {
 
         #ifdef DRELDEBUG
-        cout << "DRelT::TypeCheck" << endl;
-        cout << "typeInfo" << endl;
-        cout << nl->ToString( type ) << endl;
+        std::cout << "DRelT::TypeCheck" << std::endl;
+        std::cout << "typeInfo" << std::endl;
+        std::cout << nl->ToString( type ) << std::endl;
         #endif
 
         return DRelT<T>::checkType( type );

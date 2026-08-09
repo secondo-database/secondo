@@ -80,8 +80,8 @@ Get a relation, an attribute and future size of boundary.
     ListExpr createboundaryTM( ListExpr args ) {
 
         #ifdef DRELDEBUG
-        cout << "createboundaryTM" << endl;
-        cout << nl->ToString( args ) << endl;
+        std::cout << "createboundaryTM" << std::endl;
+        std::cout << nl->ToString( args ) << std::endl;
         #endif
 
         std::string err = "rel(tuple(X)) x attr x int expected";
@@ -161,8 +161,8 @@ of the relation.
         Word& local, Supplier s ) {
 
         #ifdef DRELDEBUG
-        cout << "createboundaryVM" << endl;
-        cout << args << endl;
+        std::cout << "createboundaryVM" << std::endl;
+        std::cout << args << std::endl;
         #endif
 
         ListExpr arg1Type = qp->GetType( qp->GetSon( s, 0 ) );
@@ -219,9 +219,9 @@ of the relation.
         }
 
         #ifdef DRELDEBUG
-        cout << "queryList: " << nl->ToString(queryList) << endl;
-        cout << "typeString: " << typeString << endl;
-        cout << "errorString: " << errorString << endl;
+        std::cout << "queryList: " << nl->ToString(queryList) << std::endl;
+        std::cout << "typeString: " << typeString << std::endl;
+        std::cout << "errorString: " << errorString << std::endl;
         #endif
         
         if( !correct || !evaluable || !defined ) {

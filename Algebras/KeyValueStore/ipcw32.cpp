@@ -125,17 +125,19 @@ IPCConnection* IPCConnection::connect(int id) {
       if (w32ConnectionHandle != NULL) {
         return new IPCConnection(w32ConnectionHandle, false, connectionId);
       } else {
-        cout << "Could not create file mapping object (Connection) ("
-             << GetLastError() << ")" << endl;
+        std::cout << "Could not create file mapping object (Connection) ("
+             << GetLastError() << ")" << std::endl;
       }
     } else {
-      cout << "Could not map view of file (Init) (" << GetLastError() << ")"
-           << endl;
+      std::cout << "Could not map view of file (Init) (" << GetLastError()
+         << ")"
+           << std::endl;
       CloseHandle(w32InitHandle);
     }
   } else {
-    cout << "Could not create file mapping object (Init) (" << GetLastError()
-         << ")" << endl;
+    std::cout << "Could not create file mapping object (Init) ("
+       << GetLastError()
+         << ")" << std::endl;
   }
 
   return 0;
@@ -168,13 +170,15 @@ bool IPCGate::open() {
       initData->magicId = IPC_MAGIC_ID;
       return true;
     } else {
-      cout << "Could not map view of file (" << GetLastError() << ")" << endl;
+      std::cout << "Could not map view of file (" << GetLastError() << ")"
+         << std::endl;
       CloseHandle(handle);
       handle = NULL;
     }
   } else {
-    cout << "Could not create file mapping object (" << GetLastError() << ")"
-         << endl;
+    std::cout << "Could not create file mapping object (" << GetLastError()
+       << ")"
+         << std::endl;
   }
 
   return false;
@@ -198,8 +202,9 @@ IPCConnection* IPCGate::nextConnection() {
       initData->confirmIdx++;
       return new IPCConnection(tempHandle, true, connectionid);
     } else {
-      cout << "Could not create file mapping object (" << GetLastError() << ")"
-           << endl;
+      std::cout << "Could not create file mapping object (" << GetLastError()
+         << ")"
+           << std::endl;
       return 0;
     }
   } else {

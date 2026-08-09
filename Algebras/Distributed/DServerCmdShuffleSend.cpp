@@ -77,8 +77,8 @@ DServerCmdShuffleSend::run()
     return;
 
 #ifdef DS_CMD_OPEN_SEND_SHUFFLE_DEBUG
-  cout << (unsigned long)(this) << " DS_CMD_OPEN_SEND_SHUFFLE - start" 
-       << endl;
+  std::cout << (unsigned long)(this) << " DS_CMD_OPEN_SEND_SHUFFLE - start" 
+       << std::endl;
 #endif
 
   //Initializes the writing of a tuple-stream, 
@@ -103,8 +103,8 @@ DServerCmdShuffleSend::run()
     getWorker() -> getMasterHostIP_()  + " p" + port + ") )";
 
 #ifdef DS_CMD_OPEN_SEND_SHUFFLE_DEBUG
-  cout << (unsigned long)(this) << " DS_CMD_OPEN_SEND_SHUFFLE - send " 
-       << getIndex() << ": " << com << endl;
+  std::cout << (unsigned long)(this) << " DS_CMD_OPEN_SEND_SHUFFLE - send " 
+       << getIndex() << ": " << com << std::endl;
 #endif
       
   // initiate d_send_shuffle command on the destination
@@ -125,8 +125,8 @@ DServerCmdShuffleSend::run()
     }
            
 #ifdef DS_CMD_OPEN_SEND_SHUFFLE_DEBUG
-  cout << (unsigned long)(this) << " DS_CMD_OPEN_SEND_SHUFFLE - done"
-       << endl;
+  std::cout << (unsigned long)(this) << " DS_CMD_OPEN_SEND_SHUFFLE - done"
+       << std::endl;
 #endif   
 
 } // run()

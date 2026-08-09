@@ -82,7 +82,7 @@ The first constructor. Creates an empty R-tree.
     if(0 <= i && i < MAXMODE){
     return m_list[i];
     }else{
-    cout<<"illegal entry id"<<endl;
+    std::cout<<"illegal entry id"<<std::endl;
 //    assert(false);
     return 0;
     }
@@ -175,7 +175,7 @@ struct Obj_Dur{
   double GetMin(){return min;}
   bool Status(){return status;}
   void SetStatus(bool b){status = b;}
-  void Print(){cout<<min<<" "<<status<<endl;}
+  void Print(){std::cout<<min<<" "<<status<<std::endl;}
 };
 
 struct Q_ModeRtree{

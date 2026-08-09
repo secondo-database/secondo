@@ -69,8 +69,8 @@ Expect a DRel or DFRel and another DRel or DFRel.
     ListExpr compareDistTypeTM( ListExpr args ) {
 
         #ifdef DRELDEBUG
-        cout << "compareDistTypeTM" << endl;
-        cout << nl->ToString( args ) << endl;
+        std::cout << "compareDistTypeTM" << std::endl;
+        std::cout << nl->ToString( args ) << std::endl;
         #endif
 
         std::string err = "d[f]rel x d[f]rel expected";

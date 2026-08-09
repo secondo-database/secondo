@@ -73,13 +73,14 @@ Parser: DBLPParser.o dblp.o
 	gcc -o Parser DBLPParser.o dblp.o -ldb $(BDB_LIB_DIR_FLAG) $(LEX_LIB_FLAG) $(LIB_FLAG)
 
 DBLPParser.o: DBLPParser.y.c
-	gcc -c -o DBLPParser.o  $(BDB_INCLUDE_FLAG) DBLPParser.y.c
+	gcc -c -o DBLPParser.o  $(BDB_INCLUDE_FLAG) DBLPParser.y.c \
+	    -MMD -MP -MF DBLPParser.dep
 
 DBLPParser.y.c: DBLPParser.y
 	bison --yacc -d  -o DBLPParser.y.c DBLPParser.y
 
 dblp.o:	lex.yy.c
-	gcc -c -o dblp.o lex.yy.c
+	gcc -c -o dblp.o lex.yy.c -MMD -MP -MF dblp.dep
 
 lex.yy.c:	DBLPLex.l
 	flex  DBLPLex.l
@@ -90,4 +91,4 @@ KeyWordCreator.class: KeyWordCreator.java
 
 clean:
 	rm -f *.exe DBLPParser.y.h DBLPParser.y.c DoubleTitle.c FilterHTML.c lex.yy.c
-	rm -f *.o *.class DoubleTitle$(EXE_EXT) Parser$(EXE_EXT) FilterHTML$(EXE_EXT) progress$(EXE_EXT)
+	rm -f *.o *.dep *.class DoubleTitle$(EXE_EXT) Parser$(EXE_EXT) FilterHTML$(EXE_EXT) progress$(EXE_EXT)

@@ -49,16 +49,23 @@ check_dependencies:
 	$(check-algebra-dependencies)
 
 RegExScanner.o: RegExScanner.c
-	$(CC) $(CCFLAGS) -fPIC -c  -I../../include -o RegExScanner.o RegExScanner.c
+	$(CC) $(CCFLAGS) -fPIC -c  -I../../include -o RegExScanner.o \
+	    RegExScanner.c -MMD -MP -MF RegExScanner.dep
 
 RegExScanner.c: RegExScanner.l RegExParser.y.c
 	$(LEX) -o RegExScanner.c RegExScanner.l
 
 RegExParser.o:  RegExParser.y.c
-	$(CC) $(CCFLAGS) -fPIC -x c++ -c -o RegExParser.o   -I../../include RegExParser.y.c
+	$(CC) $(CCFLAGS) -fPIC -x c++ -c -o RegExParser.o   -I../../include \
+	    RegExParser.y.c -MMD -MP -MF RegExParser.dep
 
 RegExParser.y.c: RegExParser.y 
 	$(YACC) -d -o RegExParser.y.c RegExParser.y
+
+# makefile.env includes $(DEP_FILES), which it builds from the *.cpp
+# here; the generated C above is not in that list. Taking every .dep
+# present covers both without a list to keep in step.
+-include $(wildcard *.dep)
 
 # generic rule for creating a library
 $(LIBOBJ): $(OBJECTS)
@@ -68,4 +75,4 @@ $(LIBOBJ): $(OBJECTS)
 .PHONY: clean
 clean:
 	$(clean-algebra)
-	rm -f RegExParser.y.c RegExScanner.c RegExParser.y.h 
+	rm -f RegExParser.y.c RegExScanner.c RegExParser.y.h *.dep

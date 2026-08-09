@@ -188,7 +188,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
      out = new std::ofstream(filename.c_str(), std::ios::out 
                                                | std::ios::binary);
      if(!out->good()){
-         cout << "problem in creating file" << endl;
+         std::cout << "problem in creating file" << std::endl;
          delete out;
          out = 0;
          temp = false; 

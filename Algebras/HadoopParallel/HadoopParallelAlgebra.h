@@ -910,29 +910,29 @@ Put one tuple into the sheet, if the buffer limit is not reached.
 
   std::ostream& print(std::ostream& os) const {
 
-    os << "Sheet index is: " << sheetIndex << endl;
+    os << "Sheet index is: " << sheetIndex << std::endl;
     os << "source DSs: ";
     for (std::vector<int>::const_iterator it = sourceDSs.begin();
         it != sourceDSs.end(); it++){
       os << (*it) << " ";
     }
-    os << endl;
+    os << std::endl;
 
-    os << "flobFiles: ------------- " << endl;
+    os << "flobFiles: ------------- " << std::endl;
     for (std::map<int, std::pair<std::string, size_t> >::iterator 
          it = flobFiles->begin();
         it != flobFiles->end(); it++ ){
       os << "attrId(" << it->first << ") : " << it->second.first
-          << " offset(" << it->second.second << ")" << endl;
+          << " offset(" << it->second.second << ")" << std::endl;
     }
-    os << "-----------------------------" << endl;
+    os << "-----------------------------" << std::endl;
 
     os << "maxsize (" << maxMem
-        << ") cachedSize (" << cachedSize << ")" << endl;
-    os << "Cached tuples : " << buffer->GetNoTuples() << endl;
-    os << "Read tuples : " << rtCounter << endl;
-    os << "Prepared Flob Orders: " << toCounter << endl;
-    os << endl << endl;
+        << ") cachedSize (" << cachedSize << ")" << std::endl;
+    os << "Cached tuples : " << buffer->GetNoTuples() << std::endl;
+    os << "Read tuples : " << rtCounter << std::endl;
+    os << "Prepared Flob Orders: " << toCounter << std::endl;
+    os << std::endl << std::endl;
 
     return os;
   }
@@ -1142,14 +1142,14 @@ but only the id among the requested Flob attributes
 
 
   std::ostream& print(std::ostream& os) const{
-    os << "Returned: " << (returned ? "True" : "False") << endl;
-    os << "Attribute Size: " << attrSize << endl;
-    os << "Maximum Flob Size: " << maxFlobSize << endl;
+    os << "Returned: " << (returned ? "True" : "False") << std::endl;
+    os << "Attribute Size: " << attrSize << std::endl;
+    os << "Maximum Flob Size: " << maxFlobSize << std::endl;
     for (size_t i = 0; i < attrSize; i++){
       for (size_t k = 0; k < maxFlobSize; k++){
         os << "\t" << i << "_" << k << ": source(" << dsVec[i][k] << ") "
             << "times(" << timesVec[i][k] << ") "
-            << endl;
+            << std::endl;
       }
     }
     return os;

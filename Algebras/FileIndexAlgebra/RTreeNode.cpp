@@ -387,20 +387,20 @@ namespace fialgebra{
   template<int dim>
   void RTreeNode<dim>::PrintNodeToString(){
     if(!IsLeaf()){
-      cout<<"Interne Knote: ";
+      std::cout<<"Interne Knote: ";
       for(size_t i = 0; i < GetNumberOfEntries(); i++){
-         cout<<"EntryNumber: "<<i+1<<"; EntryPageNumber: "<<GetNodeID()<<
+         std::cout<<"EntryNumber: "<<i+1<<"; EntryPageNumber: "<<GetNodeID()<<
          "; Entry: "<<GetValueAt(i)<<"   ";
        }
-       cout<<"\n";
+       std::cout<<"\n";
     }
     else{
-      cout<<"Blatt: ";
+      std::cout<<"Blatt: ";
       for(size_t i = 0; i < GetNumberOfEntries(); i++){
-         cout<<"IDNumber: "<<i+1<<"; EntryPageNumber: "<<GetNodeID()<<
+         std::cout<<"IDNumber: "<<i+1<<"; EntryPageNumber: "<<GetNodeID()<<
          "; ID: "<<GetIDAt(i)<<"   ";
        }
-       cout<<"\n";
+       std::cout<<"\n";
     }
 }
 

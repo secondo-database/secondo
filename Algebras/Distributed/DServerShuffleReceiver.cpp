@@ -75,9 +75,9 @@ void  DServerShuffleReceiver::run()
 #ifdef SHUFFLE_RECEIVE_DEBUG
   string recType;
   DBAccessGuard::getInstance() -> NL_ToString(m_recType, recType);
-  cout << "Starting Receiver: " <<  m_runit
+  std::cout << "Starting Receiver: " <<  m_runit
        << " for " << m_destHost << ":" << m_toPort 
-       << " TT:" << recType << endl;
+       << " TT:" << recType << std::endl;
 
   int dbg_count = 0;
 #endif
@@ -106,8 +106,8 @@ void  DServerShuffleReceiver::run()
             {
               dscCallBack -> readTupleFromCallBack(tt, &recContainer);
 #ifdef SHUFFLE_RECEIVE_DEBUG 
-              cout << "Rec:" << m_destHost << ":" << m_toPort 
-                   << " - " << dbg_count << endl;
+              std::cout << "Rec:" << m_destHost << ":" << m_toPort 
+                   << " - " << dbg_count << std::endl;
               dbg_count ++;
 #endif
             }
@@ -141,7 +141,8 @@ void  DServerShuffleReceiver::run()
   delete dscCallBack;
 
 #ifdef SHUFFLE_RECEIVE_DEBUG
-  cout << "RECEIVER IS DONE from " << m_toPort << "@" << m_destHost << endl;
+  std::cout << "RECEIVER IS DONE from " << m_toPort << "@" << m_destHost
+     << std::endl;
 #endif
 } 
  

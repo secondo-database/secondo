@@ -20,7 +20,7 @@ include ../../makefile.env
 # should work for nearly every algebra. 
 MODNAME = TopRelAlgebra
 
-CCFLAGS +=  -Werror
+CCFLAGS +=  -Werror -I../FText
 
 # The next rule will create a ".o" file for every ".cpp" file and 
 # creates a "lib$(MODNAME).a" file in the secondo/lib dir. Rules
@@ -33,9 +33,6 @@ check_dependencies:
 
 NFATest: NFATest.o Scanner.o RegExParser.o  ../FText/Functions.o
 	$(CC) -o NFATest  NFATest.o  RegExParser.o Scanner.o ../FText/Functions.o  -lstdc++ -lfl
-
-NFATest.o: NFATest.cpp 
-	$(CC) -fPIC -c -o  NFATest.o -I../FText  NFATest.cpp
 
 ../FText/Functions.o: ../FText/Functions.h ../FText/Functions.cpp
 	$(MAKE) -C ../FText
@@ -62,24 +59,31 @@ else
 endif
 
 RegExParser.o: RegExParser.y.c
-	$(CC) -fPIC -x c++ -I../FText -c -o RegExParser.o RegExParser.y.c 
+	$(CC) -fPIC -x c++ -c -o RegExParser.o RegExParser.y.c \
+	    -MMD -MP -MF RegExParser.dep
 
 RegExParser.y.c: RegExParser.y ../FText/Nfa.h
 	$(YACC) -d -o RegExParser.y.c RegExParser.y
 
 Scanner.o: Scanner.c
-	$(CC) -fPIC -c -o Scanner.o Scanner.c
+	$(CC) -fPIC -c -o Scanner.o Scanner.c \
+	    -MMD -MP -MF Scanner.dep
 
 Scanner.c: Scanner.l RegExParser.y.c
 	$(LEX) -o Scanner.c Scanner.l
 
 	
 
+# makefile.env includes $(DEP_FILES), built from the *.cpp here; the
+# generated C above is not in it, so take whatever .dep files exist.
+-include $(wildcard *.dep)
+
 # remove all generated stuff
 .PHONY: clean
 clean:
 	$(RM) $(DEP_FILES) $(OBJECTS) $(LIBOBJ)
 	$(RM) -f P RegExParser.o RegExParser.y.c Scanner.o Scanner.c  NFATest
+	$(RM) -f *.dep
 	$(RM) -f RegExParser.y.h
 	$(RM) -f MTopRelAlgebra.cpp.aux MTopRelAlgebra.cpp.dvi MTopRelAlgebra.cpp.log MTopRelAlgebra.cpp.tex
 

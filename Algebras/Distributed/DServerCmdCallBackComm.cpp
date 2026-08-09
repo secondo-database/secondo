@@ -183,7 +183,7 @@ readTupleFromCallBack(TupleType* inTupleType,
 
       if (!sendTextToCallBack("NUMBLOCKS", num_blocks, false))
         {
-          cerr << "REC ERROR SEND NUMBLOCKS" << endl;
+          std::cerr << "REC ERROR SEND NUMBLOCKS" << std::endl;
         }
 
       for(int i = 0; i<num_blocks; i++)

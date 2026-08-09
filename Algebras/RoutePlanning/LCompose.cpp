@@ -981,7 +981,7 @@ namespace routeplanningalgebra {
     double maxx = -DBL_MAX;
     double maxy = -DBL_MAX;
 
-    cout.precision(8);
+    std::cout.precision(8);
     PointCloud *pointCloud;
     stream.open();
     while ((pointCloud = stream.request()) != 0) {

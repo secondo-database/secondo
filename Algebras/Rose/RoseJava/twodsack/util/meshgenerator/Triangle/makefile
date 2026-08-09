@@ -106,12 +106,17 @@ $(BIN)tricall: $(BIN)tricall.c $(BIN)triangle.o
 	$(CC) $(CSWITCHES) -o $(BIN)tricall $(SRC)tricall.c \
 		$(BIN)triangle.o -lm
 
-$(BIN)triangle.o: $(SRC)triangle.c $(SRC)triangle.h
+$(BIN)triangle.o: $(SRC)triangle.c
 	$(CC) $(CSWITCHES) -fPIC $(TRILIBDEFS) -c -o $(BIN)triangle.o \
-		$(SRC)triangle.c
+		$(SRC)triangle.c -MMD -MP -MF $(BIN)triangle.dep
+
+# Vendored Triangle, built by the rule above rather than by a SECONDO pattern
+# rule, so its dependency file is asked for and included here.
+-include $(wildcard $(BIN)*.dep)
 
 $(BIN)showme: $(SRC)showme.c
 	$(CC) $(CSWITCHES) -o $(BIN)showme $(SRC)showme.c -lX11
 
 distclean:
 	$(RM) $(BIN)triangle $(BIN)triangle.o $(BIN)tricall $(BIN)showme
+	$(RM) $(BIN)*.dep

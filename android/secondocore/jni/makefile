@@ -55,8 +55,9 @@ app$(EXEEXT): Example.o
 	mkdir -p databases
 
 
-Example.o: Example.cpp
-	$(CPPC) -c -o Example.o $(CCFLAGS) Example.cpp -I../include -I$(BDB_INCLUDE_DIR) 
+# Folded in from the compile rule this replaced, so the %.o rule in
+# makefile.env builds the object and writes its .dep.
+CCFLAGS += -I../include -I$(BDB_INCLUDE_DIR)
 
 .PHONY:clean
 clean:

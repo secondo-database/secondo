@@ -71,8 +71,8 @@ namespace continuousqueries {
 ListExpr createSSPCoordinator_TM(ListExpr args) {
     // the list is coded as ( (<type> <query part>) (<type> <query part>) ...)
 
-    std::cout << "createSSPCoordinator: TypeMapping" << endl;
-    std::cout << "Argument: " << nl->ToString(args) << endl;
+    std::cout << "createSSPCoordinator: TypeMapping" << std::endl;
+    std::cout << "Argument: " << nl->ToString(args) << std::endl;
 
     // Check for int x text x text -> int
     if (!nl->HasLength(args, 3))
@@ -126,7 +126,7 @@ ListExpr createSSPCoordinator_TM(ListExpr args) {
 int createSSPCoordinator_VM(Word* args, Word& result, int message,
               Word& local, Supplier s) {
 
-    std::cout << "createSSPCoordinator: ValueMapping" << endl;
+    std::cout << "createSSPCoordinator: ValueMapping" << std::endl;
 
     CcInt*   ccport        = (CcInt*) args[0].addr; 
     CcString* cccmd        = (CcString*) args[1].addr;
@@ -135,24 +135,24 @@ int createSSPCoordinator_VM(Word* args, Word& result, int message,
     std::string cmd = cccmd->GetValue();
     boost::to_upper(cmd);
 
-    std::cout << "Creating the specified Coordinator..." << endl;
+    std::cout << "Creating the specified Coordinator..." << std::endl;
 
     if (cmd == "LOOP") {
-        std::cout << "Creating a Loop Coordinator..." << endl;
+        std::cout << "Creating a Loop Coordinator..." << std::endl;
         CoordinatorLoop coordinator(
             ccport->GetValue(), 
             fttupledescr->GetValue()
         );
         coordinator.Run();
     } else if (cmd == "JOIN") {
-        std::cout << "Creating a Join Coordinator..." << endl;
+        std::cout << "Creating a Join Coordinator..." << std::endl;
         CoordinatorJoin coordinator(
             ccport->GetValue(), 
             fttupledescr->GetValue()
         );
         coordinator.Run();
     } else {
-        std::cout << "No known command given. Quitting..." << endl;
+        std::cout << "No known command given. Quitting..." << std::endl;
     }
 
     result = qp->ResultStorage(s);

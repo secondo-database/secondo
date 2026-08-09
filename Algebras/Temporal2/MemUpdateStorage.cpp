@@ -21,7 +21,7 @@ std::ostream &operator<<(std::ostream &os, SharedData const &l) {
     SharedUnits::const_iterator it;
     for (it = l.units.begin(); it != l.units.end(); ++it) {
         it->createUnit(&u);
-        os << endl << u;
+        os << std::endl << u;
     }
     return os;
 }
@@ -59,7 +59,8 @@ void MemUpdateStorage::initMem() {
                         memStorageName.c_str(),
                         storage_size );
         VoidAllocator allocator(segment.get_segment_manager());
-        cout << "creating SharedMemStorage:" << shMemDataName.c_str() << "\n";
+        std::cout << "creating SharedMemStorage:" << shMemDataName.c_str()
+           << "\n";
 
         memdata = segment.construct<SharedMemStorage>
         (shMemDataName.c_str())
@@ -68,21 +69,21 @@ void MemUpdateStorage::initMem() {
         newly_created=true;
     }
     catch (const boost::interprocess::interprocess_exception ex) {
-        cout << "couldn't create shm - someone else did. Try to open.\n";
-        cout << ex.what() << endl;;
+        std::cout << "couldn't create shm - someone else did. Try to open.\n";
+        std::cout << ex.what() << std::endl;;
         segment = boost::interprocess::managed_shared_memory
                 (boost::interprocess::open_only,
                         memStorageName.c_str());
 
-        cout << "finding MemData: " << shMemDataName.c_str() << "\n";
+        std::cout << "finding MemData: " << shMemDataName.c_str() << "\n";
         memdata = segment.find<SharedMemStorage>(shMemDataName.c_str()).first;
-        cout << "memdata->dataMap.size(): "
-                << memdata->dataMap.size() << endl;
+        std::cout << "memdata->dataMap.size(): "
+                << memdata->dataMap.size() << std::endl;
 
         return;
     } catch (const std::exception ex) {
-        cout << "Ups: MemUpdateStorage::initMem() - unhandled exeption:\n"
-                << ex.what() << endl;
+        std::cout << "Ups: MemUpdateStorage::initMem() - unhandled exeption:\n"
+                << ex.what() << std::endl;
         throw;
     }
 }
@@ -97,26 +98,26 @@ void MemUpdateStorage::assertSameDb() const {
 }
 
 MemUpdateStorage::~MemUpdateStorage() {
-    cout <<  "MemUpdateStorage::~MemUpdateStorage()\n";
+    std::cout <<  "MemUpdateStorage::~MemUpdateStorage()\n";
 
     if (!memdata) {
-        cout << "no memdata to clean up.\n";
+        std::cout << "no memdata to clean up.\n";
         return;
     }
-    cout << "contents of SharedMemStorage:\n";
-    cout << *memdata << endl;
+    std::cout << "contents of SharedMemStorage:\n";
+    std::cout << *memdata << std::endl;
 
     memdata->numOfUsers--;
 
     if (memdata->numOfUsers == 0) {
-        cout << "we are the last remaining user, cleaning up...\n";
+        std::cout << "we are the last remaining user, cleaning up...\n";
         segment.destroy<SharedMemStorage>(shMemDataName.c_str());
-        cout << "SharedMemStorage destroyed\n";
+        std::cout << "SharedMemStorage destroyed\n";
         boost::interprocess::shared_memory_object::remove(
                 memStorageName.c_str());
-        cout << "SharedMemory destroyed\n";
+        std::cout << "SharedMemory destroyed\n";
     } else {
-        cout << "there are other users - skip cleanup...\n";
+        std::cout << "there are other users - skip cleanup...\n";
     }
 }
 
@@ -124,7 +125,7 @@ MemUpdateStorage::MemUpdateStorage(std::string database) :
                         currentDbName(database),
                         newly_created(false)
 {
-    cout << "MemUpdateStorage::MemUpdateStorage(\""
+    std::cout << "MemUpdateStorage::MemUpdateStorage(\""
             << database << "\")\n";
 
     memStorageName = "MemUpdateStorage_SHM_" + currentDbName + "_" +"MPoint2";
@@ -137,24 +138,24 @@ MemUpdateStorage::MemUpdateStorage(std::string database) :
 }
 
 const MemStorageId MemUpdateStorage::memCreateId() {
-    cout << "MemUpdateStorage::memCreateId()\n";
+    std::cout << "MemUpdateStorage::memCreateId()\n";
     assertSameDb();
     MemStorageId newId = ++(memdata->lastKnownStorageId);
-    cout << "MemUpdateStorage::memCreateId()\n: " << newId << endl;
+    std::cout << "MemUpdateStorage::memCreateId()\n: " << newId << std::endl;
     return newId;
 }
 
 void MemUpdateStorage::memCreateId(MemStorageId id) {
-    cout << "MemUpdateStorage::memCreateId("<< id << ")\n";
+    std::cout << "MemUpdateStorage::memCreateId("<< id << ")\n";
     assertSameDb();
     assert (id > memdata->lastKnownStorageId);
     memdata->lastKnownStorageId = id;
-    cout << "MemUpdateStorage::memCreateId("<< id << ")\n";
+    std::cout << "MemUpdateStorage::memCreateId("<< id << ")\n";
 }
 
 void MemUpdateStorage::memSetBackRef(const MemStorageId& id,
         const BackReference& backRef, const Unit& finalUnit) {
-    cout << "MemUpdateStorage::memSetBackRef(id: " << id
+    std::cout << "MemUpdateStorage::memSetBackRef(id: " << id
             << ", backRef: " << backRef << ")\n";
     assertSameDb();
 
@@ -164,7 +165,7 @@ void MemUpdateStorage::memSetBackRef(const MemStorageId& id,
     VoidAllocator allocator(segment.get_segment_manager());
     memdata->dataMap.insert(
             SharedDataMapValue(id, SharedData(backRef, finalUnit, allocator)));
-    cout << "createMem():" << backRef << endl;
+    std::cout << "createMem():" << backRef << std::endl;
 }
 
 bool MemUpdateStorage::memHasMemoryUnits(const MemStorageId id) const {
@@ -172,7 +173,7 @@ bool MemUpdateStorage::memHasMemoryUnits(const MemStorageId id) const {
 }
 
 Unit MemUpdateStorage::memGet(const MemStorageId id, size_t memIndex) {
-    cout << "MemUpdateStorage::memGet(id: " << id
+    std::cout << "MemUpdateStorage::memGet(id: " << id
             << ", memIndex: " << memIndex << ")\n";
     assert (id > 0);
     assertSameDb();
@@ -185,7 +186,7 @@ Unit MemUpdateStorage::memGet(const MemStorageId id, size_t memIndex) {
 }
 
 Unit MemUpdateStorage::memGetFinalUnit(const MemStorageId id) {
-    cout << "MemUpdateStorage::memGet(id: " << id << ")\n";
+    std::cout << "MemUpdateStorage::memGet(id: " << id << ")\n";
     assert (id > 0);
     assertSameDb();
     SharedDataMap::iterator it = memdata->dataMap.find(id);
@@ -208,7 +209,7 @@ MemStorageId MemUpdateStorage::memGetId(const BackReference& backRef) const {
 }
 
 int MemUpdateStorage::memSize(const MemStorageId id) {
-    cout << "MemUpdateStorage::memSize(id: " << id << ")\n";
+    std::cout << "MemUpdateStorage::memSize(id: " << id << ")\n";
     assert (id > 0);
     assertSameDb();
     SharedDataMap::iterator it = memdata->dataMap.find(id);
@@ -218,13 +219,13 @@ int MemUpdateStorage::memSize(const MemStorageId id) {
 
 void MemUpdateStorage::memAppend
 (MemStorageId id, const temporalalgebra::UPoint& unit) {
-    cout << "MemUpdateStorage::memAppend(" << id << ", " << unit << ")\n";
+    std::cout << "MemUpdateStorage::memAppend(" << id << ", " << unit << ")\n";
     assert (id > 0);
     assertSameDb();
 
     SharedDataMap::iterator it = memdata->dataMap.find(id);
     if (it == memdata->dataMap.end()) {
-        cout << "no Storage for id :" << id << endl;
+        std::cout << "no Storage for id :" << id << std::endl;
         assert(false);
     }
     FlatUnit u(unit);
@@ -233,7 +234,7 @@ void MemUpdateStorage::memAppend
 }
 
 void MemUpdateStorage::memClear (const MemStorageId id) {
-    cout << "MemUpdateStorage::memClear(" << id << ")\n";
+    std::cout << "MemUpdateStorage::memClear(" << id << ")\n";
     assert (id>0);
     assertSameDb(); // probably can be removed if we check for id=0;
 
@@ -244,7 +245,7 @@ void MemUpdateStorage::memClear (const MemStorageId id) {
 }
 
 MemStorageIds MemUpdateStorage::getIdsToPush() const {
-    cout << "MemUpdateStorage::getIdsToPush()\n";
+    std::cout << "MemUpdateStorage::getIdsToPush()\n";
     assertSameDb();
     MemStorageIds res(0);
 
@@ -255,13 +256,13 @@ MemStorageIds MemUpdateStorage::getIdsToPush() const {
         res.push_back(it->first);
     }
 
-    cout << "found " << res.size() << " entries\n";
+    std::cout << "found " << res.size() << " entries\n";
     return res;
 }
 
 const BackReference
 MemUpdateStorage::getBackReference(const MemStorageId id) {
-    cout << "MemUpdateStorage::memGetBackReference(" << id << ")\n";
+    std::cout << "MemUpdateStorage::memGetBackReference(" << id << ")\n";
     assert (id>0);
     assertSameDb(); // probably can be removed if we check for id=0;
 
@@ -275,20 +276,20 @@ MemUpdateStorage::getBackReference(const MemStorageId id) {
 
 int MemUpdateStorage::memPushToFlobs(
         const MemStorageId idToPush, bool keep_reference ) {
-    cout << "MemUpdateStorage::memPushToFlobs(idToPush: "
+    std::cout << "MemUpdateStorage::memPushToFlobs(idToPush: "
             << idToPush   << ")\n";
 
     assert (idToPush > 0);
 
     if (!memdata) {
-        cout << "no MemStorage\n";
+        std::cout << "no MemStorage\n";
         assert (false);
         return 0;
     }
 
     SharedDataMap::iterator it = memdata->dataMap.find(idToPush);
     if (it == memdata->dataMap.end()) {
-        cout << "no MemDate with idToPush: " << idToPush << endl;
+        std::cout << "no MemDate with idToPush: " << idToPush << std::endl;
         assert (false);
         return 0;
     }
@@ -296,14 +297,14 @@ int MemUpdateStorage::memPushToFlobs(
 // we found some MemData:
 
 
-    cout << "finding Backreference:\n";
+    std::cout << "finding Backreference:\n";
     BackReference* backref_it = &(it->second.backReference);
 
 
     std::string relationName = backref_it->relationName;
     SecondoCatalog* catalog = SecondoSystem::GetCatalog();
     if (!catalog->IsObjectName(relationName)) {
-        cout << "no secondo object with name '" << relationName
+        std::cout << "no secondo object with name '" << relationName
                 << "' found\n";
         memClear(idToPush);
         return 0;
@@ -314,22 +315,23 @@ int MemUpdateStorage::memPushToFlobs(
     catalog->GetObject(relationName, relationWord, defined);
     Relation* relation = static_cast<Relation*>(relationWord.addr);
     if (!relation) {
-        cout << "couldn't get Relation* for '"
+        std::cout << "couldn't get Relation* for '"
                 << relationName << "'\n";
         memClear(idToPush);
         return 0;
     }
 
-    cout << "retrieving tuple with TID " << backref_it->tupleId << endl;
+    std::cout << "retrieving tuple with TID " << backref_it->tupleId
+       << std::endl;
     Tuple*  tuple = relation->GetTuple(backref_it->tupleId, true);
 
     if (!tuple) {
-        cout << "no tuple found\n";
+        std::cout << "no tuple found\n";
         memClear(idToPush);
         return 0;
     }
 
-    cout << "found target tuple: " << *tuple << endl;
+    std::cout << "found target tuple: " << *tuple << std::endl;
 
     // GetAttribute just gives us a pointer to the existing Attr
     // read: do not delete, do not deleteIfAllowed; better not touch
@@ -337,9 +339,9 @@ int MemUpdateStorage::memPushToFlobs(
             tuple->GetAttribute(backref_it->attrPos));
 
     if (moving->getMemId() != idToPush) {
-        cout << "mismatch between storageIds! "
+        std::cout << "mismatch between storageIds! "
                 << "moving: " << moving->getMemId()
-                << "idToPush: " << idToPush << endl;
+                << "idToPush: " << idToPush << std::endl;
         tuple->DeleteIfAllowed();
         memClear(idToPush);
         return 0;

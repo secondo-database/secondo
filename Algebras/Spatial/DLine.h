@@ -342,8 +342,9 @@ class DLine : public StandardSpatialAttribute<2>{
       }
  
      if(geoid){
-       cout << __PRETTY_FUNCTION__ << ": Spherical geometry not implemented."
-            <<endl;
+       std::cout << __PRETTY_FUNCTION__
+          << ": Spherical geometry not implemented."
+            <<std::endl;
        assert(false); // TODO: Implement spherical geometry case.
      }
      SimpleSegment ss;
@@ -430,7 +431,7 @@ class DLine : public StandardSpatialAttribute<2>{
         for(int i=0;i<segments.Size();i++){
            segments.Get(i,s);
            s.print(os);
-           os << endl;
+           os << std::endl;
         }
         return os;
      }

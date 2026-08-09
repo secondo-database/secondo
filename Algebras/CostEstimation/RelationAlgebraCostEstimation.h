@@ -1086,7 +1086,7 @@ overriding standard implementations
                           const size_t noAttributes, const double selectivity,
                           const double memoryMB, double &costs) const{
 
-     cout << "getCosts called for operator count" << endl;
+     std::cout << "getCosts called for operator count" << std::endl;
      double factor = 0.00001; // just for testing
      double c = NoTuples * factor;
      costs = (size_t) c;
@@ -1102,7 +1102,7 @@ overriding standard implementations
                                  const double selectivity,
                   double& sufficientMemory, double& timeAtSuffMemory,
                                  double& timeAt16MB) const{
-     cout << "getLinearParams called for operator count" << endl;
+     std::cout << "getLinearParams called for operator count" << std::endl;
       sufficientMemory = sizeOfTuple / 1024;
       double factor = 0.00001; // just for testing
       timeAtSuffMemory = factor * noTuples;

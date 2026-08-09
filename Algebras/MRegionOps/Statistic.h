@@ -124,81 +124,96 @@ Print the current state of all counters.
     
     void Print() const {
 
-        cout << "_______________________________________________________"
-                << endl;
-        cout << endl;
-        cout << "Overall Statistic:" << endl;
-        cout << "_______________________________________________________"
-                << endl;
-        cout << endl;
+        std::cout << "_______________________________________________________"
+                << std::endl;
+        std::cout << std::endl;
+        std::cout << "Overall Statistic:" << std::endl;
+        std::cout << "_______________________________________________________"
+                << std::endl;
+        std::cout << std::endl;
 
-        cout << "Units of RefinementPartition (Input): " << noUnitsIn << endl;
-        cout << "Units of Result (Output): " << noUnitsResult << endl;
-        cout << endl;
+        std::cout << "Units of RefinementPartition (Input): " << noUnitsIn
+           << std::endl;
+        std::cout << "Units of Result (Output): " << noUnitsResult << std::endl;
+        std::cout << std::endl;
 
-        cout << "Step 1: Creation of PFaces" << endl;
-        cout << endl;
-        cout << "Time: " << durationCreatePFacesOverall << " seconds." << endl;
-        cout << "PFaces created: " << noPFaceTotal << endl;
-        cout << "_____________________________________________________" << endl;
-        cout << endl;
+        std::cout << "Step 1: Creation of PFaces" << std::endl;
+        std::cout << std::endl;
+        std::cout << "Time: " << durationCreatePFacesOverall << " seconds."
+           << std::endl;
+        std::cout << "PFaces created: " << noPFaceTotal << std::endl;
+        std::cout << "_____________________________________________________"
+           << std::endl;
+        std::cout << std::endl;
 
-        cout << "Step 2: Creation of IntersectionSegments" << endl;
-        cout << endl;
-        cout << "Time: " << durationComputeIntSegsOverall << " seconds."
-                << endl;
-        cout << "IntersectionSegments created: " << noIntSegsTotal
-                - noBorderIntSegs << endl;
-        cout << "PFaces involved: " << noPFaceReducedByPBR << endl;
-        cout << "_____________________________________________________" << endl;
-        cout << endl;
+        std::cout << "Step 2: Creation of IntersectionSegments" << std::endl;
+        std::cout << std::endl;
+        std::cout << "Time: " << durationComputeIntSegsOverall << " seconds."
+                << std::endl;
+        std::cout << "IntersectionSegments created: " << noIntSegsTotal
+                - noBorderIntSegs << std::endl;
+        std::cout << "PFaces involved: " << noPFaceReducedByPBR << std::endl;
+        std::cout << "_____________________________________________________"
+           << std::endl;
+        std::cout << std::endl;
 
-        cout << "Step 3a: Collect relevant PFaces" << endl;
-        cout << endl;
-        cout << "Time: " << durationCollectRelevantPFacesOverall << " seconds."
-                << endl;
-        cout << "PFaces relevant for the result: " << noRelevantPFaces << endl;
-        cout << "Border Segments added: " << noBorderIntSegs
-                << endl;
-        cout << "_____________________________________________________" << endl;
-        cout << endl;
+        std::cout << "Step 3a: Collect relevant PFaces" << std::endl;
+        std::cout << std::endl;
+        std::cout << "Time: " << durationCollectRelevantPFacesOverall
+           << " seconds."
+                << std::endl;
+        std::cout << "PFaces relevant for the result: " << noRelevantPFaces
+           << std::endl;
+        std::cout << "Border Segments added: " << noBorderIntSegs
+                << std::endl;
+        std::cout << "_____________________________________________________"
+           << std::endl;
+        std::cout << std::endl;
 
-        cout << "Step 3b: Construction of ResultUnits" << endl;
-        cout << endl;
-        cout << "Time total: " << durationConstructResultUnitsOverall
-                << " seconds." << endl;
-        cout << endl;
+        std::cout << "Step 3b: Construction of ResultUnits" << std::endl;
+        std::cout << std::endl;
+        std::cout << "Time total: " << durationConstructResultUnitsOverall
+                << " seconds." << std::endl;
+        std::cout << std::endl;
 
-        cout << "  Part 1: Create and decide new MSegments" << endl;
-        cout << "  Time: " << durationProcessNormalPFace
-                + durationProcessCriticalPFace << " seconds." << endl;
-        cout << "  MSegments created total: " << noMSegsOverall << endl;
-        cout << "  MSegments part of result: " << noMSegsValidOverall << endl;
-        cout << "  MSegments skipped: " << noMSegsSkippedOverall << endl;
-        cout << "  MSegments critical: " << noMSegCriticalOverall << endl;
-        cout << "  Decisions by plumbline: " << decisionsByPlumblineOverall
-                << endl;
-        cout << "  Decisions by PFace-relevance: "
-                << decisionsByEntirelyInOutOverall << endl;
-        cout << "  Decisions by adjacency: " << decisionsByAdjacencyOverall
-                << endl;
-        cout << "  Decisions by degeneration: "
-                << decisionsByDegenerationOverall << endl;
-        cout << "  Testregions created total: " << NoTestRegionsCreated << endl;
-        cout << "  Testregions cachehits: " << NoTestRegionsCacheHits << endl;
-        cout << endl;
+        std::cout << "  Part 1: Create and decide new MSegments" << std::endl;
+        std::cout << "  Time: " << durationProcessNormalPFace
+                + durationProcessCriticalPFace << " seconds." << std::endl;
+        std::cout << "  MSegments created total: " << noMSegsOverall
+           << std::endl;
+        std::cout << "  MSegments part of result: " << noMSegsValidOverall
+           << std::endl;
+        std::cout << "  MSegments skipped: " << noMSegsSkippedOverall
+           << std::endl;
+        std::cout << "  MSegments critical: " << noMSegCriticalOverall
+           << std::endl;
+        std::cout << "  Decisions by plumbline: " << decisionsByPlumblineOverall
+                << std::endl;
+        std::cout << "  Decisions by PFace-relevance: "
+                << decisionsByEntirelyInOutOverall << std::endl;
+        std::cout << "  Decisions by adjacency: " << decisionsByAdjacencyOverall
+                << std::endl;
+        std::cout << "  Decisions by degeneration: "
+                << decisionsByDegenerationOverall << std::endl;
+        std::cout << "  Testregions created total: " << NoTestRegionsCreated
+           << std::endl;
+        std::cout << "  Testregions cachehits: " << NoTestRegionsCacheHits
+           << std::endl;
+        std::cout << std::endl;
 
-        cout << "  Part 2: Build cycles of ResultUnits" << endl;
-        cout << "  Time: " << durationEndBulkloadOfResultUnit << " seconds."
-                << endl;
-        cout << endl;
+        std::cout << "  Part 2: Build cycles of ResultUnits" << std::endl;
+        std::cout << "  Time: " << durationEndBulkloadOfResultUnit
+           << " seconds."
+                << std::endl;
+        std::cout << std::endl;
 
-        cout << "  Part 3: Convert ResultUnits to URegionEmb" << endl;
-        cout << "  Time: " << durationConvertResultUnitToURegionEmb
-                << " seconds." << endl;
+        std::cout << "  Part 3: Convert ResultUnits to URegionEmb" << std::endl;
+        std::cout << "  Time: " << durationConvertResultUnitToURegionEmb
+                << " seconds." << std::endl;
 
-        cout << "_____________________________________________________" << endl;
-        cout << endl;
+        std::cout << "_____________________________________________________"
+           << std::endl;
+        std::cout << std::endl;
     }
 
 /*

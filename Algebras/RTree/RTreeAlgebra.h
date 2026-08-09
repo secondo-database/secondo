@@ -3957,7 +3957,7 @@ R_Tree<dim,LeafInfo>* rtree_in2)
         node->UpdateBox(e2.box,e2.pointer);
 
         ////////////////how to insert e1 and e2 into new root//////////////
-        cout<<"the same height"<<endl;
+        std::cout<<"the same height"<<std::endl;
 
         //////////////////////////////////////////////////////////////////
 
@@ -4151,7 +4151,7 @@ void R_Tree<dim, LeafInfo>::MergeRtree()
 
 /*      int temp_index = index;
       while(temp_index >= 0){
-          cout<<"path[temp_index] "<<path[temp_index]<<endl;
+          std::cout<<"path[temp_index] "<<path[temp_index]<<std::endl;
           temp_index--;
       }*/
 
@@ -5066,12 +5066,12 @@ bool R_Tree<dim,LeafInfo>::InitializeBLI(const bool& leafSkipping)
 {
     if(bulkMode)
     {
-      cout << "bulkMode" << endl;
+      std::cout << "bulkMode" << std::endl;
     }
     
     if(bli != NULL)
     {
-      cout << "bli" << endl;
+      std::cout << "bli" << std::endl;
       delete bli;
       bli = NULL;
     }

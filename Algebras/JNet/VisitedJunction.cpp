@@ -80,7 +80,7 @@ VisitedJunction& VisitedJunction::operator= (const VisitedJunction& other)
 std::ostream& VisitedJunction::Print(std::ostream& os)const
 {
   JPQEntry::Print(os);
-  os << ", pqindex: " << pqIndex << endl;
+  os << ", pqindex: " << pqIndex << std::endl;
   return os;
 }
 

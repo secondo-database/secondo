@@ -194,7 +194,7 @@ std::ostream& JTreeElement<TreeElem>::Print(std::ostream& os) const
 {
  os << "JTreeElement: " << value
     << ", left son: " << left
-    << ", right son: " << right << endl;
+    << ", right son: " << right << std::endl;
  return os;
 }
 

@@ -345,23 +345,23 @@ class MmORelNetworkEdge {
     void Print(std::ostream& os) const {
       os << "Source: ";
       GetSource()->Print(os);
-      os << endl;
+      os << std::endl;
       os << "Target: ";
       GetTarget()->Print(os);
-      os << endl;
+      os << std::endl;
       os << "Source-Point: ";
       GetSourcePoint().Print(os);
-      os << endl;
+      os << std::endl;
       os << "Target-Point: ";
       GetTargetPoint().Print(os);
-      os << endl;
+      os << std::endl;
       os << "Curve: ";
       GetCurve()->Print(os);
-      os << endl;
-      os << "RoadName: " << GetRoadName() << endl;
-      os << "RoadType: " << GetRoadType() << endl;
-      os << "MaxSpeed: " << GetMaxSpeed() << endl;
-      os << "WayId: " << GetWayId() << endl;
+      os << std::endl;
+      os << "RoadName: " << GetRoadName() << std::endl;
+      os << "RoadType: " << GetRoadType() << std::endl;
+      os << "MaxSpeed: " << GetMaxSpeed() << std::endl;
+      os << "WayId: " << GetWayId() << std::endl;
     }
 
     const Tuple* GetTuple(void) const {return m_pTupleEdge;}
@@ -446,7 +446,7 @@ public:
     bool GetEdgesTuple(const Tuple* pTuple,
              std::vector<MmORelNetworkEdge<T> >& vecEdges) {
       
-      cout << "OrelNetwork GetEdgesTuple" << endl;
+      std::cout << "OrelNetwork GetEdgesTuple" << std::endl;
       if (pTuple == NULL ||
           m_pOrderedRelation == NULL ||
           m_EdgeAttrIndexes.m_IdxSource < 0 ||
@@ -467,8 +467,8 @@ public:
          (pTupleEdge->GetAttribute(m_EdgeAttrIndexes.m_IdxTarget)
          ->Compare(pTuple->GetAttribute(m_EdgeAttrIndexes.m_IdxTarget)) == 0)){
           
-          cout << "GetEdges private push_back Tuple: " << endl;
-        pTupleEdge->Print(cout);
+          std::cout << "GetEdges private push_back Tuple: " << std::endl;
+        pTupleEdge->Print(std::cout);
           vecEdges.push_back(MmORelNetworkEdge<T>(pTupleEdge, this, false));   
           break;
           
@@ -485,7 +485,7 @@ public:
              std::vector<MmORelNetworkEdge<T> >& vecEdges) {
     
 //       cout << "MmORelNetworkEdge GetEdges()" << endl;
-      rBBox.Print(cout);
+      rBBox.Print(std::cout);
       if (!rBBox.IsDefined() || 
           m_pRTreeEdges == NULL || 
           m_pIndexEdges == NULL) {

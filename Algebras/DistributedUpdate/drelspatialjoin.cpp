@@ -215,11 +215,11 @@ ListExpr drelspatialjoinTM(ListExpr args){
 
         if( size1 <= size2 ) { //smaller drel will be repartitioned
             rel1Flag = false;
-            cout << "repartition of drel 1 is necessary" << endl;
+            std::cout << "repartition of drel 1 is necessary" << std::endl;
         } 
         else {
             rel2Flag = false;
-            cout << "repartition of drel 2 is necessary" << endl;
+            std::cout << "repartition of drel 2 is necessary" << std::endl;
         }
     } 
 
@@ -371,7 +371,7 @@ int drelspatialjoinVMT( Word* args, Word& result, int message,
     G* grid = 0;
     if(rel1Flag && rel2Flag){
         
-        cout << "1 & 2" << endl;
+        std::cout << "1 & 2" << std::endl;
         
         drel1ptr = DRelHelpers::createdrel2darray(drel1Type, drel1);
         drel2ptr = DRelHelpers::createdrel2darray(drel2Type, drel2);
@@ -381,7 +381,7 @@ int drelspatialjoinVMT( Word* args, Word& result, int message,
         
     } else if(rel1Flag && !rel2Flag){ 
         
-        cout << "1 & !2" << endl;
+        std::cout << "1 & !2" << std::endl;
         
         drel1ptr = DRelHelpers::createdrel2darray(drel1Type, drel1);
         
@@ -389,7 +389,8 @@ int drelspatialjoinVMT( Word* args, Word& result, int message,
         ListExpr dfrel2Type;
         if( !spatialPartition(drel2Type, drel2, attr2, drel1Type, 
                               drel1, dfrel2, dfrel2Type) ){
-            cout << "spatial partition of second d[f]rel failed" << endl;
+            std::cout << "spatial partition of second d[f]rel failed"
+               << std::endl;
             resultDFRel->makeUndefined();
             return 0;
         }
@@ -401,13 +402,14 @@ int drelspatialjoinVMT( Word* args, Word& result, int message,
         
     } else if(!rel1Flag && rel2Flag){ 
         
-        cout << "!1 & 2" << endl;
+        std::cout << "!1 & 2" << std::endl;
         
         DFRel* dfrel1 = 0;
         ListExpr dfrel1Type;
         if( !spatialPartition(drel1Type, drel1, attr1, drel2Type, 
                               drel2, dfrel1, dfrel1Type) ){
-            cout << "spatial partition of first d[f]rel failed" << endl;
+            std::cout << "spatial partition of first d[f]rel failed"
+               << std::endl;
             resultDFRel->makeUndefined();
             return 0;
         }
@@ -420,13 +422,14 @@ int drelspatialjoinVMT( Word* args, Word& result, int message,
         
     } else { 
         
-        cout << "!1 & !2" << endl;
+        std::cout << "!1 & !2" << std::endl;
         
         DFRel* dfrel1 = 0;
         ListExpr dfrel1Type;
         if( !spatialPartition(drel1Type, drel1, attr1, drel2Type, 
                               0, dfrel1, dfrel1Type) ){
-            cout << "spatial partition of first d[f]rel failed" << endl;
+            std::cout << "spatial partition of first d[f]rel failed"
+               << std::endl;
             resultDFRel->makeUndefined();
             return 0;
         }
@@ -435,7 +438,8 @@ int drelspatialjoinVMT( Word* args, Word& result, int message,
         ListExpr dfrel2Type;
         if( !spatialPartition(drel2Type, drel2, attr2, dfrel1Type, 
                               dfrel1, dfrel2, dfrel2Type) ){
-            cout << "spatial partition of second d[f]rel failed" << endl;
+            std::cout << "spatial partition of second d[f]rel failed"
+               << std::endl;
             resultDFRel->makeUndefined();
             return 0;
         }
@@ -452,14 +456,14 @@ int drelspatialjoinVMT( Word* args, Word& result, int message,
     //create grid object in the master's database to avoid further 
     //errors with the Type Mapping function of the getObject operator
     if( !creategrid( gridType, gridName ) ){
-        cout << "create grid database object failed!" << endl;
+        std::cout << "create grid database object failed!" << std::endl;
         resultDFRel->makeUndefined();
         return 0;
     }
     
     //share grid
     if( !sharegrid(gridType, gridName, grid, drel1ptr) ){
-        cout << "share grid to the workers failed!" << endl;
+        std::cout << "share grid to the workers failed!" << std::endl;
         resultDFRel->makeUndefined();
         return 0;
     }
@@ -497,7 +501,7 @@ int drelspatialjoinVMT( Word* args, Word& result, int message,
     
     //delete grid object from the master's database
     if( !deletegrid( gridName ) ){
-        cout << "grid object not deleted" << endl;
+        std::cout << "grid object not deleted" << std::endl;
     }
             
     return 0;

@@ -150,45 +150,51 @@ Copies the boundary object to all workers.
 */
         bool shareBoundary( ) {
 
-            cout << endl;
-            cout << "Start: Bring boundary object to the workers ..." << endl;
+            std::cout << std::endl;
+            std::cout << "Start: Bring boundary object to the workers ..."
+               << std::endl;
 
             std::string query =
-            "(share2 \"" + boundaryName + "\" (" + nl->ToString( boundaryType ) + 
+            "(share2 \"" + boundaryName + "\" ("
+            + nl->ToString( boundaryType ) +
             "( ptr " + nl->ToString( listutils::getPtrList( boundary ) ) + 
             ")) TRUE (drel2darray (" + nl->ToString( sourcedType ) +
             " (ptr " + nl->ToString( listutils::getPtrList( drel ) ) + 
             "))))";
 
             #ifdef DRELDEBUG
-            cout << "query to share boundary" << endl;
-            cout << query << endl;
+            std::cout << "query to share boundary" << std::endl;
+            std::cout << query << std::endl;
             #endif
 
             Word result;
             if( !QueryProcessor::ExecuteQuery( query, result ) ) {
-                cout << "ERROR: Bring boundary to the workers failed!" << endl;
+                std::cout << "ERROR: Bring boundary to the workers failed!"
+                   << std::endl;
                 return false;
             }
 
             FText* res = ( FText* )result.addr;
 
             if( !res ) {
-                cout << "ERROR: Bring boundary to the workers failed!" << endl;
+                std::cout << "ERROR: Bring boundary to the workers failed!"
+                   << std::endl;
                 return false;
             }
 
             if( !res->IsDefined( ) ) {
-                cout << "ERROR: Bring boundary to the workers failed!" << endl;
+                std::cout << "ERROR: Bring boundary to the workers failed!"
+                   << std::endl;
                 delete res;
                 return false;
             }
 
-            cout << res->GetValue( ) << endl;
+            std::cout << res->GetValue( ) << std::endl;
 
             delete res;
 
-            cout << "Done. Boundary object is now on the workers!" << endl;
+            std::cout << "Done. Boundary object is now on the workers!"
+               << std::endl;
 
             return true;
         }
@@ -201,9 +207,9 @@ Repartitions the drel to a DFMatrix.
 */
         bool repartition2DFMatrix( ) {
 
-            cout << endl;
-            cout << "Start: Create new partitioning on the workers "
-                "as a DFMatrix ..." << endl;
+            std::cout << std::endl;
+            std::cout << "Start: Create new partitioning on the workers "
+                "as a DFMatrix ..." << std::endl;
 
             if( !shareBoundary( ) ) {
                 return false;
@@ -380,25 +386,28 @@ Repartitions the drel to a DFMatrix.
             }
 
             #ifdef DRELDEBUG
-            cout << "partition query" << endl;
-            cout << nl->ToString( query ) << endl;
-            cout << "partitionTM result" << endl;
-            cout << nl->ToString( resultType ) << endl;
+            std::cout << "partition query" << std::endl;
+            std::cout << nl->ToString( query ) << std::endl;
+            std::cout << "partitionTM result" << std::endl;
+            std::cout << nl->ToString( resultType ) << std::endl;
             #endif
 
             if( !nl->HasLength( resultType, 3 ) ) {
-                cout << "ERROR: Create new partitioning failed!" << endl;
+                std::cout << "ERROR: Create new partitioning failed!"
+                   << std::endl;
                 return false;
             }
 
             ListExpr matrixType = nl->Third( resultType );
             if( !distributed2::DFMatrix::checkType( matrixType ) ) {
-                cout << "ERROR: Create new partitioning failed!" << endl;
+                std::cout << "ERROR: Create new partitioning failed!"
+                   << std::endl;
                  return false;
             }
 
             if( !createPartitionOpTree( query ) ) {
-                cout << "ERROR: Create new partitioning failed!" << endl;
+                std::cout << "ERROR: Create new partitioning failed!"
+                   << std::endl;
                 return false;
             }
 
@@ -445,7 +454,8 @@ Repartitions the drel to a DFMatrix.
             matrix = ( distributed2::DFMatrix* )result.addr;
 
             if( !matrix ) {
-                cout << "ERROR: Create new partitioning failed!" << endl;
+                std::cout << "ERROR: Create new partitioning failed!"
+                   << std::endl;
                 qp->Destroy( tree, false );
                 delete qp;
                 matrix = 0;
@@ -453,15 +463,16 @@ Repartitions the drel to a DFMatrix.
             }
 
             if( !matrix->IsDefined( ) ) {
-                cout << "ERROR: Create new partitioning failed!" << endl;
+                std::cout << "ERROR: Create new partitioning failed!"
+                   << std::endl;
                 qp->Destroy( tree, false );
                 delete qp;
                 matrix = 0;
                 return false;
             }
 
-            cout << "Done. New partitioning is created on the workers!" 
-                 << endl;
+            std::cout << "Done. New partitioning is created on the workers!" 
+                 << std::endl;
 
             return true;
         }

@@ -845,8 +845,8 @@ int ccPartHashJoinVM(Word* args, Word& result, int message, Word& local,
       return result.addr ? YIELD : CANCEL;
     } catch (const exception& e)
     {
-      cout << "Aborting!\n";
-      cout << "Exception: " << e.what() << '\n';
+      std::cout << "Aborting!\n";
+      std::cout << "Exception: " << e.what() << '\n';
       if (localInfo)
       {
         delete localInfo;

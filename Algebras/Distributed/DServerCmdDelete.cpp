@@ -76,7 +76,7 @@ void
 DServerCmdDelete::run()
 { 
 #if DS_CMD_DELETE_DEBUG
-  cout << "DServerCmdDelete::run" << endl;
+  std::cout << "DServerCmdDelete::run" << std::endl;
 #endif
 
   if (!checkWorkerAvailable())
@@ -113,6 +113,6 @@ DServerCmdDelete::run()
     }
 
 #if DS_CMD_DELETE_DEBUG
-  cout << "DServerCmdDelete::run DONE" << endl;
+  std::cout << "DServerCmdDelete::run DONE" << std::endl;
 #endif
 } // run()

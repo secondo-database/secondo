@@ -142,17 +142,17 @@ vector<double> Arima::ar()
     Eigen::VectorXd phis = compute_ar_coeffs();
     durbin_levinson_algorithm();
 
-    cout << "Rhos: ";
+    std::cout << "Rhos: ";
     for(i = 0; i < order_ar; ++i)
     {
-          cout << to_string(phis.coeff(i)) <<"; ";
+          std::cout << to_string(phis.coeff(i)) <<"; ";
     }
-    cout << "Durbin-Levinson estimated coefficients:";
+    std::cout << "Durbin-Levinson estimated coefficients:";
     for(i = 0; i < order_ar; ++i)
     {
-        cout << to_string(phi[order_ar-1][i]) <<"; ";
+        std::cout << to_string(phi[order_ar-1][i]) <<"; ";
     }
-    cout <<endl;
+    std::cout <<std::endl;
 
     for(i = 0; i < nobs; ++i)
     {
@@ -189,7 +189,7 @@ vector<double> Arima::ar()
             mse += pow(prediction[i]-timeseries_data[i], 2);
     }
 
-    cout << "MSE: " << to_string(mse/nobs) << endl;
+    std::cout << "MSE: " << to_string(mse/nobs) << std::endl;
     return prediction;
 }
 
@@ -218,8 +218,8 @@ void Arima::printACF(int lags)
 
     for(int i = 0; i < lags && i < size; ++i)
     {
-        cout << "ACF at lag " << to_string(i +1) << ": "
-             << to_string(acf[0][i]) << endl;
+        std::cout << "ACF at lag " << to_string(i +1) << ": "
+             << to_string(acf[0][i]) << std::endl;
     }
 }
 
@@ -232,8 +232,8 @@ void Arima::printPACF(int lags)
 
     for(int i = 0; i < lags && i < size; ++i)
     {
-        cout << "PACF at lag " << to_string(i +1)
-             << ": " << to_string(pacf[0][i]) << endl;
+        std::cout << "PACF at lag " << to_string(i +1)
+             << ": " << to_string(pacf[0][i]) << std::endl;
     }
 }
 
@@ -322,7 +322,7 @@ vector<double> Arima::forecast()
             mse += pow(prediction[i] - timeseries_data[i],2);
     }
 
-    cout << "MSE: " << to_string(mse/nobs) << endl;
+    std::cout << "MSE: " << to_string(mse/nobs) << std::endl;
 
     return prediction;
 }
@@ -350,12 +350,12 @@ vector<double> Arima::ma()
         prediction[i] = demeaned_data[i];
 
     int size = theta[order_ma].size();
-    cout << "Coeffizients Theta: ";
+    std::cout << "Coeffizients Theta: ";
     for(i = 0; i < order_ma && i < size; ++i)
     {
-        cout << to_string(theta[order_ma][i]) << "; ";
+        std::cout << to_string(theta[order_ma][i]) << "; ";
     }
-    cout << endl;
+    std::cout << std::endl;
 
 //    LMFunctor my_functor;
 //    my_functor.m_values = timeseries_data.size();
@@ -411,7 +411,7 @@ vector<double> Arima::ma()
         }
     }
 
-    cout << "MSE: " << to_string(mse/nobs) << endl;
+    std::cout << "MSE: " << to_string(mse/nobs) << std::endl;
 
     return prediction;
 

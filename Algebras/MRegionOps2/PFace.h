@@ -224,16 +224,16 @@ public:
     void Print();
 
     inline unsigned int Get_cycleNo()
-	{ return cycleNo;}
+        { return cycleNo;}
     inline unsigned int Get_faceNo()
-	{ return faceNo;}
+        { return faceNo;}
 
     inline bool HasIntersegs()
     {
-	if(intSegsToInterval.size() > 0)
-		return true;
-	else
-		return false;
+        if(intSegsToInterval.size() > 0)
+                return true;
+        else
+                return false;
     }
     inline void SetDebugId(unsigned int ID)
     {
@@ -242,42 +242,42 @@ public:
 
     inline void PrintIdentifier()
     {
-	Point3D p_a = GetA_XYT();
-	Point3D p_b = GetB_XYT();
-	if(unit->IsUnitA() ==true)
-		cout << "Unit A PFace " << debugId << 
-		"; A=" << p_a << "; B=" << p_b << endl;
-	else
-		cout << "Unit B PFace " << debugId << 
-		"; A=" << p_a << "; B=" << p_b << endl;
+        Point3D p_a = GetA_XYT();
+        Point3D p_b = GetB_XYT();
+        if(unit->IsUnitA() ==true)
+                std::cout << "Unit A PFace " << debugId << 
+                "; A=" << p_a << "; B=" << p_b << std::endl;
+        else
+                std::cout << "Unit B PFace " << debugId << 
+                "; A=" << p_a << "; B=" << p_b << std::endl;
     }
 
-	inline IntSegContainer* getIntSegs()
-	{
-		return &intSegs;
-	}
+        inline IntSegContainer* getIntSegs()
+        {
+                return &intSegs;
+        }
    inline std::vector<IntersectionSegment*> GetIntSegs()
    {
-	return myIntSegs;
+        return myIntSegs;
    }
    inline std::vector<IntersectionSegment*> 
 getIntersectionSegmentByInterval(unsigned int interval)
    {
-	std::vector<IntersectionSegment*> result;
-	
-	std::multimap<unsigned int, IntersectionSegment*>::iterator iter;
+        std::vector<IntersectionSegment*> result;
+        
+        std::multimap<unsigned int, IntersectionSegment*>::iterator iter;
 for (iter = intSegsToInterval.begin(); iter != intSegsToInterval.end(); iter++)
-	{
-		cout << "key=" << (*iter).first << endl;
-		if((*iter).first == interval)
-		{
-			cout << "adding IntersectionSegment\n";
-			result.push_back((*iter).second);
-		}
-		else
-			cout << "skipping IntersectionSegment\n";
-	}
-	return result;
+        {
+                std::cout << "key=" << (*iter).first << std::endl;
+                if((*iter).first == interval)
+                {
+                        std::cout << "adding IntersectionSegment\n";
+                        result.push_back((*iter).second);
+                }
+                else
+                        std::cout << "skipping IntersectionSegment\n";
+        }
+        return result;
    }
 
 private:

@@ -68,7 +68,7 @@ bool IntSegWCompare::operator()(const IntersectionSegment* const& s1,
 IntersectionSegment::IntersectionSegment(const Segment3D& s, PFace* _pface,
                               Angle leftAng, Angle rightAng, Direction dir) 
     {
-	cout << "ctor IntersectionSegment() started\n";
+        std::cout << "ctor IntersectionSegment() started\n";
     // The startpoint's t-coord is always lower or equal to the
     // endpoint's t-coord.
     // Note: We don't care for x and y!
@@ -96,8 +96,8 @@ IntersectionSegment::IntersectionSegment(const Segment3D& s, PFace* _pface,
     if (rightNeighbour.IsZero()) rightNeighbour = Angle();
     if (leftNeighbour.IsZero()) leftNeighbour = Angle();
 
-	Print();
-	cout << "ctor IntersectionSegment() finished\n";    
+        Print();
+        std::cout << "ctor IntersectionSegment() finished\n";    
 }
 
 void IntersectionSegment::UpdateWith(IntersectionSegment* seg)
@@ -177,18 +177,19 @@ void IntersectionSegment::Print() {
 
     Point3D p1 = *GetStartXYT();
     Point3D p2 = *GetEndXYT();
-    cout << p1 << " -> " << p2 << endl;
+    std::cout << p1 << " -> " << p2 << std::endl;
     Point2D p21 = *GetStartWT();
     Point2D p22 = *GetEndWT();
-    cout << p21 << " -> " << p22 << endl;
+    std::cout << p21 << " -> " << p22 << std::endl;
     Angle a = rightNeighbour;
-    cout << "right neighbour angle: " << a << endl;
-    cout << "right neighbour direction: " << rightNeighbourDir << endl;
+    std::cout << "right neighbour angle: " << a << std::endl;
+    std::cout << "right neighbour direction: " << rightNeighbourDir
+       << std::endl;
     a = leftNeighbour;
-    cout << "left neighbour angle: " << a << endl;
-    cout << "left neighbour direction: " << leftNeighbourDir << endl;
+    std::cout << "left neighbour angle: " << a << std::endl;
+    std::cout << "left neighbour direction: " << leftNeighbourDir << std::endl;
     AreaDirection ad = GetAreaDirection();
-    cout << "area direction: " << ad << endl;
+    std::cout << "area direction: " << ad << std::endl;
 }
 
 void IntersectionSegment::InvertAreaDirection()
@@ -243,7 +244,7 @@ Point3D IntersectionSegment::Evaluate(const mpq_class mpqt) const {
 
     //return *GetStartXYT() + s * u;
 Point3D p;
-	return p;
+        return p;
 }
 bool IntersectionSegment::IsLeftOf(const IntersectionSegment* intSeg) const {
     

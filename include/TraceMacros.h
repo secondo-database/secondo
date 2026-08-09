@@ -40,33 +40,33 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #define TRACE_OS(os) { traceOS = &os; }  
 
 #undef TRACE
-#define TRACE(a) {*traceOS << a << endl;}
+#define TRACE(a) {*traceOS << a << std::endl;}
 
 #undef NTRACE
 #define NTRACE(n,a) { static int ctr=0; ctr++; \
                       if ( (ctr % n)  == 0) \
-                       {*traceOS << ctr << " - " << a << endl; }}
+                       {*traceOS << ctr << " - " << a << std::endl; }}
 
 #undef SHOW
-#define SHOW(a) {*traceOS << "  " << #a << " = " << a << endl;} 
+#define SHOW(a) {*traceOS << "  " << #a << " = " << a << std::endl;} 
 
 #undef TRACE_ENTER
 #define TRACE_ENTER {*traceOS << "* Entering " \
-                              << __FUNCTION__ << "@" << __LINE__ << endl;}
+                              << __FUNCTION__ << "@" << __LINE__ << std::endl;}
 
 #undef TRACE_LEAVE
 #define TRACE_LEAVE {*traceOS << "* Leaving  " \
-                              << __FUNCTION__ << "@" << __LINE__ << endl;}
+                              << __FUNCTION__ << "@" << __LINE__ << std::endl;}
 
 #undef DEBUG_MSG
 #define DEBUG_MSG(msg) { \
-    cerr << __FUNCTION__ << "@" << __LINE__ << ": " \
-         << msg << endl; }
+    std::cerr << __FUNCTION__ << "@" << __LINE__ << ": " \
+         << msg << std::endl; }
 
 #undef DEBUG_VAL
 #define DEBUG_VAL(var) { \
-    cerr << __FUNCTION__ << "@" << __LINE__ << ": " \
-         << #var << " = " << var << endl; }
+    std::cerr << __FUNCTION__ << "@" << __LINE__ << ": " \
+         << #var << " = " << var << std::endl; }
 
 #undef DEBUG_EXE
 #define DEBUG_EXE(expr) { expr }

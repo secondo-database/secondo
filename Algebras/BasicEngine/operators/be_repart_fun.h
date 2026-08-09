@@ -70,7 +70,7 @@ int be_repartFunSFVM(Word *args, Word &result, int message, Word &local,
     }
 
     if (slot->GetIntval() <= 0) {
-      cout << negSlots << std::endl;
+      std::cout << negSlots << std::endl;
       res->SetDefined(false);
       return 0;
     }

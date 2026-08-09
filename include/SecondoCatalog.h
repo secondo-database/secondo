@@ -788,10 +788,10 @@ The function below test if a name is reserved for system use.
       algebraId(0), typeId(0), typeExpr(""), state(Undefined) {}
 
     std::ostream& print(std::ostream& os) const {
-      os << "algId  :" << algebraId << endl;
-      os << "typId  :" << typeId << endl;
-      os << "typExpr:" << typeExpr << endl;
-      os << "state  :" << state << endl;
+      os << "algId  :" << algebraId << std::endl;
+      os << "typId  :" << typeId << std::endl;
+      os << "typExpr:" << typeExpr << std::endl;
+      os << "state  :" << state << std::endl;
       return os;
     }
 
@@ -817,14 +817,14 @@ The function below test if a name is reserved for system use.
       state(Undefined) {}
 
     std::ostream& print(std::ostream& os) const {
-      os << "algId       :" << algebraId << endl;
-      os << "typId       :" << typeId << endl;
-      os << "typName     :" << typeName << endl;
-      os << "typExpr     :" << typeExpr << endl;
-      os << "value       :" << (void*) value.addr << endl;
-      os << "valueDefined:" << valueDefined << endl;
-      os << "valueRecId  :" << valueRecordId << endl;
-      os << "state       :" << state << endl;
+      os << "algId       :" << algebraId << std::endl;
+      os << "typId       :" << typeId << std::endl;
+      os << "typName     :" << typeName << std::endl;
+      os << "typExpr     :" << typeExpr << std::endl;
+      os << "value       :" << (void*) value.addr << std::endl;
+      os << "valueDefined:" << valueDefined << std::endl;
+      os << "valueRecId  :" << valueRecordId << std::endl;
+      os << "state       :" << state << std::endl;
       return os;
     }
   };

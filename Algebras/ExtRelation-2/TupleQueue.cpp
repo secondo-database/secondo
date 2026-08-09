@@ -76,9 +76,9 @@ int TupleQueueCompare::analyseSpec(const SortOrderSpecification& spec)
   {
     if ( traceMode )
     {
-      cmsg.info() << "spec (length not equal)" << endl
-                  << "attributes: " << attributes << endl
-                  << "spec.size(): " << spec.size() << endl;
+      cmsg.info() << "spec (length not equal)" << std::endl
+                  << "attributes: " << attributes << std::endl
+                  << "spec.size(): " << spec.size() << std::endl;
       cmsg.send();
     }
 
@@ -95,7 +95,7 @@ int TupleQueueCompare::analyseSpec(const SortOrderSpecification& spec)
       {
         if ( traceMode )
         {
-          cmsg.info() << "spec (indices mixed)" << endl;
+          cmsg.info() << "spec (indices mixed)" << std::endl;
           cmsg.send();
         }
 
@@ -110,7 +110,7 @@ int TupleQueueCompare::analyseSpec(const SortOrderSpecification& spec)
     {
       if ( traceMode )
       {
-        cmsg.info() << "lex desc" << endl;
+        cmsg.info() << "lex desc" << std::endl;
         cmsg.send();
       }
 
@@ -122,7 +122,7 @@ int TupleQueueCompare::analyseSpec(const SortOrderSpecification& spec)
     {
       if ( traceMode )
       {
-        cmsg.info() << "lex asc" << endl;
+        cmsg.info() << "lex asc" << std::endl;
         cmsg.send();
       }
 
@@ -131,9 +131,9 @@ int TupleQueueCompare::analyseSpec(const SortOrderSpecification& spec)
 
     if ( traceMode )
     {
-      cmsg.info() << "spec (sort order mixed)" << endl
-                  << "flags: " << flags << endl
-                  << "calc: " << ( ( 1 << spec.size() ) -1 ) << endl;
+      cmsg.info() << "spec (sort order mixed)" << std::endl
+                  << "flags: " << flags << std::endl
+                  << "calc: " << ( ( 1 << spec.size() ) -1 ) << std::endl;
       cmsg.send();
     }
 

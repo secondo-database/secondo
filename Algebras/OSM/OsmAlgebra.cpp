@@ -728,12 +728,12 @@ FullOsmImport::FullOsmImport(const std::string& fileName,
   }
   relationsInitialized = initRelations(prefix, suffix, true);
   if(!relationsInitialized) {
-    cout << "relations could not be initialized" << endl;
+    std::cout << "relations could not be initialized" << std::endl;
     return;
   }
   fileOk = openFile(fileName);
   if (!fileOk) {
-    cout << "file could not be initialized" << endl;
+    std::cout << "file could not be initialized" << std::endl;
     return;
   }
   defineRelations(true);
@@ -759,16 +759,16 @@ bool FullOsmImport::initRelations(const std::string& prefix,
   for (int i = 0; i < 6; i++) { // check the new relations' names
     if (all || (i == 0 || i == 2 || i == 3)) {
       if (sc->IsObjectName(relNames[i])) {
-        cout << relNames[i] << " is already defined" << endl;
+        std::cout << relNames[i] << " is already defined" << std::endl;
         return false;
       }
       std::string errMsg = "error";
       if (!sc->IsValidIdentifier(relNames[i], errMsg, true)) {
-        cout << errMsg << endl;
+        std::cout << errMsg << std::endl;
         return false;
       }
       if (sc->IsSystemObject(relNames[i])) {
-        cout << relNames[i] << " is a reserved name" << endl;
+        std::cout << relNames[i] << " is a reserved name" << std::endl;
         return false;
       }
     }
@@ -781,22 +781,23 @@ bool FullOsmImport::openFile(const std::string& fileName) {
   // check whether the file can be opened and is an osm file
   reader = xmlReaderForFile(fileName.c_str(), NULL, 0);
   if (reader == NULL) {
-    cout << "file " << fileName << " cannot be opened" << endl;
+    std::cout << "file " << fileName << " cannot be opened" << std::endl;
     return false;
   }
   int read = xmlTextReaderRead(reader);
   if (read < 1) {
-    cout << "file " << fileName << " is empty" << endl;
+    std::cout << "file " << fileName << " is empty" << std::endl;
     xmlFreeTextReader(reader);
     return false;
   }
   // strcmp(x1, x2) == 0  <==> x1 == x2
   if (strcmp((char *)xmlTextReaderConstName(reader), "osm")) {
-    cout << "root node of " << fileName << " has to be \"osm\"" << endl;
+    std::cout << "root node of " << fileName << " has to be \"osm\""
+       << std::endl;
     xmlFreeTextReader(reader);
     return false;
   }
-  cout << "file " << fileName << " opened successfully" << endl;
+  std::cout << "file " << fileName << " opened successfully" << std::endl;
   return true;
 }
 
@@ -1127,8 +1128,8 @@ void FullOsmImport::storeRelations(bool all) {
   }
   for (int i = 0; i < 6; i++) {
     if (all || (i == 0 || i == 2 || i == 3)) {
-      cout << "relation " << relNames[i] << " with " << tupleCount[i]
-           << " tuples stored" << endl;
+      std::cout << "relation " << relNames[i] << " with " << tupleCount[i]
+           << " tuples stored" << std::endl;
     }
   }
 }
@@ -1279,7 +1280,7 @@ FullOsmImport::FullOsmImport(const std::string& prefix) :
   }
   sc = SecondoSystem::GetCatalog();
   if(!initRelations(prefix, "", false)) {
-    cout << "relations could not be initialized" << endl;
+    std::cout << "relations could not be initialized" << std::endl;
     return;
   }
   defineRelations(false);
@@ -1374,7 +1375,7 @@ int convertstreetsVM(Word* args, Word& result, int message, Word& local,
   CcInt* attrNo = static_cast<CcInt*>(args[3].addr);
   CcString* prefix = static_cast<CcString*>(args[2].addr);
   if (!attrNo->IsDefined() || !prefix->IsDefined()) {
-    cout << "undefined parameter" << endl;
+    std::cout << "undefined parameter" << std::endl;
     res->SetDefined(false);
     return 0;
   }
@@ -1446,7 +1447,7 @@ FullOsmImport::FullOsmImport(const std::string& fileName,
     sc = SecondoSystem::GetCatalog();
     relationsInitialized = initRelations(prefix, "_type", true);
     if (!relationsInitialized) {
-      cout << "relations could not be initialized" << endl;
+      std::cout << "relations could not be initialized" << std::endl;
       return;
     }
     defineRelations(true);
@@ -1507,7 +1508,7 @@ void FullOsmImport::getOSMpart(const std::string& fileName, const int part) {
   std::ofstream dest;
   source.open(fileName.c_str(), std::ios::in);
   if (!source.good()) {
-    std::cerr << "Problem in opening file " << fileName << endl;
+    std::cerr << "Problem in opening file " << fileName << std::endl;
     return;
   }
   source.seekg(0, std::ios::end);
@@ -1618,7 +1619,7 @@ void FullOsmImport::divideOSMfile(const std::string& fileName,
   std::ofstream dest;
   source.open(fileName.c_str(), std::ios::in);
   if(!source.good()){
-     std::cerr << "Problem in open file " << fileName << endl;
+     std::cerr << "Problem in open file " << fileName << std::endl;
      return;
   }
   std::string line;
@@ -1639,7 +1640,7 @@ void FullOsmImport::divideOSMfile(const std::string& fileName,
          (trim(line).substr(0, 5) != "<node")) { // copy head
     for (int64_t file = 0; file < size; file++) {
       dest.open(getFileName(file).c_str(), std::ios::app);
-      dest << line << endl;
+      dest << line << std::endl;
       dest.close();
     }
     oldpos = source.tellg();
@@ -1649,19 +1650,19 @@ void FullOsmImport::divideOSMfile(const std::string& fileName,
     oldpos = source.tellg();
   }
   if(!source.good()){
-     std::cerr << "problem in reading file(2)" << fileName << endl;
+     std::cerr << "problem in reading file(2)" << fileName << std::endl;
      return;
   }
   charCounter -= line.length();
   nextLimit = charCounter;
   dest.open(getFileName(0).c_str(), std::ios::app);
-  dest << line << endl;
+  dest << line << std::endl;
   dest.close();
   size_t partSize = (numOfChars - source.tellg() - 1) / size + 1;
   while (!source.eof() && source.good()) {
     if (charCounter >= nextLimit && isFileSwitchAllowed(line)) {
       if (dest.is_open()) {
-        dest << "</osm>" << endl;
+        dest << "</osm>" << std::endl;
         dest.close();
       }
       nextLimit += partSize;
@@ -1671,7 +1672,7 @@ void FullOsmImport::divideOSMfile(const std::string& fileName,
     getline(source, line);
     charCounter += line.length();
     line = trim(line);
-    dest << line << endl;
+    dest << line << std::endl;
   }
   source.close();
   dest.close();
@@ -1851,7 +1852,7 @@ int divide_osm3VM(Word* args, Word& result, int message, Word& local,
   int noParts = ((CcInt*)args[1].addr)->GetValue();
   int part = ((CcInt*)args[2].addr)->GetValue();
   if (noParts < 1 || part < 0 || part >= noParts) {
-    cout << "Error: invalid arguments" << endl;
+    std::cout << "Error: invalid arguments" << std::endl;
     res->SetDefined(false);
     return 0;
   }
@@ -1914,20 +1915,21 @@ bool ImportXML::openFile(std::string& category) {
   // check whether the file can be opened and is an aip file
   reader = xmlReaderForFile(filename.c_str(), NULL, 0);
   if (reader == NULL) {
-    cout << "file " << filename << " cannot be opened" << endl;
+    std::cout << "file " << filename << " cannot be opened" << std::endl;
     return false;
   }
   read = xmlTextReaderRead(reader);
   if (read < 1) {
-    cout << "file " << filename << " is empty" << endl;
+    std::cout << "file " << filename << " is empty" << std::endl;
     xmlFreeTextReader(reader);
     return false;
   }
   // strcmp(x1, x2) == 0  <==> x1 == x2
   read = xmlTextReaderRead(reader);
   if (strcmp((char *)xmlTextReaderConstName(reader), "OPENAIP")) {
-    cout << "root node of " << filename << " has to be \"OPENAIP\"" << endl;
-    cout << (char *)xmlTextReaderConstName(reader) << endl;
+    std::cout << "root node of " << filename << " has to be \"OPENAIP\""
+       << std::endl;
+    std::cout << (char *)xmlTextReaderConstName(reader) << std::endl;
     xmlFreeTextReader(reader);
     return false;
   }
@@ -1938,13 +1940,14 @@ bool ImportXML::openFile(std::string& category) {
 //   cout << "### " << (char *)subNameXml << endl;
   std::string constName = (char *)xmlTextReaderConstName(reader);
   if (constName != category) {
-    cout << "2nd node of " << filename << " has to be \"" << category << "\"" 
-         << endl;
-    cout << (char *)xmlTextReaderConstName(reader) << endl;
+    std::cout << "2nd node of " << filename << " has to be \"" << category
+       << "\"" 
+         << std::endl;
+    std::cout << (char *)xmlTextReaderConstName(reader) << std::endl;
     xmlFreeTextReader(reader);
     return false;
   }
-  cout << "file " << filename << " opened successfully" << endl;
+  std::cout << "file " << filename << " opened successfully" << std::endl;
   return true;
 }
 
@@ -3153,24 +3156,26 @@ bool ImportairportsLI::readRadioInfo(std::string& currentName) {
 Relation* ImportairportsLI::createRelation(std::string& name, 
                                            ListExpr& typeList) {
   if (sc->IsObjectName(name)) {
-    cout << "Object " << name << " is already defined and will be overwritten"
-         << endl;
+    std::cout << "Object " << name
+       << " is already defined and will be overwritten"
+         << std::endl;
     if (!sc->DeleteObject(name)) {
-      cout << "ERROR: Object " << name << " could not be deleted" << endl;
+      std::cout << "ERROR: Object " << name << " could not be deleted"
+         << std::endl;
       return 0;
     }
   }
   if (!sc->CleanUp(false)) {
-    cout << "ERROR: CleanUp failed" << endl;
+    std::cout << "ERROR: CleanUp failed" << std::endl;
     return 0;
   }
   std::string errorMsg = "error";
   if (!sc->IsValidIdentifier(name, errorMsg, true)) {
-    cout << errorMsg << endl;
+    std::cout << errorMsg << std::endl;
     return 0;
   }
   if (sc->IsSystemObject(name)) {
-    cout << "ERROR: " << name << " is a reserved name" << endl;
+    std::cout << "ERROR: " << name << " is a reserved name" << std::endl;
     return 0;
   }
   typeList = nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()), typeList);

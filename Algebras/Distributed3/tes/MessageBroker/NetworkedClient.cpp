@@ -96,7 +96,8 @@ void NetworkedClient::sendMessage(size_t size, char* buffer) {
     BOOST_LOG_TRIVIAL(error) 
     << "NetworkedClient::sendMessage, vor socket->Write Abbruch: "
     << socket->GetErrorText();
-    cout <<"\ncout NetworkedClient::sendMessage,vor socket->Write Abbruch: "
+    std::cout
+       <<"\ncout NetworkedClient::sendMessage,vor socket->Write Abbruch: "
     << socket->GetErrorText();
     delete[] buffer;
     throw std::exception();
@@ -105,11 +106,11 @@ void NetworkedClient::sendMessage(size_t size, char* buffer) {
   // virtual bool Write( void const* buf, size_t size ) = 0;
   
   if (!written) {
-    cout << "\n!written: " << "" << " !written";
+    std::cout << "\n!written: " << "" << " !written";
     BOOST_LOG_TRIVIAL(error) 
     << "NetworkedClient::sendMessage,nach socket->Write Abbruch: " 
     << socket->GetErrorText();
-    cout 
+    std::cout 
     << "\ncout NetworkedClient::sendMessage,nach socket->Write Abbruch: " 
     << socket->GetErrorText();
     delete[] buffer;

@@ -143,7 +143,7 @@ void Batch::updateTransferList() {
               !serverList[serverIdx]->kvsConn->check()) {
             KOUT << instance->localHost << " : " << instance->localInterfacePort
                  << " : " << instance->localKvsPort << " : "
-                 << instance->currentDatabaseName << endl;
+                 << instance->currentDatabaseName << std::endl;
             if (!serverList[serverIdx]->initInterface(
                     instance->localHost, instance->localInterfacePort,
                     instance->localKvsPort, instance->currentDatabaseName)) {
@@ -178,7 +178,7 @@ bool Batch::finishTransfer(TransferMethod* transfer, int serverId) {
                         distParams->insertCommand)) {
     // recovery (doesnt work yet... )
 
-    KOUT << "Recovery :(" << endl;
+    KOUT << "Recovery :(" << std::endl;
 
     // this makes no sense
     return transfer->import(distParams->targetRelation,
@@ -186,7 +186,7 @@ bool Batch::finishTransfer(TransferMethod* transfer, int serverId) {
 
   } else {
     KOUT << "Sucessfully transferred " << transfer->tupleCounter
-         << " tuples to server " << transfer->connection->id << endl;
+         << " tuples to server " << transfer->connection->id << std::endl;
     return true;
   }
 }

@@ -88,7 +88,7 @@ public:
   inline void PrintCPUTimeAndReset(const char* prefix)
   {
 #ifdef MEASURE_OPERATORS
-    cerr << prefix << GetCPUTimeAndReset() << endl;
+    std::cerr << prefix << GetCPUTimeAndReset() << std::endl;
 #endif
   }
 };

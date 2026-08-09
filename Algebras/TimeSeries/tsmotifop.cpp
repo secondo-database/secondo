@@ -251,15 +251,17 @@ using std::numeric_limits;
             motif.push_back(timeseries_data.at(index));
         }
 
-        cout << "Motif length: " << motif_length << endl;
-        cout << "Best motif match count: " << best_motif_count_so_far << endl;
-        cout << "Best motif start index: " << best_motif_start_index << endl;
-        cout << "Start indeces of matches:" << "[" ;
+        std::cout << "Motif length: " << motif_length << std::endl;
+        std::cout << "Best motif match count: " << best_motif_count_so_far
+           << std::endl;
+        std::cout << "Best motif start index: " << best_motif_start_index
+           << std::endl;
+        std::cout << "Start indeces of matches:" << "[" ;
         for(int index : best_motif_start_indices)
         {
-            cout << index << "," ;
+            std::cout << index << "," ;
         }
-        cout << "]" << endl;
+        std::cout << "]" << std::endl;
         result = qp->ResultStorage(s);
         OrderedRelation* resultMotif = (OrderedRelation*) result.addr;
         for(auto tuple : motif)
@@ -382,11 +384,11 @@ using std::numeric_limits;
 
         if(n%N != 0)
         {
-            cout << "Warning, to receive proper sized frames"
+            std::cout << "Warning, to receive proper sized frames"
                     " it is neccesary that lenght of the timeseries n = "
                  << to_string(n)
                  << "is divisible by the selected number of frames "
-                 << to_string(N)<< " ! " << endl;
+                 << to_string(N)<< " ! " << std::endl;
         }
 
         size_t end_frame = N;

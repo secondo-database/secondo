@@ -45,32 +45,41 @@ $(LIBOBJ): $(OBJECTS)
 	$(create-lib)
 
 scan.o: lex.pattern.c
-	        $(CPPC) -c -fPIC -ggdb -o $@ $< $(DEFAULTCCFLAGS)
+	        $(CPPC) -c -fPIC -ggdb -o $@ $< $(DEFAULTCCFLAGS) \
+	            -MMD -MP -MF scan.dep
 
 lex.pattern.c: $(BASE).l parse.o
 	        flex $(BASE).l
 
 parse.o: $(BASE).tab.c
-	        $(CPPC) -c $(PARSEFLAGS) -fPIC -ggdb -o $@ $< -lstd -I ../../include -I ../../Tools/ListsAndTables -I $(BDB_INCLUDE_DIR) $(ALL_ALGEBRA_DIR_INCLUDE_FLAGS)  $(DEFAULTCCFLAGS)
+	        $(CPPC) -c $(PARSEFLAGS) -fPIC -ggdb -o $@ $< -lstd -I ../../include -I ../../Tools/ListsAndTables -I $(BDB_INCLUDE_DIR) $(ALL_ALGEBRA_DIR_INCLUDE_FLAGS)  $(DEFAULTCCFLAGS) \
+	            -MMD -MP -MF parse.dep
 
 $(BASE).tab.c: $(BASE).y
 	        bison -v -d $(BASE).y
 
 PatternRegExScanner.o: PatternRegExScanner.c
-	$(CC) -fPIC -c -I../../include -o $@ $<
+	$(CC) -fPIC -c -I../../include -o $@ $< \
+	    -MMD -MP -MF PatternRegExScanner.dep
 
 PatternRegExScanner.c: PatternRegExScanner.l PatternRegExParser.y.c
 	$(LEX) -o $@ $<
 
 PatternRegExParser.o:  PatternRegExParser.y.c
-	$(CC) -fPIC -x c++ -c -o $@ -I../../  -I../../include $<
+	$(CC) -fPIC -x c++ -c -o $@ -I../../  -I../../include $< \
+	    -MMD -MP -MF PatternRegExParser.dep
 
 PatternRegExParser.y.c: PatternRegExParser.y
 	$(YACC) -d -o $@ $<
+
+# makefile.env includes $(DEP_FILES), which it builds from the *.cpp
+# here; the generated C above is not in that list. Taking every .dep
+# present covers both without a list to keep in step.
+-include $(wildcard *.dep)
 
 # generic rule for cleaning all generated files
 .PHONY: clean
 clean:
 	$(clean-algebra)
-	rm -f $(BASE).tab.c parse.o lex.pattern.c scan.o PatternRegExParser.o PatternRegExScanner.o mini $(BASE).tab.h $(BASE).output PatternRegExParser.y.c PatternRegExScanner.c PatternRegExParser.y.h
+	rm -f $(BASE).tab.c parse.o lex.pattern.c scan.o PatternRegExParser.o PatternRegExScanner.o mini $(BASE).tab.h $(BASE).output PatternRegExParser.y.c PatternRegExScanner.c PatternRegExParser.y.h *.dep
 

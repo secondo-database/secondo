@@ -748,7 +748,7 @@ struct MyPoint{
   }
   void Print()
   {
-    cout<<"loc "<<loc<<" dist "<<dist<<endl;
+    std::cout<<"loc "<<loc<<" dist "<<dist<<std::endl;
   }
 
   Point loc;
@@ -772,8 +772,8 @@ struct MyPoint_Ext:public MyPoint{
     }
      void Print()
       {
-        cout<<" loc1 " <<loc<<"loc2 "<<loc2
-            <<" dist1 "<<dist<<" dist2 "<<dist2<<endl; 
+        std::cout<<" loc1 " <<loc<<"loc2 "<<loc2
+            <<" dist1 "<<dist<<" dist2 "<<dist2<<std::endl; 
       }
 };
 
@@ -815,7 +815,7 @@ struct RPoint{
   {
 //    cout<<" n1 "<<n1<<" n2 "<<n2<<endl;
 //    cout<<"p "<<p<<" angle "<<angle<<"dist "<<dist<<endl;
-    cout<<"p "<<p<<"angle "<<angle<<endl;
+    std::cout<<"p "<<p<<"angle "<<angle<<std::endl;
   }
 
 };
@@ -852,7 +852,7 @@ struct MyJun{
   }
   void Print()
   {
-    cout<<"loc "<<loc<<" r1 "<<rid1<<" r2 "<<rid2<<endl;
+    std::cout<<"loc "<<loc<<" r1 "<<rid1<<" r2 "<<rid2<<std::endl;
   }
 };
 
@@ -870,7 +870,7 @@ struct Region_Oid{
   }
   void Print()
   {
-    cout<<"id "<<oid<<" reg "<<reg<<endl;
+    std::cout<<"id "<<oid<<" reg "<<reg<<std::endl;
   }
 };
 /*
@@ -1963,17 +1963,17 @@ void MySetOp(const RegionT<Array1>& reg1,
                (member->getOwner()==owner)){
                std::cerr << "overlapping segments detected "
                             "within a single region"
-                         << endl;
+                         << std::endl;
                std::cerr << "the argument is "
                          << (owner==myavlseg::first?"first":"second")
-                         << endl;
+                         << std::endl;
                std::cerr.precision(16);
-               std::cerr << "stored is " << *member << endl;
-               std::cerr << "current = " << current << endl;
+               std::cerr << "stored is " << *member << std::endl;
+               std::cerr << "current = " << current << std::endl;
                myavlseg::MyAVLSegment tmp_left, tmp_common, tmp_right;
                member->split(current,tmp_left, tmp_common, tmp_right, false);
-               std::cerr << "The common part is " << tmp_common << endl;
-               std::cerr << "The lenth = " << tmp_common.length() << endl;
+               std::cerr << "The common part is " << tmp_common << std::endl;
+               std::cerr << "The lenth = " << tmp_common.length() << std::endl;
                assert(false);
             }
             int parts = member->split(current,left1,common1,right1);

@@ -99,8 +99,8 @@ Expect a d[f]rel and an attribute name to repartition the given d[f]rel.
     ListExpr drelpartitionTM( ListExpr args ) {
 
         #ifdef DRELDEBUG
-        cout << "drelpartitionTM" << endl;
-        cout << nl->ToString( args ) << endl;
+        std::cout << "drelpartitionTM" << std::endl;
+        std::cout << nl->ToString( args ) << std::endl;
         #endif
 
         std::string err = "d[f]rel(X) x attr x [int|vector|d[f]rel] expected";
@@ -204,7 +204,7 @@ attribute.
         Word& local, Supplier s ) {
 
         #ifdef DRELDEBUG
-        cout << "drelpartitionVMT" << endl;
+        std::cout << "drelpartitionVMT" << std::endl;
         #endif
       
         ListExpr boundaryType = nl->Fourth( nl->Third( qp->GetType( s ) ) );
@@ -233,8 +233,8 @@ attribute.
             }
             else {
                 if( !calc->countDRel( ) ){
-                    cout << "error while determining the relation size" 
-                         << endl;
+                    std::cout << "error while determining the relation size" 
+                         << std::endl;
                     result = qp->ResultStorage( s );
                     ( ( DFRel* )result.addr )->makeUndefined( );
                     return 0;
@@ -242,7 +242,8 @@ attribute.
             }
 
             if( !calc->computeBoundary( ) ){
-                cout << "error while computing the boundaries" << endl;
+                std::cout << "error while computing the boundaries"
+                   << std::endl;
                 result = qp->ResultStorage( s );
                 ( ( DFRel* )result.addr )->makeUndefined( );
                 return 0;
@@ -257,7 +258,7 @@ attribute.
             boundaryType, drel, drelType, boundary, getDRelPort() );
 
         if( !parti->repartition2DFMatrix( ) ) {
-            cout << "repartition (drelpartition 1) failed!!" << endl;
+            std::cout << "repartition (drelpartition 1) failed!!" << std::endl;
             result = qp->ResultStorage( s );
             ( ( DFRel* )result.addr )->makeUndefined( );
             return 0;
@@ -266,7 +267,7 @@ attribute.
         DFMatrix* matrix = parti->getDFMatrix( );
 
         if( !matrix || !matrix->IsDefined( ) ) {
-            cout << "repartition (drelpartition 2) failed!!" << endl;
+            std::cout << "repartition (drelpartition 2) failed!!" << std::endl;
             result = qp->ResultStorage( s );
             ( ( DFRel* )result.addr )->makeUndefined( );
             return 0;

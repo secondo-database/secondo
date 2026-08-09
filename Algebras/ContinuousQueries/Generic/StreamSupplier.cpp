@@ -306,7 +306,7 @@ void StreamSupplier::pushTuple(Tuple* t)
 {
     if (!_activeWorker) 
     {
-        std::cout << "No worker connected. Tuple is lost." << endl;
+        std::cout << "No worker connected. Tuple is lost." << std::endl;
         return;
     }
     

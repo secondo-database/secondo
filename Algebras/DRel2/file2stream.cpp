@@ -78,8 +78,8 @@ Expecting String|Text
     ListExpr file2streamTM( ListExpr args ) {
 
         #ifdef DRELDEBUG
-        cout << "file2streamTM" << endl;
-        cout << nl->ToString( args ) << endl;
+        std::cout << "file2streamTM" << std::endl;
+        std::cout << nl->ToString( args ) << std::endl;
         #endif
 
         std::string err = "string|text expected";
@@ -138,7 +138,7 @@ Expecting String|Text
                 getline( f, line );
 
                 #ifdef DRELDEBUG
-                cout << "line: " << line << endl;
+                std::cout << "line: " << line << std::endl;
                 #endif
 
                 // skip empty lines
@@ -174,8 +174,8 @@ Reads a file and create a drel.
         Word& local, Supplier s ) {
 
         #ifdef DRELDEBUG
-        cout << "file2streamVMT" << endl;
-        cout << args << endl;
+        std::cout << "file2streamVMT" << std::endl;
+        std::cout << args << std::endl;
         #endif
 
         FileReader<R>* reader = ( FileReader<R>* )local.addr;
@@ -187,8 +187,8 @@ Reads a file and create a drel.
                 std::string filename = ( ( R* )args[ 0 ].addr )->GetValue( );
 
                 #ifdef DRELDEBUG
-                cout << "OPEN" << endl;
-                cout << "filename: " << filename << endl;
+                std::cout << "OPEN" << std::endl;
+                std::cout << "filename: " << filename << std::endl;
                 #endif
 
                 if ( reader ) {
@@ -203,7 +203,7 @@ Reads a file and create a drel.
             case REQUEST: {
 
                 #ifdef DRELDEBUG
-                cout << "REQUEST" << endl;
+                std::cout << "REQUEST" << std::endl;
                 #endif
                
                 result.addr = reader ? reader->getTuple( ) : 0;
@@ -213,7 +213,7 @@ Reads a file and create a drel.
             case CLOSE: {
 
                 #ifdef DRELDEBUG
-                cout << "CLOSE" << endl;
+                std::cout << "CLOSE" << std::endl;
                 #endif
 
                 if ( reader ) {

@@ -45,8 +45,8 @@ struct WarpingPathPoint
 
   WarpingPathPoint(int x, int y)
   {
-      cout << "[" << std::to_string(x) << ":"
-           << std::to_string(y) << "]" << endl;
+      std::cout << "[" << std::to_string(x) << ":"
+           << std::to_string(y) << "]" << std::endl;
       this->_x = x;
       this->_y = y;
   }

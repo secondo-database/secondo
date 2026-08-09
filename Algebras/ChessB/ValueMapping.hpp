@@ -169,7 +169,7 @@ int unary_value_map( Word* args, Word& result, int msg, Word&, Supplier s )
             return 0;
         }
         catch( const std::exception& e ) {
-            std::cerr << e.what() << endl;
+            std::cerr << e.what() << std::endl;
         }
 //    }
     on_close_arg( args[0].addr, (A*)0 );
@@ -203,7 +203,7 @@ int binary_value_map( Word* args, Word& result, int, Word&, Supplier s )
             return 0;
         }
         catch( const std::exception& e ) {
-            std::cerr << e.what() << endl;
+            std::cerr << e.what() << std::endl;
         }
 //    }
     on_close_arg( args[0].addr, (A1*)0 );
@@ -239,7 +239,7 @@ int ternary_value_map( Word* args, Word& result, int, Word&, Supplier s )
             return 0;
         }
         catch( const std::exception& e ) {
-            std::cerr << e.what() << endl;
+            std::cerr << e.what() << std::endl;
         }
 //    }
     on_close_arg( args[0].addr, (A1*)0 );
@@ -265,7 +265,7 @@ int unary_stream_value_map( Word* args, Word& result,
                                 nl->Second( GetTupleResultType(s) ) );
         }
         catch( std::exception const& e ) {
-            std::cerr << e.what() << endl;
+            std::cerr << e.what() << std::endl;
             local.addr = 0;
         }
     }
@@ -296,7 +296,7 @@ int unary_stream_value_map( Word* args, Word& result,
                 }
             }
             catch( const std::exception& e ){
-                std::cerr << e.what() << endl;
+                std::cerr << e.what() << std::endl;
             }
         }
         return CANCEL;
@@ -321,7 +321,7 @@ int binary_stream_value_map( Word* args, Word& result,
                                 nl->Second( GetTupleResultType(s) ) );
         }
         catch( std::exception const& e ) {
-            std::cerr << e.what() << endl;
+            std::cerr << e.what() << std::endl;
             local.addr = 0;
         }
     }
@@ -353,7 +353,7 @@ int binary_stream_value_map( Word* args, Word& result,
                 }
             }
             catch( const std::exception& e ){
-                std::cerr << e.what() << endl;
+                std::cerr << e.what() << std::endl;
             }
         }
         return CANCEL;

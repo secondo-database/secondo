@@ -844,7 +844,7 @@ public:
     SetAssumeYEqual(false);
 
     if(segment == nullptr) {
-      std::cerr << "Warning: Remove called with null segmet" << endl;
+      std::cerr << "Warning: Remove called with null segmet" << std::endl;
       return;
     }
 
@@ -852,12 +852,13 @@ public:
         segment->GetTreeNode();
 
     if(treeNode == nullptr) {
-      std::cerr << "Warning: Remove called on empty tree node" << endl;
+      std::cerr << "Warning: Remove called on empty tree node" << std::endl;
       return;
     }
 
     if(treeNode->Value == nullptr) {
-      std::cerr << "Warning: Remove called on empty tree node value" << endl;
+      std::cerr << "Warning: Remove called on empty tree node value"
+         << std::endl;
       return;
     }
 

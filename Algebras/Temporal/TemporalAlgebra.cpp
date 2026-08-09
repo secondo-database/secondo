@@ -231,7 +231,8 @@ void UReal::TemporalFunction( const Instant& t,
            if(res > -0.001){ // correction of rounding errors
               res = 0.0;
            } else {
-             cout << *this << endl << t << "      " << res << endl;
+             std::cout << *this << std::endl << t << "      " << res
+                << std::endl;
              assert(false);
            }
         }
@@ -265,7 +266,7 @@ bool UReal::At( const CcReal& val, TemporalUnit<CcReal>& result )
 {
   std::cerr << "UReal::At() is not implementable! "
           "Use UReal::AtValue() instead!"
-       << endl;
+       << std::endl;
   assert( false );
   return false;
 }
@@ -362,7 +363,7 @@ double AntiderivativeSQRTpoly2(const double a, const double b,
      anti2 = (1 / sqrt(a)) * log ( 2.0 * sqrt(a*X) + h1);
      t2 = f*anti2;
   } else {
-     std::cerr << " invalid case reached " << endl;
+     std::cerr << " invalid case reached " << std::endl;
      anti2 = 0;
   }
   double result = t1 + t2;
@@ -422,9 +423,9 @@ by the integral of a linear function between the values at the boundaries.
         result = res1+res2;
      }
      if( (result < minint) || (result > maxint)){
-          std::cerr << " error in approximation " << endl;
-          std::cerr << " range is " << minint << " ,  " << maxint << endl;
-          std::cerr << " but result is " << result << endl;
+          std::cerr << " error in approximation " << std::endl;
+          std::cerr << " range is " << minint << " ,  " << maxint << std::endl;
+          std::cerr << " but result is " << result << std::endl;
      }
   }
   return  result;
@@ -849,7 +850,7 @@ double UReal::PeriodsAtMin(bool& correct, Periods& times) const
   if(std::isnan(v0) || std::isnan(v1) || std::isnan(v2))
   {
       std::cerr << "UReal::Min(): cannot determine the value within a unit"
-                << endl;
+                << std::endl;
       correct = false;
       return std::numeric_limits<double>::infinity();
   }
@@ -935,7 +936,7 @@ double UReal::PeriodsAtMax(bool& correct, Periods& times) const
   }
   if(std::isnan(v0) || std::isnan(v1) || std::isnan(v2)){
       std::cerr << "UReal::Max(): cannot determine the value within a unit"
-           << endl;
+           << std::endl;
       correct = false;
       return std::numeric_limits<double>::infinity();
   }
@@ -1037,7 +1038,7 @@ int UReal::AtMin(std::vector<UReal>& result) const
     if( correct )
       result.push_back(unit);
     else
-      std::cerr << "UReal::AtMin(): This should not happen!" << endl;
+      std::cerr << "UReal::AtMin(): This should not happen!" << std::endl;
   }
   return result.size();
 }
@@ -1097,7 +1098,7 @@ int UReal::AtMax( std::vector<UReal>& result) const
     if( correct )
       result.push_back(unit);
     else
-      std::cerr << "UReal::AtMax(): This should not happen!" << endl;
+      std::cerr << "UReal::AtMax(): This should not happen!" << std::endl;
   }
   return result.size();
 }
@@ -1247,7 +1248,7 @@ indicate whether their temporal values are equal or not.
 int UReal::IsEqual(const UReal& other, std::vector<UBool>& result) const
 {
   result.clear();
-  std::cerr << "UReal::IsEqual() Not Yet Implemented!" << endl;
+  std::cerr << "UReal::IsEqual() Not Yet Implemented!" << std::endl;
   return 0;
 }
 
@@ -2034,7 +2035,7 @@ void UPoint::At(const Rectangle<2>& rect, UPoint& result) const{
   }
 
   if(e<s){
-    std::cerr << "Warning e < s ; s = " << s << ", e = " << e << endl;
+    std::cerr << "Warning e < s ; s = " << s << ", e = " << e << std::endl;
     result.SetDefined(false);
     return;
   }
@@ -2251,7 +2252,8 @@ double UPoint::DistanceIntegral(const UPoint& up, const bool upperBound,
     up1.Distance(up2, dist);
   }
   if (!dist.IsDefined()) {
-    std::cerr << __PRETTY_FUNCTION__ << "Invalid geographic coord!" << endl;
+    std::cerr << __PRETTY_FUNCTION__ << "Invalid geographic coord!"
+       << std::endl;
     return -1.0;
   }
   double result = dist.Integrate();
@@ -2264,7 +2266,8 @@ double UPoint::DistanceIntegral(const UPoint& up, const bool upperBound,
 //     cout << "  approx by " << linPart1.Integrate() << " + "
 //          << (linPart2.IsDefined() ? linPart2.Integrate() : 0.0) << endl;
     if (isnan(result)) { // use mean of start and end point distance
-      cout << "######$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$" << endl;
+      std::cout << "######$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$"
+         << std::endl;
       result = (this->p0.Distance(up.p0, geoid) + 
           this->p1.Distance(up.p1, geoid)) / 2 * (iv.end - iv.start).ToDouble();
     }
@@ -2276,7 +2279,7 @@ double UPoint::DistanceIntegral(const UPoint& up, const bool upperBound,
 double UPoint::Distance(const Rectangle<3>& rect,
                         const Geoid* geoid /*=0*/) const{
   std::cerr << "UPoint::Distance(const Rectangle<3>&) not implemented yet"
-            << endl;
+            << std::endl;
   if( !IsDefined() || !rect.IsDefined() || (geoid && !geoid->IsDefined()) ){
     return -1;
   }
@@ -2300,7 +2303,7 @@ void UPoint::Distance( const UPoint& up,
   assert( up.IsDefined() );
   if(geoid){
     assert( geoid->IsDefined() );
-    std::cerr << "Spherical distance computation not implemented!" << endl;
+    std::cerr << "Spherical distance computation not implemented!" << std::endl;
     assert( false ); // TODO: implement spherical geometry
 
     // use HalfSegment::Distance(HalfSegment) to find DISTmin
@@ -2574,7 +2577,8 @@ void UPoint::Direction( std::vector<UReal> &result,
   double head0, head1;
   p0.DistanceOrthodromePrecise( p1, *geoid, valid, head0, head1);
   if( !valid || (head0<0) || (head1<0) ){ // ERROR!
-    std::cerr << __PRETTY_FUNCTION__ << ": Error computing directions." << endl;
+    std::cerr << __PRETTY_FUNCTION__ << ": Error computing directions."
+       << std::endl;
     assert(false);
     return;
   }
@@ -2582,10 +2586,11 @@ void UPoint::Direction( std::vector<UReal> &result,
     head0 = headingToDirection(head0);
     head1 = headingToDirection(head1);
   }
-  cout << __PRETTY_FUNCTION__ << ": head0 = " << head0 << endl;
-  cout << __PRETTY_FUNCTION__ << ": head1 = " << head0 << endl;
+  std::cout << __PRETTY_FUNCTION__ << ": head0 = " << head0 << std::endl;
+  std::cout << __PRETTY_FUNCTION__ << ": head1 = " << head0 << std::endl;
   double deltaHead = head1 - head0;
-  cout << __PRETTY_FUNCTION__ << ": deltaHead = " << deltaHead << endl;
+  std::cout << __PRETTY_FUNCTION__ << ": deltaHead = " << deltaHead
+     << std::endl;
   if( (fabs(deltaHead)<=epsilon) ){ // sufficiently precise
     DateTime dt = timeInterval.end - timeInterval.start;
     uresult.a = 0.;
@@ -2634,7 +2639,8 @@ void UPoint::Intersection(const UPoint &other, UPoint &result) const
       {
           result.SetDefined( false );
           if (TA_DEBUG)
-            std::cerr << "No intersection (0): deftimes do not overlap" << endl;
+            std::cerr << "No intersection (0): deftimes do not overlap"
+               << std::endl;
           assert ( !result.IsDefined() || result.IsValid() );
           return; // nothing to do
       }
@@ -2669,9 +2675,9 @@ void UPoint::Intersection(const UPoint &other, UPoint &result) const
       {
         std::cerr << "    p1norm=";
         p1norm.Print(std::cerr);
-        std::cerr << endl << "    p2norm=";
+        std::cerr << std::endl << "    p2norm=";
         p2norm.Print(std::cerr);
-        std::cerr << endl;
+        std::cerr << std::endl;
       }
       // test for identity:
       if ( p1norm.EqualValue( p2norm ))
@@ -2679,10 +2685,10 @@ void UPoint::Intersection(const UPoint &other, UPoint &result) const
           result = p1norm;
           if (TA_DEBUG)
           {
-            std::cerr << "Found intersection (1): equal upoints" << endl
+            std::cerr << "Found intersection (1): equal upoints" << std::endl
                  << "    Result=";
             result.Print(std::cerr);
-            std::cerr << endl;
+            std::cerr << std::endl;
           }
           assert ( !result.IsDefined() || result.IsValid() );
           return;
@@ -2698,9 +2704,9 @@ void UPoint::Intersection(const UPoint &other, UPoint &result) const
         { // no intersection (projections to X/Y do not cross each other)
           if (TA_DEBUG)
             std::cerr << "No intersection (1) - projections do not intersect:"
-                 << endl
-                 << "  d1X=" << d1.GetX() << " d2X=" << d2.GetX() << endl
-                 << "  d1Y=" << d1.GetY() << " d2Y=" << d2.GetY() << endl;
+                 << std::endl
+                 << "  d1X=" << d1.GetX() << " d2X=" << d2.GetX() << std::endl
+                 << "  d1Y=" << d1.GetY() << " d2Y=" << d2.GetY() << std::endl;
           result.SetDefined( false );
           assert ( !result.IsDefined() || result.IsValid() );
           return; // nothing to do
@@ -2731,22 +2737,22 @@ where $t = t_x = t_y$. If $t_x \neq t_y$, then there is no intersection!
       t_y = (dt*d1.GetY() + t1*(dyp1-dyp2)) / (dyp1-dyp2);
 
       if (TA_DEBUG)
-        std::cerr << "  dt=" << dt << " t1=" << t1 << " t2=" << t2 << endl
+        std::cerr << "  dt=" << dt << " t1=" << t1 << " t2=" << t2 << std::endl
              << "  (dxp1-dxp2)=" << (dxp1-dxp2)
-             << " (dyp1-dyp2)=" << (dyp1-dyp2) << endl
-             << "  t_x=" << t_x << " t_y=" << t_y << endl;
+             << " (dyp1-dyp2)=" << (dyp1-dyp2) << std::endl
+             << "  t_x=" << t_x << " t_y=" << t_y << std::endl;
 
       // Standard case: (dxp1-dxp2) != 0.0 != (dyp1-dyp2)
       if ( AlmostEqual(t_x, t_y) && ( t_x >= t1) && ( t_x <= t2) )
         { // We found an intersection
-          if (TA_DEBUG) std::cerr << "  Case 1: X/Y variable" << endl;
+          if (TA_DEBUG) std::cerr << "  Case 1: X/Y variable" << std::endl;
           t.ReadFrom(t_x); // create Instant
           intersectionfound = true;
         }
       // Special case: (dxp1-dxp2) == 0.0 -- constant X
       else if ( AlmostEqual(dxp1-dxp2, 0.0) )
         {
-          if (TA_DEBUG) std::cerr << "  Case 2: constant X" << endl;
+          if (TA_DEBUG) std::cerr << "  Case 2: constant X" << std::endl;
           t_y = t1 + d1.GetY() * dt / (dyp1 - dyp2);
           t.ReadFrom(t_y); // create Instant
           intersectionfound = true;
@@ -2754,7 +2760,7 @@ where $t = t_x = t_y$. If $t_x \neq t_y$, then there is no intersection!
       // Special case: (dyp1-dyp2) == 0.0 -- constant Y
       else if ( AlmostEqual(dyp1-dyp2, 0.0) )
         {
-          if (TA_DEBUG) std::cerr << "  Case 3: constant Y" << endl;
+          if (TA_DEBUG) std::cerr << "  Case 3: constant Y" << std::endl;
           t_x = t1 + d1.GetX() * dt / (dxp1 - dxp2);
           t.ReadFrom(t_x); // create Instant
           intersectionfound = true;
@@ -2767,16 +2773,17 @@ where $t = t_x = t_y$. If $t_x \neq t_y$, then there is no intersection!
           result = UPoint(iv, p1, p1);
           if (TA_DEBUG)
             {
-              std::cerr << "Found intersection (2): intersection point" << endl
+              std::cerr << "Found intersection (2): intersection point"
+                 << std::endl
                    << "    Result=";
               result.Print(std::cerr);
-              std::cerr << endl;
+              std::cerr << std::endl;
             }
             assert ( !result.IsDefined() || result.IsValid() );
             return;
         }
       // else: no result
-      if (TA_DEBUG) std::cerr << "No intersection (2)." << endl;
+      if (TA_DEBUG) std::cerr << "No intersection (2)." << std::endl;
       result.SetDefined( false );
       assert ( !result.IsDefined() || result.IsValid() );
       return;
@@ -2838,7 +2845,7 @@ bool UPoint::AtRegion(const Region *r, std::vector<UPoint> &result) const {
   if(!segs.IsDefined()){
     std::cerr << __PRETTY_FUNCTION__
          << " WARNING: r->Intersection(traj, segs) is UNDEF for traj="
-         << traj << "." <<endl;
+         << traj << "." <<std::endl;
   } else {
     HalfSegment hs;                      // buffer for the halfsegment
     for(int i=0; i<segs.Size(); i++){    // for each halfsegment hs in segs
@@ -2852,7 +2859,8 @@ bool UPoint::AtRegion(const Region *r, std::vector<UPoint> &result) const {
 
         if(!ures.IsDefined()){
           std::cerr << __PRETTY_FUNCTION__
-            <<" WARNING: (1) undef linear intersection unit for hs=" <<hs<<endl;
+            <<" WARNING: (1) undef linear intersection unit for hs=" <<hs
+               <<std::endl;
           continue;
         }
         t_left  = ures.timeInterval.start;
@@ -2860,7 +2868,8 @@ bool UPoint::AtRegion(const Region *r, std::vector<UPoint> &result) const {
         tmpUnit.At( hs.GetRightPoint(), ures );
         if(!ures.IsDefined()){
           std::cerr << __PRETTY_FUNCTION__
-            <<" WARNING: (2) undef linear intersection unit for hs=" <<hs<<endl;
+            <<" WARNING: (2) undef linear intersection unit for hs=" <<hs
+               <<std::endl;
         } else {
           t_right = ures.timeInterval.start;
           //  create a UPoint
@@ -2891,7 +2900,7 @@ bool UPoint::AtRegion(const Region *r, std::vector<UPoint> &result) const {
   if(!points.IsDefined()){
     std::cerr << __PRETTY_FUNCTION__
          << " WARNING: r->TouchPoints(traj, points) is UNDEF for traj="
-        << traj << "." << endl;
+        << traj << "." << std::endl;
   } else {
     Point p(true,0.0,0.0);                       // buffer for the point
     int nosegres = tmpresult.size();     // no of linear results
@@ -2907,7 +2916,8 @@ bool UPoint::AtRegion(const Region *r, std::vector<UPoint> &result) const {
         At( p, ures ); // compute UPoint from position
         if(!ures.IsDefined()){
           std::cerr << __PRETTY_FUNCTION__
-              << " WARNING: undef point intersection unit for p=" << p << endl;
+              << " WARNING: undef point intersection unit for p=" << p
+                 << std::endl;
         } else {
           tmpresult.push_back(ures); //    add the UPoint to tmpresult
         }
@@ -3295,7 +3305,8 @@ double CUPoint::DistanceIntegral(const CUPoint& cup, const bool upperBound,
   }
   else { // case upperbound starts here
     if (!dist.IsDefined()) {
-      std::cerr << __PRETTY_FUNCTION__ << "Invalid geographic coord!" << endl;
+      std::cerr << __PRETTY_FUNCTION__ << "Invalid geographic coord!"
+         << std::endl;
       return DBL_MAX;
     }
     double integralValue(0.0), integralPart(0.0);
@@ -3315,7 +3326,7 @@ double CUPoint::DistanceIntegral(const CUPoint& cup, const bool upperBound,
 //         cout << "  approx by " << linPart1.Integrate() << " + "
 //              << (linPart2.IsDefined() ? linPart2.Integrate() : 0.0) << endl;
         if (isnan(integralPart) || integralPart < 0.0) {
-          cout << "#################§§§§§§§§§" << endl;
+          std::cout << "#################§§§§§§§§§" << std::endl;
           assert(false);
         }
       }
@@ -3346,8 +3357,8 @@ double CUPoint::DistanceAvg(const CUPoint& cup, const DateTime& duration,
   CMPoint cm1(true), cm2(true);
   cm1.Add(*this);
   cm2.Add(cup);
-  cout << *this << endl << cup;
-  cout << endl << endl << cm1 << endl << cm2 << endl;
+  std::cout << *this << std::endl << cup;
+  std::cout << std::endl << std::endl << cm1 << std::endl << cm2 << std::endl;
   return DistanceComputation<CMPoint, CUPoint>::DistanceAvg(cm1, cm2, duration, 
                                                             upperBound, geoid);
 }
@@ -3444,7 +3455,7 @@ std::ostream& GridCellSeq::Print( std::ostream &os ) const{
     return os << "(GridCellSeq: undefined)";
   }
   os << "(GridCellSeq: defined, Cell:" << my_cellNo << ", Tenter:"
-     << my_enterTime << ",  Tleave:" << my_leaveTime << ")" << endl;
+     << my_enterTime << ",  Tleave:" << my_leaveTime << ")" << std::endl;
   return os;
 }
 
@@ -4370,7 +4381,7 @@ void MReal::AtMin( MReal& result ) const
     if(!correct)
     {
       std::cerr << "MReal::AtMin(): Cannot compute minimum value for unit "
-           << i << "." << endl;
+           << i << "." << std::endl;
       continue;
     }
     if( localMin < globalMin )
@@ -4415,7 +4426,7 @@ void MReal::AtMin( MReal& result ) const
             continue;
           }
           else
-            std::cerr << "MReal::AtMin(): This should not happen!" << endl;
+            std::cerr << "MReal::AtMin(): This should not happen!" << std::endl;
         }
         else
         { // All is fine. Just insert last_candidate.
@@ -4476,7 +4487,7 @@ void MReal::AtMax( MReal& result ) const
     if(!correct)
     {
       std::cerr << "MReal::AtMax(): Cannot compute maximum value for unit "
-           << i << "." << endl;
+           << i << "." << std::endl;
       continue;
     }
     if( localMax > globalMax )
@@ -4521,7 +4532,7 @@ void MReal::AtMax( MReal& result ) const
             continue;
           }
           else
-            std::cerr << "MReal::AtMax(): This should not happen!" << endl;
+            std::cerr << "MReal::AtMax(): This should not happen!" << std::endl;
         }
         else
         { // All is fine. Just insert last_candidate.
@@ -4615,7 +4626,7 @@ void MReal::AtValue( const CcReal& ccvalue, MReal& result ) const
         }
         else {
           std::cerr << __PRETTY_FUNCTION__ << ": This should not happen!" 
-                    << endl;
+                    << std::endl;
         }
       }
       else
@@ -4848,7 +4859,7 @@ void MReal::Simplify(const double epsilon, MReal& result) const{
       } else {
          if(useleft[i]){
              if(leftDefined){ // debug
-                std::cerr << "Overwrite left part of a ureal " << endl;
+                std::cerr << "Overwrite left part of a ureal " << std::endl;
              }
              start = unit.timeInterval.start;
              lc = unit.timeInterval.lc;
@@ -4857,7 +4868,8 @@ void MReal::Simplify(const double epsilon, MReal& result) const{
          }
          if(useright[i]){
              if(!leftDefined){ // debug
-                 std::cerr << "Close ureal without left definition " << endl;
+                 std::cerr << "Close ureal without left definition "
+                    << std::endl;
              } else{
                end = unit.timeInterval.end;
                rc = unit.timeInterval.rc;
@@ -5007,7 +5019,7 @@ std::ostream& MPoint::Print( std::ostream &os ) const
     os << "\n\t";
     unit.Print(os);
   }
-  os << "\n)" << endl;
+  os << "\n)" << std::endl;
   return os;
 }
 
@@ -5502,7 +5514,7 @@ void MPoint::SquaredDistance( const MPoint& p, MReal& result,
       u1.Distance( u2, uReal, geoid );
       if(!uReal.IsDefined()){
         std::cerr << __PRETTY_FUNCTION__
-             << "Invalid geographic coord found!" << endl;
+             << "Invalid geographic coord found!" << std::endl;
         result.EndBulkLoad( false, false );
         result.Clear();
         result.SetDefined(false);
@@ -5958,7 +5970,7 @@ void MPoint::Simplify(const double epsilon, MPoint& result,
         // debug
         if(leftDefined){
            std::cerr << " error in mpoint simplification,"
-                << " overwrite an existing leftPoint "  << endl;
+                << " overwrite an existing leftPoint "  << std::endl;
         }
         // end of debug
         p0 = upoint.p0;
@@ -5970,7 +5982,7 @@ void MPoint::Simplify(const double epsilon, MPoint& result,
         // debug
         if(!leftDefined){
            std::cerr << " error in mpoint simplification,"
-                << " rightdefined before leftdefined "  << endl;
+                << " rightdefined before leftdefined "  << std::endl;
 
         }
         Interval<Instant> interval(start,upoint.timeInterval.end,closeLeft,
@@ -6757,7 +6769,7 @@ void getCenter(const cluster& cl,
  y = 0;
  int size = cl.size();
  if(size==0){
-   std::cerr << "indexes smaller than zero" << endl;
+   std::cerr << "indexes smaller than zero" << std::endl;
    return;
  }
  std::set<int>::const_iterator it;
@@ -7088,7 +7100,8 @@ void changeTimes(MPoint& mpoint, const DateTime& eps){
        tree.insert(unit.BoundingBoxSpatial(),i);
    }
 
-   cout << " There are " << tree.noObjects() << " stored in the tree " << endl;
+   std::cout << " There are " << tree.noObjects() << " stored in the tree "
+      << std::endl;
 
  /*
    DbArray<bool> used(mpoint.GetNoComponents);
@@ -7752,30 +7765,30 @@ it to the result.
   delayValueAtUnitStartTime = val; \
   delayUnitStartTime = t; \
   atUnitStart = false; \
-  if(debugme) { cout<<"\n\t\tStartUnit ("<<val<<" @ "; \
-       t.Print(cout); cout<<" )"; }
+  if(debugme) { std::cout<<"\n\t\tStartUnit ("<<val<<" @ "; \
+       t.Print(std::cout); std::cout<<" )"; }
 
 #define _endunit(val, t) \
   delayValueAtUnitEndTime=val; \
   delayUnitEndTime=t; \
   atUnitStart = true; \
-  if(debugme) { cout<<"\n\t\tEndUnit ("<<val<<" @ "; \
-     t.Print(cout); cout<<" )"; }
+  if(debugme) { std::cout<<"\n\t\tEndUnit ("<<val<<" @ "; \
+     t.Print(std::cout); std::cout<<" )"; }
 
 #define _createunitpar(val1, t1, val2, t2) \
   intr.start=t1; intr.end=t2; \
   runit= new UReal(intr, val1 * 86400, val2 * 86400); \
   delayRes->Add(*runit); \
   delete runit; \
-  if(debugme) { cout<<"\n\t\tCreateUnit"; }
+  if(debugme) { std::cout<<"\n\t\tCreateUnit"; }
 
 #define _createunit \
   intr.start= delayUnitStartTime; intr.end=delayUnitEndTime; \
   runit= new UReal(intr, delayValueAtUnitStartTime * 86400, \
       delayValueAtUnitEndTime * 86400); \
   delayRes->Add(*runit); \
-  if(debugme) { cout<<"\n\t\tCreateIntermediateUnit ("; \
-      runit->Print(cout); cout<<" )"; } \
+  if(debugme) { std::cout<<"\n\t\tCreateIntermediateUnit ("; \
+      runit->Print(std::cout); std::cout<<" )"; } \
   delete runit;
 
 MReal* MPoint::DelayOperator(const MPoint* actual, const Geoid* geoid)
@@ -7803,17 +7816,17 @@ MReal* MPoint::DelayOperator(const MPoint* actual, const Geoid* geoid)
 
   if(debugme)
   {
-    cout.flush();
-    cout<<"\n ActualPartition: ";
+    std::cout.flush();
+    std::cout<<"\n ActualPartition: ";
     for(int i=0; i<= DTActualSize; i++)
-      cout<<partitionActual[i]<<"  ";
-    cout<<"\n SchedulePartition: ";
+      std::cout<<partitionActual[i]<<"  ";
+    std::cout<<"\n SchedulePartition: ";
     for(int i=0; i<= DTScheduleSize; i++)
-      cout<<partitionSchedule[i]<<"  ";
-    cout<<"\n MergedPartition: ";
+      std::cout<<partitionSchedule[i]<<"  ";
+    std::cout<<"\n MergedPartition: ";
     for(int i=0; i< partitionSize; i++)
-      cout<<partition[i]<<"  ";
-    cout.flush();
+      std::cout<<partition[i]<<"  ";
+    std::cout.flush();
   }
 
   UReal actualScanUnit, scheduleScanUnit;
@@ -7886,15 +7899,15 @@ MReal satisfying the minimal presentation condition
 
     if(debugme)
     {
-      cout<<endl;
-      cout<<"At iteration: "<<i<<" traversed distance: "<< distVal;
-      cout<<"\n\tActual traversed this distance at: ";
-      if(isInstantActual) actualTime.Print(cout);
-      else actualInterval.Print(cout);
-      cout<<"\n\tSchedule traversed this distance at: ";
-      if(isInstantSchedule) scheduledTime.Print(cout);
-      else scheduledInterval.Print(cout);
-      cout<<endl<<"\tActions taken:";
+      std::cout<<std::endl;
+      std::cout<<"At iteration: "<<i<<" traversed distance: "<< distVal;
+      std::cout<<"\n\tActual traversed this distance at: ";
+      if(isInstantActual) actualTime.Print(std::cout);
+      else actualInterval.Print(std::cout);
+      std::cout<<"\n\tSchedule traversed this distance at: ";
+      if(isInstantSchedule) scheduledTime.Print(std::cout);
+      else scheduledInterval.Print(std::cout);
+      std::cout<<std::endl<<"\tActions taken:";
     }
 
     if(isInstantActual && isInstantSchedule)
@@ -8134,9 +8147,9 @@ otherwise, the result is undefined
       dist2= dist1 + (geoid?uPoint.p0.DistanceOrthodrome(uPoint.p1,*geoid,ok)
                            :uPoint.p0.Distance(uPoint.p1));
       if(!ok){ // found invalid geographic coordinates
-        cout << "\nFound invalid geographic coordinates: uPoint.p0="
-             << uPoint.p0 << ", uPoint.p1=" << uPoint.p1 << "." << endl
-             << "Returning undefined result!" << endl;
+        std::cout << "\nFound invalid geographic coordinates: uPoint.p0="
+             << uPoint.p0 << ", uPoint.p1=" << uPoint.p1 << "." << std::endl
+             << "Returning undefined result!" << std::endl;
         dist->SetDefined(false);
         return dist;
       }
@@ -8148,24 +8161,24 @@ otherwise, the result is undefined
           uPoint.timeInterval.start).millisecondsToNull()/ 1000.0);
       if(debugme)
       {
-        cout.flush();
-        cout<<"\nlastSlope: " <<lastslope << "    curSlope:"<<curslope;
-        cout.flush();
+        std::cout.flush();
+        std::cout<<"\nlastSlope: " <<lastslope << "    curSlope:"<<curslope;
+        std::cout.flush();
       }
       if(curslope != lastslope)
       {
         unit = new UReal(interval, unitstart, unitend);
         if(debugme)
         {
-          cout.flush();
-          cout<<"\nAdding new UReal";
+          std::cout.flush();
+          std::cout<<"\nAdding new UReal";
 //          cout<<"\n\tAt time "<<
 //                    unit->timeInterval.start.GetAllMilliSeconds();
 //                  cout<<" the distance traversed is "<< unit->Min(dummy);
 //          cout<<"\n\tAt time "<<
 //                    unit->timeInterval.end.GetAllMilliSeconds();
 //                  cout<<" the distance traversed is "<< unit->Max(dummy);
-          cout.flush();
+          std::cout.flush();
         }
         dist->Add(*unit);
         delete unit;
@@ -8222,7 +8235,7 @@ void MPoint::AtRegion(const Region *r, MPoint &result) const {
     Get( i, uPoint );
     if(!uPoint.AtRegion(r, uResultVector)) {
       std::cerr << __PRETTY_FUNCTION__ << " WARNING: no result for UPoint (" 
-                << i << "): uPoint = " << uPoint << endl;
+                << i << "): uPoint = " << uPoint << std::endl;
       continue;
     }
     for(unsigned int j=0; j<uResultVector.size(); j++) {
@@ -8556,7 +8569,7 @@ std::ostream& CMPoint::Print(std::ostream &os) const {
     os << "\n\t";
     unit.Print(os);
   }
-  os << "\n)" << endl;
+  os << "\n)" << std::endl;
   return os;
 }
 
@@ -9022,7 +9035,7 @@ void CMPoint::AtRegion(const Region *r, CMPoint &result) const {
     Get(i, unit);
     if (!((UPoint*)&unit)->AtRegion(r, uResultVector)) {
       std::cerr << __PRETTY_FUNCTION__ << " WARNING: no result for CUPoint (" 
-                << i << "): cupoint = " << unit << endl;
+                << i << "): cupoint = " << unit << std::endl;
       continue;
     }
     for (unsigned int j = 0; j < uResultVector.size(); j++) {
@@ -14889,7 +14902,7 @@ int Linearize2_ureal(Word* args, Word& result,
         return 0;
     } // end switch
     std::cerr << "Linearize2_ureal(): Unknown message (" << message << ")" 
-              << endl;
+              << std::endl;
     return -1; // should not happen
 }
 
@@ -15128,9 +15141,9 @@ int DelayOperatorValueMapping(ArgVector args, Word& result,
   tmp->DeleteIfAllowed();
   result= SetWord(delay);
   if (debugme) {
-    cout.flush();
-    delay->Print(cout);
-    cout.flush();
+    std::cout.flush();
+    delay->Print(std::cout);
+    std::cout.flush();
   }
   return 0;
 // result = qp->ResultStorage(s);
@@ -15154,9 +15167,9 @@ int DistanceTraversedOperatorValueMapping(ArgVector args, Word& result,
   tmp->DeleteIfAllowed();
   result = SetWord(dist);
   if (debugme) {
-    cout.flush();
-    dist->Print(cout);
-    cout.flush();
+    std::cout.flush();
+    dist->Print(std::cout);
+    std::cout.flush();
   }
   return 0;
 // result = qp->ResultStorage(s);
@@ -16720,7 +16733,8 @@ int Mp2OneMpVM( Word* args, Word& result, int message,
    double y = (cur.p0.GetY() + counter); // XRIS: NONSENSE here!
 
    std::cerr << "WARNING: " << __PRETTY_FUNCTION__
-        << " called. This functions does nonsense! Please correct!" << endl;
+        << " called. This functions does nonsense! Please correct!"
+           << std::endl;
 
    Point p(true,x,y);
    cur.timeInterval.start = *start;
@@ -17123,7 +17137,7 @@ class GridCellEventsLocalInfo{
          << ",\n\t eventIter: <unprintable>"
          << ",\n\t cellLast: " << cellLast
          << ",\n\t currentEvent: " << currentEvent
-         << "\n)" << endl;
+         << "\n)" << std::endl;
       return os;
     }
 
@@ -20209,12 +20223,12 @@ int GetRefinementPartitionVM( Word* args, Word& result, int message,
     }
     default:{
       std::cerr << __PRETTY_FUNCTION__ << "Unknown message = " << message << "."
-           << endl;
+           << std::endl;
       return -1;
     }
   } // end switch
   std::cerr << __PRETTY_FUNCTION__ << "Unknown message = " << message << "."
-       << endl;
+       << std::endl;
   return -1;
 }
 /*

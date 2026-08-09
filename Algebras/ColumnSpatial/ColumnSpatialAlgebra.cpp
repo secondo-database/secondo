@@ -174,12 +174,12 @@ inline void benchmark(long &cycles, long &ns) {
   // appends one point to the point array
   bool ColPoint::append(Point* point) {
     if(!point->IsDefined()) {
-      cout << "point is undefined!" << endl;
+      std::cout << "point is undefined!" << std::endl;
       return false;
     }
 
     if(point->IsEmpty()) {
-      cout << "point is empty" << endl;
+      std::cout << "point is empty" << std::endl;
       return false;
     }
 
@@ -204,7 +204,7 @@ inline void benchmark(long &cycles, long &ns) {
   // add terminator entries to arrays and finalize counters
   void ColPoint::finalize() {
     aPoint = static_cast<sPoint*>(realloc(aPoint, count * sizeof(sPoint)));
-    cout << count * sizeof(sPoint) << " bytes used.\n";
+    std::cout << count * sizeof(sPoint) << " bytes used.\n";
   }
 
 
@@ -239,15 +239,16 @@ It uses the memcpy - function of the string-library
 
   // test output of the array aPoint and there parameters
   void ColPoint::showArray(string title) {
-    cout << "\n--------------------------------------------\n" << title << "\n";
+    std::cout << "\n--------------------------------------------\n" << title
+       << "\n";
     // output of the array aPoint
-    cout << "aPoint (" << count << "):\n";
-    cout << "Bytes allocated: " << count * sizeof(sPoint) << "\n";
-    cout << "index\tx\ty\n";
+    std::cout << "aPoint (" << count << "):\n";
+    std::cout << "Bytes allocated: " << count * sizeof(sPoint) << "\n";
+    std::cout << "index\tx\ty\n";
     for (long cp = 0; cp < count; cp++) {
-      cout << cp << ":\t" << aPoint[cp].x << "\t" << aPoint[cp].y << "\n";
+      std::cout << cp << ":\t" << aPoint[cp].x << "\t" << aPoint[cp].y << "\n";
     }
-    cout << "--------------------------------------------\n";
+    std::cout << "--------------------------------------------\n";
   }
 
 
@@ -301,7 +302,7 @@ It uses the memcpy - function of the string-library
 
     // truncate oversized memory to allocate the real used memory
     inArray = static_cast<sPoint*>(realloc(inArray, inCount * sizeof(sPoint)));
-    cout << inCount * sizeof(sPoint) << " bytes used\n";
+    std::cout << inCount * sizeof(sPoint) << " bytes used\n";
 
     Word answer(static_cast<void*>(0));
     answer.addr = new ColPoint(inArray, inCount);  // create new point object
@@ -354,7 +355,7 @@ It uses the memcpy - function of the string-library
   bool ColPoint::Open(SmiRecord& valueRecord, size_t& offset,
                    const ListExpr typeInfo, Word& value) {
 
-    cout << "open apoint...\n";
+    std::cout << "open apoint...\n";
 
 
     sPoint* aPoint = NULL;  // array which contains the input point values
@@ -389,7 +390,7 @@ It uses the memcpy - function of the string-library
       value.addr = 0;
     }
 
-    cout << count * sizeof(sPoint) << " bytes used." << endl;
+    std::cout << count * sizeof(sPoint) << " bytes used." << std::endl;
 
     return ok;
   }
@@ -397,7 +398,7 @@ It uses the memcpy - function of the string-library
   bool ColPoint::Save(SmiRecord& valueRecord, size_t& offset,
                    const ListExpr typeInfo, Word& value) {
 
-    cout << "save apoint...\n";
+    std::cout << "save apoint...\n";
 
     ColPoint* cPoint = static_cast<ColPoint*>(value.addr);
     size_t sizeL = sizeof(long);
@@ -622,12 +623,12 @@ each entry to the clone object.
   bool ColLine::append(Line* line) {
 
     if(!line->IsDefined()) {
-      cout << "line is undefined!" << endl;
+      std::cout << "line is undefined!" << std::endl;
       return false;
     }
 
     if(line->IsEmpty()) {
-      cout << "line is empty" << endl;
+      std::cout << "line is empty" << std::endl;
       return false;
     }
 
@@ -696,7 +697,7 @@ each entry to the clone object.
     aSegment = static_cast<sSegment*>
              (realloc(aSegment, countSegment * sizeof(sSegment)));
 
-    cout << countLine * sizeof(sLine) + countSegment * sizeof(sSegment)
+    std::cout << countLine * sizeof(sLine) + countSegment * sizeof(sSegment)
          << " bytes used.\n";
   }
 
@@ -750,29 +751,30 @@ each entry to the clone object.
 
   // test output of the arrays aLine and aSegment and there parameters
   void ColLine::showArrays(string title) {
-    cout << "\n--------------------------------------------\n" << title << "\n";
+    std::cout << "\n--------------------------------------------\n" << title
+       << "\n";
 
     // output of the array aLine
-    cout << "aLine (" << countLine << "):\n";
-    cout << "Bytes allocated: " << countLine * sizeof(sLine) << "\n";
-    cout << "index\tsegment\n";
+    std::cout << "aLine (" << countLine << "):\n";
+    std::cout << "Bytes allocated: " << countLine * sizeof(sLine) << "\n";
+    std::cout << "index\tsegment\n";
     for (long cl = 0; cl < countLine; cl++) {
-      cout << cl << ":\t" << aLine[cl].index << "\n";
+      std::cout << cl << ":\t" << aLine[cl].index << "\n";
     }
 
     // output of the array aSegment
-    cout << "aSegment (" << countSegment << "):\n";
-    cout << "Bytes allocated: " << countSegment * sizeof(sSegment) << "\n";
-    cout << "index\tx1\ty1\tx2\ty2\n";
+    std::cout << "aSegment (" << countSegment << "):\n";
+    std::cout << "Bytes allocated: " << countSegment * sizeof(sSegment) << "\n";
+    std::cout << "index\tx1\ty1\tx2\ty2\n";
     for (long cs = 0; cs < countSegment; cs++) {
-      cout << cs << ":\t"
+      std::cout << cs << ":\t"
            << aSegment[cs].x1 << "\t"
            << aSegment[cs].y1 << "\t"
            << aSegment[cs].x2 << "\t"
            << aSegment[cs].y2 << "\n";
     }
 
-    cout << "--------------------------------------------\n";
+    std::cout << "--------------------------------------------\n";
   }
 
 
@@ -871,7 +873,7 @@ each entry to the clone object.
     // truncate oversized memory to allocate the real used memory
     inLine = static_cast<sLine*>(realloc(inLine, ++cl * sizeof(sLine)));
     inSeg = static_cast<sSegment*>(realloc(inSeg, ++cs * sizeof(sSegment)));
-    cout << cl * sizeof(sLine) + cs * sizeof(sSegment) << " bytes used\n";
+    std::cout << cl * sizeof(sLine) + cs * sizeof(sSegment) << " bytes used\n";
     Word answer(static_cast<void*>(0));
     answer.addr = new ColLine(inLine, inSeg, cl, cs);  // create new line object
 
@@ -957,7 +959,7 @@ each entry to the clone object.
   bool ColLine::Open(SmiRecord& valueRecord, size_t& offset,
                    const ListExpr typeInfo, Word& value) {
 
-    cout << "open aline...\n";
+    std::cout << "open aline...\n";
 
     sLine* inLine = NULL;  // array which contains the input line values
     sSegment* inSegment = NULL;  // array which contains the input line values
@@ -1017,8 +1019,8 @@ each entry to the clone object.
       value.addr = 0;
     }
 
-    cout << cl * sizeof(sLine) + cs * sizeof(sSegment)
-         << " bytes used." << endl;
+    std::cout << cl * sizeof(sLine) + cs * sizeof(sSegment)
+         << " bytes used." << std::endl;
     return ok;
   }
 
@@ -1028,7 +1030,7 @@ each entry to the clone object.
   bool ColLine::Save(SmiRecord& valueRecord, size_t& offset,
                    const ListExpr typeInfo, Word& value) {
 
-    cout << "save aline...\n";
+    std::cout << "save aline...\n";
 
     ColLine* cLine = static_cast<ColLine*>(value.addr);
 
@@ -1380,12 +1382,12 @@ each entry to the clone object.
   bool ColRegion::append(Region* region) {
 
     if(!region->IsDefined()) {
-      cout << "region is undefined!" << endl;
+      std::cout << "region is undefined!" << std::endl;
       return false;
     }
 
     if(region->IsEmpty()) {
-      cout << "region is empty" << endl;
+      std::cout << "region is empty" << std::endl;
       return false;
     }
 
@@ -1667,14 +1669,16 @@ a problem with memory allocation. Instead the loops below are used.
   // test output of the arrays aRegion, aCycle and aPoint and there parameters
   void ColRegion::showArrays(string title, bool showPoints) {
 
-    cout << "\n--------------------------------------------\n" << title << "\n";
+    std::cout << "\n--------------------------------------------\n" << title
+       << "\n";
 
     // output of the array aRegion
-    cout << "aRegion (" << countRegion << "):\n";
-    cout << "Bytes allocated: " << countRegion * sizeof(aRegion[0]) << "\n";
-    cout << "index\tcycle\tpoint\tmbb-l\tmbb-b\tmbb-r\tmbb-t\n";
+    std::cout << "aRegion (" << countRegion << "):\n";
+    std::cout << "Bytes allocated: " << countRegion * sizeof(aRegion[0])
+       << "\n";
+    std::cout << "index\tcycle\tpoint\tmbb-l\tmbb-b\tmbb-r\tmbb-t\n";
     for (long cr = 0; cr < countRegion; cr++) {
-      cout << cr << ":\t" << aRegion[cr].indexCycle << "\t"
+      std::cout << cr << ":\t" << aRegion[cr].indexCycle << "\t"
            << aRegion[cr].indexPoint << "\t"
            << aRegion[cr].mbbX1 << "\t"
            << aRegion[cr].mbbY1 << "\t"
@@ -1683,24 +1687,25 @@ a problem with memory allocation. Instead the loops below are used.
     }
 
     // output of the array aCycle
-    cout << "aCycle (" << countCycle << "):\n";
-    cout << "Bytes allocated: " << countCycle * sizeof(aCycle[0]) << "\n";
-    cout << "index\tpoint\n";
+    std::cout << "aCycle (" << countCycle << "):\n";
+    std::cout << "Bytes allocated: " << countCycle * sizeof(aCycle[0]) << "\n";
+    std::cout << "index\tpoint\n";
     for (long cc = 0; cc < countCycle; cc++) {
-      cout << cc << ":\t" << aCycle[cc].index << "\n";
+      std::cout << cc << ":\t" << aCycle[cc].index << "\n";
     }
 
     // output of the array aPoint
-    cout << "aPoint (" << countPoint << "):\n";
-    cout << "Bytes allocated: " << countPoint * sizeof(aPoint[0]) << "\n";
+    std::cout << "aPoint (" << countPoint << "):\n";
+    std::cout << "Bytes allocated: " << countPoint * sizeof(aPoint[0]) << "\n";
     if (showPoints) {
-      cout << "index\tx\ty\n";
+      std::cout << "index\tx\ty\n";
       for (long cp = 0; cp < countPoint; cp++) {
-        cout << cp << ":\t" << aPoint[cp].x << "\t" << aPoint[cp].y << "\n";
+        std::cout << cp << ":\t" << aPoint[cp].x << "\t" << aPoint[cp].y
+           << "\n";
       }
     }
 
-    cout << "--------------------------------------------\n";
+    std::cout << "--------------------------------------------\n";
   }
 
 
@@ -2123,7 +2128,8 @@ and returns the region indices.
     inRegion = static_cast<sRegion*>(realloc(inRegion, ++cr * sizeof(sRegion)));
     inCycle = static_cast<sCycle*>(realloc(inCycle, ++cc * sizeof(sCycle)));
     inPoint = static_cast<sPoint*>(realloc(inPoint, ++cp * sizeof(sPoint)));
-    cout << cr * sizeof(sRegion) + cc * sizeof(sCycle) + cp * sizeof(sPoint)
+    std::cout
+       << cr * sizeof(sRegion) + cc * sizeof(sCycle) + cp * sizeof(sPoint)
          << " bytes used\n";
     Word answer(static_cast<void*>(0));
 
@@ -2244,7 +2250,7 @@ and returns the region indices.
   bool ColRegion::Open(SmiRecord& valueRecord, size_t& offset,
                    const ListExpr typeInfo, Word& value) {
 
-    cout << "open aregion...\n";
+    std::cout << "open aregion...\n";
     // initialize arrays
     sRegion* region = NULL;
     sCycle* cycle = NULL;
@@ -2345,8 +2351,9 @@ and returns the region indices.
       value.addr = 0;
     }
 
-    cout << cr * sizeof(sRegion) + cc * sizeof(sCycle) + cp * sizeof(sPoint)
-         << " bytes used." << endl;
+    std::cout
+       << cr * sizeof(sRegion) + cc * sizeof(sCycle) + cp * sizeof(sPoint)
+         << " bytes used." << std::endl;
 
     return ok;  // ok can be true or false
   }
@@ -2356,7 +2363,7 @@ and returns the region indices.
   bool ColRegion::Save(SmiRecord& valueRecord, size_t& offset,
                    const ListExpr typeInfo, Word& value) {
 
-    cout << "save aregion...\n";
+    std::cout << "save aregion...\n";
 
     ColRegion* cRegion = static_cast<ColRegion*>(value.addr);
     size_t sizeL = sizeof(long);
@@ -2471,9 +2478,9 @@ each entry to the clone object.
       return (void*)0;
     }
 
-    cout << "sizeof(tmpRegion) = " << sizeof(sRegion) * tmpCR << endl
-         << "sizeof(tmpCycle)  = " << sizeof(sCycle) * tmpCC << endl
-         << "sizeof(tmppoint)  = " << sizeof(sPoint) * tmpCP << endl;
+    std::cout << "sizeof(tmpRegion) = " << sizeof(sRegion) * tmpCR << std::endl
+         << "sizeof(tmpCycle)  = " << sizeof(sCycle) * tmpCC << std::endl
+         << "sizeof(tmppoint)  = " << sizeof(sPoint) * tmpCP << std::endl;
 
     for (long cr = 0; cr < tmpCR; cr++)
       tmpRegion[cr] = cRegion->aRegion[cr];
@@ -2589,8 +2596,8 @@ ListExpr mapTM(ListExpr args) {
     returnType = listutils::basicSymbol<ColRegion>();
 
   if (!nl->IsEmpty(returnType)) {
-    cout << "'" << name << "' is attribute " << j << ", type is '"
-         << nl->ToString(type) << "'." << endl;
+    std::cout << "'" << name << "' is attribute " << j << ", type is '"
+         << nl->ToString(type) << "'." << std::endl;
     return nl->ThreeElemList(nl->SymbolAtom(Symbols::APPEND()),
            nl->OneElemList(nl->IntAtom(j)), returnType);
   };
@@ -2698,20 +2705,20 @@ int pointsInsideVM (Word* args, Word& result, int message,
   ColPoint* cPoint = (ColPoint*) args[0].addr;
   ColRegion* cRegion = (ColRegion*) args[1].addr;
 
-  cout << "check " << cPoint->getCount() << " points "
-       << "and " << cRegion->getCount() << " regions..." << endl;
+  std::cout << "check " << cPoint->getCount() << " points "
+       << "and " << cRegion->getCount() << " regions..." << std::endl;
 
   result = qp->ResultStorage(s);
   LongInts* id = cRegion->pointsInside(cPoint);
   result.addr = id;
 
   benchmark(cStop, tStop);
-  cout << "Benchmark: " << (long)(cStop - cStart) << " cycles / "
-       << (long) tStop - tStart << " nanoseconds." << endl;
+  std::cout << "Benchmark: " << (long)(cStop - cStart) << " cycles / "
+       << (long) tStop - tStart << " nanoseconds." << std::endl;
     fstream f;
     f.open("benchmark.dat", std::fstream::out|std::fstream::app);
     f  << "Benchmark: " << (long)(cStop - cStart) << " cycles / "
-       << (long) tStop - tStart << " nanoseconds." << endl;
+       << (long) tStop - tStart << " nanoseconds." << std::endl;
     f.close();
 
   return 0;
@@ -2728,16 +2735,16 @@ int linesInsideVM (Word* args, Word& result, int message,
   ColLine* cLine = (ColLine*) args[0].addr;
   ColRegion* cRegion = (ColRegion*) args[1].addr;
 
-  cout << "check " << cLine->getCount() << " lines "
-       << "and " << cRegion->getCount() << " regions..." << endl;
+  std::cout << "check " << cLine->getCount() << " lines "
+       << "and " << cRegion->getCount() << " regions..." << std::endl;
 
   result = qp->ResultStorage(s);
   LongInts* id = cRegion->linesInside(cLine);
   result.addr = id;
 
   benchmark(cStop, tStop);
-  cout << "Benchmark: " << (long)(cStop - cStart) << " cycles / "
-       << (long) tStop - tStart << " nanoseconds." << endl;
+  std::cout << "Benchmark: " << (long)(cStop - cStart) << " cycles / "
+       << (long) tStop - tStart << " nanoseconds." << std::endl;
 
   return 0;
 }
@@ -2766,16 +2773,16 @@ int containsPointsVM (Word* args, Word& result, int message,
   ColRegion* cRegion = (ColRegion*) args[0].addr;
   ColPoint* cPoint = (ColPoint*) args[1].addr;
 
-  cout << "check " << cPoint->getCount() << " points "
-       << "and " << cRegion->getCount() << " regions..." << endl;
+  std::cout << "check " << cPoint->getCount() << " points "
+       << "and " << cRegion->getCount() << " regions..." << std::endl;
 
   result = qp->ResultStorage(s);
   LongInts* id = cRegion->containsPoints(cPoint);
   result.addr = id;
 
   benchmark(cStop, tStop);
-  cout << "Benchmark: " << (long)(cStop - cStart) << " cycles / "
-       << (long) tStop - tStart << " nanoseconds." << endl;
+  std::cout << "Benchmark: " << (long)(cStop - cStart) << " cycles / "
+       << (long) tStop - tStart << " nanoseconds." << std::endl;
 
   return 0;
 }
@@ -2809,7 +2816,7 @@ int mapPointVM (Word* args, Word& result, int message,
     point = (Point*) tuple->GetAttribute(index - 1);
 
     if (!cPoint->append(point)) {        // append line to aline
-      cout << "Error in mapping stream(point) to apoint!" << endl;
+      std::cout << "Error in mapping stream(point) to apoint!" << std::endl;
       return 0;
     }
 
@@ -2851,7 +2858,7 @@ int mapLineVM (Word* args, Word& result, int message,
     line = (Line*) tuple->GetAttribute(index - 1);
 
     if (!cLine->append(line)) {          // append line to aline
-      cout << "Error in mapping stream(line) to aline!" << endl;
+      std::cout << "Error in mapping stream(line) to aline!" << std::endl;
       return 0;
     }
 
@@ -2892,7 +2899,7 @@ int mapRegionVM (Word* args, Word& result, int message,
     region = (Region*) tuple->GetAttribute(index - 1);
 
     if (!cRegion->append(region)) {      // append region to aregion
-      cout << "Error in mapping stream(region) to aregion!" << endl;
+      std::cout << "Error in mapping stream(region) to aregion!" << std::endl;
       return 0;
     }
 
@@ -2920,10 +2927,11 @@ int mapColPointVM (Word* args, Word& result, int message,
   int index = ((CcInt*) args[1].addr)->GetValue();  // append attributes index
 
   if ((index < 0) || (index >= cPoint->getCount())) {
-    cout << "Error: apoint index " << index << " out of bounds!" << endl;
+    std::cout << "Error: apoint index " << index << " out of bounds!"
+       << std::endl;
     return 0;
   }
-  cout << "map apoint[" << index << "] to point.\n";
+  std::cout << "map apoint[" << index << "] to point.\n";
 
   result.addr = new Point(true, cPoint->getX(index), cPoint->getY(index));
   return 0;
@@ -2942,17 +2950,18 @@ int mapColLineVM (Word* args, Word& result, int message,
   int index = ((CcInt*) args[1].addr)->GetValue();  // append attributes index
 
   if ((index < 0) || (index >= cLine->getCount())) {
-    cout << "Error: aline index " << index << " out of bounds!" << endl;
+    std::cout << "Error: aline index " << index << " out of bounds!"
+       << std::endl;
     return false;
   }
-  cout << "map aline[" << index << "] to line\n";
+  std::cout << "map aline[" << index << "] to line\n";
 
   long segCount = cLine->getSegments(index);
   result.addr = new Line(segCount);
   Line* line = static_cast<Line*> (result.addr);
 
   if (!cLine->createLine(line, index)) {
-    cout << "Error mapping aline to line!" << endl;
+    std::cout << "Error mapping aline to line!" << std::endl;
     return 0;
   }
 
@@ -2972,20 +2981,21 @@ int mapColRegionVM (Word* args, Word& result, int message,
   int index = ((CcInt*) args[1].addr)->GetValue();  // append attributes index
 
   if ((index < 0) || (index >= cRegion->getCount())) {
-    cout << "Error: aregion index " << index << " out of bounds!" << endl;
+    std::cout << "Error: aregion index " << index << " out of bounds!"
+       << std::endl;
     return 0;
   }
-  cout << "map aregion[" << index << "] to region.\n";
+  std::cout << "map aregion[" << index << "] to region.\n";
 
   Region* region = 0;
   if (!cRegion->createRegion(region, index)) {
-    cout << "Error mapping aregion to region!" << endl;
+    std::cout << "Error mapping aregion to region!" << std::endl;
     return 0;
   }
   Region* res = static_cast<Region*> (result.addr);
   *res = *region;
   region->DeleteIfAllowed();
-  res->Print(cout);
+  res->Print(std::cout);
     return 0;
 }
 
@@ -3007,8 +3017,8 @@ int countPointVM (Word* args, Word& result, int message,
   res->Set(true, cPoint->getCount());
 
   benchmark(cStop, tStop);
-  cout << "Benchmark: " << (long)(cStop - cStart) << " cycles / "
-       << (long) tStop - tStart << " nanoseconds." << endl;
+  std::cout << "Benchmark: " << (long)(cStop - cStart) << " cycles / "
+       << (long) tStop - tStart << " nanoseconds." << std::endl;
 
   return 0;
 }
@@ -3025,8 +3035,8 @@ int countLineVM (Word* args, Word& result, int message,
   res->Set(true, cLine->getCount());
 
   benchmark(cStop, tStop);
-  cout << "Benchmark: " << (long)(cStop - cStart) << " cycles / "
-       << (long) tStop - tStart << " nanoseconds." << endl;
+  std::cout << "Benchmark: " << (long)(cStop - cStart) << " cycles / "
+       << (long) tStop - tStart << " nanoseconds." << std::endl;
 
   return 0;
 }
@@ -3043,8 +3053,8 @@ int countRegionVM (Word* args, Word& result, int message,
   res->Set(true, cRegion->getCount());
 
   benchmark(cStop, tStop);
-  cout << "Benchmark: " << (long)(cStop - cStart) << " cycles / "
-       << (long) tStop - tStart << " nanoseconds." << endl;
+  std::cout << "Benchmark: " << (long)(cStop - cStart) << " cycles / "
+       << (long) tStop - tStart << " nanoseconds." << std::endl;
 
   return 0;
 }
@@ -3067,13 +3077,13 @@ int plusPointVM (Word* args, Word& result, int message,
   ColPoint* cPoint2 = (ColPoint*) (args[1].addr);
 
   if (!cPoint->merge(cPoint1, cPoint2)) {
-    cout << "Error in merging two apoint types!" << endl;
+    std::cout << "Error in merging two apoint types!" << std::endl;
     return 0;
   }
 
   benchmark(cStop, tStop);
-  cout << "Benchmark: " << (long)(cStop - cStart) << " cycles / "
-       << (long) tStop - tStart << " nanoseconds." << endl;
+  std::cout << "Benchmark: " << (long)(cStop - cStart) << " cycles / "
+       << (long) tStop - tStart << " nanoseconds." << std::endl;
 
   return 0;
 }
@@ -3094,14 +3104,14 @@ int plusLineVM (Word* args, Word& result, int message,
   ColLine* cLine2 = (ColLine*) (args[1].addr);
 
   if (!cLine->merge(cLine1, cLine2)) {
-    cout << "Error in merging two aline types!" << endl;
+    std::cout << "Error in merging two aline types!" << std::endl;
     return 0;
   }
 
   benchmark(cStop, tStop);
 
-  cout << "Benchmark: " << (long)(cStop - cStart) << " cycles / "
-       << (long) tStop - tStart << " nanoseconds." << endl;
+  std::cout << "Benchmark: " << (long)(cStop - cStart) << " cycles / "
+       << (long) tStop - tStart << " nanoseconds." << std::endl;
 
   return 0;
 }
@@ -3123,13 +3133,13 @@ int plusRegionVM (Word* args, Word& result, int message,
   ColRegion* cRegion2 = (ColRegion*) (args[1].addr);
 
   if (!cRegion->merge(cRegion1, cRegion2)) {
-    cout << "Error in merging two aregion types!" << endl;
+    std::cout << "Error in merging two aregion types!" << std::endl;
     return 0;
   }
 
   benchmark(cStop, tStop);
-  cout << "Benchmark: " << (long)(cStop - cStart) << " cycles / "
-       << (long) tStop - tStart << " nanoseconds." << endl;
+  std::cout << "Benchmark: " << (long)(cStop - cStart) << " cycles / "
+       << (long) tStop - tStart << " nanoseconds." << std::endl;
 
   return 0;
 }

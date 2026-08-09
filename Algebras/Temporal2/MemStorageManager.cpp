@@ -21,14 +21,15 @@ MemStorageManager::MemStorageManager() :
                        "mtx_MemStorageManager_CreateGuard"),
                         smiLogFileName("logfile")
 {
-    cout << "MemStorageManager::MemStorageManager()\n";
-    cout << "MemStorageManager::MemStorageManager() Registering DbListener\n";
+    std::cout << "MemStorageManager::MemStorageManager()\n";
+    std::cout
+       << "MemStorageManager::MemStorageManager() Registering DbListener\n";
     // required methods for DatabaseListener
     SecondoSystem::GetInstance()->addDBListener(this);
 }
 
 MemStorageManager::~MemStorageManager() {
-    cout << "MemStorageManager::~MemStorageManager()\n";
+    std::cout << "MemStorageManager::~MemStorageManager()\n";
 }
 
 //static
@@ -36,21 +37,21 @@ MemStorageManager* MemStorageManager::instance = 0;
 
 //static
 MemStorageManager* MemStorageManager::getInstance() {
-    cout << "MemStorageManager::getInstance()\n";
+    std::cout << "MemStorageManager::getInstance()\n";
     assert(instance);
     return instance;
 }
 
 //static
 void MemStorageManager::createInstance() {
-    cout << "MemStorageManager::createInstance()\n";
+    std::cout << "MemStorageManager::createInstance()\n";
     assert(!instance);
     instance = new MemStorageManager();
 }
 
 //static
 void MemStorageManager::deleteInstance() {
-    cout << "MemStorageManager::deleteInstance()\n";
+    std::cout << "MemStorageManager::deleteInstance()\n";
     assert(instance);
     delete instance;
 }
@@ -71,8 +72,8 @@ void MemStorageManager::setBackRef(const MemStorageId& id,
     }
     catch (const boost::interprocess::interprocess_exception ex) {
         // Memory full. Clean up then try again...
-        cout << "MemStorageManager::setBackRef - Memory full. Pushing.\n";
-        cout << ex.what() << endl;
+        std::cout << "MemStorageManager::setBackRef - Memory full. Pushing.\n";
+        std::cout << ex.what() << std::endl;
         pushToFlobs(0);
         memUpdateStoragePtr->memSetBackRef(id, backRef, finalUnit);
     }
@@ -120,8 +121,8 @@ void MemStorageManager::append(const MemStorageId id, const Unit& unit){
     }
     catch (const boost::interprocess::interprocess_exception ex) {
         // Memory full. Clean up then try again...
-        cout << "MemStorageManager::append - Memory full. Pushing.\n";
-        cout << ex.what() << endl;
+        std::cout << "MemStorageManager::append - Memory full. Pushing.\n";
+        std::cout << ex.what() << std::endl;
         BackReference backRef = memUpdateStoragePtr->getBackReference(id);
         pushToFlobs(id);
         setBackRef(id, backRef, unit);
@@ -139,13 +140,13 @@ void MemStorageManager::clear (const MemStorageId id){
 }
 
 int MemStorageManager::pushToFlobs(MemStorageId id_to_keep) {
-    cout << "MemStorageManager::pushToFlobs()\n";
+    std::cout << "MemStorageManager::pushToFlobs()\n";
     ensureStorageConnection();
     MemStorageIds idsToPush = memUpdateStoragePtr->getIdsToPush();
     MemStorageIds::iterator id_it;
     int countPushed(0);
     for (id_it = idsToPush.begin(); id_it != idsToPush.end(); ++id_it) {
-        cout << "pushing id: " << *id_it << endl;
+        std::cout << "pushing id: " << *id_it << std::endl;
         bool keep_id = (id_to_keep == *id_it)?true:false;
         countPushed += memUpdateStoragePtr->memPushToFlobs(*id_it, keep_id);
         dbUpdateLoggerPtr->logPushToFlobs(*id_it);
@@ -163,7 +164,7 @@ int MemStorageManager::pushToFlobs(MemStorageId id_to_keep) {
 }
 
 void MemStorageManager::applyLog (const LogData& log){
-    cout << "MemStorageManager::applyLog("
+    std::cout << "MemStorageManager::applyLog("
             << log << ")\n";
     Unit unit;
     log.createUnit(&unit);
@@ -185,15 +186,15 @@ void MemStorageManager::applyLog (const LogData& log){
         memUpdateStoragePtr->memClear(log.storageId);
         break;
     default:
-        cout << "unhandled operation\n";
+        std::cout << "unhandled operation\n";
         assert(false);
     }
 }
 
 void MemStorageManager::ensureStorageConnection() {
-    cout << "MemStorageManager::ensureStorageConnection()\n";
+    std::cout << "MemStorageManager::ensureStorageConnection()\n";
     if (!SmiEnvironment::IsDatabaseOpen()) {
-        cout << "Didn't expect this: No Database Open!\n";
+        std::cout << "Didn't expect this: No Database Open!\n";
         assert(false); // can't read the log...
     }
     std::string currentDatabase = SmiEnvironment::CurrentDatabase();
@@ -202,7 +203,7 @@ void MemStorageManager::ensureStorageConnection() {
         return;
     }
 
-    cout << "open database changed from " << lastUsedDatabase
+    std::cout << "open database changed from " << lastUsedDatabase
             << " to " << currentDatabase << "\n";
     //assert (false): // should have been handled in openDatabase callback!
 
@@ -215,32 +216,33 @@ void MemStorageManager::ensureStorageConnection() {
         memUpdateStoragePtr = MemUpdateStoragePtr(
                 new MemUpdateStorage(lastUsedDatabase));
         if (memUpdateStoragePtr->isNewlyCreated()) {
-            cout << "MemUpdateStorage has not been initialized. Read log!\n";
+            std::cout
+               << "MemUpdateStorage has not been initialized. Read log!\n";
             dbUpdateLoggerPtr->replayLog(*this);
         } else{
-            cout << "MemUpdateStorage should be fine. Go on.\n";
+            std::cout << "MemUpdateStorage should be fine. Go on.\n";
         }
     }
 }
 
 void MemStorageManager::openDatabase(const std::string& name){
-    cout << "MemStorageManager::openDatabase(" << name << ")\n";
+    std::cout << "MemStorageManager::openDatabase(" << name << ")\n";
     ensureStorageConnection();
 }
 void MemStorageManager::closeDatabase(){
-    cout << "MemStorageManager::closeDatabase()\n";
+    std::cout << "MemStorageManager::closeDatabase()\n";
 
     int numberOfUsers = memUpdateStoragePtr->getNumberOfUsers();
-    cout << "There are " << numberOfUsers << " users left.\n";
+    std::cout << "There are " << numberOfUsers << " users left.\n";
     assert (numberOfUsers >= 1); // This actually belongs to memUpdate storage
     if (numberOfUsers == 1) {
-        cout << "We are the last user of this MemStorage - Writeback!\n";
+        std::cout << "We are the last user of this MemStorage - Writeback!\n";
         SmiEnvironment::BeginTransaction();
-        cout << "Started transaction\n";
+        std::cout << "Started transaction\n";
         int num_pushed = pushToFlobs(0);
-        cout << "pushed " << num_pushed << " MPoint to Database\n";
+        std::cout << "pushed " << num_pushed << " MPoint to Database\n";
         SmiEnvironment::CommitTransaction();
-        cout << "Committed transaction\n";
+        std::cout << "Committed transaction\n";
     }
 }
 

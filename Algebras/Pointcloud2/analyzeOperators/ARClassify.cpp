@@ -183,9 +183,9 @@ ARClassify::createObjectMap(
     if (RASTER_CLASSIFY_DEBUG) {
         //for (auto i : object) std::cout<<i.second.toString()<<endl;
         std::cout<<"Classify: Amount of different objects in map: "
-                 <<std::to_string(object.size())<<endl;
+                 <<std::to_string(object.size())<<std::endl;
         std::cout<<"Classify: Cells with no ObjectID: "
-                 <<std::to_string(NoObjID)<<endl;
+                 <<std::to_string(NoObjID)<<std::endl;
     }
     return object;
 }
@@ -244,9 +244,9 @@ void ARClassify::findDuplicates(std::unordered_map<int, ObjProp> object,
     //DEBUG
     if (RASTER_CLASSIFY_DEBUG) {
         std::cout<<"Classify: DuplicateFinder: Number of found duplicates:"
-             <<std::to_string(duple.get()->size())<<endl;
+             <<std::to_string(duple.get()->size())<<std::endl;
         std::cout<<"Classify: DuplicateFinder: same coords but different"
-             <<" values: "<<std::to_string(sameButNotEq)<<endl;
+             <<" values: "<<std::to_string(sameButNotEq)<<std::endl;
 //        try {
 //            for (auto i : *duple.get()) {
 //                std::cout<<"IDs: "<<std::to_string(i.first)<<"||";
@@ -267,7 +267,7 @@ void ARClassify::findDuplicates(std::unordered_map<int, ObjProp> object,
 
 void ARClassify::testForSameValueObjects(
         const std::unordered_map<int, ObjProp>& objects) {
-    std::cout << "Classify: DuplicateFinder: Start Process" << endl;
+    std::cout << "Classify: DuplicateFinder: Start Process" << std::endl;
     std::unordered_map<int, std::vector<int> > duples;
     for (auto i : objects) {
         for (auto j : objects) {
@@ -310,14 +310,14 @@ void ARClassify::testForSameValueObjects(
         }
     }
     std::cout<< "Classify: DuplicateFinder: following Object IDs have"
-            " same values:"<< endl;
+            " same values:"<< std::endl;
     for (auto i : duples) {
         std::cout << std::to_string(i.first) << "||";
         for (auto j : i.second) {
             std::cout << std::to_string(j) << "||";
             duples.erase(j);
         }
-        std::cout << endl;
+        std::cout << std::endl;
     }
 }
 
@@ -364,7 +364,7 @@ void ARClassify::normalize(const std::unordered_map<int, ObjProp>& objects,
         if (RASTER_CLASSIFY_DEBUG) {
             std::cout << "Classify: Standard Deviation: dim("
                     << std::to_string(i) << ") " << std::to_string(sd[i])
-                    << endl;
+                    << std::endl;
         }
     }
     //2.2.2 calculate factor for adjustment
@@ -391,7 +391,7 @@ void ARClassify::normalize(const std::unordered_map<int, ObjProp>& objects,
         if (RASTER_CLASSIFY_DEBUG) {
             std::cout << "Classify: adjustment factor: dim("
                     << std::to_string(i) << ") " << std::to_string(adjust[i])
-                    << endl;
+                    << std::endl;
         }
     } //end for
 }
@@ -405,32 +405,32 @@ void ARClassify::createDbScanVector(
     dbScanObjects.get()->resize(objects.size() + 1);
     std::bitset<fvd> switchFeatures(Pointcloud2::SWITCH_FEATURES);
     const size_t fvdS = switchFeatures.count();
-    std::cout<<"Chosen "<<fvdS<<" features for classify."<<endl;
+    std::cout<<"Chosen "<<fvdS<<" features for classify."<<std::endl;
     if (switchFeatures.test(0)){
-      std::cout<<"- pointCount"<<endl;
+      std::cout<<"- pointCount"<<std::endl;
     }
     if (switchFeatures.test(1)){
-      std::cout<<"- cellCount"<<endl;
+      std::cout<<"- cellCount"<<std::endl;
     }
     if (switchFeatures.test(2)){
-      std::cout<<"- MaxAlt - MinAlt"<<endl;
+      std::cout<<"- MaxAlt - MinAlt"<<std::endl;
     }
     if (switchFeatures.test(3)){
-      std::cout<<"- averageAlt"<<endl;
+      std::cout<<"- averageAlt"<<std::endl;
     }
     if (switchFeatures.test(4)){
-      std::cout<<"- altDiff at edge"<<endl;
+      std::cout<<"- altDiff at edge"<<std::endl;
     }
     if (switchFeatures.test(5)){
-      std::cout<<"- edgeCellCount / perimeter bbox"<<endl;
+      std::cout<<"- edgeCellCount / perimeter bbox"<<std::endl;
     }
     if (switchFeatures.test(6)){
-      std::cout<<"- cellCount / diameter bbox"<<endl;
+      std::cout<<"- cellCount / diameter bbox"<<std::endl;
     }
     if (fvdS > fvdMax){
       std::cout<<"The last "<<fvdS - fvdMax;
       std::cout<<" feature(s) are ignored "
-          "because exceeding maximum for dbscan"<<endl;
+          "because exceeding maximum for dbscan"<<std::endl;
     }
     for (auto i : objects) {
         DbScanPoint<fvdMax>& scanObject = dbScanObjects.get()->at(
@@ -482,7 +482,7 @@ ARClassify::classify (std::vector<SmiFileId> rasters,
                             std::shared_ptr<std::unordered_map<int,int>> duple){
 
     if (RASTER_CLASSIFY_DEBUG) {
-            std::cout<<"Classify: Start!"<<endl;
+            std::cout<<"Classify: Start!"<<std::endl;
     }
 
     // defines the number of properties for classification process
@@ -517,7 +517,7 @@ ARClassify::classify (std::vector<SmiFileId> rasters,
     if (objects.size() <= Pointcloud2::RASTER_CLASSIFY_MINPTS+1) {
         std::cout<<"Classify: There is no classification process, because the"
                 "number of objects is smaller or equal to the parameter for"
-                " minimal clustersize (RASTER_CLASSIFY_MINPTS + 1)"<<endl;
+                " minimal clustersize (RASTER_CLASSIFY_MINPTS + 1)"<<std::endl;
 
         for (auto i : objects) {
             result.get()->insert({
@@ -562,9 +562,9 @@ ARClassify::classify (std::vector<SmiFileId> rasters,
     for (size_t i = 0; i < Pointcloud2::RASTER_CLASSIFY_SCANSERIES; i++) {
         //DEBUG
         std::cout<<"Classify: RASTER_CLASSIFY_EPSILON: "
-                <<std::to_string(eps)<<endl;
+                <<std::to_string(eps)<<std::endl;
         std::cout<<"Classify: RASTER_CLASSIFY_MINPTS: "
-                <<std::to_string(minpts)<<endl;
+                <<std::to_string(minpts)<<std::endl;
         for (size_t j = 1; j <= ScanObjectIndex; j++)
             dbScanObjects.get()->at(j).initialize(true);
         DbScan<fvdMax> dbScan(
@@ -595,7 +595,7 @@ ARClassify::classify (std::vector<SmiFileId> rasters,
         //DEBUG
         std::cout<<"Classify: Epsilon "
                 <<std::to_string(maxClusterCountEps)<<" with MaxClusterCount: "
-                <<std::to_string(maxClusterCount)<<endl;
+                <<std::to_string(maxClusterCount)<<std::endl;
         for (size_t j = 1; j <= ScanObjectIndex; j++)
             dbScanObjects.get()->at(j).initialize(true);
         DbScan<fvdMax> dbScan(
@@ -608,7 +608,7 @@ ARClassify::classify (std::vector<SmiFileId> rasters,
 
     // 5.3 Scanresults to screen
     for (size_t i = 0; i<Pointcloud2::RASTER_CLASSIFY_SCANSERIES;i++)
-        std::cout<<scanresult[i]<<endl;
+        std::cout<<scanresult[i]<<std::endl;
 
     // 6. write back the now found classIDs
 

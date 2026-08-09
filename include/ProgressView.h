@@ -86,7 +86,7 @@ class ProgressView
   ~ProgressView()
   {        
     if (PROGTYPEPROG && (DETPROT & 2)) {
-           ofs << endl; 
+           ofs << std::endl; 
            ofs.close(); 
     }
   }
@@ -114,8 +114,8 @@ class ProgressView
     if (PROGTYPEPROG)
     {
       if (DETPROT & 2) {
-        ofs << "'" << commandText << "'" << endl;
-        ofs << endl;
+        ofs << "'" << commandText << "'" << std::endl;
+        ofs << std::endl;
       }
     }
   }
@@ -167,7 +167,7 @@ class ProgressView
         ofs << (size_t) progress.BTime << ";";
         // write BProgress 
         ofs << getProgStr(bProgress*100) << ";";
-        ofs << endl;
+        ofs << std::endl;
       }
     }
   }
@@ -203,7 +203,7 @@ class ProgressView
       msg->Send(nl,msgList.listExpr(),-1);
 
       if (DETPROT & 2) {
-            ofs << endl;
+            ofs << std::endl;
       }
     }
   }

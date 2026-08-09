@@ -772,18 +772,18 @@ namespace pointcloud {
 
        std::ostream& print(std::ostream&  out) const{
          if(!IsDefined()){
-           out << "undefined" << endl;
+           out << "undefined" << std::endl;
            return out;
          }
-         out << "minX = " << minX << ", maxX = " << maxX << endl
-             << "minY = " << minY << ", maxY = " << maxY << endl
-             << "minZ = " << minZ << ", maxZ = " << maxZ << endl;
-         out << "Nodes of tree:" << endl;
+         out << "minX = " << minX << ", maxX = " << maxX << std::endl
+             << "minY = " << minY << ", maxY = " << maxY << std::endl
+             << "minZ = " << minZ << ", maxZ = " << maxZ << std::endl;
+         out << "Nodes of tree:" << std::endl;
          Cpointnode node;
          for(int i=0;i<cpoint2dtree.Size();i++){
            cpoint2dtree.Get(i,node);
            out << i << " : ";
-           node.print(out) << endl;
+           node.print(out) << std::endl;
          } 
          return out;
 

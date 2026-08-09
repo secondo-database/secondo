@@ -177,27 +177,27 @@ class PersistentNTree {
     Word relWord;
     bool defined;
     if (!sc->IsObjectName(relName)) {
-      cout << "relation " << relName << " does not exist" << endl;
+      std::cout << "relation " << relName << " does not exist" << std::endl;
       return false;
     }
     if (!sc->GetObject(relName, relWord, defined)) {
-      cout << "relation " << relName << " could not be read" << endl;
+      std::cout << "relation " << relName << " could not be read" << std::endl;
       return false;
     }
     if (!defined) {
-      cout << "relation " << relName << " undefined" << endl;
+      std::cout << "relation " << relName << " undefined" << std::endl;
       return false;
     }
     if (relName.find("TreeInfo", prefix.size()) != std::string::npos) {
       if (!nl->Equal(relType, treeInfoTypeList)) {
-        cout << "relation " << relName << " has wrong type" << endl;
+        std::cout << "relation " << relName << " has wrong type" << std::endl;
         return false;
       }
       treeInfoRel = (Relation*)(relWord.addr);
     }
     else if (relName.find("NodeInfo", prefix.size()) != std::string::npos) {
       if (!nl->Equal(nl->Second(nl->Second(relType)), nodeInfoTypeList)) {
-        cout << "relation " << relName << " has wrong type" << endl;
+        std::cout << "relation " << relName << " has wrong type" << std::endl;
         return false;
       }
       nodeInfoRel = (Relation*)(relWord.addr);
@@ -209,7 +209,7 @@ class PersistentNTree {
     }
     else if (relName.find("NodeDist", prefix.size()) != std::string::npos) {
       if (!nl->Equal(relType, nodeDistTypeList)) {
-        cout << "relation " << relName << " has wrong type" << endl;
+        std::cout << "relation " << relName << " has wrong type" << std::endl;
         return false;
       }
       nodeDistRel = (Relation*)(relWord.addr);
@@ -221,7 +221,7 @@ class PersistentNTree {
     }
     else if (relName.find("PivotInfo", prefix.size()) != std::string::npos) {
       if (!nl->Equal(relType, pivotInfoTypeList)) {
-        cout << "relation " << relName << " has wrong type" << endl;
+        std::cout << "relation " << relName << " has wrong type" << std::endl;
         return false;
       }
       pivotInfoRel = (Relation*)(relWord.addr);
@@ -468,7 +468,7 @@ class PersistentNTree {
                         nl->SymbolAtom(CcReal::BasicType()))));
     nodeInfoTypeList = nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()),
                                        nodeInfoAttrTypeList);
-    cout << nl->ToString(nodeInfoTypeList) << endl;
+    std::cout << nl->ToString(nodeInfoTypeList) << std::endl;
     ListExpr numNodeInfoTypeList = sc->NumericType(nodeInfoTypeList);
     nodeInfoType = new TupleType(numNodeInfoTypeList);
     nodeDistTypeList = nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()),
@@ -504,14 +504,16 @@ class PersistentNTree {
       if (!sc->IsValidIdentifier(relNames[i], errMsg, true)) {
         if (sc->IsObjectName(relNames[i])) {
           if (!sc->DeleteObject(relNames[i])) {
-            cout << "object " << relNames[i] << " could not be deleted" << endl;
+            std::cout << "object " << relNames[i] << " could not be deleted"
+               << std::endl;
             return false;
           }
-          cout << "previous object \"" << relNames[i] << "\" deleted" << endl;
+          std::cout << "previous object \"" << relNames[i] << "\" deleted"
+             << std::endl;
         }
       }
       if (sc->IsSystemObject(relNames[i])) {
-        cout << relNames[i] << " is a reserved name" << endl;
+        std::cout << relNames[i] << " is a reserved name" << std::endl;
         return false;
       }
     }

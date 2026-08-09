@@ -67,12 +67,12 @@ public:
       cout << "\r";                    // Move cursor back to pos 0
       */
       
-      cout << "\033[2J";    // Clear screen
-      cout << "\033[1;1H";  // Move coursor to Line 1 Pos 1
+      std::cout << "\033[2J";    // Clear screen
+      std::cout << "\033[1;1H";  // Move coursor to Line 1 Pos 1
        
-      cout << "================" << endl;
-      cout << "Execution state for query: " << query << endl;
-      cout << "================" << endl;
+      std::cout << "================" << std::endl;
+      std::cout << "Execution state for query: " << query << std::endl;
+      std::cout << "================" << std::endl;
       
       for (std::map<size_t,string>::iterator it=states.begin(); 
           it!=states.end(); ++it) {

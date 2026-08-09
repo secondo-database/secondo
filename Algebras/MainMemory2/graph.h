@@ -804,7 +804,7 @@ Prints this graph to the console.
 */ 
     void print(std::ostream& out) {
       out << "------> GRAPH: " << std::endl;
-      out << "GRAPH size: " << this->memSize() << endl;
+      out << "GRAPH size: " << this->memSize() << std::endl;
       std::set<Vertex*,Vertex::EqualVertex>::iterator it = graph->begin();
       while(it!=graph->end()) {
         Vertex* v = *it;     

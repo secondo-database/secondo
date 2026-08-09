@@ -54,7 +54,7 @@ int be_structSFVM(Word *args, Word &result, int message, Word &local,
       be_control->exportTableCreateStatementSQL(table, localCreateName);
       ((CcBool *)result.addr)->Set(true, true);
     } else {
-      cout << noMaster << endl;
+      std::cout << noMaster << std::endl;
       ((CcBool *)result.addr)->Set(true, false);
     }
 

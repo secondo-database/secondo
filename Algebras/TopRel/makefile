@@ -44,19 +44,22 @@ else
 endif
 
 TreeParser.o: TreeParser.y.c
-	$(CC) -fPIC -c -o TreeParser.o TreeParser.y.c
+	$(CC) -fPIC -c -o TreeParser.o TreeParser.y.c \
+	    -MMD -MP -MF TreeParser.dep
 
 TreeParser.y.c: TreeParser.y
 	$(YACC) -d -o TreeParser.y.c TreeParser.y
 
 TreeLex.o: TreeLex.c
-	$(CC) -fPIC -c -o TreeLex.o TreeLex.c
+	$(CC) -fPIC -c -o TreeLex.o TreeLex.c \
+	    -MMD -MP -MF TreeLex.dep
 
 TreeLex.c: TreeLex.l TreeParser.y.c
 	$(LEX) -oTreeLex.c TreeLex.l
 
-Tree.o: Tree.c Tree.h makefile
-	$(CC) -fPIC -c -o Tree.o Tree.c
+Tree.o: Tree.c
+	$(CC) -fPIC -c -o Tree.o Tree.c \
+	    -MMD -MP -MF Tree.dep
 
 .PHONY: pdf
 pdf: TopRelAlgebra.doc.pdf
@@ -83,11 +86,17 @@ TopRelAlgebra.doc: ../../include/TopRel.h TopRelAlgebra.cpp Tree.h Tree.c TreeLe
 	@echo -e "\n\n/*\n1 The Makefile\n\n*/\n" >> TopRelAlgebra.doc
 	@cat makefile >>TopRelAlgebra.doc
 
+# makefile.env includes $(DEP_FILES), which covers the *.cpp here.
+# The generated C above is not in that list, so take whatever .dep
+# files exist instead of naming them.
+-include $(wildcard *.dep)
+
 # remove all generated stuff
 .PHONY: clean
 clean:
 	$(RM) $(DEP_FILES) $(OBJECTS) $(LIBOBJ)
 	$(RM) -f P TreeParser.o TreeParser.y.c TreeLex.o TreeLex.c Tree.o
+	$(RM) -f *.dep
 	$(RM) -f TreeParser.y.h
 	$(RM) -f TopRelAlgebra.doc.*
 	$(RM) -f TopRelAlgebra.doc

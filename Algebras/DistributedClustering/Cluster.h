@@ -4055,8 +4055,8 @@ addListToCorrectClusterType(
             clusterArray.push_back(clusterList);
             clusterMinMaxY.push_back(clusterPair);
           } else {
-            cout << "clusterArray and clusterMinMaxY"
-            " haven't the same size!" << endl;
+            std::cout << "clusterArray and clusterMinMaxY"
+            " haven't the same size!" << std::endl;
             undefinedCluster.push_back(clusterList);
           }
           break;
@@ -4066,8 +4066,8 @@ addListToCorrectClusterType(
             leftPartCluster.push_back(clusterList);
             leftPCMinMaxY.push_back(clusterPair);
           } else {
-            cout << "leftPartCluster and leftPCMinMaxY"
-            " haven the same size!" << endl;
+            std::cout << "leftPartCluster and leftPCMinMaxY"
+            " haven the same size!" << std::endl;
             undefinedCluster.push_back(clusterList);
           }
           break;
@@ -4077,8 +4077,8 @@ addListToCorrectClusterType(
             rightPartCluster.push_back(clusterList);
             rightPCMinMaxY.push_back(clusterPair);
           } else {
-            cout << "rightPartCluster and rightPCMinMaxY"
-            " haven the same size!" << endl;
+            std::cout << "rightPartCluster and rightPCMinMaxY"
+            " haven the same size!" << std::endl;
             undefinedCluster.push_back(clusterList);
           }
           break;
@@ -4088,8 +4088,8 @@ addListToCorrectClusterType(
             bothSideCluster.push_back(clusterList);
             bothSCMinMaxY.push_back(clusterPair);
           } else {
-            cout << "bothSideCluster and bothSCMinMaxY"
-            " haven the same size!" << endl;
+            std::cout << "bothSideCluster and bothSCMinMaxY"
+            " haven the same size!" << std::endl;
             undefinedCluster.push_back(clusterList);
           }
           break;

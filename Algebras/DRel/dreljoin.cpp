@@ -232,7 +232,8 @@ parameters. Used for sortmergejoin and itHashJoin.
                     resultRel,
                     nl->Third( nl->First( nl->First( args ) ) ) );
                     rel2Flag = false;
-                    cout << "repartition of drel 1 is necessary" << endl;
+                    std::cout << "repartition of drel 1 is necessary"
+                       << std::endl;
             }
             else {
                 resultType = nl->ThreeElemList(
@@ -240,7 +241,8 @@ parameters. Used for sortmergejoin and itHashJoin.
                     resultRel,
                     nl->Third( nl->First( nl->Second( args ) ) ) );
                     rel1Flag = false;
-                    cout << "repartition of drel 2 is necessary" << endl;
+                    std::cout << "repartition of drel 2 is necessary"
+                       << std::endl;
             }
         }
         else if( rel1Flag && !rel2Flag ) {
@@ -434,7 +436,7 @@ necessary. Used for sortmergejoin and itHashJoin.
                     boundary, 1240 );
 
                 if( !parti->repartition2DFMatrix( ) ) {
-                    cout << "repartition failed!!" << endl;
+                    std::cout << "repartition failed!!" << std::endl;
                     resultDFRel->makeUndefined( );
                     return 0;
                 }
@@ -461,7 +463,7 @@ necessary. Used for sortmergejoin and itHashJoin.
                     boundary, 1241 );
 
                 if( !parti->repartition2DFMatrix( ) ) {
-                    cout << "repartition failed!!" << endl;
+                    std::cout << "repartition failed!!" << std::endl;
                     resultDFRel->makeUndefined( );
                     return 0;
                 }

@@ -52,16 +52,16 @@ DistributionTask::~DistributionTask() {
     delete[] resultStream[resultIdx].first;
   }
 
-  KOUT << "\n\n\nStart:" << startTime << endl;
-  KOUT << "Ende:" << DebugTime() << endl;
-  KOUT << "Relation:" << distParams.targetRelation << endl;
-  KOUT << "Tupel:" << tupleCounter << endl;
+  KOUT << "\n\n\nStart:" << startTime << std::endl;
+  KOUT << "Ende:" << DebugTime() << std::endl;
+  KOUT << "Relation:" << distParams.targetRelation << std::endl;
+  KOUT << "Tupel:" << tupleCounter << std::endl;
   map<int, int>::iterator item;
   for (item = detailedCounter.begin(); item != detailedCounter.end(); item++) {
-    KOUT << item->first << ": " << item->second << endl;
+    KOUT << item->first << ": " << item->second << std::endl;
   }
   KOUT << "Bytes:" << dataCounter << " MB:" << setprecision(10)
-       << dataCounter / (1024.0 * 1024.0) << endl;
+       << dataCounter / (1024.0 * 1024.0) << std::endl;
 }
 
 void DistributionTask::setDistributionCriteria(DistributionCriteria* criteria) {
@@ -114,10 +114,10 @@ int DistributionTask::process(int n) {
         }
 
       } else if (msgType == IPC_MSG_ENDDISTRIBUTE) {
-        KOUT << "Ending Distribution" << endl;
+        KOUT << "Ending Distribution" << std::endl;
         prepareResult = true;
       } else if (msgType == IPC_MSG_CLOSEDISTRIBUTE) {
-        KOUT << "Closing Distribution" << endl;
+        KOUT << "Closing Distribution" << std::endl;
         return 1;
       } else {
         // unkown message? quit?
@@ -134,7 +134,7 @@ int DistributionTask::process(int n) {
       } else {
         int close = 0;
         conn->write(&close);
-        KOUT << "Close written..." << endl;
+        KOUT << "Close written..." << std::endl;
         provideResult = false;
       }
     } else {
@@ -143,14 +143,14 @@ int DistributionTask::process(int n) {
   }
 
   if (currentBatch->batchReady() || prepareResult) {
-    KOUT << "Finishing Batch" << endl;
+    KOUT << "Finishing Batch" << std::endl;
 
     if (!currentBatch->finishBatch()) {
       resultCode = 1;
       resultMessage.assign("Error while finishing batch.");
       prepareResult = true;
     } else {
-      KOUT << "Batch finished..." << endl;
+      KOUT << "Batch finished..." << std::endl;
       delete currentBatch;
       currentBatch = new Batch(instance, &distParams);
     }

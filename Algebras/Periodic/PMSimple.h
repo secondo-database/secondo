@@ -167,7 +167,7 @@ not implemented in this moment.
 template <class T, class Unit>
 int PMSimple<T, Unit>::Compare(const Attribute* arg) const{
     __TRACE__
-  cout << "PMSImple::Compare not implemented yet " << std::endl;
+  std::cout << "PMSImple::Compare not implemented yet " << std::endl;
   return -1;
 }
 

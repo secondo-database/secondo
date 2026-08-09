@@ -43,13 +43,13 @@ Dec 2003 M. Spiekermann, initial Version
 #include <getopt.h>
 
 void reportTableSizes(const std::string& name, NestedList& nl){
-  cout << "---------  " << name << "  ----------" << endl;
-  cout << " used list storage " << endl;
-  cout << "Nodes   : " << nl.sizeOfNodeTable()
-       << " (in " << nl.chunksOfNodeTable() << " chunks)" << endl;
-  cout << "Strings : " << nl.sizeOfStringTable() << endl;
-  cout << "Texts   : " << nl.sizeOftextTable() << endl;
-  cout << "----------------------------" << endl << endl; 
+  std::cout << "---------  " << name << "  ----------" << std::endl;
+  std::cout << " used list storage " << std::endl;
+  std::cout << "Nodes   : " << nl.sizeOfNodeTable()
+       << " (in " << nl.chunksOfNodeTable() << " chunks)" << std::endl;
+  std::cout << "Strings : " << nl.sizeOfStringTable() << std::endl;
+  std::cout << "Texts   : " << nl.sizeOftextTable() << std::endl;
+  std::cout << "----------------------------" << std::endl << std::endl; 
 }
 
 using namespace std;

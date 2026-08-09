@@ -52,7 +52,7 @@ int be_commandSFVM(Word *args, Word &result, int message, Word &local,
       ConnectionGeneric *dbms_connection = be_control->getDBMSConnection();
       val = dbms_connection->sendCommand(query->GetValue(), true);
     } else {
-      cout << noMaster << endl;
+      std::cout << noMaster << std::endl;
     }
 
     ((CcBool *)result.addr)->Set(true, val);

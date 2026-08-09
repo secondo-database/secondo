@@ -105,7 +105,7 @@ class SortByLocalInfo
 
         MAX_MEMORY = qp->MemoryAvailableForOperator();
         cmsg.info("ERA:ShowMemInfo")
-          << "Sortby.MAX_MEMORY (" << MAX_MEMORY/1024 << " kb)" << endl;
+          << "Sortby.MAX_MEMORY (" << MAX_MEMORY/1024 << " kb)" << std::endl;
         cmsg.send();
 
         TupleBuffer *rel=0;
@@ -333,11 +333,11 @@ In this case we need to delete also all tuples stored in memory.
         cmsg.info() << "Current run finished: " 
         << "  processed tuples=" << c 
                     << ", append minimum=" << m 
-                    << ", append next=" << n << endl
+                    << ", append next=" << n << std::endl
                     << "  materialized runs=" << r
-                    << ", last partition's tuples=" << rs << endl 
+                    << ", last partition's tuples=" << rs << std::endl 
                     << "  Runs in memory: queue1= " << queue[0].size() 
-                    << ", queue2= " << queue[1].size() << endl;
+                    << ", queue2= " << queue[1].size() << std::endl;
         cmsg.send();  
       }
     }
@@ -398,7 +398,7 @@ class SortByLocalInfo : protected ProgressWrapper
 
         MAX_MEMORY = qp->MemoryAvailableForOperator();
         cmsg.info("ERA:ShowMemInfo")
-          << "Sortby.MAX_MEMORY (" << MAX_MEMORY/1024 << " kb)" << endl;
+          << "Sortby.MAX_MEMORY (" << MAX_MEMORY/1024 << " kb)" << std::endl;
         cmsg.send();
 
         TupleBuffer *rel=0;
@@ -626,11 +626,11 @@ In this case we need to delete also all tuples stored in memory.
         cmsg.info() << "Current run finished: "
         << "  processed tuples=" << c
                     << ", append minimum=" << m
-                    << ", append next=" << n << endl
+                    << ", append next=" << n << std::endl
                     << "  materialized runs=" << r
-                    << ", last partition's tuples=" << rs << endl
+                    << ", last partition's tuples=" << rs << std::endl
                     << "  Runs in memory: queue1= " << queue[0].size()
-                    << ", queue2= " << queue[1].size() << endl;
+                    << ", queue2= " << queue[1].size() << std::endl;
         cmsg.send();
       }
     }
@@ -755,11 +755,11 @@ private:
     if (traceFlag) 
     { 
           cmsg.info() 
-            << "CompareTuples:" << endl
-      << "  BOTH_B = " << BOTH_B << endl
-            << "  tuple_1  = " << *t1 << endl
-            << "  tuple_2  = " << *t2 << endl 
-            << "  cmp(t1,t2) = " << cmp << endl; 
+            << "CompareTuples:" << std::endl
+      << "  BOTH_B = " << BOTH_B << std::endl
+            << "  tuple_1  = " << *t1 << std::endl
+            << "  tuple_2  = " << *t2 << std::endl 
+            << "  cmp(t1,t2) = " << cmp << std::endl; 
           cmsg.send(); 
     }
     return cmp;
@@ -924,7 +924,8 @@ public:
     grpB = new TupleBuffer( MAX_MEMORY );
 
     cmsg.info("ERA:ShowMemInfo")
-      << "MergeOuterjoin.MAX_MEMORY (" << MAX_MEMORY/1024 << " kb)" << endl;
+      << "MergeOuterjoin.MAX_MEMORY (" << MAX_MEMORY/1024 << " kb)"
+         << std::endl;
     cmsg.send();
 
   }
@@ -1280,11 +1281,11 @@ private:
     if (traceFlag)
     {
           cmsg.info()
-            << "CompareTuples:" << endl
-        << "  BOTH_B = " << BOTH_B << endl
-            << "  tuple_1  = " << *t1 << endl
-            << "  tuple_2  = " << *t2 << endl
-            << "  cmp(t1,t2) = " << cmp << endl;
+            << "CompareTuples:" << std::endl
+        << "  BOTH_B = " << BOTH_B << std::endl
+            << "  tuple_1  = " << *t1 << std::endl
+            << "  tuple_2  = " << *t2 << std::endl
+            << "  cmp(t1,t2) = " << cmp << std::endl;
           cmsg.send();
     }
     return cmp;
@@ -1474,7 +1475,8 @@ public:
     grpB = new TupleBuffer( MAX_MEMORY );
 
     cmsg.info("ERA:ShowMemInfo")
-      << "MergeOuterjoin.MAX_MEMORY (" << MAX_MEMORY/1024 << " kb)" << endl;
+      << "MergeOuterjoin.MAX_MEMORY (" << MAX_MEMORY/1024 << " kb)"
+         << std::endl;
     cmsg.send();
 
   }
@@ -2019,7 +2021,7 @@ symmouterjoin_vm(Word* args, Word& result, int message, Word& local, Supplier s)
     {
       long MAX_MEMORY = qp->MemoryAvailableForOperator();
       cmsg.info("ERA:ShowMemInfo") << "SymmOuterJoin.MAX_MEMORY ("
-                                   << MAX_MEMORY/1024 << " MB): " << endl;
+                                   << MAX_MEMORY/1024 << " MB): " << std::endl;
       cmsg.send();
       pli = new SymmOuterJoinLocalInfo(args[0],args[1]);
       pli->rightRel = new TupleBuffer( MAX_MEMORY / 2 );
@@ -2516,7 +2518,7 @@ symmouterjoin_vm(Word* args, Word& result, int message, Word& local, Supplier s)
 
       long MAX_MEMORY = qp->MemoryAvailableForOperator();
       cmsg.info("ERA:ShowMemInfo") << "SymmOuterJoin.MAX_MEMORY ("
-                                   << MAX_MEMORY/1024 << " MB): " << endl;
+                                   << MAX_MEMORY/1024 << " MB): " << std::endl;
       cmsg.send();
 
 

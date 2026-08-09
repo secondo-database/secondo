@@ -15,7 +15,7 @@ MessageServer::MessageServer(std::shared_ptr<Socket>  _socket) :
 }
 
 MessageServer::~MessageServer() {
-  cout << "\n ~MessageServer";
+  std::cout << "\n ~MessageServer";
   //socket->GetSocketStream().setstate(std::ios_base::failbit);
   socket->Close(); //TODO: need to do more?
   //if (!thread->timed_join(boost::posix_time::milliseconds(0))) {
@@ -34,7 +34,7 @@ MessageServer::~MessageServer() {
     processMessage();
    }
   } catch (boost::thread_interrupted &e) {
-   cout << "\nMessageServer::run unterbrochen";
+   std::cout << "\nMessageServer::run unterbrochen";
    BOOST_LOG_TRIVIAL(error) << "catching interrupted";
    return;
   }
@@ -90,9 +90,9 @@ MessageServer::~MessageServer() {
       BOOST_LOG_TRIVIAL(warning) << "buffer after:  " <<
                                std::string(headerBuffer,
                                            Message::HEADER_SIZE).c_str();
-      cout << "\ncout Lesen von Header fehlgeschlagen: " 
+      std::cout << "\ncout Lesen von Header fehlgeschlagen: " 
       << socket->GetErrorText();  
-      cout << "\ncout buffer after:  " 
+      std::cout << "\ncout buffer after:  " 
       << std::string(headerBuffer,Message::HEADER_SIZE).c_str();
       
       interrupt(); // socket disconnected. Weiter hat keinen Sinn mehr.
@@ -108,10 +108,10 @@ MessageServer::~MessageServer() {
       BOOST_LOG_TRIVIAL(warning) << "buffer after:  " <<
                                std::string(headerBuffer,
                                            Message::HEADER_SIZE).c_str();
-      cout << "\ncout header partially received (Read "
+      std::cout << "\ncout header partially received (Read "
                                << lengthRead << "B / "
                                << Message::HEADER_SIZE << "B)";
-      cout << "\ncout buffer after:  " <<
+      std::cout << "\ncout buffer after:  " <<
                                std::string(headerBuffer,
                                            Message::HEADER_SIZE).c_str();
      }
@@ -128,7 +128,7 @@ MessageServer::~MessageServer() {
     //RECEIVED_MESSAGE
     return;
    case Message::MessageType::FINISH:
-    cout << "\nhandle finish message: " << header;
+    std::cout << "\nhandle finish message: " << header;
     //handleFinishedMessage(header.eid);
     /* Tuple From Server Begin */
     handleFinishedMessage(header.eid);
@@ -136,7 +136,7 @@ MessageServer::~MessageServer() {
     
     return;
    default:
-    cout << "\ncout Received message of unknown type: " << header; 
+    std::cout << "\ncout Received message of unknown type: " << header; 
     BOOST_LOG_TRIVIAL(error) << "BOOST Received message of unknown type: " 
     << header; 
     assert(false);
@@ -150,7 +150,7 @@ MessageServer::~MessageServer() {
   if (!socket->IsOk()) {
     BOOST_LOG_TRIVIAL(error) << "processMessage unten: " 
     << socket->GetErrorText();
-    cout << "\ncout processMessage unten: " << socket->GetErrorText();
+    std::cout << "\ncout processMessage unten: " << socket->GetErrorText();
     delete[] bodyBuffer;
     interrupt();
     return;
@@ -161,7 +161,8 @@ MessageServer::~MessageServer() {
   if (!read)  { // noch nie passiert
     BOOST_LOG_TRIVIAL(error) << "Fehler beim Lesen des Tupels: " 
     << socket->GetErrorText();
-    cout << "\ncout Fehler beim Lesen des Tupels: " << socket->GetErrorText();
+    std::cout << "\ncout Fehler beim Lesen des Tupels: "
+       << socket->GetErrorText();
     delete[] bodyBuffer;
     interrupt();
     return;

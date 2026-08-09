@@ -1548,7 +1548,7 @@ void BTree2Impl<KEYTYPE,VALUETYPE>::printNodeInfo(NodeId id, int height) {
     printf("Internal");
     for (int i = 0; i < n->GetCount(); i++) {
       BTreeEntry<KEYTYPE,NodeId> const& x = n->GetEntry(i);
-      cout << "[" << x.GetKey() << "] ";
+      std::cout << "[" << x.GetKey() << "] ";
       subs.push_back(n->GetEntry(i).GetValue());
     }
     subs.push_back(n->GetRightPointer());
@@ -1565,7 +1565,7 @@ void BTree2Impl<KEYTYPE,VALUETYPE>::printNodeInfo(NodeId id, int height) {
     printf("Leaf: ");
     for (int i = 0; i < n->GetCount(); i++) {
       BTreeEntry<KEYTYPE,VALUETYPE> const& x = n->GetEntry(i);
-      cout << x.GetKey() << " ";
+      std::cout << x.GetKey() << " ";
     }
     printf("\n");
     cache.dispose(n);
@@ -1575,10 +1575,10 @@ void BTree2Impl<KEYTYPE,VALUETYPE>::printNodeInfo(NodeId id, int height) {
 template <typename KEYTYPE,typename VALUETYPE>
 void BTree2Impl<KEYTYPE,VALUETYPE>::printNodeInfos() {
   if (dbgPrintTree()) {
-    std::cout << "BTree2File" << endl
-              << "Filename = " << file->GetContext().c_str() << endl
-              << "Filecontext = %s" <<  file->GetContext().c_str() << endl
-              << "RecordLength = " <<  file->GetRecordLength() << endl;
+    std::cout << "BTree2File" << std::endl
+              << "Filename = " << file->GetContext().c_str() << std::endl
+              << "Filecontext = %s" <<  file->GetContext().c_str() << std::endl
+              << "RecordLength = " <<  file->GetRecordLength() << std::endl;
 
     printNodeInfo(header.rootNodeId,1);
   }

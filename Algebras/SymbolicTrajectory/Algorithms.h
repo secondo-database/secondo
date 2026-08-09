@@ -984,18 +984,18 @@ struct IndexMatchInfo2 {
   }
   
   void print() {
-    cout << "inst: " << inst << " | binding: ";
+    std::cout << "inst: " << inst << " | binding: ";
     bool hasSucc = true;
     int pos = 0;
     std::map<int, temporalalgebra::Periods>::iterator it;
     while (hasSucc) {
       it = binding.find(-1 * pos - 1);
       if (it != binding.end()) {
-        cout << it->first << " ---> " << it->second << " |   ";
+        std::cout << it->first << " ---> " << it->second << " |   ";
       }
       it = binding.find(pos);
       if (it != binding.end()) {
-        cout << it->first << " ---> " << it->second << " |   ";
+        std::cout << it->first << " ---> " << it->second << " |   ";
       }
       else {
         hasSucc = false;
@@ -1004,7 +1004,7 @@ struct IndexMatchInfo2 {
     }
     it = binding.find(pos);
     if (it != binding.end()) {
-      cout << it->first << " ---> " << it->second << " |   ";
+      std::cout << it->first << " ---> " << it->second << " |   ";
     }
   }
   
@@ -1766,7 +1766,8 @@ template<class M>
 ExtBool Pattern::matches(M *m) {
   ExtBool result = ST_UNDEF;
   if (!isValid(M::BasicType())) {
-    cout << "pattern is not suitable for type " << M::BasicType() << endl;
+    std::cout << "pattern is not suitable for type " << M::BasicType()
+       << std::endl;
     return result;
   }
   Match<M> *match = new Match<M>(this, m);
@@ -1806,11 +1807,11 @@ the loop.
 template<class M>
 ExtBool Match<M>::matches() {
   if (p->isNFAempty()) {
-    cout << "empty nfa" << endl;
+    std::cout << "empty nfa" << std::endl;
     return ST_UNDEF;
   }
   if (!p->initEasyCondOpTrees(true)) {
-    cout << "Error: EasyCondOpTrees not initialized" << endl;
+    std::cout << "Error: EasyCondOpTrees not initialized" << std::endl;
     return ST_UNDEF;
   }
   std::set<int> states;
@@ -1878,10 +1879,11 @@ std::string Match<M>::states2Str(int ulId, std::set<int> &states) {
       result << ", " << *it;
       it++;
     }
-    result << "}" << endl;
+    result << "}" << std::endl;
   }
   else {
-    result << "after unit # " << ulId << ", there is no active state" << endl;
+    result << "after unit # " << ulId << ", there is no active state"
+       << std::endl;
   }
   return result.str();
 }
@@ -1914,7 +1916,7 @@ std::string Match<M>::matchings2Str(unsigned int dim1, unsigned int dim2) {
         }
       }
     }
-    result << endl;
+    result << std::endl;
   }
   return result.str();
 }
@@ -2209,7 +2211,7 @@ bool Match<M>::evaluateEmptyM() {
   for (unsigned int i = 0; i < p->conds.size(); i++) {
     for (int j = 0; j < p->conds[i].getVarKeysSize(); j++) {
       if (p->conds[i].getKey(j) != 4) { // only card conditions possible
-        cout << "Error: Only cardinality conditions allowed" << endl;
+        std::cout << "Error: Only cardinality conditions allowed" << std::endl;
         return false;
       }
       p->conds[i].setCardPtr(j, 0);
@@ -2255,7 +2257,8 @@ FilterMatchesLI<M>::FilterMatchesLI(Word _stream, int _attrIndex,
       streamOpen = true;
     }
     else {
-      cout << "pattern is not suitable for type " << M::BasicType() << endl;
+      std::cout << "pattern is not suitable for type " << M::BasicType()
+         << std::endl;
     }
   }
 }
@@ -2321,7 +2324,8 @@ RewriteLI<M>::RewriteLI(M *src, Pattern *pat) {
     }
   }
   else {
-    cout << "pattern is not suitable for type " << MLabel::BasicType() << endl;
+    std::cout << "pattern is not suitable for type " << MLabel::BasicType()
+       << std::endl;
     match = 0;
   }
 }
@@ -2440,8 +2444,10 @@ M* RewriteLI<M>::rewrite(M *src, IndexMatchInfo &imi,
                 break;
               }
               default: { // cannot occur
-                cout << "Error: assigns[" << i << "].getRightKey(" << j << ", "
-                     << k << ") = " << assigns[i].getRightKey(j, k) << endl;
+                std::cout << "Error: assigns[" << i << "].getRightKey(" << j
+                   << ", "
+                     << k << ") = " << assigns[i].getRightKey(j, k)
+                        << std::endl;
                 result->SetDefined(false);
                 return result;
               }
@@ -2517,8 +2523,8 @@ M* RewriteLI<M>::rewrite(M *src, IndexMatchInfo &imi,
           iv.rc = rc;
         }
         if (!iv.IsValid()) {
-          iv.Print(cout);
-          cout << " is an invalid interval" << endl;
+          iv.Print(std::cout);
+          std::cout << " is an invalid interval" << std::endl;
           result->SetDefined(false);
           return result;
         }
@@ -2573,8 +2579,8 @@ M* RewriteLI<M>::rewrite(M *src, IndexMatchInfo &imi,
             iv.rc = rc;
           }
           if (!iv.IsValid()) {
-            iv.Print(cout);
-            cout << " is an invalid interval" << endl;
+            iv.Print(std::cout);
+            std::cout << " is an invalid interval" << std::endl;
             result->SetDefined(false);
             return result;
           }
@@ -2777,11 +2783,11 @@ ClassifyLI::ClassifyLI(M *traj, Word _classifier) : classifyTT(0) {
       } while ((i < c->getCharPosSize() / 2 - 1) && (pat >= 0));
     }
     else {
-      cout << "pattern could not be parsed" << endl;
+      std::cout << "pattern could not be parsed" << std::endl;
     }
   }
   if (!pats.size()) {
-    cout << "no classification data specified" << endl;
+    std::cout << "no classification data specified" << std::endl;
     return;
   }
   std::vector<std::map<int, int> > nfa;
@@ -2849,13 +2855,13 @@ MultiRewriteLI<M>::MultiRewriteLI(Word _tstream, Word _pstream, int _pos) :
   std::string var;
   while (inputText) {
     if (!inputText->IsDefined()) {
-      cout << "undefined input is ignored" << endl;
+      std::cout << "undefined input is ignored" << std::endl;
     }
     else {
       p = Pattern::getPattern(inputText->GetValue(), true); // no single NFA
       if (p) {
         if (!p->hasAssigns()) {
-          cout << "pattern without rewrite part ignored" << endl;
+          std::cout << "pattern without rewrite part ignored" << std::endl;
         }
         else {
           if (p->initCondOpTrees()) {
@@ -2892,7 +2898,7 @@ MultiRewriteLI<M>::MultiRewriteLI(Word _tstream, Word _pstream, int _pos) :
   }
   pStream.close();
   if (!pats.size()) {
-    cout << "no classification data specified" << endl;
+    std::cout << "no classification data specified" << std::endl;
   }
   else {
     tStream.open();
@@ -2977,7 +2983,7 @@ M* MultiRewriteLI<M>::nextResult() {
       }
     }
   }
-  cout << "SHOULD NOT OCCUR" << endl;
+  std::cout << "SHOULD NOT OCCUR" << std::endl;
   return 0;
 }
 
@@ -3063,8 +3069,8 @@ Tuple* IndexClassifyLI::nextResultTuple() {
     if (currentPat >= c->getNumOfP()) {
       return 0;
     }
-    cout << "results empty, fill now. currentPat=" << currentPat << ", " 
-         << c->getPatText(currentPat) << endl;
+    std::cout << "results empty, fill now. currentPat=" << currentPat << ", " 
+         << c->getPatText(currentPat) << std::endl;
     Pattern *pat = Pattern::getPattern(c->getPatText(currentPat), false);
     p = pat;
     delete pat;
@@ -3074,21 +3080,23 @@ Tuple* IndexClassifyLI::nextResultTuple() {
       results.push(std::make_pair(c->getDesc(currentPat), matches[i]));
     }
     p->deleteCondOpTrees();
-    cout << "desc for " << currentPat << " is " << c->getDesc(currentPat)<<endl;
+    std::cout << "desc for " << currentPat << " is " << c->getDesc(currentPat)
+       <<std::endl;
     currentPat++;
   }
   std::pair<std::string, TupleId> resultPair = results.front();
   results.pop();
-  cout << "tuple id " << resultPair.second << " popped, " << results.size() 
-       << " left" << endl;
+  std::cout << "tuple id " << resultPair.second << " popped, "
+     << results.size() 
+       << " left" << std::endl;
    
   Tuple* tuple = rel->GetTuple(resultPair.second, false);
   int noValues = ((MLabels*)(tuple->GetAttribute(attrNo)))->GetNoValues();
-  cout << "Trajectory has "
+  std::cout << "Trajectory has "
        << ((MLabels*)(tuple->GetAttribute(attrNo)))->GetNoComponents()
-       << " units and " << noValues << " labels" << endl;
+       << " units and " << noValues << " labels" << std::endl;
 
-  ((MLabels*)(tuple->GetAttribute(attrNo)))->Print(cout);
+  ((MLabels*)(tuple->GetAttribute(attrNo)))->Print(std::cout);
   Attribute* traj = (tuple->GetAttribute(attrNo))->Copy();
   Tuple *result = new Tuple(classifyTT);
   result->PutAttribute(0, new FText(true, resultPair.first));
@@ -3267,15 +3275,15 @@ bool TMatchIndexLI::getSingleIndexResult(
           Rectangle<2> rect(true);
           if (type == Rectangle<2>::BasicType()) {
             rect.CopyFrom((Rectangle<2>*)(values.first.addr));
-            cout << "rect retrieved: ";
-            ((Rectangle<2>*)(values.first.addr))->Print(cout);
-            rect.Print(cout);
+            std::cout << "rect retrieved: ";
+            ((Rectangle<2>*)(values.first.addr))->Print(std::cout);
+            rect.Print(std::cout);
           }
           else {
             rect = ((Region*)(values.first.addr))->BoundingBox();
-            cout << "bbox of region retrieved: ";
+            std::cout << "bbox of region retrieved: ";
           }
-          rect.Print(cout);
+          rect.Print(std::cout);
           if (ti != 0) {
             Tools::queryRtree2(ti->rtrees2[indexInfo.second.second], rect, 
                                result);
@@ -3284,7 +3292,7 @@ bool TMatchIndexLI::getSingleIndexResult(
             Tools::queryRtree2(ti2->rtrees2[indexInfo.second.second], rect, 
                                result);
           }
-          cout << "rtree queried" << endl;
+          std::cout << "rtree queried" << std::endl;
           return false;
         }
         std::set<std::string> lbs;
@@ -3534,11 +3542,12 @@ ListExpr TupleIndex<PosType, PosType2>::Out(ListExpr typeInfo, Word value) {
   TupleIndex<PosType, PosType2> *ti = (TupleIndex<PosType,PosType2>*)value.addr;
   std::stringstream overview;
   Word val;
-  overview << ti->tries.size() << " Tries," << endl << ti->btrees.size()
-           << " BTrees," << endl << ti->rtrees1.size() << " 1-dim RTrees," 
-           << endl << ti->rtrees2.size() << " 2-dim RTrees. More:" << endl;
+  overview << ti->tries.size() << " Tries," << std::endl << ti->btrees.size()
+           << " BTrees," << std::endl << ti->rtrees1.size() << " 1-dim RTrees," 
+           << std::endl << ti->rtrees2.size() << " 2-dim RTrees. More:"
+              << std::endl;
     overviewlist = nl->TextAtom(overview.str());
-  cout << overview.str() << endl;
+  std::cout << overview.str() << std::endl;
   if (ti->rtrees1.size() > 0) {
     val.addr = ti->rtrees1[0];
     rtree1list = nl->OneElemList(OutRTree<1>(nl->FourElemList(nl->Empty(),
@@ -3593,10 +3602,10 @@ bool TupleIndex<PosType, PosType2>::Save(SmiRecord& valueRecord, size_t& offset,
   ListExpr tList = sc->NumericType(nl->SymbolAtom(TrieTI::BasicType()));
   for (unsigned int i = 0; i < noComponents; i++) {
     val.addr = ti->tries[i];
-    cout << "save trie # " << i + 1 << " of " << noComponents << endl;
+    std::cout << "save trie # " << i + 1 << " of " << noComponents << std::endl;
     if (!triealg::SaveInvfile<PosType, PosType2>(valueRecord, offset, tList, 
                                                  val)) {
-      cout << "error saving trie " << i << endl;
+      std::cout << "error saving trie " << i << std::endl;
       return false;
     }
   }
@@ -3607,9 +3616,10 @@ bool TupleIndex<PosType, PosType2>::Save(SmiRecord& valueRecord, size_t& offset,
   offset += sizeof(unsigned int);
   tList = sc->NumericType(nl->SymbolAtom(BTreeTI::BasicType()));
   for (unsigned int i = 0; i < noComponents; i++) {
-    cout << "save btree # " << i + 1 << " of " << noComponents << endl;
+    std::cout << "save btree # " << i + 1 << " of " << noComponents
+       << std::endl;
     if (!ti->btrees[i]->Save(valueRecord, offset, tList)) {
-      cout << "error saving btree " << i << endl;
+      std::cout << "error saving btree " << i << std::endl;
       return false;
     }
   }
@@ -3622,7 +3632,8 @@ bool TupleIndex<PosType, PosType2>::Save(SmiRecord& valueRecord, size_t& offset,
 //                            nl->BoolAtom(true));
   for (unsigned int i = 0; i < noComponents; i++) {
 //     val.addr = ti->rtrees1[i];
-    cout << "save rtree1 # " << i + 1 << " of " << noComponents << endl;
+    std::cout << "save rtree1 # " << i + 1 << " of " << noComponents
+       << std::endl;
     SmiFileId fileId = ti->rtrees1[i]->FileId();
     if (!valueRecord.Write(&fileId, sizeof(SmiFileId), offset)) {
       return false;
@@ -3640,7 +3651,8 @@ bool TupleIndex<PosType, PosType2>::Save(SmiRecord& valueRecord, size_t& offset,
   offset += sizeof(unsigned int);
   for (unsigned int i = 0; i < noComponents; i++) {
 //     val.addr = ti->rtrees2[i];
-    cout << "save rtree2 # " << i + 1 << " of " << noComponents << endl;
+    std::cout << "save rtree2 # " << i + 1 << " of " << noComponents
+       << std::endl;
     SmiFileId fileId = ti->rtrees2[i]->FileId();
     if (!valueRecord.Write(&fileId, sizeof(SmiFileId), offset)) {
       return false;
@@ -3653,7 +3665,7 @@ bool TupleIndex<PosType, PosType2>::Save(SmiRecord& valueRecord, size_t& offset,
   }
 //   val.addr = ti->timeIndex;
   if (PosType::BasicType() == "unitpos") {
-    cout << "save time index" << endl;
+    std::cout << "save time index" << std::endl;
     SmiFileId fileId = ti->timeIndex->FileId();
     if (!valueRecord.Write(&fileId, sizeof(SmiFileId), offset)) {
       return false;
@@ -3686,7 +3698,7 @@ bool TupleIndex<PosType, PosType2>::Save(SmiRecord& valueRecord, size_t& offset,
     offset += sizeof(int);
     it1++;
   }
-  cout << "attrToIndex saved" << endl;
+  std::cout << "attrToIndex saved" << std::endl;
   noComponents = ti->indexToAttr.size();
   if (!valueRecord.Write(&noComponents, sizeof(unsigned int), offset)) {
     return false;
@@ -3709,11 +3721,11 @@ bool TupleIndex<PosType, PosType2>::Save(SmiRecord& valueRecord, size_t& offset,
     offset += sizeof(int);
     it2++;
   }
-  cout << "indexToAttr saved" << endl;
+  std::cout << "indexToAttr saved" << std::endl;
   if (!valueRecord.Write(&(ti->mainAttr), sizeof(int), offset)) {
     return false;
   }
-  cout << "mainAttr = " << ti->mainAttr << " saved" << endl;
+  std::cout << "mainAttr = " << ti->mainAttr << " saved" << std::endl;
   offset += sizeof(int);
   noComponents = ti->firstEnd.size();
   if (!valueRecord.Write(&noComponents, sizeof(unsigned int), offset)) {
@@ -3727,7 +3739,8 @@ bool TupleIndex<PosType, PosType2>::Save(SmiRecord& valueRecord, size_t& offset,
     offset += sizeof(int64_t);
   }
   if (noComponents > 0) {
-    cout << "first ends for " << noComponents - 1 << " tuples saved" << endl;
+    std::cout << "first ends for " << noComponents - 1 << " tuples saved"
+       << std::endl;
   }
   if (!valueRecord.Write(&ti->timeLimits.first, sizeof(int64_t), offset)) {
     return false;
@@ -3757,7 +3770,7 @@ bool TupleIndex<PosType, PosType2>::Open(SmiRecord& valueRecord, size_t& offset,
   for (unsigned int i = 0; i < noComponents; i++) {
     if (!triealg::OpenInvfile<PosType, PosType2>(valueRecord, offset, tList, 
                                                  val)) {
-      cout << "error opening trie" << endl;
+      std::cout << "error opening trie" << std::endl;
       return false;
     }
     ti->tries.push_back((TrieTI*)val.addr);
@@ -3772,7 +3785,7 @@ bool TupleIndex<PosType, PosType2>::Open(SmiRecord& valueRecord, size_t& offset,
   for (unsigned int i = 0; i < noComponents; i++) {
     BTreeTI *bt = BTreeTI::Open(valueRecord, offset, tList);
     if (!bt) {
-      cout << "error opening btree" << endl;
+      std::cout << "error opening btree" << std::endl;
       return false;
     }
     ti->btrees.push_back(bt);
@@ -3946,7 +3959,7 @@ void TupleIndex<PosType, PosType2>::initialize(TupleType *ttype, int _mainAttr){
   }
   else { // version for tupleindex with main attribute
     timeIndex = new R_Tree<1, NewPair<TupleId, PosType> >(4000, false);
-    cout << "RTree1 for time intervals created" << endl;
+    std::cout << "RTree1 for time intervals created" << std::endl;
   }
   for (int i = 0; i < ttype->GetNoAttributes(); i++) {
     AttributeType atype = ttype->GetAttributeType(i);
@@ -3959,7 +3972,8 @@ void TupleIndex<PosType, PosType2>::initialize(TupleType *ttype, int _mainAttr){
       TrieTI *inv = new TrieTI();
       inv->setParams(false, 1, "");
       tries.push_back(inv);
-      cout << "Trie for attr " << i << " created and appended" << endl;
+      std::cout << "Trie for attr " << i << " created and appended"
+         << std::endl;
       if (name == "mplace" || name == "mplaces") {
         placeAttrs.push_back(i);
       }
@@ -3969,7 +3983,8 @@ void TupleIndex<PosType, PosType2>::initialize(TupleType *ttype, int _mainAttr){
       indexToAttr[std::make_pair(BTREE, (int)btrees.size())] = i;
       BTreeTI *btree = new BTreeTI(SmiKey::Integer);
       btrees.push_back(btree);
-      cout << "BTree for attr " << i << " created and appended" << endl;
+      std::cout << "BTree for attr " << i << " created and appended"
+         << std::endl;
     }
     else if (name == "mreal") {
       attrToIndex[i] = std::make_pair(RTREE1, (int)rtrees1.size());
@@ -3978,7 +3993,8 @@ void TupleIndex<PosType, PosType2>::initialize(TupleType *ttype, int _mainAttr){
 //                   new R_Tree<1, NewPair<TupleId, int> >(4096);
       RTree1TI *rtree1 = new R_Tree<1, NewPair<TupleId, PosType> >(4000, false);
       rtrees1.push_back(rtree1);
-      cout << "RTree1 for attr " << i << " created and appended" << endl;
+      std::cout << "RTree1 for attr " << i << " created and appended"
+         << std::endl;
     }
     else if (name == "mpoint" || name == "mregion") {
       attrToIndex[i] = std::make_pair(RTREE2, (int)rtrees2.size());
@@ -3987,7 +4003,8 @@ void TupleIndex<PosType, PosType2>::initialize(TupleType *ttype, int _mainAttr){
 //                   new R_Tree<2, NewPair<TupleId, int> >(4096);
       RTree2TI *rtree2 = new R_Tree<2, NewPair<TupleId, PosType> >(4000, false);
       rtrees2.push_back(rtree2);
-      cout << "RTree2 for attr " << i << " created and appended" << endl;
+      std::cout << "RTree2 for attr " << i << " created and appended"
+         << std::endl;
     }
     else {
       attrToIndex[i] = std::make_pair(NONE, -1);
@@ -3998,8 +4015,8 @@ void TupleIndex<PosType, PosType2>::initialize(TupleType *ttype, int _mainAttr){
     indexToAttr[std::make_pair(RTREE2, (int)rtrees2.size())] = placeAttrs[j];
     RTree2TI *rtree2 = new R_Tree<2, NewPair<TupleId, PosType> >(4000, false);
     rtrees2.push_back(rtree2);
-    cout << "RTree2 # " << rtrees2.size() << " for attr " << placeAttrs[j] 
-         << " created and appended" << endl;
+    std::cout << "RTree2 # " << rtrees2.size() << " for attr " << placeAttrs[j] 
+         << " created and appended" << std::endl;
   }
 }
 
@@ -4176,7 +4193,7 @@ bool TupleIndex<PosType, PosType2>::insertIntoRTree1(RTree1TI *rt, TupleId tid,
     start[0] = unit.Min(correct1);
     end[0] = unit.Max(correct2);
     if (!correct1 || !correct2) {
-      cout << "Error at unit " << i << ", tuple " << tid << endl;
+      std::cout << "Error at unit " << i << ", tuple " << tid << std::endl;
       return false;
     }
     Rectangle<1> doubleIv(true, start, end);
@@ -4246,7 +4263,7 @@ bool TupleIndex<PosType, PosType2>::insertIntoRTree2(RTree2TI *rt, TupleId tid,
     }
   }
   else {
-    cout << "Invalid type " << type << endl;
+    std::cout << "Invalid type " << type << std::endl;
     return false;
   }
   return true;
@@ -4289,7 +4306,8 @@ bool TupleIndex<PosType, PosType2>::addTuple(Tuple *tuple) {
 //           cout << "FILL TIME INDEX" << endl;
           if (!fillTimeIndex(timeIndex, tuple->GetTupleId(), 
         tuple->GetAttribute(i), Tools::getDataType(tuple->GetTupleType(), i))) {
-            cout << "Error adding tuple " << tuple->GetTupleId() << endl;
+            std::cout << "Error adding tuple " << tuple->GetTupleId()
+               << std::endl;
             return false;
           }
         }
@@ -4303,7 +4321,8 @@ bool TupleIndex<PosType, PosType2>::addTuple(Tuple *tuple) {
 //         cout << "INSERT INTO RTREE1 " << indexPos.second << endl;
         if (!insertIntoRTree1(rtrees1[indexPos.second], tuple->GetTupleId(),
                               tuple->GetAttribute(i), inst)) {
-          cout << "Error adding tuple " << tuple->GetTupleId() << endl;
+          std::cout << "Error adding tuple " << tuple->GetTupleId()
+             << std::endl;
           return false;
         }
       }
@@ -4312,7 +4331,8 @@ bool TupleIndex<PosType, PosType2>::addTuple(Tuple *tuple) {
         if (!insertIntoRTree2(rtrees2[indexPos.second], tuple->GetTupleId(),
                               tuple->GetAttribute(i), 
               Tools::getTypeName(tuple->GetTupleType(), i), inst)) {
-          cout << "Error adding tuple " << tuple->GetTupleId() << endl;
+          std::cout << "Error adding tuple " << tuple->GetTupleId()
+             << std::endl;
           return false;
         }
       }
@@ -4425,9 +4445,9 @@ void TupleIndex<PosType, PosType2>::processTimeIntervals(Relation *rel,
       t->DeleteIfAllowed();
     }
   }
-  cout << values.size() << " time intervals in vector" << endl;
+  std::cout << values.size() << " time intervals in vector" << std::endl;
   std::sort(values.begin(), values.end());
-  cout << " ............ sorted" << endl;
+  std::cout << " ............ sorted" << std::endl;
   double start[1], end[1];
   bool bulkLoadInitialized = timeIndex->InitializeBulkLoad();
   assert(bulkLoadInitialized);
@@ -4444,7 +4464,7 @@ void TupleIndex<PosType, PosType2>::processTimeIntervals(Relation *rel,
   }
   bool bulkLoadFinalized = timeIndex->FinalizeBulkLoad();
   assert(bulkLoadFinalized);
-  cout << "... written into rtree1" << endl;
+  std::cout << "... written into rtree1" << std::endl;
 }
 
 /*
@@ -4647,9 +4667,9 @@ void TupleIndex<PosType, PosType2>::processRTree2(Relation *rel,
       t->DeleteIfAllowed();
     }
   }
-  cout << values.size() << " 2D boxes in vector" << endl;
+  std::cout << values.size() << " 2D boxes in vector" << std::endl;
   std::sort(values.begin(), values.end());
-  cout << " ............ sorted" << endl;
+  std::cout << " ............ sorted" << std::endl;
   RTree2TI *rtree = 0;
   int rtreePos = 0;
   TupleType *tt = rel->GetTupleType();
@@ -4680,7 +4700,7 @@ void TupleIndex<PosType, PosType2>::processRTree2(Relation *rel,
   }
   bool bulkLoadFinalized = rtree->FinalizeBulkLoad();
   assert(bulkLoadFinalized);
-  cout << "... written into rtree2" << endl;
+  std::cout << "... written into rtree2" << std::endl;
 }
 
 /*
@@ -4725,9 +4745,9 @@ void TupleIndex<PosType, PosType2>::processRTree1(Relation *rel,
       }
     t->DeleteIfAllowed();
   }
-  cout << values.size() << " real intervals in vector" << endl;
+  std::cout << values.size() << " real intervals in vector" << std::endl;
   std::sort(values.begin(), values.end());
-  cout << ".......... sorted" << endl;
+  std::cout << ".......... sorted" << std::endl;
   RTree1TI *rtree = rtrees1[attrToIndex[attr].second];
   double min[1], max[1];
   bool bulkLoadInitialized = rtree->InitializeBulkLoad();
@@ -4745,7 +4765,7 @@ void TupleIndex<PosType, PosType2>::processRTree1(Relation *rel,
   }
   bool bulkLoadFinalized = rtree->FinalizeBulkLoad();
   assert(bulkLoadFinalized);
-  cout << "... written into rtree1" << endl;
+  std::cout << "... written into rtree1" << std::endl;
 }
 
 /*
@@ -4784,14 +4804,14 @@ void TupleIndex<PosType, PosType2>::processBTree(Relation *rel, const int attr){
     }
     t->DeleteIfAllowed();
   }
-  cout << values.size() << " integers in vector" << endl;
+  std::cout << values.size() << " integers in vector" << std::endl;
   std::sort(values.begin(), values.end());
-  cout << ".......... sorted" << endl;
+  std::cout << ".......... sorted" << std::endl;
   BTree_t<NewPair<TupleId, PosType> > *btree = btrees[attrToIndex[attr].second];
   for (unsigned int i = 0; i < values.size(); i++) {
     btree->Append(values[i].first, values[i].second);
   }
-  cout << "... written into btree" << endl;
+  std::cout << "... written into btree" << std::endl;
 }
 
 /*
@@ -4933,9 +4953,9 @@ void TupleIndex<PosType, PosType2>::processTrie(Relation *rel, const int attr,
       t->DeleteIfAllowed();
     }
   }
-  cout << values.size() << " labels in vector" << endl;
+  std::cout << values.size() << " labels in vector" << std::endl;
   std::sort(values.begin(), values.end());
-  cout << ".......... sorted" << endl;
+  std::cout << ".......... sorted" << std::endl;
   InvertedFileT<PosType, PosType2> *trie = tries[attrToIndex[attr].second];
   size_t maxMem = memSize * 16 * 1024 * 1024;
   size_t trieCacheSize = maxMem / 20;
@@ -4957,7 +4977,7 @@ void TupleIndex<PosType, PosType2>::processTrie(Relation *rel, const int attr,
   }
   delete trieCache;
   delete cache;
-  cout << "... written into trie" << endl;
+  std::cout << "... written into trie" << std::endl;
 }
 
 /*
@@ -5000,7 +5020,8 @@ void TupleIndex<PosType, PosType2>::collectSortInsert(Relation *rel,
     }
   }
   Instant first(timeLimits.first), last(timeLimits.second);
-  cout << "After attr " << attrPos << ": " << first << " | " << last << endl;
+  std::cout << "After attr " << attrPos << ": " << first << " | " << last
+     << std::endl;
 }
 
 /*

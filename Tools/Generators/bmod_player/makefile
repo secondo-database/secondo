@@ -11,8 +11,10 @@ CC = g++
 
 OBJS := bmodplayer.o
 
-%.o: %.cpp $(DEPS)
-	$(CC) $(CFLAGS) -c -o $@ $<
+%.o: %.cpp
+	$(CC) $(CFLAGS) -c -o $@ $< -MMD -MP -MF $*.dep
+
+-include $(wildcard *.dep)
 
 all: bmodplayer
 
@@ -20,5 +22,5 @@ bmodplayer: $(OBJS)
 	 $(CC) $(CFLAGS) $(OBJS) -o bmodplayer $(LINKDEPS)
 
 clean:
-	rm *.o
+	rm -f *.o *.dep
 	rm bmodplayer

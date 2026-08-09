@@ -377,10 +377,10 @@ namespace csj {
       display(node->right, tab + 4);
       
       for(int i=0; i<tab; i++) {
-        cout<<"  ";
+        std::cout<<"  ";
       }
       
-      cout<<node->xMedian<<endl;
+      std::cout<<node->xMedian<<std::endl;
       
       display(node->left, tab + 4);
     }

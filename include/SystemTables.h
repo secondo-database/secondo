@@ -247,7 +247,7 @@ class CacheInfoTuple : public InfoTuple, public CacheInfo
          << page_create << sep
          << page_in << sep
          << page_out << sep
-         << pages << endl;
+         << pages << std::endl;
       return os;
    }
 };
@@ -312,7 +312,7 @@ class FileInfoTuple : public InfoTuple, public FileInfo
          << cache_miss << sep
          << page_create << sep
          << page_in << sep
-         << page_out << endl;
+         << page_out << std::endl;
       return os;
    }
 };
@@ -386,7 +386,7 @@ class TypeInfoTuple : public InfoTuple
    virtual std::ostream& print(std::ostream& os) const
    {
       os << type << sep
-         << cppClassSize << endl;
+         << cppClassSize << std::endl;
       return os;
    }
 };
@@ -459,7 +459,7 @@ class OperatorInfoTuple : public InfoTuple
    virtual std::ostream& print(std::ostream& os) const
    {
       os << name << sep
-         << algebra << endl;
+         << algebra << std::endl;
       return os;
    }
 };
@@ -512,7 +512,7 @@ class OperatorUsageTuple : public InfoTuple
    {
       os << name << sep
          << algebra << sep
-         << calls << endl;
+         << calls << std::endl;
       return os;
    }
 };

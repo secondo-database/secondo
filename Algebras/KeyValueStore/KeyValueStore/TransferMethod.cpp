@@ -75,7 +75,7 @@ int copyFile(string source, string dest, bool cfn /* = false*/) {
               << destFileName;
     }
     command << "\"";
-    cout << "Command: " << command.str() << "\n";
+    std::cout << "Command: " << command.str() << "\n";
     return system(command.str().c_str());
   } else {
     string srcNode = source.substr(0, source.find_first_of(":"));
@@ -183,7 +183,7 @@ bool TransferMethodTCP::endStream() {
   int transferredTuples = connection->kvsConn->transferCount(transferId);
 
   KOUT << "Stream Ended comparring transferredTuples = " << transferredTuples
-       << " vs tupleCounter = " << tupleCounter << endl;
+       << " vs tupleCounter = " << tupleCounter << std::endl;
   if (transferredTuples == tupleCounter) {
     clearUnconfirmed();
   }
@@ -218,7 +218,7 @@ bool TransferMethodTCP::import(string targetRelation, string clientCommand) {
         ") project[" + baseAttributeList + "] sort " + targetRelation +
         " feed sort mergediff " + targetRelation + " insert " + clientCommand);
   } else {
-    KOUT << "no touples" << endl;
+    KOUT << "no touples" << std::endl;
     return true;
   }
 }
@@ -325,10 +325,10 @@ bool TransferMethodSCP::endStream() {
       clearUnconfirmed();
       return true;
     } else {
-      KOUT << "Failed to scp copy: " << tempPath << endl;
+      KOUT << "Failed to scp copy: " << tempPath << std::endl;
     }
   } else {
-    KOUT << "Failed to scp copy: " << tempPath << "_type" << endl;
+    KOUT << "Failed to scp copy: " << tempPath << "_type" << std::endl;
   }
 
   return false;
@@ -379,10 +379,10 @@ bool TransferMethodSCP::retry() {
       clearUnconfirmed();
       return true;
     } else {
-      KOUT << "Failed to scp copy: " << tempPath << endl;
+      KOUT << "Failed to scp copy: " << tempPath << std::endl;
     }
   } else {
-    KOUT << "Failed to scp copy: " << tempPath << "_type" << endl;
+    KOUT << "Failed to scp copy: " << tempPath << "_type" << std::endl;
   }
 
   return false;

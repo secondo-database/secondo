@@ -1025,19 +1025,20 @@ void RtreeT2<dim,T,max>::printStats(size_t pointCount,
     size_t memMmRTree = usedMem();
     size_t memPoints = pointCount * pointSize;
     size_t memTotal = memMmRTree + memPoints;
-    cout << "Memory used for MMRTree: " <<
+    std::cout << "Memory used for MMRTree: " <<
             formatInt(memMmRTree) << " bytes for "
             << formatInt(entryCount) << " entries in " <<
             formatInt(leafCount) << " leaves + "
-            << formatInt(nodeCount - leafCount) << " inner nodes" << endl;
+            << formatInt(nodeCount - leafCount) << " inner nodes" << std::endl;
     if (memPoints > 0) {
-        cout << "Memory used for points : " << formatInt(memPoints)
+        std::cout << "Memory used for points : " << formatInt(memPoints)
                 << " bytes = " << formatInt(pointCount) << " points * "
-                << pointSize << " bytes" << endl;
+                << pointSize << " bytes" << std::endl;
     }
-    cout << "Total memory used      : " << formatInt(memTotal) << " bytes = "
+    std::cout << "Total memory used      : " << formatInt(memTotal)
+       << " bytes = "
             << formatInt(pointCount) << " points * "
             << formatInt((int)std::round(memTotal / (double)pointCount))
-            << " bytes" << endl << endl;
+            << " bytes" << std::endl << std::endl;
 }
 } // end of namespace

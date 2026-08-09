@@ -270,7 +270,8 @@ class Labels : public Attribute {
                               unsigned int& result);
   static void buildValue(const std::string& text, const unsigned int pos,
                          std::string& result);
-  static void printArrayElem(const arrayelem e) {cout << "print " << e << endl;}
+  static void printArrayElem(const arrayelem e) {std::cout << "print " << e
+     << std::endl;}
   const bool IsEmpty() const {return GetNoValues() == 0;}
   void Clean() {values.clean(); pos.clean();}
   bool Contains(const std::string& text) const;
@@ -415,7 +416,7 @@ class Places : public Attribute {
                               arrayelem& result);
   static void buildValue(const std::string& text, 
                          const arrayelem pos, base& result);
-  static void printArrayElem(const arrayelem e) {cout << e.first << " " 
+  static void printArrayElem(const arrayelem e) {std::cout << e.first << " " 
                                                       << e.second;}
   void operator=(const Places& p);
   bool operator==(const Places& p) const;
@@ -527,8 +528,8 @@ class UBasic : public temporalalgebra::ConstTemporalUnit<B> {
   operator=( const temporalalgebra::ConstTemporalUnit<B>& i )
   { return temporalalgebra::ConstTemporalUnit<B>::operator=(i); }
   virtual temporalalgebra::TemporalUnit<B>& operator=(
-		  const temporalalgebra::TemporalUnit<B>& i){
-	  return temporalalgebra::TemporalUnit<B>::operator=(i);
+    const temporalalgebra::TemporalUnit<B>& i){
+    return temporalalgebra::TemporalUnit<B>::operator=(i);
   }
 
   static ListExpr Property();
@@ -562,7 +563,7 @@ class UBasics : public temporalalgebra::ConstTemporalUnit<B> {
 
 
   virtual temporalalgebra::TemporalUnit<B>& operator=(
-		  const temporalalgebra::TemporalUnit<B>& i){
+     const temporalalgebra::TemporalUnit<B>& i){
      return temporalalgebra::TemporalUnit<B>::operator=(i);
   }
   virtual temporalalgebra::ConstTemporalUnit<B>&
@@ -1521,22 +1522,22 @@ void MBasic<B>::serialize(size_t &size, char *&bytes) const {
   size_t rootSize = Sizeof();
   size = 2 * sizeof(size_t) + values.getSize() + units.GetFlobSize();
   bytes = new char[size];
-  cout << "memcpy1" << endl;
+  std::cout << "memcpy1" << std::endl;
   memcpy(bytes, (void*)&rootSize, sizeof(size_t));
-  cout << "ok, now memcpy2" << endl;
+  std::cout << "ok, now memcpy2" << std::endl;
   memcpy(bytes + sizeof(size_t), (void*)this, rootSize);
   size_t offset = sizeof(size_t) + rootSize;
   char* data = values.getData();
-  cout << "ok, now memcpy3" << endl;
+  std::cout << "ok, now memcpy3" << std::endl;
   memcpy(bytes + offset, data, values.getSize());
   delete[] data;
   offset += values.getSize();
   data = units.getData();
-  cout << "ok, now memcpy4" << endl;
+  std::cout << "ok, now memcpy4" << std::endl;
   memcpy(bytes + offset, data, units.GetFlobSize());
-  cout << "ok" << endl;
+  std::cout << "ok" << std::endl;
   delete[] data;
-  cout << "buffer \'data\' deleted" << endl;
+  std::cout << "buffer \'data\' deleted" << std::endl;
 }
 
 /*
@@ -1911,9 +1912,9 @@ template<class B>
 void MBasic<B>::MergeAdd(const UBasic<B>& ub) {
   assert(IsDefined());
   if (!ub.IsDefined() || !ub.IsValid()) {
-    cout << __FILE__ << "," << __LINE__ << ":" << __PRETTY_FUNCTION__
+    std::cout << __FILE__ << "," << __LINE__ << ":" << __PRETTY_FUNCTION__
       << " MergeAdd(Unit): Unit is undefined or invalid:";
-    ub.Print(cout); cout << endl;
+    ub.Print(std::cout); std::cout << std::endl;
     assert(false);
   }
   if (!IsEmpty()) {
@@ -2372,10 +2373,10 @@ NewPair<int, int> MBasic<B>::LongestCommonSubsequence(const MBasic<B>& mb) {
 template<class B>
 std::ostream& MBasic<B>::Print(std::ostream& os) const {
   if (!IsDefined()) {
-    os << "(undefined)" << endl;
+    os << "(undefined)" << std::endl;
     return os;
   }
-  os << BasicType() << ":" << endl;
+  os << BasicType() << ":" << std::endl;
   UBasic<B> ub(true);
   for (int i = 0; i < GetNoComponents(); i++) {
     Get(i, ub);
@@ -3397,9 +3398,9 @@ void MBasics<B>::MergeAdd(const temporalalgebra::SecInterval& iv,
                           const B& values) {
   assert(IsDefined() && iv.IsDefined() && values.IsDefined());
   if (!iv.IsDefined() || !iv.IsValid()) {
-    cout << __FILE__ << "," << __LINE__ << ":" << __PRETTY_FUNCTION__
+    std::cout << __FILE__ << "," << __LINE__ << ":" << __PRETTY_FUNCTION__
       << " MergeAdd(Unit): Unit is undefined or invalid:";
-    iv.Print(cout); cout << endl;
+    iv.Print(std::cout); std::cout << std::endl;
     assert(false);
   }
   if (GetNoComponents() > 0) {
@@ -3822,10 +3823,10 @@ void MBasics<B>::Recode(const std::string& from, const std::string& to,
 template<class B>
 std::ostream& MBasics<B>::Print(std::ostream& os) const {
   if (!IsDefined()) {
-    os << "(undefined)" << endl;
+    os << "(undefined)" << std::endl;
     return os;
   }
-  os << BasicType() << ":" << endl;
+  os << BasicType() << ":" << std::endl;
   UBasics<B> ubs(true);
   for (int i = 0; i < GetNoComponents(); i++) {
     Get(i, ubs);

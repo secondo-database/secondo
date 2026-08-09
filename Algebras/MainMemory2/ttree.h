@@ -423,15 +423,15 @@ tree rooted by this contains a valid number of entries.
 */
    bool checkCount(std::ostream& out) const{
        if(count==0){
-           out << "found node without elements" << endl;
+           out << "found node without elements" << std::endl;
            return false;
        }
        if(count > maxEntries){
-          out << "found node having more entries than allowed" << endl;
+          out << "found node having more entries than allowed" << std::endl;
        }
        if(left && right){ // inner node
           if(count < minEntries){
-             out << "found inner node having too less entries" << endl;
+             out << "found inner node having too less entries" << std::endl;
              return false;
           }
        }
@@ -651,7 +651,7 @@ Support function.
           out << "( tree ";
         }
         if(!root){
-           out << "' '" << endl;
+           out << "' '" << std::endl;
         } else {
           out << "(";
           out << "'";
@@ -666,7 +666,7 @@ Support function.
         }
         if(isRoot){
           out << ")";
-          out << endl;
+          out << std::endl;
         }
     }
    
@@ -683,16 +683,16 @@ Support function.
        // check internal order
        for(size_t i=0;i<count-1; i++){
           if(Comparator::greater(*objects[i], *objects[i+1],attrPos)){
-             out << "found invalid order within a single node" << endl;
+             out << "found invalid order within a single node" << std::endl;
              return false;
           }
        }
        if(min && Comparator::smaller(getMinValue(),*min, attrPos) ){
-          out << "found value of a node smaller than allowed" << endl;
+          out << "found value of a node smaller than allowed" << std::endl;
           return false; 
        }
        if(max && Comparator::greater(getMaxValue(), *max, attrPos)){
-          out << "found value of a node greater than allowed" << endl;
+          out << "found value of a node greater than allowed" << std::endl;
           return false; 
        }
        bool ok = true;

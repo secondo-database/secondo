@@ -304,7 +304,7 @@ and ~false~ if they are equal.
             LengthUnit<Alpha>::lengthInterval.Print(os);
             os << ", ";
             constValue.Print(os);
-            os << " ) " << endl;
+            os << " ) " << std::endl;
             return os;
         }
         else

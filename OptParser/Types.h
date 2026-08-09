@@ -89,7 +89,7 @@ informend about multiple issues of the query.
   void addErrorMessage(std::string errormessage) {
     if (errormessage.size() > 0) {
       //debug
-      cout << "ErrorMessage : " << errormessage << endl;
+      std::cout << "ErrorMessage : " << errormessage << std::endl;
       errorMessages = errorMessages + errormessage;
     }
   }

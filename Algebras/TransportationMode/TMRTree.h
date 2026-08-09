@@ -3566,8 +3566,8 @@ bool TM_RTree<dim, LeafInfo>::Save(SmiRecord& valueRecord,
 template <unsigned dim, class LeafInfo>
 bool TM_RTree<dim,LeafInfo>::InitializeBLI(const bool& leafSkipping)
 {
-    if(bulkMode)cout<<"bulkMode"<<endl;
-    if(bli)cout<<"bli"<<endl;
+    if(bulkMode)std::cout<<"bulkMode"<<std::endl;
+    if(bli)std::cout<<"bli"<<std::endl;
 //    if(bulkMode || bli != NULL)
 //      return false;
     bulkMode = true;

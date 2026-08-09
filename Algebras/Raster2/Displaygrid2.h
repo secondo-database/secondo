@@ -37,7 +37,7 @@ namespace raster2
          nl->AtomType(value) == SymbolType &&
          nl->SymbolValue(value) == Symbol::UNDEFINED())
       {
-        cout << Symbol::UNDEFINED();
+        std::cout << Symbol::UNDEFINED();
       }
       
       else
@@ -69,7 +69,7 @@ namespace raster2
             throw std::runtime_error(formatError);
           }
           
-          cout << "grid2: (x = " << x << ", y = " << y <<
+          std::cout << "grid2: (x = " << x << ", y = " << y <<
                   ", length = " << length << ")";
         }
         

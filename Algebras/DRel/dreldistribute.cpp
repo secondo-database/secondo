@@ -150,7 +150,7 @@ the distributed tuple.
         int size ) {
 
         #ifdef DRELDEBUG
-        cout << "createReplicationOpTree" << endl;
+        std::cout << "createReplicationOpTree" << std::endl;
         #endif
 
         ListExpr query = nl->ThreeElemList(
@@ -197,8 +197,8 @@ the distributed tuple.
                 nl->SymbolAtom( "Cell" ) ) );
 
         #ifdef DRELDEBUG
-        cout << "query" << endl;
-        cout << nl->ToString( query ) << endl;
+        std::cout << "query" << std::endl;
+        std::cout << nl->ToString( query ) << std::endl;
         #endif
 
         bool correct = false;
@@ -241,7 +241,7 @@ used to distribute the tuple.
         std::string attrName, T* grid ) {
 
         #ifdef DRELDEBUG
-        cout << "createStreamCellGridOpTree" << endl;
+        std::cout << "createStreamCellGridOpTree" << std::endl;
         #endif
 
         ListExpr query = nl->ThreeElemList(
@@ -314,8 +314,8 @@ used to distribute the tuple.
                                 nl->SymbolAtom( "Elem" ) ) ) ) ) ) );
 
         #ifdef DRELDEBUG
-        cout << "query" << endl;
-        cout << nl->ToString( query ) << endl;
+        std::cout << "query" << std::endl;
+        std::cout << nl->ToString( query ) << std::endl;
         #endif
 
         bool correct = false;
@@ -352,7 +352,7 @@ target array.
         Relation* rel, ListExpr relType, std::string attrName, int size ) {
 
         #ifdef DRELDEBUG
-        cout << "createCellGrid" << endl;
+        std::cout << "createCellGrid" << std::endl;
         #endif
 
         ListExpr query = nl->ThreeElemList(
@@ -390,8 +390,8 @@ target array.
             nl->IntAtom( size ) );
 
         #ifdef DRELDEBUG
-        cout << "query" << endl;
-        cout << nl->ToString( query ) << endl;
+        std::cout << "query" << std::endl;
+        std::cout << nl->ToString( query ) << std::endl;
         #endif
 
         Word resultGrid;
@@ -399,8 +399,8 @@ target array.
         T* grid = ( T* )resultGrid.addr;
 
         #ifdef DRELDEBUG
-        cout << "resultGrid" << endl;
-        grid->Print( cout );
+        std::cout << "resultGrid" << std::endl;
+        grid->Print( std::cout );
         #endif
 
         return grid;
@@ -921,7 +921,7 @@ Value mapping of the distribute operator to distribute by hash.
             resultType );
 
         if( !correct ) {
-            cout << "can not create operator tree" << endl;
+            std::cout << "can not create operator tree" << std::endl;
             result = qp->ResultStorage( s );
             RType* drel = ( RType* )result.addr;
             drel->makeUndefined( );

@@ -144,7 +144,7 @@ Signature4CRS* GeraRasterSecondo::generateRaster(const long id,
   while(!endOfParts)
   {
     #ifdef DEBUGMESSAGES
-      cout << "Checking segment " << nCurrentSegment << std::endl;
+      std::cout << "Checking segment " << nCurrentSegment << std::endl;
     #endif
     if (region != NULL){
 
@@ -176,7 +176,7 @@ Signature4CRS* GeraRasterSecondo::generateRaster(const long id,
         if ( ( currentCell.x > MAX_DIMENSION_GRID ) ||
              ( currentCell.y > MAX_DIMENSION_GRID ) )
         {
-          cout << "Overflow - Dimention of the grid" << std::endl;
+          std::cout << "Overflow - Dimention of the grid" << std::endl;
           return NULL;
         }
       }
@@ -196,7 +196,7 @@ Signature4CRS* GeraRasterSecondo::generateRaster(const long id,
 
         matrixPosition = currentCell.y * numberOfCellsX + currentCell.x;
         #ifdef DEBUGMESSAGES
-          cout << "matrixPosition: " << matrixPosition << std::endl;
+          std::cout << "matrixPosition: " << matrixPosition << std::endl;
         #endif
 
         Coordinate coordSupDir;
@@ -453,9 +453,9 @@ Signature4CRS* GeraRasterSecondo::generateRaster(const long id,
       for(int posx=0; posx<numberOfCellsX; posx++)
       {
         int matrixPosition = posy * numberOfCellsX + posx;
-        cout << swapMatrix[matrixPosition];
+        std::cout << swapMatrix[matrixPosition];
      }
-      cout<<std::endl;
+      std::cout<<std::endl;
     }
   #endif
   if (region != NULL)

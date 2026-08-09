@@ -1011,7 +1011,7 @@ inline double Rectangle<dim>::Distance(const Rectangle<dim>& r,
       sum += 0;
     else
     {
-      cout << "Rectangle<dim>::Distance(): Missing case!" << std::endl
+      std::cout << "Rectangle<dim>::Distance(): Missing case!" << std::endl
           << "   min[" << i << "] = " <<   min[i]
           << "   max[" << i << "] = " <<   max[i] << std::endl
           << " r.min[" << i << "] = " << r.min[i]

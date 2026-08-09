@@ -63,7 +63,7 @@ int be_querySFVM(Word *args, Word &result, int message, Word &local,
       // execute the query
       val = be_control->createTable(resultTab->toText(), query->toText());
     } else {
-      cout << noMaster << endl;
+      std::cout << noMaster << std::endl;
     }
 
     ((CcBool *)result.addr)->Set(true, val);

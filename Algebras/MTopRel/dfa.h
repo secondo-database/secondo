@@ -382,7 +382,7 @@ returns the starte state (usual 0)
 /*
 ~isFinal~
 
-Checks whether the dfa is in a final state.	
+Checks whether the dfa is in a final state.     
 
 */
 
@@ -1018,11 +1018,11 @@ Produces a listexpr for the value of this dfa.
       return o;
    }
 
-    o << "DFA" << endl;
-    o << "start state " << startState << endl;
-    o << "current state : " << currentState << endl;
-    o << "state \t symbol \t next state " << endl;
-    o << "num of symbols" << numOfSymbols << endl;
+    o << "DFA" << std::endl;
+    o << "start state " << startState << std::endl;
+    o << "current state : " << currentState << std::endl;
+    o << "state \t symbol \t next state " << std::endl;
+    o << "num of symbols" << numOfSymbols << std::endl;
     for(int i=0;i<transitions.Size() ; i++){
         int next;
         transitions.Get(i, &next);
@@ -1040,7 +1040,7 @@ Produces a listexpr for the value of this dfa.
             finalStates.Get(next,finalnext);
             std::string finalnextMark = finalnext?"(*) ":"( ) ";
             o << finalstartMark << start << " \t "  << c.GetName()  
-              << " \t\t " << next << finalnextMark << endl;
+              << " \t\t " << next << finalnextMark << std::endl;
         }
     }    
     return o;

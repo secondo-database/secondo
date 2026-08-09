@@ -1418,10 +1418,10 @@ class mtMinPathCostsInfo{
      ~mtMinPathCostsInfo(){
 
         /*if(noprocessedEdges>130){
-          cout << "processedNodes " << noprocessedNodes << endl;
-          cout << "reporcessedNodes " << noreprocessedNodes << endl;
-          cout << "processedEdges " << noprocessedEdges << endl;
-          cout << "maxFront " << maxFront << endl << endl;
+          std::cout << "processedNodes " << noprocessedNodes << std::endl;
+          std::cout << "reporcessedNodes " << noreprocessedNodes << std::endl;
+          std::cout << "processedEdges " << noprocessedEdges << std::endl;
+          std::cout << "maxFront " << maxFront << std::endl << std::endl;
         }
         */
 
@@ -1577,10 +1577,11 @@ into the targets map.
 
           /*
           if(failed>0){
-             cout << "found some targets more than one time " << endl;
-             cout << "found " << targets.size() << " unique targets" << endl;
-             cout << "ignored " << failed 
-                  << " targets which was given more than once" << endl;
+             std::cout << "found some targets more than one time " << std::endl;
+             std::cout << "found " << targets.size() << " unique targets"
+                << std::endl;
+             std::cout << "ignored " << failed 
+                  << " targets which was given more than once" << std::endl;
           }
           */
       }
@@ -1691,7 +1692,7 @@ available in the results vector.
          T* target = (T*) tup->GetAttribute(targetIndex);
          // special case undefined value
          if(!target->IsDefined()){
-            std::cerr << " found undefined costs" << endl;
+            std::cerr << " found undefined costs" << std::endl;
             tup->DeleteIfAllowed();
             return;
          }

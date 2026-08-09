@@ -1774,7 +1774,7 @@ Returns ~true~ if this temporal unit is equal to the temporal unit ~i~ and ~fals
 
 */
   virtual bool operator!=(const TemporalUnit<Alpha>& i) const{
-	  return TemporalUnit<Alpha>::operator!=(i);
+     return TemporalUnit<Alpha>::operator!=(i);
   }
   virtual bool operator!=( const ConstTemporalUnit<Alpha>& i ) const
   {
@@ -2150,7 +2150,7 @@ Redefinition of the copy operator ~=~.
 
 */
   virtual bool operator==(const TemporalUnit<CcReal>& i) const{
-	  return TemporalUnit<CcReal>::operator==(i);
+     return TemporalUnit<CcReal>::operator==(i);
   }
   virtual bool operator==( const UReal& i ) const
   {
@@ -2630,7 +2630,7 @@ class UPoint : public SpatialTemporalUnit<Point, 3>
 
 */
   virtual TemporalUnit<Point>& operator=(const TemporalUnit<Point>& i){
-	  return TemporalUnit<Point>::operator=(i);
+     return TemporalUnit<Point>::operator=(i);
   }
 
   virtual UPoint& operator=( const UPoint& i )
@@ -4405,17 +4405,17 @@ class MappingNoFlob {
 template<class M, class U>
 std::ostream& operator<<(std::ostream& o, const MappingNoFlob<M, U>& m) {
   if (!m.IsDefined()) {
-    o << "MPointNoFlob, undefined" << endl;
+    o << "MPointNoFlob, undefined" << std::endl;
     return o;
   }
   o << "MPointNoFlob, defined, has " << m.GetNoComponents() << " components:"
-    << endl;
+    << std::endl;
   U unit(true);
   for (int i = 0; i < m.GetNoComponents(); i++) {
     m.Get(i, unit);
-    o << unit << endl;
+    o << unit << std::endl;
   }
-  o << endl;
+  o << std::endl;
   return o;
 }
 
@@ -4863,7 +4863,7 @@ Redefinition of the copy operator ~=~.
      return TemporalUnit<Point>::operator==(src);
   }
   virtual bool operator==(const UPoint& src) const{
-	  return UPoint::operator==(src);
+     return UPoint::operator==(src);
   }
 
   virtual bool operator==(const CUPoint& src) const {
@@ -4881,10 +4881,10 @@ Returns ~true~ if both units are undefined, or if both are defined and this temp
 
 */
   virtual bool operator!=(const TemporalUnit<Point>& src) const{
-	  return TemporalUnit<Point>::operator!=(src);
+    return TemporalUnit<Point>::operator!=(src);
   }
   virtual bool operator!=(const UPoint& src) const {
-	  return UPoint::operator!=(src);
+    return UPoint::operator!=(src);
   }
   virtual bool operator!=(const CUPoint& src) const {
     return !(*this == src);
@@ -7486,14 +7486,14 @@ void Mapping<Unit, Alpha>::Get( const int i, Unit &unit ) const
   assert(i<units.Size());
   bool ok = units.Get( i, unit );
   if(!ok){
-    cout << "Problem in getting data from " << units << std::endl;
+    std::cout << "Problem in getting data from " << units << std::endl;
     assert(ok);
   }
   if ( !unit.IsValid() )
   {
-    cout << __FILE__ << "," << __LINE__ << ":" << __PRETTY_FUNCTION__
+    std::cout << __FILE__ << "," << __LINE__ << ":" << __PRETTY_FUNCTION__
       << " Get(" << i << ", Unit): Unit is invalid:";
-    unit.Print(cout); cout << std::endl;
+    unit.Print(std::cout); std::cout << std::endl;
     assert( unit.IsValid());
   }
 }
@@ -7504,9 +7504,9 @@ void Mapping<Unit, Alpha>::Add( const Unit& unit )
   assert( IsDefined() );
   if ( !unit.IsDefined() || !unit.IsValid() )
   {
-    cout << __FILE__ << "," << __LINE__ << ":" << __PRETTY_FUNCTION__
+    std::cout << __FILE__ << "," << __LINE__ << ":" << __PRETTY_FUNCTION__
       << " Add(Unit): Unit is undefined or invalid:";
-    unit.Print(cout); cout << std::endl;
+    unit.Print(std::cout); std::cout << std::endl;
     assert( false );
   }
   units.Append( unit );
@@ -7520,9 +7520,9 @@ void Mapping<Unit, Alpha>::MergeAdd( const Unit& unit )
   int size = units.Size();
   if ( !unit.IsDefined() || !unit.IsValid() )
   {
-    cout << __FILE__ << "," << __LINE__ << ":" << __PRETTY_FUNCTION__
+    std::cout << __FILE__ << "," << __LINE__ << ":" << __PRETTY_FUNCTION__
       << " MergeAdd(Unit): Unit is undefined or invalid:";
-    unit.Print(cout); cout << std::endl;
+    unit.Print(std::cout); std::cout << std::endl;
     assert( false );
   }
 
@@ -7535,9 +7535,10 @@ void Mapping<Unit, Alpha>::MergeAdd( const Unit& unit )
           lastunit.timeInterval.rc = unit.timeInterval.rc;
           if ( !lastunit.IsValid() )
           {
-            cout << __FILE__ << "," << __LINE__ << ":" << __PRETTY_FUNCTION__
+            std::cout << __FILE__ << "," << __LINE__ << ":"
+               << __PRETTY_FUNCTION__
               << "\nMapping::MergeAdd(): lastunit is invalid:";
-            lastunit.Print(cout); cout << std::endl;
+            lastunit.Print(std::cout); std::cout << std::endl;
             assert( false );
           }
           units.Put(size - 1, lastunit);
@@ -10090,7 +10091,7 @@ static double DistanceAvg(const M& mp1, const M& mp2,
   datetime::DateTime durationTest(0, 0, datetime::durationtype);
   mp1.GetDuration(durationTest);
   if (!(durationTest == duration)) {
-    cout << duration << " != " << durationTest << endl;
+    std::cout << duration << " != " << durationTest << std::endl;
   }
   assert(durationTest == duration);
   // if (!(durationTest == duration)) {
@@ -10099,7 +10100,7 @@ static double DistanceAvg(const M& mp1, const M& mp2,
   // }
   mp2.GetDuration(durationTest);
   if (!(durationTest == duration)) {
-    cout << duration << " # " << durationTest << endl;
+    std::cout << duration << " # " << durationTest << std::endl;
   }
   assert(durationTest == duration);
   // if (!(durationTest == duration)) {

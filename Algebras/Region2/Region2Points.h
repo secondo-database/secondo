@@ -56,28 +56,28 @@ public:
 The ~x~ coordinate.
 
 */
-	int x;
+        int x;
 /*
 The ~y~ coordinate.
 
 */
-	int y;
+        int y;
 /*
 The ~isBasic~ attribute.
 
 */
-	bool isBasic;
+        bool isBasic;
 /*
 The ~defined~ attribute.
 
 */
-	bool defined;
+        bool defined;
 /*
 The error values.
 
 */
-	int xErr;
-	int yErr;
+        int xErr;
+        int yErr;
 
 /*
 1.1.1 Constructors and Destructor
@@ -85,13 +85,13 @@ The error values.
 This constructor should not be used:
 
 */
-	inline Reg2GridPoint();
+        inline Reg2GridPoint();
 /*
 Creates a point receiving the two coordinates ~x~ and ~y~ 
 and optionally the flag ~isBasic~.
 
 */
-	inline Reg2GridPoint(int x, int y, bool isBasic = false);
+        inline Reg2GridPoint(int x, int y, bool isBasic = false);
         
 /*
 1.1.1 Member Functions
@@ -99,7 +99,7 @@ and optionally the flag ~isBasic~.
 Returns the bounding box of the point.
 
 */
-	inline const Rectangle<2> BoundingBox(const Geoid* geoid = 0) const
+        inline const Rectangle<2> BoundingBox(const Geoid* geoid = 0) const
            override;
         
 /*
@@ -111,7 +111,7 @@ Returns the value of ~defined~.
 Sets the value of ~defined~.
 
 */
-	inline void SetDefined(bool defined) override {
+        inline void SetDefined(bool defined) override {
             this->defined = defined;
         }
 
@@ -120,19 +120,19 @@ Operators redefinition and comparison operators.
 
 */
         inline Reg2GridPoint& operator=(const Reg2GridPoint& other);
-	inline bool Equal(const Reg2GridPoint& other) const;
+        inline bool Equal(const Reg2GridPoint& other) const;
         bool Equal(const Attribute* rhs) const override{
           return Equal( *( (Reg2GridPoint*) rhs));
         }
-	inline int Compare(const Reg2GridPoint& other) const;
-	inline bool operator==(const Reg2GridPoint& other) const;
-	inline bool operator!=(const Reg2GridPoint& other) const;
-	inline bool operator>(const Reg2GridPoint& other) const;
-	inline bool operator>=(const Reg2GridPoint& other) const;
-	inline bool operator<(const Reg2GridPoint& other) const;
-	inline bool operator<=(const Reg2GridPoint& other) const;
-	inline Reg2ProvisionalPoint transformToProvisional();
-	
+        inline int Compare(const Reg2GridPoint& other) const;
+        inline bool operator==(const Reg2GridPoint& other) const;
+        inline bool operator!=(const Reg2GridPoint& other) const;
+        inline bool operator>(const Reg2GridPoint& other) const;
+        inline bool operator>=(const Reg2GridPoint& other) const;
+        inline bool operator<(const Reg2GridPoint& other) const;
+        inline bool operator<=(const Reg2GridPoint& other) const;
+        inline Reg2ProvisionalPoint transformToProvisional();
+        
 /*
 Functions for use as StandardSpatialAttribute.
 
@@ -146,54 +146,54 @@ Functions for use as StandardSpatialAttribute.
         inline bool IsEmpty()const override{ return !IsDefined(); }
 
         inline size_t Sizeof() const override
-	{
-	  return sizeof( *this );
-	}
+        {
+          return sizeof( *this );
+        }
 
-	inline size_t HashValue() const override
-	{
-	  if( !IsDefined() )
-	    return 0;
-	  return (size_t)(5*x + y);
-	}
+        inline size_t HashValue() const override
+        {
+          if( !IsDefined() )
+            return 0;
+          return (size_t)(5*x + y);
+        }
 
-	inline void CopyFrom( const Attribute* right ) override
-	{
-	  const Reg2GridPoint* p = (const Reg2GridPoint*)right;
-	  SetDefined( p->IsDefined() );
-	  if( IsDefined() )
-	  {
-	    x = p->x;
-	    y = p->y;
-	    defined = true;
-	  }
-	}
+        inline void CopyFrom( const Attribute* right ) override
+        {
+          const Reg2GridPoint* p = (const Reg2GridPoint*)right;
+          SetDefined( p->IsDefined() );
+          if( IsDefined() )
+          {
+            x = p->x;
+            y = p->y;
+            defined = true;
+          }
+        }
 
-	inline int Compare( const Attribute *arg ) const override
-	{ // CD: Implementation following guidelines from Attribute.h:
-	  const Reg2GridPoint* p = (const Reg2GridPoint*)arg;
-	  if( !IsDefined() && !p->IsDefined() )
-	    return 0;
-	  if( !IsDefined() )
-	    return -1;
-	  if( !p->IsDefined() )
-	    return 1;
-	  if( *this > *p )
-	    return 1;
-	  if( *this < *p )
-	    return -1;
-	  return 0;
-	}
+        inline int Compare( const Attribute *arg ) const override
+        { // CD: Implementation following guidelines from Attribute.h:
+          const Reg2GridPoint* p = (const Reg2GridPoint*)arg;
+          if( !IsDefined() && !p->IsDefined() )
+            return 0;
+          if( !IsDefined() )
+            return -1;
+          if( !p->IsDefined() )
+            return 1;
+          if( *this > *p )
+            return 1;
+          if( *this < *p )
+            return -1;
+          return 0;
+        }
 
-	inline bool Adjacent( const Attribute *arg ) const override
-	{
-	  return false;
-	}
+        inline bool Adjacent( const Attribute *arg ) const override
+        {
+          return false;
+        }
 
-	inline Reg2GridPoint* Clone() const override
-	{
-	  return new Reg2GridPoint( *this );
-	}
+        inline Reg2GridPoint* Clone() const override
+        {
+          return new Reg2GridPoint( *this );
+        }
 };
 
 /*
@@ -212,18 +212,18 @@ public:
 The ~x~ coordinate.
 
 */
-	double x;
+        double x;
 /*
 The ~y~ coordinate.
 
 */
-	double y;
+        double y;
 /*
 The error values.
 
 */
-	double xErr;
-	double yErr;
+        double xErr;
+        double yErr;
 
 /*
 1.1.1 Constructor and Destructor
@@ -232,8 +232,8 @@ This constructor receives the two coordinates ~x~ and ~y~ and
 an error value ~xErr~ and ~yErr~ for each coordinate.
 
 */
-	inline Reg2ProvisionalPoint(double x, double y, 
-				    double xErr, double yErr);
+        inline Reg2ProvisionalPoint(double x, double y, 
+                                    double xErr, double yErr);
 
 /*
 The destructor.
@@ -247,7 +247,7 @@ The destructor.
 Redefinition of operator ~==~
 
 */
-	inline bool operator==(const Reg2ProvisionalPoint& other) const;
+        inline bool operator==(const Reg2ProvisionalPoint& other) const;
 
 };
 
@@ -269,17 +269,17 @@ public:
 The ~x~ coordinate.
 
 */
-	mpq_class x;
+        mpq_class x;
 /*
 The ~y~ coordinate.
 
 */
-	mpq_class y;
+        mpq_class y;
 /*
 The ~defined~ attribute.
 
 */
-	bool defined;
+        bool defined;
 
 /*
 1.1.1 Constructors and Destructor
@@ -287,7 +287,7 @@ The ~defined~ attribute.
 This constructor should not be used:
 
 */
-	inline Reg2PrecisePoint();
+        inline Reg2PrecisePoint();
 /*
 There are two ways of constructing a point:
 
@@ -305,7 +305,7 @@ creates a point that is a copy of ~pp~ resp. ~p~.
 
 */
         inline Reg2PrecisePoint(const Reg2PrecisePoint& pp);
-	inline Reg2PrecisePoint(const Point& p);
+        inline Reg2PrecisePoint(const Point& p);
 /*
 The destructor.
 
@@ -318,38 +318,38 @@ The destructor.
 Sets the value of the point object.
 
 */
-	inline void Set(mpq_class x1, mpq_class y1);
+        inline void Set(mpq_class x1, mpq_class y1);
         
 /*
 Returns the value of ~defined~.
 
 */
-	inline bool IsDefined() const { return defined; }
+        inline bool IsDefined() const { return defined; }
 /*
 Sets the value of ~defined~.
 
 */
-	inline void SetDefined(bool defined) { this->defined = defined; }
+        inline void SetDefined(bool defined) { this->defined = defined; }
 
 /*
 Operators redefinition and comparison operators.
 
 */
         inline Reg2PrecisePoint& operator=(const Reg2PrecisePoint& other);
-	inline bool Equal(const Reg2PrecisePoint& other) const;
-	inline int Compare(const Reg2PrecisePoint& other) const;
-	inline bool operator==(const Reg2PrecisePoint& other) const;
-	inline bool operator!=(const Reg2PrecisePoint& other) const;
-	inline bool operator>(const Reg2PrecisePoint& other) const;
-	inline bool operator>=(const Reg2PrecisePoint& other) const;
-	inline bool operator<(const Reg2PrecisePoint& other) const;
-	inline bool operator<=(const Reg2PrecisePoint& other) const;
-	
+        inline bool Equal(const Reg2PrecisePoint& other) const;
+        inline int Compare(const Reg2PrecisePoint& other) const;
+        inline bool operator==(const Reg2PrecisePoint& other) const;
+        inline bool operator!=(const Reg2PrecisePoint& other) const;
+        inline bool operator>(const Reg2PrecisePoint& other) const;
+        inline bool operator>=(const Reg2PrecisePoint& other) const;
+        inline bool operator<(const Reg2PrecisePoint& other) const;
+        inline bool operator<=(const Reg2PrecisePoint& other) const;
+        
 /*
 Translates the point by adding the values ~x~ and ~y~ (which can be negative).
 
 */
-	inline void Translate( const double& dx, const double& dy );
+        inline void Translate( const double& dx, const double& dy );
 /*
 Scales the point given a factor ~xf~ and a factor ~yf~ for each coordinate seperately.
 
@@ -360,13 +360,13 @@ Scales the point given a factor ~xf~ and a factor ~yf~ for each coordinate seper
 Returns the bounding box of the point.
 
 */
-	inline const Rectangle<2> BoundingBox(const Geoid* geoid = 0) const;
+        inline const Rectangle<2> BoundingBox(const Geoid* geoid = 0) const;
 /*
 Computes whether the point is inside ~r~.
 
 */
-	inline bool Inside(const Rectangle<2>& r) const;
-	
+        inline bool Inside(const Rectangle<2>& r) const;
+        
 };
 
 /*
@@ -376,27 +376,27 @@ Computes whether the point is inside ~r~.
 
 */
 inline Reg2GridPoint::Reg2GridPoint() :
-		x (0),
-		y (0),
-		isBasic (false),
-		defined (false),
-		xErr (1),
-		yErr (1) {}
+                x (0),
+                y (0),
+                isBasic (false),
+                defined (false),
+                xErr (1),
+                yErr (1) {}
 
 inline Reg2GridPoint::Reg2GridPoint(int x, int y, bool isBasic) :
-		x (x),
-		y (y),
-		isBasic (isBasic),
-		defined (true),
-		xErr (isBasic ? 0 : 1),
-		yErr (isBasic ? 0 : 1) {}
+                x (x),
+                y (y),
+                isBasic (isBasic),
+                defined (true),
+                xErr (isBasic ? 0 : 1),
+                yErr (isBasic ? 0 : 1) {}
 
 inline Reg2GridPoint& Reg2GridPoint::operator=(const Reg2GridPoint& other) {
-	defined = other.defined;
-	x = other.x;
-	y = other.y;
-	isBasic = other.isBasic;
-	return *this;
+        defined = other.defined;
+        x = other.x;
+        y = other.y;
+        isBasic = other.isBasic;
+        return *this;
 }
 
 inline const Rectangle<2> Reg2GridPoint::BoundingBox
@@ -416,70 +416,70 @@ inline double Reg2GridPoint::Distance
   assert( r.IsDefined() );
   assert( !geoid || geoid->IsDefined() );
   if(geoid){
-    cout << __PRETTY_FUNCTION__ << ": Spherical geometry not implemented!"
-         << endl; // TODO: implement spherical gemetry case
+    std::cout << __PRETTY_FUNCTION__ << ": Spherical geometry not implemented!"
+         << std::endl; // TODO: implement spherical gemetry case
     assert(false);
   }
   return sqrt(2);
 }
 
 inline Reg2ProvisionalPoint Reg2GridPoint::transformToProvisional() {
-	Reg2ProvisionalPoint result((double)x,
-			(double)y, (isBasic? 0.0 : 1.0),
-			(isBasic? 0.0 : 1.0));
-	return result;
+        Reg2ProvisionalPoint result((double)x,
+                        (double)y, (isBasic? 0.0 : 1.0),
+                        (isBasic? 0.0 : 1.0));
+        return result;
 }
 
 inline bool Reg2GridPoint::Equal(const Reg2GridPoint& other) const 
 {
 
   return ( x == other.x && y == other.y 
-	  && isBasic == other.isBasic && defined == other.defined );
+          && isBasic == other.isBasic && defined == other.defined );
 }
 
 inline int Reg2GridPoint::Compare(const Reg2GridPoint& other) const 
 {
-	if (!defined)
-	{  
-	  if (other.defined) return -1;
-	  else return 0;
-	}
-	else
-	{
-	  if (!other.defined) return 1;
-	  else
-	  {
-	    if ( x < other.x ) return -1;
-	    if ( x > other.x ) return 1;
-	    if ( y < other.y ) return -1;
-	    if (y > other.y ) return 1;
-	    return 0;
-	  }
-	}
+        if (!defined)
+        {  
+          if (other.defined) return -1;
+          else return 0;
+        }
+        else
+        {
+          if (!other.defined) return 1;
+          else
+          {
+            if ( x < other.x ) return -1;
+            if ( x > other.x ) return 1;
+            if ( y < other.y ) return -1;
+            if (y > other.y ) return 1;
+            return 0;
+          }
+        }
 }
 
 inline bool Reg2GridPoint::operator==(const Reg2GridPoint& other) const {
-	return (Compare(other) == 0);
+        return (Compare(other) == 0);
 }
 
 inline bool Reg2GridPoint::operator!=(const Reg2GridPoint& other) const {
-	return (Compare(other) != 0);
+        return (Compare(other) != 0);
 }
 
 inline bool Reg2GridPoint::operator>(const Reg2GridPoint& other) const {
-	return (Compare(other) > 0);
+        return (Compare(other) > 0);
 }
 
 inline bool Reg2GridPoint::operator>=(const Reg2GridPoint& other) const {
-	return (Compare(other) >= 0);
+        return (Compare(other) >= 0);
 }
 
 inline bool Reg2GridPoint::operator<(const Reg2GridPoint& other) const {
-	return (Compare(other) < 0);
+        return (Compare(other) < 0);
 }
 
 inline bool Reg2GridPoint::operator<=(const Reg2GridPoint& other) const {
-	return (Compare(other) <= 0);
+        return (Compare(other) <= 0);
 }
 
 /*
@@ -487,15 +487,15 @@ inline bool Reg2GridPoint::operator<=(const Reg2GridPoint& other) const {
 
 */
 inline Reg2ProvisionalPoint::Reg2ProvisionalPoint(double x,
-		double y, double xErr, double yErr) :
-		x (x),
-		y (y),
-		xErr (xErr),
-		yErr (yErr) {}
+                double y, double xErr, double yErr) :
+                x (x),
+                y (y),
+                xErr (xErr),
+                yErr (yErr) {}
 
 inline bool Reg2ProvisionalPoint::operator==(
-	  const Reg2ProvisionalPoint& other) const {
-	return (x == other.x && y == other.y);
+          const Reg2ProvisionalPoint& other) const {
+        return (x == other.x && y == other.y);
 }
 
 /*
@@ -503,14 +503,14 @@ inline bool Reg2ProvisionalPoint::operator==(
 
 */
 inline Reg2PrecisePoint::Reg2PrecisePoint() :
-	x (0),
-	y (0),
-	defined (false) {}
+        x (0),
+        y (0),
+        defined (false) {}
 
 inline Reg2PrecisePoint::Reg2PrecisePoint(const Reg2PrecisePoint& pp) :
-	x (pp.x),
-	y (pp.y),
-	defined (true) {}
+        x (pp.x),
+        y (pp.y),
+        defined (true) {}
 
 inline Reg2PrecisePoint::Reg2PrecisePoint(const Point& p) 
 {
@@ -521,120 +521,120 @@ inline Reg2PrecisePoint::Reg2PrecisePoint(const Point& p)
 }
 
 inline Reg2PrecisePoint::Reg2PrecisePoint(mpq_class x, mpq_class y) :
-	x (x),
-	y (y),
-	defined (true) {}
+        x (x),
+        y (y),
+        defined (true) {}
 
 inline Reg2PrecisePoint::Reg2PrecisePoint(mpq_class x1, int x2,
-		mpq_class y1, int y2, int scale) :
-	x (x1 + x2),
-	y (y1 + y2),
-	defined (true) 
-	{
-	  mpz_t sFactor;
-	  mpz_init(sFactor);
-	  mpq_class sFac(0);
-	  uint sfactor;
+                mpq_class y1, int y2, int scale) :
+        x (x1 + x2),
+        y (y1 + y2),
+        defined (true) 
+        {
+          mpz_t sFactor;
+          mpz_init(sFactor);
+          mpq_class sFac(0);
+          uint sfactor;
     
-	  if (scale > 0)
-	  {
-	    sfactor = scale;
-	    mpz_ui_pow_ui(sFactor, 10, sfactor);
-	    sFac = mpq_class(mpz_class(1), mpz_class(sFactor));
-	  }
-	  else
-	  {
-	    sfactor = -scale;
-	    mpz_ui_pow_ui(sFactor, 10, sfactor);
-	    sFac = mpq_class(mpz_class(sFactor), mpz_class(1));
-	  }
-	  sFac.canonicalize();
-	  mpz_clear(sFactor);
+          if (scale > 0)
+          {
+            sfactor = scale;
+            mpz_ui_pow_ui(sFactor, 10, sfactor);
+            sFac = mpq_class(mpz_class(1), mpz_class(sFactor));
+          }
+          else
+          {
+            sfactor = -scale;
+            mpz_ui_pow_ui(sFactor, 10, sfactor);
+            sFac = mpq_class(mpz_class(sFactor), mpz_class(1));
+          }
+          sFac.canonicalize();
+          mpz_clear(sFactor);
     
-	  x = x * sFac;
-	  x.canonicalize();
-	  y = y * sFac;
-	  y.canonicalize();	    
-	}
+          x = x * sFac;
+          x.canonicalize();
+          y = y * sFac;
+          y.canonicalize();         
+        }
 
 inline void Reg2PrecisePoint::Set(mpq_class x1, mpq_class y1) {
-	defined = true;
-	x = x1;
-	y = y1;
+        defined = true;
+        x = x1;
+        y = y1;
 }
 
 inline Reg2PrecisePoint& Reg2PrecisePoint::operator=(
-	  const Reg2PrecisePoint& other) {
-	defined = other.defined;
-	x = other.x;
-	y = other.y;
-	return *this;
+          const Reg2PrecisePoint& other) {
+        defined = other.defined;
+        x = other.x;
+        y = other.y;
+        return *this;
 }
 
 inline bool Reg2PrecisePoint::Equal(const Reg2PrecisePoint& other) const {
-	if (!defined)
-	{  
-	  if (other.defined) return -1;
-	  else return 0;
-	}
-	else
-	{
-	  if (!other.defined) return 1;
-	  else
-	  {
-	    if (mpq_equal(x.get_mpq_t(), other.x.get_mpq_t())==0) 
-		return false;
-	    return (mpq_equal(y.get_mpq_t(), other.y.get_mpq_t())!=0);
-	  }
-	}
+        if (!defined)
+        {  
+          if (other.defined) return -1;
+          else return 0;
+        }
+        else
+        {
+          if (!other.defined) return 1;
+          else
+          {
+            if (mpq_equal(x.get_mpq_t(), other.x.get_mpq_t())==0) 
+                return false;
+            return (mpq_equal(y.get_mpq_t(), other.y.get_mpq_t())!=0);
+          }
+        }
 }
-	
+        
 inline int Reg2PrecisePoint::Compare(const Reg2PrecisePoint& other) const {
-	if (!defined)
-	{  
-	  if (other.defined) return -1;
-	  else return 0;
-	}
-	else
-	{
-	  if (!other.defined) return 1;
-	  else
-	  {
-	    int j=cmp(x, other.x);
-	    if (j==0) return cmp(y, other.y);
-	    return j;
-	  }
-	}
+        if (!defined)
+        {  
+          if (other.defined) return -1;
+          else return 0;
+        }
+        else
+        {
+          if (!other.defined) return 1;
+          else
+          {
+            int j=cmp(x, other.x);
+            if (j==0) return cmp(y, other.y);
+            return j;
+          }
+        }
 }
-	
+        
 inline bool Reg2PrecisePoint::operator==(const Reg2PrecisePoint& other) const
 {
-	return (Compare(other) == 0);
+        return (Compare(other) == 0);
 }
 
 inline bool Reg2PrecisePoint::operator!=(const Reg2PrecisePoint& other) const
 {
-	return (Compare(other) != 0);
+        return (Compare(other) != 0);
 }
 
 inline bool Reg2PrecisePoint::operator>(const Reg2PrecisePoint& other) const
 {
-	return (Compare(other) > 0);
+        return (Compare(other) > 0);
 }
 
 inline bool Reg2PrecisePoint::operator>=(const Reg2PrecisePoint& other) const
 {
-	return (Compare(other) >= 0);
+        return (Compare(other) >= 0);
 }
 
 inline bool Reg2PrecisePoint::operator<(const Reg2PrecisePoint& other) const
 {
-	return (Compare(other) < 0);
+        return (Compare(other) < 0);
 }
 
 inline bool Reg2PrecisePoint::operator<=(const Reg2PrecisePoint& other) const
 {
-	return (Compare(other) <= 0);
+        return (Compare(other) <= 0);
 }
 
 inline void Reg2PrecisePoint::Translate( const double& dx, const double& dy )

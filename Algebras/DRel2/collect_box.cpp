@@ -69,8 +69,8 @@ Expect a stream of spatial objects and a boolean value.
     ListExpr drelcollect_boxTM( ListExpr args ) {
 
         #ifdef DRELDEBUG
-        cout << "drelcollect_boxTM" << endl;
-        cout << nl->ToString( args ) << endl;
+        std::cout << "drelcollect_boxTM" << std::endl;
+        std::cout << nl->ToString( args ) << std::endl;
         #endif
 
         std::string err = "stream(spatial) x bool expected ";
@@ -112,8 +112,8 @@ Computes the bounding box from a stream of spatial attributes.
         Word& local, Supplier s ) {
 
         #ifdef DRELDEBUG
-        cout << "drelcollect_boxVMT" << endl;
-        cout << args << endl;
+        std::cout << "drelcollect_boxVMT" << std::endl;
+        std::cout << args << std::endl;
         #endif
 
         Stream<StandardSpatialAttribute<dim> > stream( args[ 0 ] );

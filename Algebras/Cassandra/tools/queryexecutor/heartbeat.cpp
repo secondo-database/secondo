@@ -59,8 +59,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
     );
   
     if(! result) {
-      cout << "Unable to update heartbeat in system_state table" << endl;
-      cout << "CQL Statement: " << query << endl;
+      std::cout << "Unable to update heartbeat in system_state table"
+         << std::endl;
+      std::cout << "CQL Statement: " << query << std::endl;
       return false;
     }
 

@@ -206,14 +206,14 @@ class OperatorSpec{
           if(_remark.length()==0){
              ss << "\"Comment\"";
           }
-          ss << ")" << endl;
+          ss << ")" << std::endl;
           ss << "(";
-          ss << "<text>" << _signature << "</text--->" << endl;
-          ss << "<text>" << _syntax  << "</text--->" << endl;
-          ss << "<text>" << _meaning << "</text--->" << endl;
-          ss << "<text>" << _example << "</text--->" << endl;
+          ss << "<text>" << _signature << "</text--->" << std::endl;
+          ss << "<text>" << _syntax  << "</text--->" << std::endl;
+          ss << "<text>" << _meaning << "</text--->" << std::endl;
+          ss << "<text>" << _example << "</text--->" << std::endl;
           if(_remark.length() == 0){
-             ss << "<text>" << _remark << "</text--->" << endl;
+             ss << "<text>" << _remark << "</text--->" << std::endl;
           }
           ss << "))";
           return ss.str();

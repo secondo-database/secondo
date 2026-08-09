@@ -51,7 +51,7 @@ int be_mquerySFVM(Word *args, Word &result, int message, Word &local,
     if (be_control && be_control->isMaster()) {
       val = be_control->mquery(query->toText(), tab->toText());
     } else {
-      cout << noWorker << endl;
+      std::cout << noWorker << std::endl;
     }
 
     ((CcBool *)result.addr)->Set(true, val);

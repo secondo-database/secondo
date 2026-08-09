@@ -30,8 +30,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 namespace KVS {
 
-std::ostream KOUT(cout.rdbuf());
-std::ostream ROUT(cout.rdbuf());
+std::ostream KOUT(std::cout.rdbuf());
+std::ostream ROUT(std::cout.rdbuf());
 
 std::string DebugTime() {
   time_t now = time(NULL);

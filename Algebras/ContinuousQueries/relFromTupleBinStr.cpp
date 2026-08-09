@@ -68,8 +68,8 @@ namespace continuousqueries {
 ListExpr relFromTupleBinStr_TM(ListExpr args) {
     // the list is coded as ( (<type> <query part>) (<type> <query part>) ...)
 
-    std::cout << "relFromTupleBinStr: TypeMapping" << endl;
-    std::cout << "Argument: " << nl->ToString(args) << endl;
+    std::cout << "relFromTupleBinStr: TypeMapping" << std::endl;
+    std::cout << "Argument: " << nl->ToString(args) << std::endl;
 
     // Check for text x text -> rel
     if (!nl->HasLength(args, 2))
@@ -118,7 +118,7 @@ ListExpr relFromTupleBinStr_TM(ListExpr args) {
 int relFromTupleBinStr_VM(Word* args, Word& result, int message,
               Word& local, Supplier s) {
 
-    std::cout << "relFromTupleBinStr: ValueMapping" << endl;
+    std::cout << "relFromTupleBinStr: ValueMapping" << std::endl;
 
     FText* fttupledescr  = static_cast<FText*>(args[0].addr);  
     FText* fttuplebinstr = static_cast<FText*>(args[1].addr);  

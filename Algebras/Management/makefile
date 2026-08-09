@@ -49,7 +49,7 @@ endif
 AlgebraList.cpp : AlgebraList.i
 	
 $(LIBDIR)/AlgebraList.$(OBJEXT): AlgebraList.cpp AlgebraList.i
-	$(CC) -c -o  $@ $(CCFLAGS) $<
+	$(CC) -c -o  $@ $(CCFLAGS) $< -MMD -MP -MF AlgebraList.dep
 
 .PHONY: clean
 clean:

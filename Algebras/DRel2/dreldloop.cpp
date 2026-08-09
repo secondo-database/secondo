@@ -87,8 +87,8 @@ Expect a drel, a string and an attribute.
     ListExpr drelcreatebtreeTM( ListExpr args ) {
 
         #ifdef DRELDEBUG
-        cout << "drelcreatebtreeTM" << endl;
-        cout << nl->ToString( args ) << endl;
+        std::cout << "drelcreatebtreeTM" << std::endl;
+        std::cout << nl->ToString( args ) << std::endl;
         #endif
 
         std::string err = "d[f]rel(X) x string x attr expected";
@@ -156,8 +156,8 @@ Expect a drel, a string and an attribute.
                     arg3Value ) ) );     // Attribute
 
         #ifdef DRELDEBUG
-        cout << "funType" << endl;
-        cout << nl->ToString( funType ) << endl;
+        std::cout << "funType" << std::endl;
+        std::cout << nl->ToString( funType ) << std::endl;
         #endif
 
         // result type of dloop
@@ -168,8 +168,8 @@ Expect a drel, a string and an attribute.
                 funType ) );
 
         #ifdef DRELDEBUG
-        cout << "dloopTM" << endl;
-        cout << nl->ToString( result ) << endl;
+        std::cout << "dloopTM" << std::endl;
+        std::cout << nl->ToString( result ) << std::endl;
         #endif
 
         if( !nl->HasLength( result, 3 ) ) {
@@ -194,8 +194,8 @@ Type mapping for drelbulkloadrtree. Expect a drel, a string and an attribute.
     ListExpr drelbulkloadrtreeTM( ListExpr args ) {
 
         #ifdef DRELDEBUG
-        cout << "drelbulkloadrtreeTM" << endl;
-        cout << nl->ToString( args ) << endl;
+        std::cout << "drelbulkloadrtreeTM" << std::endl;
+        std::cout << nl->ToString( args ) << std::endl;
         #endif
 
         std::string err = "dfrel(X) x string x attr expected";
@@ -302,8 +302,8 @@ Type mapping for drelbulkloadrtree. Expect a drel, a string and an attribute.
                         nl->Second( nl->Third( args )) )));
 
         #ifdef DRELDEBUG
-        cout << "funType" << endl;
-        cout << nl->ToString( funType ) << endl;
+        std::cout << "funType" << std::endl;
+        std::cout << nl->ToString( funType ) << std::endl;
         #endif
 
         // result type of dloop
@@ -314,8 +314,8 @@ Type mapping for drelbulkloadrtree. Expect a drel, a string and an attribute.
                 funType ) );
 
         #ifdef DRELDEBUG
-        cout << "dloopTM" << endl;
-        cout << nl->ToString( result ) << endl;
+        std::cout << "dloopTM" << std::endl;
+        std::cout << nl->ToString( result ) << std::endl;
         #endif
 
         if( !nl->HasLength( result, 3 ) ) {
@@ -343,8 +343,8 @@ the dloop value mapping of the Distributed2Algebra.
         Word& local, Supplier s ) {
 
         #ifdef DRELDEBUG
-        cout << "dreldloopVMT" << endl;
-        cout << args << endl;
+        std::cout << "dreldloopVMT" << std::endl;
+        std::cout << args << std::endl;
         #endif
 
         dloopVMT<T>( args, result, message, local, s );

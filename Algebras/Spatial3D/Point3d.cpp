@@ -251,14 +251,14 @@ void Point3d::set(Point3d* point)
 
 void Point3d::write(Point3d* point)
 {
-  cout << "point(";
-  cout << point->x;
-  cout << " , ";
-  cout << point->y;
-  cout << " , ";
-  cout << point->z;
-  cout << " )";
-  cout << endl;
+  std::cout << "point(";
+  std::cout << point->x;
+  std::cout << " , ";
+  std::cout << point->y;
+  std::cout << " , ";
+  std::cout << point->z;
+  std::cout << " )";
+  std::cout << std::endl;
 }
 
 double Point3d::getX() const

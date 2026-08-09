@@ -141,13 +141,13 @@ have been processed the method returns 0.
       if (traceMode)
       {
         cmsg.info()
-          << "CompareTuples:" << endl
-          << "  BOTH_B = " << BOTH_B << endl
+          << "CompareTuples:" << std::endl
+          << "  BOTH_B = " << BOTH_B << std::endl
           << "  tuple_1  = " << *t1 << " (Ref: "
-          << t1->GetNumOfRefs() << ")" << endl
+          << t1->GetNumOfRefs() << ")" << std::endl
           << "  tuple_2  = " << *t2 << " (Ref: "
-          << t2->GetNumOfRefs() << "(" << endl
-          << "  cmp(t1,t2) = " << cmp << endl;
+          << t2->GetNumOfRefs() << "(" << std::endl
+          << "  cmp(t1,t2) = " << cmp << std::endl;
         cmsg.send();
       }
       return cmp;

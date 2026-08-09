@@ -34,9 +34,9 @@ namespace raster2
     virtual void Display(ListExpr type,  ListExpr value)
     {
       std::cout << "Type : ";
-      nl->WriteListExpr(type, cout);
-      cout << endl << "Value: ";
-      nl->WriteListExpr(value, cout);
+      nl->WriteListExpr(type, std::cout);
+      std::cout << std::endl << "Value: ";
+      nl->WriteListExpr(value, std::cout);
     }
   };
 }

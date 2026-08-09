@@ -1320,8 +1320,8 @@ double RegionT<Array>::Distance( const Point& p,
   assert( !geoid || geoid->IsDefined() );
 
   if(geoid){
-    cout << __PRETTY_FUNCTION__ << ": Spherical geometry not implemented."
-         <<endl;
+    std::cout << __PRETTY_FUNCTION__ << ": Spherical geometry not implemented."
+         <<std::endl;
     assert(false); // TODO: Implement spherical geometry case.
   }
 
@@ -1355,8 +1355,8 @@ double RegionT<Array>::Distance( const Rectangle<2>& r,
   assert( r.IsDefined() );
   assert( !geoid || geoid->IsDefined() );
     if(geoid){
-    cout << __PRETTY_FUNCTION__ << ": Spherical geometry not implemented."
-         <<endl;
+    std::cout << __PRETTY_FUNCTION__ << ": Spherical geometry not implemented."
+         <<std::endl;
     assert(false); // TODO: Implement spherical geometry case.
   }
 
@@ -1492,8 +1492,8 @@ double RegionT<Array>::Distance( const PointsT<Array2>& ps,
   assert( !geoid || geoid->IsDefined() );
 
   if(geoid){
-    cout << __PRETTY_FUNCTION__ << ": Spherical geometry not implemented."
-         <<endl;
+    std::cout << __PRETTY_FUNCTION__ << ": Spherical geometry not implemented."
+         <<std::endl;
     assert(false); // TODO: Implement spherical geometry case.
   }
 
@@ -1527,8 +1527,8 @@ double RegionT<Array>::Distance( const RegionT<Array2> &r,
   assert( !geoid || geoid->IsDefined() );
 
   if(geoid){
-    cout << __PRETTY_FUNCTION__ << ": Spherical geometry not implemented."
-         <<endl;
+    std::cout << __PRETTY_FUNCTION__ << ": Spherical geometry not implemented."
+         <<std::endl;
     assert(false); // TODO: Implement spherical geometry case.
   }
 
@@ -2250,7 +2250,7 @@ void RegionT<Array>::LogicSort()
 template<template<typename T>class Array>
 std::ostream& operator<<( std::ostream& os, const RegionT<Array>& cr )
 {
-  os << "<"<<endl;
+  os << "<"<<std::endl;
   if( !cr.IsDefined() ) {
     os << " undefined ";
   } else {
@@ -2331,14 +2331,14 @@ void RegionT<Array>::CreateNewSegments(std::vector<EdgePoint>pointsOnEdge,
   if (pointsOnEdge.size()==0) return;
 /*
   for (int j=0;j<pointsOnEdge.size();j++)
-    cout<<endl<<j<<": "<<pointsOnEdge[j];
+    std::cout<<std::endl<<j<<": "<<pointsOnEdge[j];
 
 */
   sort(pointsOnEdge.begin(),pointsOnEdge.end());
 
 /*
   for (int j=0;j<pointsOnEdge.size();j++)
-    cout<<endl<<j<<": "<<pointsOnEdge[j];
+    std::cout<<std::endl<<j<<": "<<pointsOnEdge[j];
 
 */
   begin = 0;
@@ -3684,9 +3684,9 @@ bool RegionT<Array>::InsertOk( const HalfSegment& hs ) const
         if ((hs.attr.faceno!=auxhs.attr.faceno)||
             (hs.attr.cycleno!=auxhs.attr.cycleno))
         {
-          cout<<"two cycles intersect with the ";
-          cout<<"following edges:";
-          cout<<auxhs<<" :: "<<hs<<endl;
+          std::cout<<"two cycles intersect with the ";
+          std::cout<<"following edges:";
+          std::cout<<auxhs<<" :: "<<hs<<std::endl;
           return false;
         }
         else
@@ -3696,9 +3696,9 @@ bool RegionT<Array>::InsertOk( const HalfSegment& hs ) const
               (auxhs.GetRightPoint()!=hs.GetLeftPoint()) &&
               (auxhs.GetRightPoint()!=hs.GetRightPoint()))
           {
-            cout<<"two edges: " <<auxhs<<" :: "<< hs
+            std::cout<<"two edges: " <<auxhs<<" :: "<< hs
                 <<" of the same cycle intersect in middle!"
-                <<endl;
+                <<std::endl;
             return false;
           }
         }
@@ -3724,14 +3724,14 @@ bool RegionT<Array>::InsertOk( const HalfSegment& hs ) const
   {
     if  (prevcycleMeet[0] % 2 ==0)
     {
-      cout<<"hole(s) is not inside the outer cycle! "<<endl;
+      std::cout<<"hole(s) is not inside the outer cycle! "<<std::endl;
       return false;
     }
     for (int i=1; i<=prevcyclenum; i++)
     {
       if (prevcycleMeet[i] % 2 !=0)
       {
-        cout<<"one hole is inside another! "<<endl;
+        std::cout<<"one hole is inside another! "<<std::endl;
         return false;
       }
     }
@@ -3798,7 +3798,7 @@ of the same face is not clear. In the following we do this kind of check.
             }
             if  (holeNMeent % 2 !=0)
             {
-              cout<<"one hole is inside another!!! "<<endl;
+              std::cout<<"one hole is inside another!!! "<<std::endl;
               return false;
             }
           }
@@ -3924,7 +3924,7 @@ double RegionT<Array>::Distance( const LineType &l,
   assert( !l.IsEmpty() ); // subsumes IsDefined()
   assert( !geoid || geoid->IsDefined() );
   if(geoid){
-    cout << __PRETTY_FUNCTION__ << ": Spherical geometry not implemented."
+    std::cout << __PRETTY_FUNCTION__ << ": Spherical geometry not implemented."
          << std::endl;
     assert(false); // TODO: Implement spherical geometry case.
   }

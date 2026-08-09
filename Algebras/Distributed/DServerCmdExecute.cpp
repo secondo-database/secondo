@@ -77,7 +77,7 @@ void
 DServerCmdExecute::run()
 { 
 #if DS_CMD_COPY_DEBUG
-  cout << "DServerCmdExecute::run" << endl;
+  std::cout << "DServerCmdExecute::run" << std::endl;
 #endif
 
   if (!checkWorkerAvailable())
@@ -132,6 +132,6 @@ DServerCmdExecute::run()
     }
 
 #if DS_CMD_COPY_DEBUG
-  cout << "DServerCmdExecute::run DONE" << endl;
+  std::cout << "DServerCmdExecute::run DONE" << std::endl;
 #endif
 } // run()

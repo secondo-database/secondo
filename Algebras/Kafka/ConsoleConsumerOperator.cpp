@@ -60,7 +60,7 @@ namespace kafka {
         Tuple *getNext() {
             Tuple *k = stream.request();
             if (k)
-                k->Print(cout);
+                k->Print(std::cout);
             return k;
         }
 

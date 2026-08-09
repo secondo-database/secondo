@@ -76,7 +76,7 @@ namespace mregionops2 {
 void SetOperator2::Intersection() {
    
  Operate(INTERSECTION);
- cout << "INTERSECTION inside SetOperator2\n";
+ std::cout << "INTERSECTION inside SetOperator2\n";
 
 }
 
@@ -89,7 +89,7 @@ void SetOperator2::Intersection() {
 void SetOperator2::Union() {
 
  Operate(UNION);
- cout << "UNION inside SetOperator2\n";
+ std::cout << "UNION inside SetOperator2\n";
 
 }
 
@@ -102,7 +102,7 @@ void SetOperator2::Union() {
 void SetOperator2::Minus() {
 
  Operate(MINUS);
- cout << "MINUS inside SetOperator2\n";
+ std::cout << "MINUS inside SetOperator2\n";
 
 }
 
@@ -115,7 +115,7 @@ void SetOperator2::Minus() {
 void SetOperator2::Inside() {
 
  Operate(INSIDE);
- cout << "INSIDE inside SetOperator2\n";
+ std::cout << "INSIDE inside SetOperator2\n";
 
 }
 
@@ -128,7 +128,7 @@ void SetOperator2::Inside() {
 void SetOperator2::Intersect() {
 
  Operate(INTERSECT);
- cout << "INTERSECT inside SetOperator2\n";
+ std::cout << "INTERSECT inside SetOperator2\n";
 
 }
 
@@ -170,7 +170,7 @@ void SetOperator2::Operate(const SetOp op) {
     URegionEmb2 unitBRestrict;  
     SourceUnitPair2* so;
     
-    cout << "SetOperator2 inside Operate after RefinementPartition\n";
+    std::cout << "SetOperator2 inside Operate after RefinementPartition\n";
 
 //  init
     res->Clear();
@@ -180,7 +180,8 @@ void SetOperator2::Operate(const SetOp op) {
     
 //  rp = sum of time-slot from both MRegions
     for (unsigned int i = 0; i < rp.Size(); i++) {
-        cout << "SetOperator2 inside Operate timeslots = i" << i << endl;
+        std::cout << "SetOperator2 inside Operate timeslots = i" << i
+           << std::endl;
         
         // For each interval of the refinement partition...
         // aPos, bPos = position in MRegions as defined
@@ -189,7 +190,7 @@ void SetOperator2::Operate(const SetOp op) {
         // interval = interval (starttime - endtime)
 
         rp.Get(i, interval, aPos, bPos);
-        cout << "SetOperator2 inside Operate i " << i << endl;      
+        std::cout << "SetOperator2 inside Operate i " << i << std::endl;      
         // new datenfield intervalAsPeriod to store interval
         // Periods intervalAsPeriod(1);
         // intervalAsPeriod.Add(interval);
@@ -204,49 +205,49 @@ void SetOperator2::Operate(const SetOp op) {
         if (aIsEmpty || bIsEmpty) {
             if (op == INTERSECTION) {
 // Result is empty: nothing to do
-cout << "SetOperator2 inside Operate - aIsEmpty || bIsEmpty \n"; 
+std::cout << "SetOperator2 inside Operate - aIsEmpty || bIsEmpty \n"; 
  continue;
             }
             if (op == MINUS && aIsEmpty) {
                // Result is empty: nothing to do
-cout << "SetOperator2 inside Operate - MINUS && aIsEmpty \n"; 
+std::cout << "SetOperator2 inside Operate - MINUS && aIsEmpty \n"; 
                continue;
             }
         }
 
-cout << "SetOperator2 inside Operate - aPos and bPos not empty\n"; 
+std::cout << "SetOperator2 inside Operate - aPos and bPos not empty\n"; 
 
         // pair from SourceUnits inside a, b        
         so = new SourceUnitPair2(a, aPos, interval,
                                  b, bPos, op, res);
 
-cout << "SetOperator2::Operate() new SourceUnitPair2 created\n"; 
+std::cout << "SetOperator2::Operate() new SourceUnitPair2 created\n"; 
 
-cout << "SetOperator2::Operate() new SourceUnitPair2.Operate started\n"; 
+std::cout << "SetOperator2::Operate() new SourceUnitPair2.Operate started\n"; 
         // call methode "operate"
         so->Operate();
-cout << "SetOperator2::Operate() new SourceUnitPair2.Operate finished\n";
+std::cout << "SetOperator2::Operate() new SourceUnitPair2.Operate finished\n";
 
-cout << "SetOperator2::Operate() before EndBulkLoad\n";
+std::cout << "SetOperator2::Operate() before EndBulkLoad\n";
     res->EndBulkLoad(false);
-cout << "SetOperator2::Operate() after EndBulkLoad\n";
+std::cout << "SetOperator2::Operate() after EndBulkLoad\n";
 
 
 bool tmpRes = so->GetSpecialOperationsResult();
 bRes = &tmpRes;
 switch (op) {       
 case INSIDE:
-cout << "Operator 'INSIDE' --> " << *bRes << endl;
+std::cout << "Operator 'INSIDE' --> " << *bRes << std::endl;
 break;
 case INTERSECT:
-cout << "Operator 'INTERSECT' --> " << *bRes << endl;
+std::cout << "Operator 'INTERSECT' --> " << *bRes << std::endl;
 break;
 }
 
        
         // delete all objects
         delete so;
-cout << "SetOperator2::Operate() new SourceUnitPair2 deleted\n";
+std::cout << "SetOperator2::Operate() new SourceUnitPair2 deleted\n";
         
     }
              

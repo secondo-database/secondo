@@ -121,8 +121,8 @@ Expecting string|text x string x integer x relation
     ListExpr drelimportTM( ListExpr args ) {
 
         #ifdef DRELDEBUG
-        cout << "drelimportTM" << endl;
-        cout << nl->ToString( args ) << endl;
+        std::cout << "drelimportTM" << std::endl;
+        std::cout << nl->ToString( args ) << std::endl;
         #endif
 
         std::string err = "string|text x string x int x rel expected";
@@ -203,8 +203,8 @@ Reads a file and create a drel.
         Word& local, Supplier s ) {
 
         #ifdef DRELDEBUG
-        cout << "drelimportVMT" << endl;
-        cout << args  << endl;
+        std::cout << "drelimportVMT" << std::endl;
+        std::cout << args  << std::endl;
         #endif
 
         std::string filename = ( ( R* )args[ 0 ].addr )->GetValue( );
@@ -215,14 +215,20 @@ Reads a file and create a drel.
         CcBool* roundRobin = new CcBool( true, true );
 
         #ifdef DRELDEBUG
-        cout << "drelimportVMT" << endl;
-        cout << "filename:" << filename << endl;
-        cout << "name:" << ( ( CcString* )args[ 1 ].addr )->GetValue( ) << endl;
-        cout << "slots:" << ( ( CcInt* )args[ 2 ].addr )->GetValue( ) << endl;
-        cout << "Workers:"<< ((Relation*)args[ 3 ].addr)->GetNoTuples() << endl;
-        cout << "host:" << ( ( CcInt* )args[ 4 ].addr )->GetValue( ) << endl;
-        cout << "port:" << ( ( CcInt* )args[ 5 ].addr )->GetValue( ) << endl;
-        cout << "config:" << ( ( CcInt* )args[ 6 ].addr )->GetValue( ) << endl;
+        std::cout << "drelimportVMT" << std::endl;
+        std::cout << "filename:" << filename << std::endl;
+        std::cout << "name:" << ( ( CcString* )args[ 1 ].addr )->GetValue( )
+           << std::endl;
+        std::cout << "slots:" << ( ( CcInt* )args[ 2 ].addr )->GetValue( )
+           << std::endl;
+        std::cout << "Workers:"<< ((Relation*)args[ 3 ].addr)->GetNoTuples()
+           << std::endl;
+        std::cout << "host:" << ( ( CcInt* )args[ 4 ].addr )->GetValue( )
+           << std::endl;
+        std::cout << "port:" << ( ( CcInt* )args[ 5 ].addr )->GetValue( )
+           << std::endl;
+        std::cout << "config:" << ( ( CcInt* )args[ 6 ].addr )->GetValue( )
+           << std::endl;
         #endif
 
         ArgVector argVec = { stream, args[ 1 ].addr,

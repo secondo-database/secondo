@@ -93,7 +93,7 @@ RefinementPartition3::RefinementPartition3( MRegion2& m1,
    vup.clear();
 
    //REF_DEBUG("RefinedmentPartition called ");
-   cout << "RefinedmentPartition called " << endl;
+   std::cout << "RefinedmentPartition called " << std::endl;
    int no1 = m1.GetNoComponents();
    int no2 = m2.GetNoComponents();
    if(no1 + no2 == 0){ // both mappings are empty
@@ -130,7 +130,7 @@ RefinementPartition3::RefinementPartition3( MRegion2& m1,
    }
 
    // both arguments are non-empty
-   cout << "both arguments are non-empty " << endl;
+   std::cout << "both arguments are non-empty " << std::endl;
    int maxsize = (no1 + no2 + 2) * 2;
    iv.reserve(maxsize);
    vur.reserve(maxsize);
@@ -159,7 +159,7 @@ RefinementPartition3::RefinementPartition3( MRegion2& m1,
      REF_DEBUG("t2 = " << t2);
 
      // both arguments have units
-     cout << "both arguments are non-empty" << endl;
+     std::cout << "both arguments are non-empty" << std::endl;
 
      if(cmp(t1.start, t2.start) < 0) {
        REF_DEBUG("case 1: t1 starts before t2 " );
@@ -341,7 +341,7 @@ RefinementPartition3::RefinementPartition3( MRegion2& m1,
 
    // process remainder of m1
    while(pos1 < no1){
-     cout << "process remainder of m1, pos 1 < n01 " << endl;
+     std::cout << "process remainder of m1, pos 1 < n01 " << std::endl;
      AddUnits(t1, pos1, -1);
      pos1++;
      if(pos1<no1){
@@ -352,7 +352,7 @@ RefinementPartition3::RefinementPartition3( MRegion2& m1,
    }
    // process remainder of m2
    while(pos2 < no2){
-     cout << "process remainder of m2, pos2 < n02 " << endl;
+     std::cout << "process remainder of m2, pos2 < n02 " << std::endl;
      AddUnits(t2, -1, pos2);
      pos2++;
      if(pos2<no2){

@@ -84,8 +84,8 @@ Expect a boundary and an attribute with the same type as the boundary.
     ListExpr getBoundaryIndexTM( ListExpr args ) {
 
         #ifdef DRELDEBUG
-        cout << "getBoundaryIndexTM" << endl;
-        cout << nl->ToString( args ) << endl;
+        std::cout << "getBoundaryIndexTM" << std::endl;
+        std::cout << nl->ToString( args ) << std::endl;
         #endif
 
         std::string err = "vector(t) x attr expected";
@@ -132,8 +132,8 @@ If its outside of boundary, then there will be an error message.
         Word& local, Supplier s ) {
 
         #ifdef DRELDEBUG
-        cout << "getBoundaryIndexVM" << endl;
-        cout << args << endl;
+        std::cout << "getBoundaryIndexVM" << std::endl;
+        std::cout << args << std::endl;
         #endif
 
         collection::Collection* vector = 

@@ -601,7 +601,7 @@ ItSpatialJoin::State<dimA, dimB, project>::~State()
   m_streamA.close();
   m_streamB.close();
 
-  cout << "iterative spatial join finished with " << m_iterations
+  std::cout << "iterative spatial join finished with " << m_iterations
        << " iterations\n";
 }
 

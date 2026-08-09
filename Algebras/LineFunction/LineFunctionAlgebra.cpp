@@ -802,7 +802,7 @@ double HeightDifference(LReal heightfunction)
     if(!heightfunction.IsDefined()){
         return heightDiff;
     }
-    heightfunction.Print(cout);
+    heightfunction.Print(std::cout);
 //    cout << heightfunction.GetNoComponents() << "\n";
     for (int i = 0; i < heightfunction.GetNoComponents(); i++) {
         LUReal unit;

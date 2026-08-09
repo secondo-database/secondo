@@ -914,7 +914,7 @@ bool Face::Check() {
     }
 
     if (!ret) {
-        DEBUG(2, "Invalid Region:" <<  endl << this->ToString());
+        DEBUG(2, "Invalid Region:" <<  std::endl << this->ToString());
         assert(false);
     }
     

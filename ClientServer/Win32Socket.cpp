@@ -62,8 +62,8 @@ public:
     WSADATA wsa;
     initialized = (WSAStartup(MAKEWORD(2, 1), &wsa) == 0);
     if (!initialized) {
-      cerr << "Failed to initialize windows sockets: " << WSAGetLastError()
-           << endl;
+      std::cerr << "Failed to initialize windows sockets: " << WSAGetLastError()
+           << std::endl;
     }
     watchDogMutex = CreateMutex(NULL, TRUE, NULL);
   }

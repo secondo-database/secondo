@@ -111,8 +111,8 @@ RList MFaces::ToListExpr(Interval iv, double start, double end, int half) {
                 if (half == 1)
                     uregions.append(faces[i].divide(0, 0.5).ToListExpr());
                 else if (half == 2) {
-                    cerr << "Before: " << faces[i].ToString() << "\n";
-                    cerr << "Now:    " << faces[i].divide(0.5,1).ToString()
+                    std::cerr << "Before: " << faces[i].ToString() << "\n";
+                    std::cerr << "Now:    " << faces[i].divide(0.5,1).ToString()
                          << "\n";
                     uregions.append(faces[i].divide(0.5, 1).ToListExpr());
                 }
@@ -143,7 +143,7 @@ RList MFaces::ToMListExpr(Interval iv) {
     // one of the contained MFace-objects of this MFaces-object needs it.
     bool needStartRegion = false, needEndRegion = false;
     for (unsigned int i = 0; i < faces.size(); i++) {
-        cerr << "FC: " << faces[i].ToString() << "\n";
+        std::cerr << "FC: " << faces[i].ToString() << "\n";
         needStartRegion = needStartRegion || faces[i].needStartRegion;
         needEndRegion = needEndRegion || faces[i].needEndRegion;
     }

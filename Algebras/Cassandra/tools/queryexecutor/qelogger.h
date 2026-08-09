@@ -36,19 +36,23 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #define LOG_DEBUG(M)   do { Logger::instance->lock(); \
        Logger::instance->debug() \
-       << "[Debug] " << M << endl; Logger::instance->unlock(); } while (false)
+       << "[Debug] " << M
+          << std::endl; Logger::instance->unlock(); } while (false)
           
 #define LOG_INFO(M)    do { Logger::instance->lock(); \
        Logger::instance->info()  \
-       << "[Info] "  << M << endl; Logger::instance->unlock(); } while (false)
+       << "[Info] "  << M
+          << std::endl; Logger::instance->unlock(); } while (false)
           
 #define LOG_WARN(M)    do { Logger::instance->lock(); \
        Logger::instance->warn()  \
-       << "[Warn] "  << M << endl; Logger::instance->unlock(); } while (false)
+       << "[Warn] "  << M
+          << std::endl; Logger::instance->unlock(); } while (false)
           
 #define LOG_ERROR(M)   do { Logger::instance->lock(); \
        Logger::instance->error() \
-       << "[Error] " << M << endl; Logger::instance->unlock(); } while (false)
+       << "[Error] " << M
+          << std::endl; Logger::instance->unlock(); } while (false)
 
 class Logger {
    
@@ -95,11 +99,11 @@ public:
    }
    
    std::ostream& warn() {
-      return cout;
+      return std::cout;
    }
    
    std::ostream& error() {
-      return cout;
+      return std::cout;
    }
    
    static Logger *instance;

@@ -638,7 +638,7 @@ BTreeNode<KEYTYPE,VALUETYPE>::~BTreeNode()
     delete entries[i];
   }
   if (dbgPrintNodeLoading) {
-    cout << "Removed node " << myNodeId << endl;
+    std::cout << "Removed node " << myNodeId << std::endl;
   }
 }
 
@@ -929,7 +929,7 @@ void BTreeNode<KEYTYPE,VALUETYPE>::Read(SmiRecordFile *file,
   assert(RecordSelected);
   ReadRecord(record);
   if (dbgPrintNodeLoading) {
-    cout << "Loaded node " << myNodeId << endl;
+    std::cout << "Loaded node " << myNodeId << std::endl;
   }
 }
 

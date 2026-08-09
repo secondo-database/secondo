@@ -155,7 +155,7 @@ int TsDTWOp::tsDDTWValueMap(Word *args, Word &result, int message,
         distance += derivativeDistance(ts1_data[point._x], ts2_data[point._y]);
     }
 
-    cout << "Distance: " << to_string(distance) << endl;
+    std::cout << "Distance: " << to_string(distance) << std::endl;
 
     result = qp->ResultStorage(s);
 
@@ -279,7 +279,7 @@ int TsDTWOp::tsDTWValueMap(Word *args, Word &result, int message,
         distance += euklidianDistance(ts1_data[point._x],ts2_data[point._y]);
     }
 
-    cout << "Distance: " << to_string(distance) << endl;
+    std::cout << "Distance: " << to_string(distance) << std::endl;
 
     return 0;
 }
@@ -433,7 +433,7 @@ int TsDTWOp::tsDTWSCValueMap(Word *args, Word &result, int message,
         distance += euklidianDistance(ts1_data[point._x],ts2_data[point._y]);
     }
 
-    cout << "Distance: " << to_string(distance) << endl;
+    std::cout << "Distance: " << to_string(distance) << std::endl;
 
     return 0;
 }

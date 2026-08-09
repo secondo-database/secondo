@@ -305,7 +305,7 @@ ListExpr OPCollectPc2::collectPc2TM(ListExpr args){
     result = nl->Rest(result);
 
     //DEBUG
-    std::cout << nl->ToString(result) << endl;
+    std::cout << nl->ToString(result) << std::endl;
 
     if (nl->IsEmpty(result)){
         result = nl->TwoElemList(listutils::basicSymbol<Pointcloud2>(),
@@ -324,8 +324,8 @@ ListExpr OPCollectPc2::collectPc2TM(ListExpr args){
     }
 
     //DEBUG
-    std::cout<<"return: " << nl->ToString(result) << endl;
-    std::cout<<"return: " << nl->ToString(append) << endl;
+    std::cout<<"return: " << nl->ToString(result) << std::endl;
+    std::cout<<"return: " << nl->ToString(append) << std::endl;
 
     return nl->ThreeElemList(
              nl->SymbolAtom(Symbols::APPEND()),

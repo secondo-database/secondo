@@ -110,14 +110,15 @@ void CommandLog::insert(ConnectionInfo* ci,
     }
     if(fileout){
        std::stringstream ss;
-       ss <<"[" << endl;
-       ss << ci->getHost() << "@" << ci->getPort() << ci->serverPid() << endl;
+       ss <<"[" << std::endl;
+       ss << ci->getHost() << "@" << ci->getPort() << ci->serverPid()
+          << std::endl;
        ss << query;
-       ss << endl;
-       ss << "--------------------" << endl;
-       ss << runtime << endl;
-       ss << errorCode << endl;
-       ss << "]" << endl;
+       ss << std::endl;
+       ss << "--------------------" << std::endl;
+       ss << runtime << std::endl;
+       ss << errorCode << std::endl;
+       ss << "]" << std::endl;
        (*fileout) << ss.str();
     }
 }

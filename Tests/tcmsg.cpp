@@ -26,6 +26,6 @@ int main()
 
   cmsg.file("mytraces.txt");
 
-  cmsg.info() << "hello world" << endl;
+  cmsg.info() << "hello world" << std::endl;
   cmsg.send();
 }

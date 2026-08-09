@@ -640,11 +640,13 @@ This function write the ~c++-code~ of the query in the stream ~outPut~.
                                             CEQuery* ptrCEQY) {
     
     outPut << (ptrCEQY->getCodeGenVisitor()).getGenCodeIncludes()
-    << "using namespace CompiledExpressions;" << endl 
-    << "namespace CompiledExpressions {" << endl << endl
-    << (ptrCEQY->getCodeGenVisitor()).getGenCodeForwardDeclarations() << endl
+    << "using namespace CompiledExpressions;" << std::endl 
+    << "namespace CompiledExpressions {" << std::endl << std::endl
+    << (ptrCEQY->getCodeGenVisitor()).getGenCodeForwardDeclarations()
+       << std::endl
     
-    << (ptrCEQY->getCodeGenVisitor()).getGenCodeClassCECNodeDefault() << endl
+    << (ptrCEQY->getCodeGenVisitor()).getGenCodeClassCECNodeDefault()
+       << std::endl
     << (ptrCEQY->getCodeGenVisitor()).getGenCodeClassCECNodeApplyop()
     << (ptrCEQY->getCodeGenVisitor()).getGenCodeClassCECNodeAbstraction()
     << (ptrCEQY->getCodeGenVisitor()).getGenCodeClassCECNodeObject()
@@ -654,20 +656,21 @@ This function write the ~c++-code~ of the query in the stream ~outPut~.
     << (ptrCEQY->getCodeGenVisitor()).getGenCodeClassCECNodeArglist()
     
     << (ptrCEQY->getCodeGenVisitor())
-                   .getGenCodeCodeCompiledExpressionsDeclaration() << endl
-    << (ptrCEQY->getCodeGenVisitor()).getGenCodeClassDefinitions() << endl
+                   .getGenCodeCodeCompiledExpressionsDeclaration() << std::endl
+    << (ptrCEQY->getCodeGenVisitor()).getGenCodeClassDefinitions() << std::endl
     << (ptrCEQY->getCodeGenVisitor())
-                   .getGenCodeCodeCompiledExpressionsDefinition() << endl
-    << (ptrCEQY->getCodeGenVisitor()).getGenCodeClassConstructor() << endl
-    << (ptrCEQY->getCodeGenVisitor()).getGenCodeClassDestructor() << endl
-    << (ptrCEQY->getCodeGenVisitor()).getGenCodeFunctionEval() << endl
-    << (ptrCEQY->getCodeGenVisitor()).getGenCodeFunctionInit() << endl
-    << (ptrCEQY->getCodeGenVisitor()).getGenCodeFunctionOperator() << endl
+                   .getGenCodeCodeCompiledExpressionsDefinition() << std::endl
+    << (ptrCEQY->getCodeGenVisitor()).getGenCodeClassConstructor() << std::endl
+    << (ptrCEQY->getCodeGenVisitor()).getGenCodeClassDestructor() << std::endl
+    << (ptrCEQY->getCodeGenVisitor()).getGenCodeFunctionEval() << std::endl
+    << (ptrCEQY->getCodeGenVisitor()).getGenCodeFunctionInit() << std::endl
+    << (ptrCEQY->getCodeGenVisitor()).getGenCodeFunctionOperator() << std::endl
     << (ptrCEQY->getCodeGenVisitor())
-                   .getGenCodeDeclarationAdditionalFunction() << endl
-    << (ptrCEQY->getCodeGenVisitor()).getGenCodeEvalDefaultFunction() << endl
-    << "}" << endl << endl
-    << (ptrCEQY->getCodeGenVisitor()).getGenCodeLibCallFunction() << endl;
+                   .getGenCodeDeclarationAdditionalFunction() << std::endl
+    << (ptrCEQY->getCodeGenVisitor()).getGenCodeEvalDefaultFunction()
+       << std::endl
+    << "}" << std::endl << std::endl
+    << (ptrCEQY->getCodeGenVisitor()).getGenCodeLibCallFunction() << std::endl;
     
   }
   
@@ -680,12 +683,12 @@ This function generate the code from a ~makefile~ and write this in the stream ~
   void
   CECodeGenerator::getStreamMake(std::ostream& outPut,
                                  std::string libName) {
-    outPut << "include ../../../makefile.env" << endl
-          << "CCFLAGS += $(ALG_INC_DIRS)" << endl << endl
-          << ".PHONY: all" << endl
-          << "all: " << libName << ".so" << endl << endl
-          << "%.so: %.cpp" << endl
-          << "\tg++ $(CCFLAGS) --shared -o $@ $<" << endl;
+    outPut << "include ../../../makefile.env" << std::endl
+          << "CCFLAGS += $(ALG_INC_DIRS)" << std::endl << std::endl
+          << ".PHONY: all" << std::endl
+          << "all: " << libName << ".so" << std::endl << std::endl
+          << "%.so: %.cpp" << std::endl
+          << "\tg++ $(CCFLAGS) --shared -o $@ $<" << std::endl;
   }
   
   

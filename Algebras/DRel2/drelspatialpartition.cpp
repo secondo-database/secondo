@@ -96,9 +96,9 @@ Expect a d[f]rel and an attribute name to repartition the given d[f]rel.
     ListExpr drelspatialpartitionTM( ListExpr args ) {
 
         #ifdef DRELDEBUG
-        cout << "drelspatialpartitionTM" << endl;
-        cout << "args" << endl;
-        cout << nl->ToString( args ) << endl;
+        std::cout << "drelspatialpartitionTM" << std::endl;
+        std::cout << "args" << std::endl;
+        std::cout << nl->ToString( args ) << std::endl;
         #endif
 
         std::string err = "d[f]rel(X) x attr x [cellgrid2d|cellgrid3d|d[f]rel]"
@@ -232,7 +232,7 @@ attribute.
         Word& local, Supplier s ) {
 
         #ifdef DRELDEBUG
-        cout << "drelspatialpartitionVMT" << endl;
+        std::cout << "drelspatialpartitionVMT" << std::endl;
         #endif
         
         ListExpr drelType = qp->GetType( qp->GetSon( s, 0 ) );
@@ -294,7 +294,8 @@ attribute.
         DFMatrix* matrix = parti->getDFMatrix( );
 
         if( !matrix || !matrix->IsDefined( ) ) {
-            cout << "repartition (drelspatialpartition) failed!!" << endl;
+            std::cout << "repartition (drelspatialpartition) failed!!"
+               << std::endl;
             result = qp->ResultStorage( s );
             ( ( DFRel* )result.addr )->makeUndefined( );
             return 0;
@@ -333,7 +334,7 @@ attribute.
         Word& local, Supplier s ) {
 
         #ifdef DRELDEBUG
-        cout << "drelspatialpartitionVMT" << endl;
+        std::cout << "drelspatialpartitionVMT" << std::endl;
         #endif
 
         if( x < 0 || x > 3 ) {

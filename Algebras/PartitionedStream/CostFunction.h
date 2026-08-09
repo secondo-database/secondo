@@ -327,9 +327,9 @@ class HashJoinCost : private CostFunction
     // expected compare operations while probing buckets
     //cpu += (int)ceil((f * p.cardA * 1.0) * p.cardB * p.sel * avgHashChainB);
     cpu += (int)ceil(p.cardA * (p.cardB * p.sel));
-    SHOW(cpu)		    
+    SHOW(cpu)
     cpu += (int)ceil(f * p.cardA * avgHashChainB);
-    SHOW(cpu)		    
+    SHOW(cpu)
 
     SHOW(p.sizeB)
     SHOW(bufferB)
@@ -697,12 +697,12 @@ class CostFunctions {
       TRACE((*it)->index)
       CostInfo values( cfp, cfp->cost(p) );
       civ.push_back( values );
-      cout << values << endl;
+      std::cout << values << std::endl;
       if (withRolesReversed)
       {
         CostInfo values( cfp, cfp->cost2(p), true );
         civ.push_back( values );
-        cout << values << endl;
+        std::cout << values << std::endl;
       } 
     } 
     stable_sort(civ.begin(), civ.end());

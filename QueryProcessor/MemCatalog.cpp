@@ -79,7 +79,7 @@ std::map<std::string,MemoryObject*>* MemCatalog::getMemContent(){
 
 bool MemCatalog::insert (const std::string& name, MemoryObject* obj){
     if (isObject(name)){
-        cout<<"identifier already in use"<<endl;
+        std::cout<<"identifier already in use"<<std::endl;
         return false;
     }
     memContents[name] = obj;

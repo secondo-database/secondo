@@ -84,11 +84,11 @@ class MEdge{
      out << std::endl;
      if(names!= nullptr){ 
        if(info==nullptr){
-          cout << "No edge info";
+          std::cout << "No edge info";
        } else {
           info->PrintWithNames(out,*names);
        }
-       out << endl;
+       out << std::endl;
      }
      return out; 
    }

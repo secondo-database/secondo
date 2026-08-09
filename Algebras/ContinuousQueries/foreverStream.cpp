@@ -69,8 +69,8 @@ namespace continuousqueries {
 ListExpr foreverStream_TM(ListExpr args) {
     // the list is coded as ( (<type> <query part>) (<type> <query part>) )
 
-    std::cout << "foreverStream: TypeMapping" << endl;
-    std::cout << "Argument: " << nl->ToString(args) << endl;
+    std::cout << "foreverStream: TypeMapping" << std::endl;
+    std::cout << "Argument: " << nl->ToString(args) << std::endl;
 
     // Check for int x int -> stream(tuple())
     if (!nl->HasLength(args, 3)) 
@@ -637,12 +637,12 @@ int foreverStream_VM( Word* args, Word& result, int message,
 
     switch (message) {
     case OPEN :
-        std::cout << "foreverStream: ValueMapping: OPEN" << endl;
-        std::cout << "Creating an optionally never ending stream." << endl;
+        std::cout << "foreverStream: ValueMapping: OPEN" << std::endl;
+        std::cout << "Creating an optionally never ending stream." << std::endl;
         std::cout << "Volume: " << ((CcInt*) args[0].addr)->GetValue() << " | "
                   << "Type: "   << ((CcInt*) args[1].addr)->GetValue() << " | "
                   << "Chance of Undefined: " 
-                  << ((CcInt*) args[2].addr)->GetValue() << "%" << endl;
+                  << ((CcInt*) args[2].addr)->GetValue() << "%" << std::endl;
         
         if (li) {
             delete li;
@@ -661,13 +661,13 @@ int foreverStream_VM( Word* args, Word& result, int message,
         return 0;
 
     case REQUEST:
-        std::cout << "foreverStream: ValueMapping: REQUEST" << endl;
+        std::cout << "foreverStream: ValueMapping: REQUEST" << std::endl;
         
         result.addr = li ? li->getNext() : 0;
         return result.addr ? YIELD : CANCEL;
 
     case CLOSE:
-        std::cout << "foreverStream: ValueMapping: CLOSE" << endl;
+        std::cout << "foreverStream: ValueMapping: CLOSE" << std::endl;
 
         if(li) {
             delete li;

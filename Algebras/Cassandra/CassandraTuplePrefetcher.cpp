@@ -144,7 +144,7 @@ void CassandraTuplePrefetcher::insertToQueue(string *fetchedTuple) {
    void CassandraTuplePrefetcher::prefetchTuple() {
 
 #ifdef __DEBUG__
-   cout << "Starting new prefetch thread" << endl;
+   std::cout << "Starting new prefetch thread" << std::endl;
 #endif
 
       CassandraResult *cassandraResult = getNextResult();
@@ -161,7 +161,8 @@ void CassandraTuplePrefetcher::insertToQueue(string *fetchedTuple) {
            // Metadata? Skip tuple
            if(key.at(0) == '_') {
   #ifdef __DEBUG__
-             cout << "Skipping key: " << key << " value " << value << endl;
+             std::cout << "Skipping key: " << key 
+               << " value " << value << std::endl;
   #endif
              continue;
            }
@@ -177,7 +178,7 @@ void CassandraTuplePrefetcher::insertToQueue(string *fetchedTuple) {
 
 
 #ifdef __DEBUG__
-   cout << "Prefetch thread ended" << endl;
+   std::cout << "Prefetch thread ended" << std::endl;
 #endif
    }
 
@@ -195,10 +196,10 @@ void CassandraTuplePrefetcher::insertToQueue(string *fetchedTuple) {
 
        // Print statistics
 #ifdef __DEBUG__
-       cout << "The prefetch queue was " << queueEmpty 
-            << " times empty" << endl;
-       cout << "The prefetch queue was " << queueFull
-            << " times full" << endl;
+       std::cout << "The prefetch queue was " << queueEmpty 
+            << " times empty" << std::endl;
+       std::cout << "The prefetch queue was " << queueFull
+            << " times full" << std::endl;
 #endif
    }
    

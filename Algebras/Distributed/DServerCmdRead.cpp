@@ -99,7 +99,7 @@ void
 DServerCmdRead::run()
 { 
 #if DS_CMD_READ_DEBUG
-  cout << "DServerCmdRead::run" << getIndexStr() << endl;
+  std::cout << "DServerCmdRead::run" << getIndexStr() << std::endl;
 #endif
 
   if (!checkWorkerAvailable())
@@ -240,7 +240,7 @@ DServerCmdRead::run()
 
       if (!hasNoFlobErr)
         {
-              cout << "ERROR: " << callBack.getErrorText() << endl;
+              std::cout << "ERROR: " << callBack.getErrorText() << std::endl;
         }
 
       callBack.sendTagToCallBack("FINISH");
@@ -255,7 +255,7 @@ DServerCmdRead::run()
           else
             errMsg = "Could not read data from worker!";
        
-          cout << "READ: NO END!" << endl;
+          std::cout << "READ: NO END!" << std::endl;
 
           setErrorText(errMsg);
         }
@@ -275,6 +275,6 @@ DServerCmdRead::run()
     }
 
 #if DS_CMD_READ_DEBUG
-  cout << "DServerCmdRead::run DONE" << endl;
+  std::cout << "DServerCmdRead::run DONE" << std::endl;
 #endif
 } // run()

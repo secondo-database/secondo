@@ -791,9 +791,9 @@ Array<HalfSegment>* Realminize(const Array<HalfSegment>& segments,
              avltree::AVLTree<avlseg::AVLSegment>::iterator it = sss.begin();
              double val = avlseg::AVLSegment::getErrorValue();
              std::vector<avlseg::AVLSegment*> evilsegments;
-             cout << "start iterating" << std::endl;
+             std::cout << "start iterating" << std::endl;
              unsigned int size = sss.Size();
-             cout << "The tree has " << size << " entries" << std::endl;
+             std::cout << "The tree has " << size << " entries" << std::endl;
              unsigned int b=0;
              while(!it.onEnd()){
                 b++;
@@ -806,9 +806,9 @@ Array<HalfSegment>* Realminize(const Array<HalfSegment>& segments,
                 assert(b<=size);
              }
              if(evilsegments.size() > 0){
-                cout << "recognized " << evilsegments.size()
+                std::cout << "recognized " << evilsegments.size()
                      << " evil segments" << std::endl;
-                cout << "error_value = " << val << std::endl;
+                std::cout << "error_value = " << val << std::endl;
                 unsigned int count = 0;
                 for(unsigned int i=0; i< evilsegments.size();i++){
                   avlseg::AVLSegment* seg = evilsegments[i];
@@ -826,28 +826,29 @@ Array<HalfSegment>* Realminize(const Array<HalfSegment>& segments,
                   }
                 }
                 if(count != 0){
-                  cout << "some (" << count
+                  std::cout << "some (" << count
                        << " of the evil segments was not found, scan the tree"
                        << " to remove them" << std::endl;
                   xRemover.setX(val);
-                  cout << "Start removeAll" << std::endl;
+                  std::cout << "Start removeAll" << std::endl;
                   unsigned int count2 = sss.removeAll(xRemover);
                   if(count != count2){
-                    cout << count
+                    std::cout << count
                          << " elements should be remove, but only " << count2
                          << " was found " << std::endl;
                   }
                 }
-                cout << "segments removed" << std::endl;
+                std::cout << "segments removed" << std::endl;
              } else {
-                cout << "evil segment already processed" << std::endl;
+                std::cout << "evil segment already processed" << std::endl;
              }
              avlseg::AVLSegment::clearError();
       
           }
         }
         if(sss.Size()!=0){
-          cout << " After planesweep, the status structure is not empty ! " 
+          std::cout
+             << " After planesweep, the status structure is not empty ! " 
                << std::endl;
         }
      } catch (...){

@@ -71,7 +71,7 @@ int main(int argc, char* argv[]) {
     return kvsApp.run();
     ;
   } else {
-    cout << "Application already running.\n";
+    std::cout << "Application already running.\n";
     return -1;
   }
 }

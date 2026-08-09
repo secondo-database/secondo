@@ -523,8 +523,8 @@ double SimpleLineT<Array>::Distance(const Rectangle<2>& r,
   assert( r.IsDefined() );
   assert( !geoid || geoid->IsDefined() );
   if(geoid){
-    cout << __PRETTY_FUNCTION__ << ": Spherical geometry not implemented."
-         <<endl;
+    std::cout << __PRETTY_FUNCTION__ << ": Spherical geometry not implemented."
+         <<std::endl;
     assert(false); // TODO: Implement spherical geometry case.
   }
   LineT<Array> sll(0);
@@ -630,8 +630,8 @@ bool SimpleLineT<Array>::AtPoint( const Point& p,
    return false;
  }
  if(geoid){
-   cout << __PRETTY_FUNCTION__ << ": Spherical geometry not implemented."
-        <<endl;
+   std::cout << __PRETTY_FUNCTION__ << ": Spherical geometry not implemented."
+        <<std::endl;
    assert(false); // TODO: Implement spherical geometry case.
  }
  bool found = false;
@@ -1286,7 +1286,7 @@ template<template<typename T> class Array>
 std::ostream& SimpleLineT<Array>::Print(std::ostream& o)const{
   o << "SimpleLineT def =" << IsDefined()
     << " size = " << Size()
-    << " startSmaller: " << startSmaller << endl;
+    << " startSmaller: " << startSmaller << std::endl;
   for (int i = 0; i < Size(); i++)
   {
     HalfSegment hs;

@@ -105,12 +105,12 @@ Creates a cellgrid2d or a cellgrid3d.
         grid->set( rec->MinD( 0 ), rec->MinD( 1 ), cellSize1, cellSize2, size );
 
         #ifdef DRELDEBUG
-        cout << "rect2cellgridVMT" << endl;
-        cout << "grid output" << endl;
-        cout << "grid defined?" << endl;
-        cout << grid->IsDefined( ) << endl;
-        grid->Print( cout );
-        cout << endl;
+        std::cout << "rect2cellgridVMT" << std::endl;
+        std::cout << "grid output" << std::endl;
+        std::cout << "grid defined?" << std::endl;
+        std::cout << grid->IsDefined( ) << std::endl;
+        grid->Print( std::cout );
+        std::cout << std::endl;
         #endif
 
         return 0;
@@ -130,20 +130,20 @@ Creates a cellgrid2d or a cellgrid3d.
 
         for( size_t i = 0 ; i < dim - 1 ; i++ ) {
             cellNumbers[ i ] = size;
-            cout << "cellNumbers[ i ]" << endl;
-            cout << cellNumbers[ i ] << endl;
+            std::cout << "cellNumbers[ i ]" << std::endl;
+            std::cout << cellNumbers[ i ] << std::endl;
         }
         
         for( size_t i = 0 ; i < dim ; i++ ) {
             originPoint[ i ] = rec->MinD( i );
-            cout << "originPoint[ i ]" << endl;
-            cout << originPoint[ i ] << endl;
+            std::cout << "originPoint[ i ]" << std::endl;
+            std::cout << originPoint[ i ] << std::endl;
         }
         
         for( size_t i = 0 ; i < dim ; i++ ) {
             cellSize[ i ] = ( rec->MaxD( i ) - rec->MinD( i ) ) / size;
-            cout << "cellSize[ i ]" << endl;
-            cout << cellSize[ i ] << endl;
+            std::cout << "cellSize[ i ]" << std::endl;
+            std::cout << cellSize[ i ] << std::endl;
         }
 
         result = qp->ResultStorage( s );
@@ -153,12 +153,12 @@ Creates a cellgrid2d or a cellgrid3d.
         grid->SetDefined( true );
 
         #ifdef DRELDEBUG
-        cout << "rect2cellgridVMT" << endl;
-        cout << "grid output" << endl;
-        cout << "grid defined?" << endl;
-        cout << grid->IsDefined( ) << endl;
-        grid->Print( cout );
-        cout << endl;
+        std::cout << "rect2cellgridVMT" << std::endl;
+        std::cout << "grid output" << std::endl;
+        std::cout << "grid defined?" << std::endl;
+        std::cout << grid->IsDefined( ) << std::endl;
+        grid->Print( std::cout );
+        std::cout << std::endl;
         #endif
 
         return 0;

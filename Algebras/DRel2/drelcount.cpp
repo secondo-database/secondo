@@ -74,8 +74,8 @@ Except a d[f]rel as argument.
     ListExpr countTM( ListExpr args ) {
 
         #ifdef DRELDEBUG
-        cout << "countTM" << endl;
-        cout << nl->ToString( args ) << endl;
+        std::cout << "countTM" << std::endl;
+        std::cout << nl->ToString( args ) << std::endl;
         #endif
 
         std::string err = "d[f]rel expected";
@@ -125,8 +125,8 @@ Expect a d[f]rel and a bool as argument.
     ListExpr lcountTM( ListExpr args ) {
 
         #ifdef DRELDEBUG
-        cout << "lcountTM" << endl;
-        cout << nl->ToString( args ) << endl;
+        std::cout << "lcountTM" << std::endl;
+        std::cout << nl->ToString( args ) << std::endl;
         #endif
 
         std::string err = "d[f]rel x bool expected";
@@ -185,8 +185,8 @@ Expect a d[f]rel and a bool as argument.
         Word& local, Supplier s ) {
 
         #ifdef DRELDEBUG
-        cout << "lcountVMT" << endl;
-        cout << args << endl;
+        std::cout << "lcountVMT" << std::endl;
+        std::cout << args << std::endl;
         #endif
 
         DRel* drel = ( DRel* )args[ 0 ].addr;
@@ -251,9 +251,9 @@ Expect a d[f]rel and a bool as argument.
         }
 
         #ifdef DRELDEBUG
-        cout << "queryList: " << nl->ToString(queryList) << endl;
-        cout << "typeString: " << typeString << endl;
-        cout << "errorString: " << errorString << endl;
+        std::cout << "queryList: " << nl->ToString(queryList) << std::endl;
+        std::cout << "typeString: " << typeString << std::endl;
+        std::cout << "errorString: " << errorString << std::endl;
         #endif
 
         if( !correct || !evaluable || !defined ) {
@@ -276,8 +276,8 @@ Expect a d[f]rel and a bool as argument.
         Word& local, Supplier s ) {
 
         #ifdef DRELDEBUG
-        cout << "countVMT" << endl;
-        cout << args << endl;
+        std::cout << "countVMT" << std::endl;
+        std::cout << args << std::endl;
         #endif
 
         DRel* drel = ( DRel* )args[ 0 ].addr;
@@ -340,9 +340,9 @@ Expect a d[f]rel and a bool as argument.
         }
 
         #ifdef DRELDEBUG
-        cout << "queryList: " << nl->ToString(queryList) << endl;
-        cout << "typeString: " << typeString << endl;
-        cout << "errorString: " << errorString << endl;
+        std::cout << "queryList: " << nl->ToString(queryList) << std::endl;
+        std::cout << "typeString: " << typeString << std::endl;
+        std::cout << "errorString: " << errorString << std::endl;
         #endif
         
         if( !correct || !evaluable || !defined ) {

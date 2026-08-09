@@ -256,7 +256,7 @@ class CcInt : public Attribute
 
   ListExpr CopyToList( ListExpr typeInfo )
   {
-      cout << "CcInt CopyToList" << endl;
+      std::cout << "CcInt CopyToList" << std::endl;
       NestedList *nl = SecondoSystem::GetNestedList();
       AlgebraManager* algMgr = SecondoSystem::GetAlgebraManager();
       int algId = nl->IntValue( nl->First( nl->First( typeInfo ) ) ),
@@ -268,7 +268,7 @@ class CcInt : public Attribute
   Word CreateFromList( const ListExpr typeInfo, const ListExpr instance,
                        const int errorPos, ListExpr& errorInfo, bool& correct )
   {
-      cout << "CcInt CreateFromList" << endl;
+      std::cout << "CcInt CreateFromList" << std::endl;
       NestedList *nl = SecondoSystem::GetNestedList();
       AlgebraManager* algMgr = SecondoSystem::GetAlgebraManager();
       int algId = nl->IntValue( nl->First( nl->First( typeInfo ) ) ),
@@ -653,7 +653,7 @@ class CcReal : public Attribute
     Attribute::operator=(src);
     realval = src.realval; 
     return *this;
-  }	  
+  }
 
 
 
@@ -1426,8 +1426,8 @@ class CcString : public Attribute
 
   void ShowMem() {
 
-    cout << Var2HexStr(del);
-    cout << Var2HexStr(stringval);
+    std::cout << Var2HexStr(del);
+    std::cout << Var2HexStr(stringval);
   //  cout << Var2HexStr(size);
   }
 

@@ -97,14 +97,14 @@ This macro is for debugging purposes. At the begin of all functions should the
 */
 //#define TRACEON 
 #ifdef TRACEON
-#define __TRACE__ cout << __POS__ << endl;
+#define __TRACE__ std::cout << __POS__ << std::endl;
 #else
 #define __TRACE__
 #endif
 
 #define TTRACE 
 #ifdef TTRACE
-#define __TTRACE__ cout << __POS__ << endl;
+#define __TTRACE__ std::cout << __POS__ << std::endl;
 #else
 #define __TTRACE__
 #endif

@@ -125,7 +125,7 @@ void MTree::split()
         #ifdef MTREE_PRINT_SPLIT_INFO
         cmsg.info() << "\nsplit: splitted nodes contain "
                     << treeMngr->curNode()->entryCount() << " / "
-                    << newNode->entryCount() << " entries." << endl;
+                    << newNode->entryCount() << " entries." << std::endl;
         cmsg.send();
         #endif
 
@@ -184,7 +184,7 @@ MTree::insert(Attribute* attr, TupleId tupleId)
     {
         cmsg.warning() << "Not enough memory to create new entry, "
                         << "disabling node cache... "
-                        << endl;
+                        << std::endl;
         cmsg.send();
         treeMngr->disableCache();
 
@@ -195,7 +195,7 @@ MTree::insert(Attribute* attr, TupleId tupleId)
         catch (std::bad_alloc&)
         {
             cmsg.error() << "Not enough memory to create new entry!"
-                        << endl;
+                        << std::endl;
             cmsg.send();
         }
     }
@@ -221,7 +221,7 @@ MTree::insert(gta::DistData* data, TupleId tupleId)
     {
         cmsg.warning() << "Not enough memory to create new entry, "
                         << "disabling node cache... "
-                        << endl;
+                        << std::endl;
         cmsg.send();
         treeMngr->disableCache();
 
@@ -232,7 +232,7 @@ MTree::insert(gta::DistData* data, TupleId tupleId)
         catch (std::bad_alloc&)
         {
             cmsg.error() << "Not enough memory to create new entry!"
-                        << endl;
+                        << std::endl;
             cmsg.send();
         }
     }

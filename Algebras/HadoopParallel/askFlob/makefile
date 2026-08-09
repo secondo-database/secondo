@@ -15,6 +15,10 @@ ifndef $(BERKELEY_DB_LIB)
   BERKELEY_DB_LIB=db_cxx # special patch for Simone
 endif
 
+# Folded in from what used to be a hand-written compile rule, so the
+# %.o rule in makefile.env can build this object -- and write its .dep.
+CCFLAGS += -I../include -I$(BDBINCLUDE)
+
 .PHONY: all
 all: app$(EXEEXT)
 
@@ -37,10 +41,7 @@ app$(EXEEXT): askFlob.o
 	$(CPPC) -o askFlob$(EXEEXT) askFlob.o  $(LDFLAGS)
 	cp askFlob$(EXEEXT) $(SECONDO_BUILD_DIR)/bin
 
-askFlob.o: askFlob.cpp
-	$(CPPC) -c -o askFlob.o $(CCFLAGS) askFlob.cpp -I../include -I$(BDBINCLUDE) 
-
 .PHONY:clean
 clean:
-	rm -f askFlob$(EXEEXT) askFlob.o
+	rm -f askFlob$(EXEEXT) askFlob.o $(DEP_FILES)
 

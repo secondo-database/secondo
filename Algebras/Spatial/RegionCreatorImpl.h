@@ -80,28 +80,29 @@ RegionCreator<Array>::RegionCreator(const Array<HalfSegment>* hss,
 
 template<template<typename T> class Array>
 void RegionCreator<Array>::printCycles() const{
-    cout << "found " << cycles.size() << " cycles " << endl;
+    std::cout << "found " << cycles.size() << " cycles " << std::endl;
 
     for(size_t i=0;i<cycles.size();i++){
-      cout << "Cycle No " << i << endl; 
-      cout << (holes[i]?"hole cycle":"outer cycle") << endl;
+      std::cout << "Cycle No " << i << std::endl; 
+      std::cout << (holes[i]?"hole cycle":"outer cycle") << std::endl;
       printCycle(i);
-      cout << endl << endl << endl;
+      std::cout << std::endl << std::endl << std::endl;
     }
 }
 
 template<template<typename T> class Array>
 void RegionCreator<Array>::printCycle(size_t c) const{
-   cout << "cout cycle contains " << cycles[c].size() 
-        << " halfSegments" << endl;
-   cout << "cycle belongs to outer cycle " << correspondingOuters[c] << endl;
+   std::cout << "cout cycle contains " << cycles[c].size() 
+        << " halfSegments" << std::endl;
+   std::cout << "cycle belongs to outer cycle " << correspondingOuters[c]
+      << std::endl;
    for(size_t i=0;i<cycles[c].size(); i++){
       if(i>0){
-        cout << " -> ";
+        std::cout << " -> ";
       }
-      cout << cycles[c][i].GetSecPoint();
+      std::cout << cycles[c][i].GetSecPoint();
    }
-   cout << " -> " << cycles[c].back().GetDomPoint(); 
+   std::cout << " -> " << cycles[c].back().GetDomPoint(); 
 }
 
 
@@ -234,9 +235,9 @@ template<template<typename T> class Array>
         }
      }
      if(index < 0){
-       cout << "internal error, found index < 0 in " 
-            << __FILE__ << "@" << __LINE__ << endl
-            << "in function" << __PRETTY_FUNCTION__ << endl;
+       std::cout << "internal error, found index < 0 in " 
+            << __FILE__ << "@" << __LINE__ << std::endl
+            << "in function" << __PRETTY_FUNCTION__ << std::endl;
        throw std::string("invalid index");
 
      }
@@ -943,7 +944,7 @@ template<template<typename T> class Array>
 
       if(cycles[cycle].size() < 3){
           std::cerr << "found cycle with less than 3 halfsegments -> ignore"
-                    << endl;
+                    << std::endl;
           return false;
       }
 

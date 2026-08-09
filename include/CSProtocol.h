@@ -1459,7 +1459,7 @@ ReadList(const std::string& endTag, ListExpr& resultList,
          int& errorCode, bool debug, void* caller,
          int callerID) {
 
-  dwriter.write(debug, cout, caller, callerID, "start ReadList");
+  dwriter.write(debug, std::cout, caller, callerID, "start ReadList");
   std::string line = "";
   std::string result = "";
   bool success = false;
@@ -1475,7 +1475,7 @@ ReadList(const std::string& endTag, ListExpr& resultList,
     return false;
   }
   if ( !usesBinaryTransfer() ) {
-    dwriter.write(debug, cout, caller, callerID, "textual list transfer");
+    dwriter.write(debug, std::cout, caller, callerID, "textual list transfer");
     // textual data transfer
     do {
       getline( iosock, line );
@@ -1484,21 +1484,22 @@ ReadList(const std::string& endTag, ListExpr& resultList,
         result += line + "\n";
       }
     } while (line != endTag && !iosock.fail()); 
-    dwriter.write(debug, cout, caller, callerID, "text received, parse it");
+    dwriter.write(debug, std::cout, caller, callerID,
+                  "text received, parse it");
     nl->ReadFromString( result, resultList );
-    dwriter.write(debug, cout, caller, callerID, "list parsing finished");
+    dwriter.write(debug, std::cout, caller, callerID, "list parsing finished");
     success = true;
     
   } else { // binary data transfer
-    dwriter.write(debug, cout, caller, callerID, "binary list transfer");
+    dwriter.write(debug, std::cout, caller, callerID, "binary list transfer");
     nl->ReadBinaryFrom(iosock, resultList);
-    dwriter.write(debug, cout, caller, callerID, "list transfer finished");
+    dwriter.write(debug, std::cout, caller, callerID, "list transfer finished");
     
     //std::ofstream outFile("TTYCS.bnl");
     //nl->WriteBinaryTo(resultList, outFile);
     
     getline( iosock, line );
-    dwriter.write(debug, cout, caller, callerID, "end tag read");
+    dwriter.write(debug, std::cout, caller, callerID, "end tag read");
     
     if (line != endTag ) 
     {
@@ -1511,7 +1512,8 @@ ReadList(const std::string& endTag, ListExpr& resultList,
       success = true;
     }  
   }
-  dwriter.write(debug, cout, caller, callerID, "finished methjod ReadList");
+  dwriter.write(debug, std::cout, caller, callerID,
+                "finished methjod ReadList");
   return success;
 }
 
@@ -1580,18 +1582,19 @@ ReadFrame( ListExpr& resultList,
   {
     std::istream payload( &frame );
     if ( usesBinaryTransfer() ) {
-      dwriter.write(debug, cout, caller, callerID, "binary list transfer");
+      dwriter.write(debug, std::cout, caller, callerID, "binary list transfer");
       // A truncated encoding terminates rather than hangs: ReadBinaryRec's
       // default case returns false as soon as it reads past the end.
       nl->ReadBinaryFrom( payload, resultList );
     } else {
-      dwriter.write(debug, cout, caller, callerID, "textual list transfer");
+      dwriter.write(debug, std::cout, caller, callerID,
+                    "textual list transfer");
       std::ostringstream text;
       text << payload.rdbuf();
       nl->ReadFromString( text.str(), resultList );
     }
   }
-  dwriter.write(debug, cout, caller, callerID, "payload read");
+  dwriter.write(debug, std::cout, caller, callerID, "payload read");
 
   frame.drainToTerminator();
   frameMsgHandler = 0;
@@ -1609,7 +1612,7 @@ ReadFrame( ListExpr& resultList,
   errorMessage = frame.terminatorMessage();
 
   if ( frame.terminatorKind() == 'A' ) {
-    dwriter.write(debug, cout, caller, callerID, "result was aborted");
+    dwriter.write(debug, std::cout, caller, callerID, "result was aborted");
     resultList = nl->TheEmptyList();
     if ( errorCode == 0 ) {
       // The server aborted without a code of its own -- say what happened
@@ -1634,7 +1637,7 @@ ReadResponse( ListExpr& resultList,
               int callerID = 1)
 {
 
-  dwriter.write(debug, cout, caller, callerID, "called ReadResponse");
+  dwriter.write(debug, std::cout, caller, callerID, "called ReadResponse");
 
   // read next line
   std::string line="";
@@ -1650,11 +1653,11 @@ ReadResponse( ListExpr& resultList,
     try{
        iosock.clear();
     } catch(...){
-       std::cerr << "clear failed" << endl;
+       std::cerr << "clear failed" << std::endl;
     }
     return errorCode;
   }
-  dwriter.write(debug, cout, caller, callerID, "read first line");
+  dwriter.write(debug, std::cout, caller, callerID, "read first line");
   
   bool badbit = iosock.bad();
   bool success = false;
@@ -1663,43 +1666,46 @@ ReadResponse( ListExpr& resultList,
   ListExpr messageList = nl->Empty();
   while ( !badbit && line == startMessage ) 
   {
-    dwriter.write(debug, cout, caller, callerID, "receive message");
+    dwriter.write(debug, std::cout, caller, callerID, "receive message");
     success = ReadList(endMessage, messageList, errorCode, debug, 
                        caller, callerID);
-    dwriter.write(debug, cout, caller, callerID, "message received", success);
+    dwriter.write(debug, std::cout, caller, callerID,
+                  "message received", success);
     if (success) {
-      dwriter.write(debug, cout, caller, callerID, "send message to center");
+      dwriter.write(debug, std::cout, caller, callerID,
+                    "send message to center");
       msg->Send(nl,messageList, source);
       if(msgHandler){
           msgHandler->handleMsg(nl, messageList, source);
       }
       getline( iosock, line );
       badbit = iosock.bad();
-      dwriter.write(debug, cout, caller, callerID, "sending message finished");
+      dwriter.write(debug, std::cout, caller, callerID,
+                    "sending message finished");
     }  
   } 
 
   // network error 
   if (badbit) {
     errorCode = ERR_IN_SECONDO_PROTOCOL;
-    dwriter.write(debug, cout, caller, callerID, "network error");
+    dwriter.write(debug, std::cout, caller, callerID, "network error");
     return errorCode;
   }   
     
   
   if ( line == startResult )
   {
-    dwriter.write(debug, cout, caller, callerID, "read result frame");
+    dwriter.write(debug, std::cout, caller, callerID, "read result frame");
 
     // The status comes out of the frame's terminator; there is no longer a
     // four-element wrapper around the result to unpack it from.
     success = ReadFrame(resultList, errorCode, errorPos, errorMessage,
                         msgHandler, source, debug, caller, callerID);
-    dwriter.write(debug, cout, caller, callerID, "reading frame", success);
+    dwriter.write(debug, std::cout, caller, callerID, "reading frame", success);
   }
   else if ( line == startError )
   {
-    dwriter.write(debug, cout, caller, callerID, "receive error");
+    dwriter.write(debug, std::cout, caller, callerID, "receive error");
     // Read to the end tag rather than taking one line: the message may be
     // several, and stopping after the first left the rest of it in the stream
     // to be misread as the next response.
@@ -1712,14 +1718,14 @@ ReadResponse( ListExpr& resultList,
       errorMessage += line;
     }
     errorCode = ERR_IN_SECONDO_PROTOCOL;
-    dwriter.write(debug, cout, caller, callerID, "protocol error");
+    dwriter.write(debug, std::cout, caller, callerID, "protocol error");
   }
   else
   {
-    dwriter.write(debug, cout, caller, callerID, "protocol error");
+    dwriter.write(debug, std::cout, caller, callerID, "protocol error");
     errorCode = ERR_IN_SECONDO_PROTOCOL;
   }
-  dwriter.write(debug, cout, caller, callerID, "readResponse finsihed");
+  dwriter.write(debug, std::cout, caller, callerID, "readResponse finsihed");
   return errorCode;
 }
 

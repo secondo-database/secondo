@@ -897,8 +897,8 @@ ListExpr isknnTypeMap(ListExpr args){
   ListExpr res= nl->ThreeElemList( nl->SymbolAtom(Symbol::APPEND()),
       nl->OneElemList(nl->StringAtom(idtype)),
                       nl->SymbolAtom(MBool::BasicType()));
-  cout<< nl->ToString(res);
-  cout.flush();
+  std::cout<< nl->ToString(res);
+  std::cout.flush();
   return res;
 }
 
@@ -3021,9 +3021,9 @@ IT findActiveElem( NNTree<ActiveElem> &t, MReal *distance,
   double dist = CalcDistance(distance,time,slope1);
 
   if(dist < 0){
-    cout << "found invalid dist " << dist << endl;
-    cout << "mreal is " << (*distance) << endl;
-    cout << "time is " << time << endl;
+    std::cout << "found invalid dist " << dist << std::endl;
+    std::cout << "mreal is " << (*distance) << std::endl;
+    std::cout << "time is " << time << std::endl;
     assert(dist>=0);
   }
 
@@ -3034,9 +3034,9 @@ IT findActiveElem( NNTree<ActiveElem> &t, MReal *distance,
 
     double storeDistance = CalcDistance(it->distance,time,slope2);
     if(storeDistance < 0){
-      cout << "found invalid storedist " << storeDistance << endl;
-      cout << "mreal is " << (it->distance) << endl;
-      cout << "time is " << time << endl;
+      std::cout << "found invalid storedist " << storeDistance << std::endl;
+      std::cout << "mreal is " << (it->distance) << std::endl;
+      std::cout << "time is " << time << std::endl;
       assert(false);
     }
 
@@ -3318,7 +3318,7 @@ void init(){
         lastTuple  = static_cast<Tuple*>(current.addr);
         UPoint* up = static_cast<UPoint*>(lastTuple->GetAttribute(pos));
         if(up->timeInterval.start < lastStart){
-           std::cerr << "Detected invalid order in tuple stream" << endl;
+           std::cerr << "Detected invalid order in tuple stream" << std::endl;
            lastTuple->DeleteIfAllowed();
            lastTuple = 0;
            return;
@@ -3426,7 +3426,7 @@ lasttuple must be exist.
                static_cast<const UPoint*>(lastTuple->GetAttribute(pos));
        tupleStart = up->timeInterval.start;
        if(tupleStart < lastStart){
-          cout << "Detected invalid order in tuple stream" << endl;
+          std::cout << "Detected invalid order in tuple stream" << std::endl;
           lastTuple->DeleteIfAllowed();
           lastTuple = 0;
        }
@@ -3741,8 +3741,9 @@ private:
               for( IT it=activeLine.begin();
                 it!=activeLine.end(); ++it)
               {
-                cout << "dist: " << CalcDistance(it->distance,
-                  elem.pointInTime,slope) << ", Tuple: " << it->tuple << endl;
+                std::cout << "dist: " << CalcDistance(it->distance,
+                  elem.pointInTime,slope) << ", Tuple: " << it->tuple
+                     << std::endl;
               }
               assert(false);
             }
@@ -4050,7 +4051,7 @@ int knearestFun (Word* args, Word& result, int message,
          // ignore the value given by the user.
          zone = index;
       }
-      cout << "use zone " << zone << endl;
+      std::cout << "use zone " << zone << std::endl;
       local.addr = zone<0? new KnearestLocalInfo(args[0], attrPos, mp,
                                    k->GetValue())
                          : new KnearestLocalInfo(args[0], attrPos, mp,
@@ -5340,8 +5341,9 @@ int knearestFunVector (Word* args, Word& result, int message,
               for( ITV it=localInfo->activeLine.begin();
                 it!=localInfo->activeLine.end(); ++it)
               {
-                cout << "dist: " << CalcDistance(it->distance,
-                  elem.pointInTime,slope) << ", Tuple: " << it->tuple << endl;
+                std::cout << "dist: " << CalcDistance(it->distance,
+                  elem.pointInTime,slope) << ", Tuple: " << it->tuple
+                     << std::endl;
               }
               assert(false);
             }
@@ -6327,9 +6329,9 @@ int isknnFun (Word* args, Word& result, int message,
 
   if(debugme)
   {
-    cout<<endl<<id<<endl<<rel<<endl<<btree<<
-        endl<<mboolAttr<<endl<<idAttr<<endl<<idType;
-    cout.flush();
+    std::cout<<std::endl<<id<<std::endl<<rel<<std::endl<<btree<<
+        std::endl<<mboolAttr<<std::endl<<idAttr<<std::endl<<idType;
+    std::cout.flush();
   }
 
   std::string queryListStr=
@@ -6348,8 +6350,8 @@ int isknnFun (Word* args, Word& result, int message,
         mboolAttr + "))";
   if(debugme)
   {
-    cout<<endl<<queryListStr;
-    cout.flush();
+    std::cout<<std::endl<<queryListStr;
+    std::cout.flush();
   }
 
   Word queryResult;
@@ -10254,15 +10256,15 @@ int ChinaknearestFun (Word* args, Word& result, int message,
     {
         localInfo = (TBKnearestLocalInfo*)local.addr;
         if(!localInfo){
-           cout << "no localinfo found" << endl;
+           std::cout << "no localinfo found" << std::endl;
            return CANCEL;
         }
         if(localInfo->k == 0) {
-          cout << "k is zero" << endl;
+          std::cout << "k is zero" << std::endl;
           return CANCEL;
         }
         if(localInfo->counter < localInfo->result.size()){
-            cout << "counter not reached" << endl;
+            std::cout << "counter not reached" << std::endl;
             TupleId tid = localInfo->result[localInfo->counter].tid;
             Tuple* tuple = localInfo->relation->GetTuple(tid, false);
             UPoint* up = (UPoint*)tuple->GetAttribute(localInfo->attrpos);
@@ -10292,17 +10294,17 @@ int ChinaknearestFun (Word* args, Word& result, int message,
             localInfo->counter++;
             return YIELD;
         }else{
-          cout << " counter >= size" << endl;
-          cout << "counter = " << localInfo->counter << endl;
-          cout << "localInfo->result.size() = " 
-               << localInfo->result.size() << endl;
+          std::cout << " counter >= size" << std::endl;
+          std::cout << "counter = " << localInfo->counter << std::endl;
+          std::cout << "localInfo->result.size() = " 
+               << localInfo->result.size() << std::endl;
           return CANCEL;
         }
     }
 
     case CLOSE :
     {
-      cout << "CLOSE called" << endl;
+      std::cout << "CLOSE called" << std::endl;
       localInfo = (TBKnearestLocalInfo*)local.addr;
       if(localInfo){
          delete localInfo;
@@ -10939,43 +10941,43 @@ int gnuplotnodeFun (Word* args, Word& result, int message,
   for(unsigned int i = 0; i < data.size();i++){
     Box_data box_data = data[i];
     datafile<<box_data.minx<<" "<<box_data.miny<<" "
-    <<864000*(box_data.maxt-min)<<endl;
+    <<864000*(box_data.maxt-min)<<std::endl;
     datafile<<box_data.maxx<<" "<<box_data.miny<<" "
-    <<864000*(box_data.maxt-min)<<endl;
+    <<864000*(box_data.maxt-min)<<std::endl;
     datafile<<box_data.maxx<<" "<<box_data.miny<<" "
-    <<864000*(box_data.mint-min)<<endl;
+    <<864000*(box_data.mint-min)<<std::endl;
     datafile<<box_data.minx<<" "<<box_data.miny<<" "
-    <<864000*(box_data.mint-min)<<endl;
+    <<864000*(box_data.mint-min)<<std::endl;
     datafile<<box_data.minx<<" "<<box_data.miny<<" "
-    <<864000*(box_data.maxt-min)<<endl;
+    <<864000*(box_data.maxt-min)<<std::endl;
     datafile<<box_data.minx<<" "<<box_data.maxy<<" "
-    <<864000*(box_data.maxt-min)<<endl;
+    <<864000*(box_data.maxt-min)<<std::endl;
     datafile<<box_data.maxx<<" "<<box_data.maxy<<" "
-    <<864000*(box_data.maxt-min)<<endl;
+    <<864000*(box_data.maxt-min)<<std::endl;
     datafile<<box_data.maxx<<" "<<box_data.miny<<" "
-    <<864000*(box_data.maxt-min)<<endl;
+    <<864000*(box_data.maxt-min)<<std::endl;
     datafile<<box_data.maxx<<" "<<box_data.miny<<" "
-    <<864000*(box_data.mint-min)<<endl;
+    <<864000*(box_data.mint-min)<<std::endl;
     datafile<<box_data.maxx<<" "<<box_data.maxy<<" "
-    <<864000*(box_data.mint-min)<<endl;
+    <<864000*(box_data.mint-min)<<std::endl;
     datafile<<box_data.minx<<" "<<box_data.maxy<<" "
-    <<864000*(box_data.mint-min)<<endl;
+    <<864000*(box_data.mint-min)<<std::endl;
     datafile<<box_data.minx<<" "<<box_data.miny<<" "
-    <<864000*(box_data.mint-min)<<endl;
+    <<864000*(box_data.mint-min)<<std::endl;
     datafile<<box_data.minx<<" "<<box_data.maxy<<" "
-    <<864000*(box_data.mint-min)<<endl;
+    <<864000*(box_data.mint-min)<<std::endl;
     datafile<<box_data.minx<<" "<<box_data.maxy<<" "
-    <<864000*(box_data.maxt-min)<<endl;
+    <<864000*(box_data.maxt-min)<<std::endl;
     datafile<<box_data.minx<<" "<<box_data.maxy<<" "
-    <<864000*(box_data.mint-min)<<endl;
+    <<864000*(box_data.mint-min)<<std::endl;
     datafile<<box_data.maxx<<" "<<box_data.maxy<<" "
-    <<864000*(box_data.mint-min)<<endl;
+    <<864000*(box_data.mint-min)<<std::endl;
     datafile<<box_data.maxx<<" "<<box_data.maxy<<" "
-    <<864000*(box_data.maxt-min)<<endl;
-    datafile<<endl<<endl;
+    <<864000*(box_data.maxt-min)<<std::endl;
+    datafile<<std::endl<<std::endl;
 
   }
-  cout<<count<<" nodes output in file "<<file->GetValue()<<endl;
+  std::cout<<count<<" nodes output in file "<<file->GetValue()<<std::endl;
   ((CcInt*)result.addr)->Set(true,count);
   return 0;
 }
@@ -11070,7 +11072,7 @@ struct CellPart{
     gmin[2] = 0;
 //
     for(unsigned int i = 0;i < 3;i++)
-      cout<<"size dimension "<<i<<" "<<cellsize[i]<<endl;
+      std::cout<<"size dimension "<<i<<" "<<cellsize[i]<<std::endl;
   }
   ~CellPart(){if(resulttype != NULL)delete resulttype;}
 
@@ -11187,7 +11189,7 @@ void CellPart::AssignUPinCell()
   cellbox.clear();
 
   UPoint* up = (UPoint*)(lasttuple->GetAttribute(attrpos));
-  cout<<"proces unit "<<*up<<endl;
+  std::cout<<"proces unit "<<*up<<std::endl;
   BBox<3> box = up->BoundingBox();
   double boxmin[3],boxmax[3];
 
@@ -11247,7 +11249,7 @@ void CellPart::AssignUPinCell()
       upoint->timeInterval.start = start;
       upoint->timeInterval.end = end;
       tempups.push_back(*upoint);
-      cout<<*upoint<<endl;
+      std::cout<<*upoint<<std::endl;
       delete upoint;
   }
 
@@ -11272,10 +11274,10 @@ void CellPart::AssignUPinCell()
       for(unsigned int j = 0;j < 3;i++){
         start_index.push_back((long)floor((lower[j]-gmin[i])/cellsize[j]));
         end_index.push_back((long)floor((upper[j]-gmin[i]) /cellsize[j]));
-        cout<<"start "<<j<<" "<<start_index[j]<<endl;
-        cout<<"end "<<j<<" "<<end_index[j]<<endl;
+        std::cout<<"start "<<j<<" "<<start_index[j]<<std::endl;
+        std::cout<<"end "<<j<<" "<<end_index[j]<<std::endl;
       }
-      cout<<endl;
+      std::cout<<std::endl;
 
       for(unsigned int i = 0;i < 3;i++)
         pos.push_back(-1);
@@ -12420,7 +12422,7 @@ class UnitCounter{
 
         if(    (lastStart > _start)
             || ((lastStart == _start) && lastClosed && !lc)){
-           std::cerr << "Tuples are in invalid order " << endl;
+           std::cerr << "Tuples are in invalid order " << std::endl;
         }
         lastStart = _start;
         lastClosed = _lc;

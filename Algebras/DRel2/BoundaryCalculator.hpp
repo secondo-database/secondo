@@ -76,7 +76,7 @@ Class to calculate boundaries for partitioning by range.
 1.1 Constructors
 
 */
-        BoundaryCalculator( std::string _attr, ListExpr _boundaryType, R* _drel, 
+        BoundaryCalculator( std::string _attr, ListExpr _boundaryType, R* _drel,
             ListExpr _sourcedType, int _port ) :
             attr( _attr ), boundaryType( _boundaryType ), drel( _drel ), 
             sourcedType( _sourcedType ), 
@@ -84,7 +84,7 @@ Class to calculate boundaries for partitioning by range.
             port( _port ) {
         }
 
-        BoundaryCalculator( std::string _attr, ListExpr _boundaryType, R* _drel, 
+        BoundaryCalculator( std::string _attr, ListExpr _boundaryType, R* _drel,
             ListExpr _sourcedType, int _port, int _count ) :
             attr( _attr ), boundaryType( _boundaryType ), drel( _drel ), 
             sourcedType( _sourcedType ), count( _count ), boundary( 0 ),
@@ -143,8 +143,8 @@ Computes a boundary object.
 */
         bool computeBoundary( ) {
 
-            cout << endl;
-            cout << "Start: Create boundary object ..." << endl;
+            std::cout << std::endl;
+            std::cout << "Start: Create boundary object ..." << std::endl;
 
             if( count < 0 ) {
                 if( !countDRel( ) ) {
@@ -166,25 +166,28 @@ Computes a boundary object.
 
             Word result;
             if( !QueryProcessor::ExecuteQuery( query, result ) ) {
-                cout << "hier" << endl;
-                cout << "ERROR: Create boundary object failed!" << endl;
+                std::cout << "hier" << std::endl;
+                std::cout << "ERROR: Create boundary object failed!"
+                   << std::endl;
                 return false;
             }
 
             boundary = static_cast<collection::Collection*>( result.addr );
 
             if( !boundary ) {
-                cout << "ERROR: Create boundary object failed!" << endl;
+                std::cout << "ERROR: Create boundary object failed!"
+                   << std::endl;
                 return false;
             }
             else if( !boundary->IsDefined( ) ) {
-                cout << "ERROR: Create boundary object failed!" << endl;
+                std::cout << "ERROR: Create boundary object failed!"
+                   << std::endl;
                 delete boundary;
                 boundary = 0;
                 return false;
             }
 
-            cout << "Done. Boundary object created!" << endl;
+            std::cout << "Done. Boundary object created!" << std::endl;
 
             return true;
         }
@@ -197,8 +200,8 @@ Computes the number of tuple in the given drel.
 */
         bool countDRel( ) {
 
-            cout << endl;
-            cout << "Start: Compute the size of the drel ..." << endl;
+            std::cout << std::endl;
+            std::cout << "Start: Compute the size of the drel ..." << std::endl;
 
             std::string query;
 
@@ -220,19 +223,22 @@ Computes the number of tuple in the given drel.
 
             Word result;
             if( !QueryProcessor::ExecuteQuery( query, result ) ) {
-                cout << "ERROR: Computation of the drel size failed!" << endl;
+                std::cout << "ERROR: Computation of the drel size failed!"
+                   << std::endl;
                 return false;
             }
 
             CcInt* res = ( CcInt* )result.addr;
 
             if( !res ) {
-                cout << "ERROR: Computation of the drel size failed!" << endl;
+                std::cout << "ERROR: Computation of the drel size failed!"
+                   << std::endl;
                 return false;
             }
 
             if( !res->IsDefined( ) ) {
-                cout << "ERROR: Computation of the drel size failed!" << endl;
+                std::cout << "ERROR: Computation of the drel size failed!"
+                   << std::endl;
                 delete res;
                 count = 0;
                 return false;
@@ -241,7 +247,8 @@ Computes the number of tuple in the given drel.
             count = res->GetValue( );
             delete res;
 
-            cout << "Done. DRel size: " + std::to_string( count ) << endl;
+            std::cout << "Done. DRel size: " + std::to_string( count )
+               << std::endl;
 
             return true;
         }

@@ -73,8 +73,8 @@ namespace continuousqueries {
 */
 
 ListExpr foreverQueries_TM(ListExpr args) {
-    std::cout << "foreverQueries: TypeMapping" << endl;
-    std::cout << "Argument: " << nl->ToString(args) << endl;
+    std::cout << "foreverQueries: TypeMapping" << std::endl;
+    std::cout << "Argument: " << nl->ToString(args) << std::endl;
 
     // Check for text x int x text x int x int -> text
     if (!nl->HasLength(args, 5))
@@ -428,7 +428,7 @@ class foreverQueries_LI {
 int foreverQueries_VM( Word* args, Word& result, int message,
     Word& local, Supplier s ) 
 {
-    std::cout << "foreverQueries: ValueMapping" << endl;
+    std::cout << "foreverQueries: ValueMapping" << std::endl;
 
     FText*  ftaddress = static_cast<FText*>(args[0].addr);  
     CcInt*  ccport    = (CcInt*) args[1].addr; 
@@ -454,8 +454,9 @@ int foreverQueries_VM( Word* args, Word& result, int message,
     client.Send(CoordinatorGenP::userauth() + "|" + hash + "|" 
         + ftemail->GetValue() + "|register");
     
-    std::cout << endl << "Log in to the webinterface with username '" 
-              << ftemail->GetValue() << "' and password 'password'." << endl;
+    std::cout << std::endl << "Log in to the webinterface with username '" 
+              << ftemail->GetValue() << "' and password 'password'."
+                 << std::endl;
 
     std::string lastQuery = "";
     std::string newQuery = "";
@@ -469,18 +470,18 @@ int foreverQueries_VM( Word* args, Word& result, int message,
         client.Send(CoordinatorGenP::addquery(0, "", false) + "|" + hash
             + "|" + newQuery);
 
-        std::cout << "Added Query: " << newQuery << endl;
+        std::cout << "Added Query: " << newQuery << std::endl;
 
         newQuery = li->getNext();
 
         if (newQuery!="")
         {
-            std::cout << "Now waiting for 20 milliseconds..." << endl;
+            std::cout << "Now waiting for 20 milliseconds..." << std::endl;
             std::this_thread::sleep_for(std::chrono::milliseconds(20));
         }
     } // repeat until li yields ""
 
-    std::cout << "All done!" << endl;
+    std::cout << "All done!" << std::endl;
 
     client.Shutdown();
 

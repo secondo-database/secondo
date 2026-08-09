@@ -3,7 +3,7 @@ This file is part of SECONDO.
 
 Copyright (C) 2011, University in Hagen, Department of Computer Science,
 Database Systems for New Applications.
-	  
+          
 SECONDO is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
 the Free Software Foundation; either version 2 of the License, or
@@ -36,21 +36,21 @@ definition of RASTER2\_TRACE Macro
 
 */
 
-#define RASTER2_TRACE cout << __PRETTY_FUNCTION__ \
+#define RASTER2_TRACE std::cout << __PRETTY_FUNCTION__ \
                            << " of object " << this \
                            << " in " << __FILE__ \
                            << " line " << __LINE__ \
-                           << endl;
+                           << std::endl;
                            
 /*
 definition of RASTER2\_STATIC\_TRACE Macro
 
 */
 
-#define RASTER2_STATIC_TRACE cout << __PRETTY_FUNCTION__ \
+#define RASTER2_STATIC_TRACE std::cout << __PRETTY_FUNCTION__ \
                                   << " in " << __FILE__ \
                                   << " line " << __LINE__ \
-                                  << endl;
+                                  << std::endl;
 
 /*
 const type name for type sint

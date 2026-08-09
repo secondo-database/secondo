@@ -426,7 +426,7 @@ This functor realized the type mapping.
 */
      ListExpr operator()(const ListExpr args) const{
        std::stringstream  err;
-       err <<  "allowed = " << endl << getSignatures();
+       err <<  "allowed = " << std::endl << getSignatures();
        for(unsigned int i=0;i<mappings.size();i++){
          if(mappings[i].check(args)){
            return nl->SymbolAtom(mappings[i].getResultType());
@@ -463,7 +463,7 @@ Returns the allowed signatures line by line.
        for(unsigned int i=0;i<mappings.size();i++){
           sigs << mappings[i].argString() 
                << " -> " << mappings[i].getResultType() 
-               << endl; 
+               << std::endl; 
        }
        return sigs.str();
      }

@@ -143,7 +143,7 @@ int op_importxyz::importxyzVMT( Word* args, Word& result, int message,
 
     std::ifstream fileStream(filename);
     if (!fileStream.is_open()) {
-        std::cout << "Error opening file." << endl;
+        std::cout << "Error opening file." << std::endl;
         return -1;
     }
 
@@ -204,9 +204,9 @@ int op_importxyz::importxyzVMT( Word* args, Word& result, int message,
     const unsigned int  imported = lines - errLines;
 
     //DEBUG lines
-    std::cout << endl;
-    std::cout << "Lines imported: " << imported << endl;
-    std::cout << "Lines with errors: " << errLines << endl;
+    std::cout << std::endl;
+    std::cout << "Lines imported: " << imported << std::endl;
+    std::cout << "Lines with errors: " << errLines << std::endl;
 
     if(local.addr){
         local.addr = nullptr;
@@ -380,12 +380,12 @@ int op_importPc2FromLas::importPc2FromLasVMT( Word* args, Word& result,
         //DEBUG
         ++pointCount;
         if (pointCount % 10000 == 0)
-            std::cout << pointCount << " points ..." << endl;
+            std::cout << pointCount << " points ..." << std::endl;
     }
     pc2->finalizeInsert();
 
     //DEBUG
-    std::cout << pointCount << " points imported." << endl;
+    std::cout << pointCount << " points imported." << std::endl;
 
     if (local.addr) {
         local.addr = nullptr;
@@ -512,7 +512,8 @@ int op_importPc2FromStl::importPc2FromStlVM( Word* args, Word& result,
 
     //DEBUG lines
     if (REPORT_TO_CONSOLE)
-        std::cout << endl << facets->size() << " facets imported" << endl;
+        std::cout << std::endl << facets->size() << " facets imported"
+           << std::endl;
 
     ShapeGenerator::Rotation rotation =
             static_cast<ShapeGenerator::Rotation>(rotationMode);

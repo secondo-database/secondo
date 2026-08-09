@@ -112,10 +112,11 @@ int TsArima::tsWhiteNoiseValueMap(Word *args, Word &result,
         {
             Attribute* attribute = clone->GetAttribute(attr_no);
             CcReal* value = ((CcReal*)attribute);
-            cout << "Ursprünglicher Wert: "
+            std::cout << "Ursprünglicher Wert: "
                  << to_string(value->GetValue()) << " ";
             value->Set(value->GetValue() + white_noise(generator));
-            cout << "Noisy value : " << to_string(value->GetValue()) << endl;
+            std::cout << "Noisy value : " << to_string(value->GetValue())
+               << std::endl;
         }
         noisy_timeseries->AppendTuple(clone);
         current_tuple->DeleteIfAllowed();
@@ -201,8 +202,8 @@ int TsArima::tsDifValueMap(Word *args, Word &result, int message,
                                        GetAttribute(attr_no))->GetValue();
                 ((CcReal*) differenced_value->
                         GetAttribute(attr_no))->Set(first_value - second_value);
-                cout<< "Differenzierter Wert: "
-                    << to_string(first_value-second_value) << endl;
+                std::cout<< "Differenzierter Wert: "
+                    << to_string(first_value-second_value) << std::endl;
             }
             differenced_values.push_back(differenced_value);
 
@@ -355,7 +356,7 @@ int TsArima::tsMAValueMap(Word *args, Word &result, int message,
 
     Arima* arima = new Arima(0, 0, ma_order, steps, timeseries_values);
     vector<double> prediction = arima->ma();
-    cout << "Prepare Result MA" << endl;
+    std::cout << "Prepare Result MA" << std::endl;
     prepareResult(timeseries_values, prediction,
                   timeseries, predictedtimeseries, steps);
 
@@ -453,7 +454,7 @@ int TsArima::tsARIMAValueMap(Word *args, Word &result,
     Arima* arima = new Arima(ar_order, differencing_order,
                              ma_order, steps, timeseries_values);
     vector<double> prediction = arima->forecast();
-    cout << "Prepare Result ARIMA" << endl;
+    std::cout << "Prepare Result ARIMA" << std::endl;
     prepareResult(timeseries_values, prediction, timeseries,
                   predictedtimeseries, steps);
 
@@ -542,7 +543,7 @@ int TsArima::tsARMAValueMap(Word *args, Word &result, int message,
 
     Arima* arima = new Arima(ar_order, 0, ma_order, steps, timeseries_values);
     vector<double> prediction = arima->forecast();
-    cout << "Prepare Result ARMA" << endl;
+    std::cout << "Prepare Result ARMA" << std::endl;
     prepareResult(timeseries_values, prediction, timeseries,
                   predictedtimeseries, steps);
 

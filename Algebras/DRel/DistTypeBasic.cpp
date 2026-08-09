@@ -149,7 +149,7 @@ Implementation.
     DistTypeBasic::DistTypeBasic( ) {
 
         #ifdef DRELDEBUG
-        cout << "DistTypeBasic::DistTypeBasic" << endl;
+        std::cout << "DistTypeBasic::DistTypeBasic" << std::endl;
         #endif
     }
 
@@ -157,9 +157,9 @@ Implementation.
         type( _type ) {
 
         #ifdef DRELDEBUG
-        cout << "DistTypeBasic::DistTypeBasic" << endl;
-        cout << "distType" << endl;
-        cout << _type << endl;
+        std::cout << "DistTypeBasic::DistTypeBasic" << std::endl;
+        std::cout << "distType" << std::endl;
+        std::cout << _type << std::endl;
         #endif
     }
 
@@ -171,7 +171,7 @@ Implementation.
         type( _distType.type ) {
 
         #ifdef DRELDEBUG
-        cout << "DistTypeBasic copy constructor" << endl;
+        std::cout << "DistTypeBasic copy constructor" << std::endl;
         #endif
     }
 
@@ -182,7 +182,7 @@ Implementation.
     DistTypeBasic& DistTypeBasic::operator=( const DistTypeBasic& _distType ) {
 
         #ifdef DRELDEBUG
-        cout << "DistTypeBasic assignment operator" << endl;
+        std::cout << "DistTypeBasic assignment operator" << std::endl;
         #endif
 
         if( this == &_distType ) {
@@ -199,7 +199,7 @@ Implementation.
     DistTypeBasic::~DistTypeBasic( ) {
 
         #ifdef DRELDEBUG
-        cout << "DistTypeBasic destructor" << endl;
+        std::cout << "DistTypeBasic destructor" << std::endl;
         #endif
 
     }
@@ -213,7 +213,7 @@ Compares the current DistType with another one.
     bool DistTypeBasic::isEqual( DistTypeBasic* _distType ) {
 
         #ifdef DRELDEBUG
-        cout << "DistTypeBasic::isEqual" << endl;
+        std::cout << "DistTypeBasic::isEqual" << std::endl;
         #endif
         if(_distType==nullptr){
           return false;
@@ -233,7 +233,7 @@ Returns the distribution type.
     distributionType DistTypeBasic::getDistType( ) {
 
         #ifdef DRELDEBUG
-        cout << "DistTypeBasic::getDistType" << endl;
+        std::cout << "DistTypeBasic::getDistType" << std::endl;
         #endif
 
         return type;
@@ -248,7 +248,7 @@ Make a copy of the current object.
     DistTypeBasic* DistTypeBasic::copy( ) {
 
         #ifdef DRELDEBUG
-        cout << "DistTypeBasic::copy" << endl;
+        std::cout << "DistTypeBasic::copy" << std::endl;
         #endif
 
         return new DistTypeBasic( *this );
@@ -263,7 +263,7 @@ Checks whether the type in nested list format fits to this disttype.
     bool DistTypeBasic::checkType( ListExpr list ) {
 
         #ifdef DRELDEBUG
-        cout << "DistTypeBasic::checkType" << endl;
+        std::cout << "DistTypeBasic::checkType" << std::endl;
         #endif
 
         if( !nl->HasLength( list, 1) ) {
@@ -282,7 +282,7 @@ Writes a DistType to the storage.
         const ListExpr typeInfo ) {
 
         #ifdef DRELDEBUG
-        cout << "DistTypeBasic::save" << endl;
+        std::cout << "DistTypeBasic::save" << std::endl;
         #endif
 
         return true;
@@ -297,11 +297,12 @@ Returns the disttype as nestedlist.
     ListExpr DistTypeBasic::toListExpr( ListExpr _typeInfo ) {
 
         #ifdef DRELDEBUG
-        cout << "DistTypeBasic::save" << endl;
-        cout << "typeInfo" << endl;
-        cout << nl->ToString( typeInfo ) << endl;
-        cout << "result list" << endl;
-        cout << nl->ToString( nl->OneElemList( nl->IntAtom( type ) ) ) << endl;
+        std::cout << "DistTypeBasic::save" << std::endl;
+        std::cout << "typeInfo" << std::endl;
+        std::cout << nl->ToString( typeInfo ) << std::endl;
+        std::cout << "result list" << std::endl;
+        std::cout << nl->ToString( nl->OneElemList( nl->IntAtom( type ) ) )
+           << std::endl;
         #endif
 
         return nl->OneElemList(
@@ -315,8 +316,8 @@ Prints the dist type informations. Used for debugging.
 
 */
     void DistTypeBasic::print( ) {
-        cout << "type" << endl;
-        cout << getName( type ) << endl;
+        std::cout << "type" << std::endl;
+        std::cout << getName( type ) << std::endl;
     }
 
 /*

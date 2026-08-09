@@ -66,13 +66,13 @@ Implementation.
         DistTypeHash( _type, _attr ), key( rand( ) ), grid( _grid ) {
 
         #ifdef DRELDEBUG
-        cout << "DistTypeSpatial::DistTypeSpatial" << endl;
-        cout << "type" << endl;
-        cout << _type << endl;
-        cout << "attr" << endl;
-        cout << _attr << endl;
-        cout << "key" << endl;
-        cout << key << endl;
+        std::cout << "DistTypeSpatial::DistTypeSpatial" << std::endl;
+        std::cout << "type" << std::endl;
+        std::cout << _type << std::endl;
+        std::cout << "attr" << std::endl;
+        std::cout << _attr << std::endl;
+        std::cout << "key" << std::endl;
+        std::cout << key << std::endl;
         #endif
     }
     
@@ -82,13 +82,13 @@ Implementation.
         DistTypeHash( _type, _attr ), key( _key ), grid( _grid ) {
 
         #ifdef DRELDEBUG
-        cout << "DistTypeSpatial::DistTypeSpatial" << endl;
-        cout << "type" << endl;
-        cout << _type << endl;
-        cout << "attr" << endl;
-        cout << _attr << endl;
-        cout << "key" << endl;
-        cout << _key << endl;
+        std::cout << "DistTypeSpatial::DistTypeSpatial" << std::endl;
+        std::cout << "type" << std::endl;
+        std::cout << _type << std::endl;
+        std::cout << "attr" << std::endl;
+        std::cout << _attr << std::endl;
+        std::cout << "key" << std::endl;
+        std::cout << _key << std::endl;
         #endif
     }
 
@@ -102,7 +102,7 @@ Implementation.
         key( _distType.key ) {
         grid = new T(*(_distType.grid));
         #ifdef DRELDEBUG
-        cout << "DistTypeSpatial copy constructor" << endl;
+        std::cout << "DistTypeSpatial copy constructor" << std::endl;
         #endif
     }
 
@@ -115,7 +115,7 @@ Implementation.
         const DistTypeSpatial& _distType ) {
 
         #ifdef DRELDEBUG
-        cout << "DistTypeSpatial assignment operator" << endl;
+        std::cout << "DistTypeSpatial assignment operator" << std::endl;
         #endif
 
 
@@ -138,7 +138,7 @@ Implementation.
           delete grid;
         }
         #ifdef DRELDEBUG
-        cout << "DistTypeSpatial destructor" << endl;
+        std::cout << "DistTypeSpatial destructor" << std::endl;
         #endif
     }
 
@@ -152,7 +152,7 @@ Compares the current DistType with another one.
     bool DistTypeSpatial<T>::isEqual( DistTypeBasic* _distType ) {
 
         #ifdef DRELDEBUG
-        cout << "DistTypeSpatial::isEqual" << endl;
+        std::cout << "DistTypeSpatial::isEqual" << std::endl;
         #endif
 
         if( typeid( *_distType ) != typeid( *this ) ) {
@@ -176,7 +176,7 @@ Returns the key.
     int DistTypeSpatial<T>::getKey( ) {
 
         #ifdef DRELDEBUG
-        cout << "DistTypeSpatial::getKey" << endl;
+        std::cout << "DistTypeSpatial::getKey" << std::endl;
         #endif
 
         return key;
@@ -192,7 +192,7 @@ Returns the grid.
     T* DistTypeSpatial<T>::getGrid( ) {
 
         #ifdef DRELDEBUG
-        cout << "DistTypeSpatial::getGrid" << endl;
+        std::cout << "DistTypeSpatial::getGrid" << std::endl;
         #endif
 
         return grid;
@@ -209,7 +209,7 @@ of a suported type to distribute by spatial2d.
     bool DistTypeSpatial<T>::allowedAttrType2d( ListExpr _list ) {
 
         #ifdef DRELDEBUG
-        cout << "DistTypeSpatial::allowedAttrType2d" << endl;
+        std::cout << "DistTypeSpatial::allowedAttrType2d" << std::endl;
         #endif
 
         return Point::checkType( _list )
@@ -228,7 +228,7 @@ of a suported type to distribute by spatial3d.
     bool DistTypeSpatial<T>::allowedAttrType3d( ListExpr _list ) {
 
         #ifdef DRELDEBUG
-        cout << "DistTypeSpatial::allowedAttrType3d" << endl;
+        std::cout << "DistTypeSpatial::allowedAttrType3d" << std::endl;
         #endif
 
         return temporalalgebra::UPoint::checkType( _list );
@@ -244,7 +244,7 @@ Make a copy of the current object.
     DistTypeBasic* DistTypeSpatial<T>::copy( ) {
 
         #ifdef DRELDEBUG
-        cout << "DistTypeSpatial::copy" << endl;
+        std::cout << "DistTypeSpatial::copy" << std::endl;
         #endif
 
         return new DistTypeSpatial<T>( *this );
@@ -260,7 +260,7 @@ Checks whether the type in nested list format fits to this disttype.
     bool DistTypeSpatial<T>::checkType( ListExpr list ) {
 
         #ifdef DRELDEBUG
-        cout << "DistTypeSpatial::checkType" << endl;
+        std::cout << "DistTypeSpatial::checkType" << std::endl;
         #endif
 
         if( !nl->HasLength( list, 4 ) ) {
@@ -293,7 +293,7 @@ Writes a DistType to the storage.
         SmiRecord& valueRecord, size_t& offset, const ListExpr typeInfo ) {
 
         #ifdef DRELDEBUG
-        cout << "DistTypeSpatial::save" << endl;
+        std::cout << "DistTypeSpatial::save" << std::endl;
         #endif
 
         if( !DistTypeHash::save( 
@@ -307,19 +307,19 @@ Writes a DistType to the storage.
         }
 
         #ifdef DRELDEBUG
-        cout << "grid value" << endl;
-        grid->Print( cout );
-        cout << endl;
+        std::cout << "grid value" << std::endl;
+        grid->Print( std::cout );
+        std::cout << std::endl;
         #endif
 
         Word value( grid );
         bool saveGrid = SaveAttribute<T>( 
             valueRecord, offset, nl->Fourth( typeInfo ), value );
         #ifdef DRELDEBUG
-        cout << "dist type info" << endl;
-        cout << nl->ToString( nl->Fourth( typeInfo ) ) << endl;
-        cout << "save grid ok?" << endl;
-        cout << saveGrid << endl;
+        std::cout << "dist type info" << std::endl;
+        std::cout << nl->ToString( nl->Fourth( typeInfo ) ) << std::endl;
+        std::cout << "save grid ok?" << std::endl;
+        std::cout << saveGrid << std::endl;
         #endif
 
         return saveGrid;
@@ -335,8 +335,8 @@ Returns the object as a list.
     ListExpr DistTypeSpatial<T>::toListExpr( ListExpr typeInfo ) {
 
         #ifdef DRELDEBUG
-        cout << "DistTypeSpatial::toListExpr" << endl;
-        cout << nl->ToString( typeInfo ) << endl;
+        std::cout << "DistTypeSpatial::toListExpr" << std::endl;
+        std::cout << nl->ToString( typeInfo ) << std::endl;
         #endif
 
         return nl->FourElemList(
@@ -356,8 +356,8 @@ Prints the dist type informations. Used for debugging.
     template<class T>
     void DistTypeSpatial<T>::print( ) {
         DistTypeHash::print( );
-        cout << "key" << endl;
-        cout << key << endl;
+        std::cout << "key" << std::endl;
+        std::cout << key << std::endl;
     }
 
 /*

@@ -180,8 +180,8 @@ string CypherLanguage::dumpAsListExpr()
   stringstream s;
   set<string> allNodes;
 
-  s << "( "<<endl;
-  s << "   ( "<<endl;
+  s << "( "<<std::endl;
+  s << "   ( "<<std::endl;
   for(auto&& p : Paths)
   {
     for(auto&& pp : p.parts)
@@ -226,55 +226,57 @@ string CypherLanguage::dumpAsListExpr()
         }
     }
   }
-   s << "   ) "<<endl;
-   s << "   ( "<<endl;
+   s << "   ) "<<std::endl;
+   s << "   ( "<<std::endl;
     for(auto&& f : filters)
     {
       s << "      ((" << f.alias << " " << f.name <<") "<<f.op<< " " << 
              f.value << ")" << std::endl;
     }
 
-   s << "   ) "<<endl;
-   s << "   ( "<<endl;
+   s << "   ) "<<std::endl;
+   s << "   ( "<<std::endl;
     for(auto&& f : returnfields)
     {
       s << "      ((" << f.alias << " " << f.name << ") "<< f.fieldname 
-        << ")" << endl;
+        << ")" << std::endl;
     }
 
-   s << "   )"<<endl;
-   s << ")"<<endl;
+   s << "   )"<<std::endl;
+   s << ")"<<std::endl;
 
   return s.str();
 }
 
 void CypherLanguage::dump()
 {
-      cout << "MATCH" << std::endl;
+      std::cout << "MATCH" << std::endl;
       for(auto&& p : Paths)
       {
-        cout << "  Path "  << std::endl;
+        std::cout << "  Path "  << std::endl;
         for(auto&& pp : p.parts)
         {
             if (pp.type==PathPartType::NODE)
             {
-              cout << "    " <<"NODE" << std::endl;
-             if (pp.Alias!="") cout << "    " <<"  alias:" <<  pp.Alias<< endl;
-             if (pp.TypeName!="") cout << "    " <<"  nodetype:" <<  
-                  pp.TypeName<< endl;
+              std::cout << "    " <<"NODE" << std::endl;
+             if (pp.Alias!="") std::cout << "    " <<"  alias:" <<  pp.Alias
+                << std::endl;
+             if (pp.TypeName!="") std::cout << "    " <<"  nodetype:" <<  
+                  pp.TypeName<< std::endl;
             }
             else
             {
-               cout << "    " <<"EDGE" << endl;
-               if (pp.direction!="") cout << "    " <<"  direction:" <<  
-                     pp.direction << endl;
+               std::cout << "    " <<"EDGE" << std::endl;
+               if (pp.direction!="") std::cout << "    " <<"  direction:" <<  
+                     pp.direction << std::endl;
             }
             if (pp.Properties.size()>0)
             {
-              cout << "      " <<"PROPS" << endl;
+              std::cout << "      " <<"PROPS" << std::endl;
               for(auto&& prop : pp.Properties)
               {
-                cout << "        " << prop.name << "=" << prop.value << endl;
+                std::cout << "        " << prop.name << "=" << prop.value
+                   << std::endl;
               }
             }
         }

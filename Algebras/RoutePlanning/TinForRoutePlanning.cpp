@@ -69,7 +69,7 @@ routeplanningalgebra::TinForRoutePlanning::createTinFrom3DCoordinates(
     vc->insertVertex_p(&v);
     priorv = v;
 
-    cout.precision(8);
+    std::cout.precision(8);
     DETAIL << "Point (" << v.getX() << ", " << v.getY() << ", " << v.getZ()
            << ") added to Tin." << "\r\n";
   }

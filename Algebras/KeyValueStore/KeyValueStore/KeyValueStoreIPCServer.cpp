@@ -49,7 +49,7 @@ KeyValueStoreIPCServer::KeyValueStoreIPCServer(std::string appPath, int appId,
   buildDispatchMap(dispatchMap);
 
   if (!useConsole) {
-    cout << "Application initialized.\n";
+    std::cout << "Application initialized.\n";
 
     char hostname[255];
     hostname[0] = '\0';
@@ -131,19 +131,19 @@ int KeyValueStoreIPCServer::run() {
   unsigned int idleCounter = 0;
 
   if (gate.open()) {
-    KOUT << "Gate opened. Waiting for new connections." << endl;
+    KOUT << "Gate opened. Waiting for new connections." << std::endl;
     while (true) {
       IPCConnection* newConn = gate.nextConnection();
 
       if (newConn) {
-        KOUT << "Opened IPC-Connection:" << newConn->connectionId << endl;
+        KOUT << "Opened IPC-Connection:" << newConn->connectionId << std::endl;
 
         if (newConn->health()) {
           // KOUT<<"New Connection established.."<<endl;
           connections.push_back(newConn);
         } else {
           delete newConn;
-          KOUT << "Connection failed.." << endl;
+          KOUT << "Connection failed.." << std::endl;
         }
       }
 
@@ -163,7 +163,7 @@ int KeyValueStoreIPCServer::run() {
         } else if (!connections[connIdx]->health()) {
           connections.erase(connections.begin() + connIdx);
           connIdx--;
-          KOUT << "Connection removed..." << endl;
+          KOUT << "Connection removed..." << std::endl;
         }
       }
 
@@ -173,7 +173,7 @@ int KeyValueStoreIPCServer::run() {
       }
     }
   } else {
-    KOUT << "Failed to open gate." << endl;
+    KOUT << "Failed to open gate." << std::endl;
     return -1;
   }
 
@@ -191,7 +191,7 @@ int KeyValueStoreIPCServer::dispatch(IPCConnection* conn) {
     return dispatchItr->second(&kvs, conn);
   } else {
     KOUT << "Error: Unknown message type (" << messageType << ")."
-         << " Last Message:" << lastMessage << endl;
+         << " Last Message:" << lastMessage << std::endl;
   }
 
   return NORESULT;

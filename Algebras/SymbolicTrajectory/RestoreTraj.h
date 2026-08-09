@@ -411,7 +411,7 @@ struct AreaHistory {
     for (unsigned int i = 0; i < ah.history.size(); i++) {
       os << ah.history[i] << ", ";
     }
-    os << ">" << endl;
+    os << ">" << std::endl;
     return os;
   }
   

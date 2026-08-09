@@ -979,7 +979,7 @@ Prints out this node.
 */
 
   virtual std::ostream& print(std::ostream& os)const{
-     return Node<Dim, Info>::print(os) << next << endl;
+     return Node<Dim, Info>::print(os) << next << std::endl;
   }
 
 /*
@@ -1371,26 +1371,26 @@ Returns a new empty leaf node
     std::string toString(){
 
        std::ostringstream os;
-       os << "[ -- tbtree -- " << endl
-          << "  fileId       : " << file.GetFileId() << endl
-          << "  rootId       : " << rootId << endl
-          << "  headerId     : " << headerId << endl
-          << "  leafMin      : " << leafMin << endl
-          << "  leafMax      : " << leafMax << endl
-          << "  innerMin     : " << innerMin << endl
-          << "  innerMax     : " << innerMax << endl
-          << "  entries      : " << noEntries << endl
-          << "  nodes        : " << noNodes  << endl
-          << "  leafNodes    : " << noLeafNodes << endl
-          << "  level        : " << level << endl
-          << "  recordLength : " << recordLength << endl
+       os << "[ -- tbtree -- " << std::endl
+          << "  fileId       : " << file.GetFileId() << std::endl
+          << "  rootId       : " << rootId << std::endl
+          << "  headerId     : " << headerId << std::endl
+          << "  leafMin      : " << leafMin << std::endl
+          << "  leafMax      : " << leafMax << std::endl
+          << "  innerMin     : " << innerMin << std::endl
+          << "  innerMax     : " << innerMax << std::endl
+          << "  entries      : " << noEntries << std::endl
+          << "  nodes        : " << noNodes  << std::endl
+          << "  leafNodes    : " << noLeafNodes << std::endl
+          << "  level        : " << level << std::endl
+          << "  recordLength : " << recordLength << std::endl
           << "  box          : ";
        if(!box.IsDefined()){
           os << "undef";
        } else {
           os << box;
        }
-       os << endl << "]";
+       os << std::endl << "]";
        return os.str();
 
     }
@@ -1553,7 +1553,8 @@ calculate number of different trajectories in this node
        }
 
        if(offset>size){
-           cout << "offset = " << offset << "  , size = " << size << endl;
+           std::cout << "offset = " << offset << "  , size = " << size
+              << std::endl;
        }
        assert(offset<=size);
 

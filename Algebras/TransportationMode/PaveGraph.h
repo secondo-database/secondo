@@ -118,8 +118,8 @@ struct SPath_elem:public Path_elem{
 
   void Print()
   {
-    cout<<"prev "<<prev_index<<" cur "<<cur_index
-        <<"tri_index" <<tri_index<<" weight "<<weight<<endl;
+    std::cout<<"prev "<<prev_index<<" cur "<<cur_index
+        <<"tri_index" <<tri_index<<" weight "<<weight<<std::endl;
   }
 };
 
@@ -152,8 +152,8 @@ struct WPath_elem:public Path_elem{
 
   void Print()
   {
-    cout<<" tri_index" <<tri_index<<" loc "<<loc
-        <<" realweight "<<real_w<<" weight "<<weight<<endl;
+    std::cout<<" tri_index" <<tri_index<<" loc "<<loc
+        <<" realweight "<<real_w<<" weight "<<weight<<std::endl;
   }
 };
 
@@ -477,8 +477,8 @@ struct Clamp{
   }
   void Print()
   {
-    cout<<"apex "<<apex<<" foot1 "<<foot1<<" foot2 "
-        <<foot2<<"angle "<<angle<<endl;
+    std::cout<<"apex "<<apex<<" foot1 "<<foot1<<" foot2 "
+        <<foot2<<"angle "<<angle<<std::endl;
   }
 };
 
@@ -618,9 +618,9 @@ struct Triangle{
   }
   void Print()
   {
-    cout<<"oid "<<oid<<" "<<
-        v1<<" "<<v2<<" "<<v3<<" neighbor "<<neighbor_no<<endl;
-    cout<<"cycleno "<<c1<<" "<<c2<<" "<<c3<<endl;
+    std::cout<<"oid "<<oid<<" "<<
+        v1<<" "<<v2<<" "<<v3<<" neighbor "<<neighbor_no<<std::endl;
+    std::cout<<"cycleno "<<c1<<" "<<c2<<" "<<c3<<std::endl;
   }
 
 };
@@ -728,7 +728,7 @@ struct GeomPoint{
     }
     void Print()
     {
-      cout<<"( "<<x<<" "<<y<<" )"<<endl; 
+      std::cout<<"( "<<x<<" "<<y<<" )"<<std::endl; 
     }
     int x;
     int y; 
@@ -764,7 +764,8 @@ struct GeomEdge{
     }
 
     void Print(){
-      cout<<"xmin "<<xmin<<" xmax "<<xmax<<" ymin "<<ymin<<" ymax "<<ymax<<endl;
+      std::cout<<"xmin "<<xmin<<" xmax "<<xmax<<" ymin "<<ymin<<" ymax "<<ymax
+         <<std::endl;
     }
 
     int xmin, xmax; /* horiz, +x is right */
@@ -808,8 +809,8 @@ struct Build_Rect{
   init(br.init), quadrant(br.quadrant){}
   void Print()
   {
-    cout<<"reg_id "<<reg_id<<" rect "<<rect<<" poly_id "<<poly_id
-        <<" reg_type "<<reg_type<<endl;
+    std::cout<<"reg_id "<<reg_id<<" rect "<<rect<<" poly_id "<<poly_id
+        <<" reg_type "<<reg_type<<std::endl;
   }
 };
 

@@ -43,17 +43,17 @@ int main()
   int token;
   xxlval = 0;
 
-  cout << "lex input=" << str << endl;
+  std::cout << "lex input=" << str << std::endl;
   token = lex.yylex();
   while (token != 0)
   {
-    cout << "Token " << token << " lval=" << xxlval << " "; 
+    std::cout << "Token " << token << " lval=" << xxlval << " "; 
     if (xxlval != 0)
     {
       NestedText::Print( xxlval );
       xxlval = 0;
     }
-    cout << endl;
+    std::cout << std::endl;
     token = lex.yylex();
   }
 }

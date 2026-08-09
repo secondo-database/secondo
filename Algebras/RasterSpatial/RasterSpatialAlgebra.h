@@ -219,7 +219,7 @@ Raster4CRS *CRasterRegion::calculateRaster(int signatureType) const{
   else if (signatureType == 4)
     type = SIGNAT_4CRS;
   else
-    cout << "Invalid signatureType" << std::endl;
+    std::cout << "Invalid signatureType" << std::endl;
 
   signature = GeraRasterSecondo::generateRaster( 1, r1, NULL, NULL,
                  potency, type);
@@ -611,7 +611,7 @@ Raster4CRS *CRasterLine::calculateRaster(int signatureType) const{
   else if (signatureType == 4)
     type = SIGNAT_4CRS;
   else
-    cout << "Invalid signatureType" << std::endl;
+    std::cout << "Invalid signatureType" << std::endl;
 
   signature = GeraRasterSecondo::generateRaster( 1, NULL, l1, NULL, potency,
               type);
@@ -1054,7 +1054,7 @@ Raster4CRS *CRasterPoints::calculateRaster(int signatureType) const{
   else if (signatureType == 4)
     type = SIGNAT_4CRS;
   else
-    cout << "Invalid signatureType" << std::endl;
+    std::cout << "Invalid signatureType" << std::endl;
 
   signature = GeraRasterSecondo::generateRaster( 1,
                   NULL, NULL, rp, potency, type);

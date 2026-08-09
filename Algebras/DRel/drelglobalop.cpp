@@ -283,8 +283,8 @@ namespace drel {
     ListExpr drelgroupbyTM( ListExpr args ) {
 
         #ifdef DRELDEBUG
-        cout << "drelgroupbyTM" << endl;
-        cout << nl->ToString( args ) << endl;
+        std::cout << "drelgroupbyTM" << std::endl;
+        std::cout << nl->ToString( args ) << std::endl;
         #endif
 
         std::string err = "d[f]rel(X) x attrlist  x funlist expected";
@@ -367,7 +367,7 @@ namespace drel {
 
             ListExpr attrList = nl->Second( nl->Second( args ) );
             repartition = true;
-            cout << "repartition true" << endl;
+            std::cout << "repartition true" << std::endl;
             if( dType == spatial2d || dType == spatial3d ) {
                 funText1 = "(areduce (partitionF ";
                 funText2 = " \"\" (fun (elem1_2 FFR) (elem2_2 FFR) "
@@ -406,10 +406,10 @@ namespace drel {
         }
 
         #ifdef DRELDEBUG
-        cout << "funText1" << endl;
-        cout << funText1 << endl;
-        cout << "funText2" << endl;
-        cout << funText2 << endl;
+        std::cout << "funText1" << std::endl;
+        std::cout << funText1 << std::endl;
+        std::cout << "funText2" << std::endl;
+        std::cout << funText2 << std::endl;
         #endif
 
         ListExpr resultType = 
@@ -615,7 +615,7 @@ repartitioning the d[f]rel and execute a function on the d[f]rel.
             boundaryType, drel, drelType, boundary, getDRelPort() );
 
         if( !parti->repartition2DFMatrix( ) ) {
-            cout << "repartition failed!!" << endl;
+            std::cout << "repartition failed!!" << std::endl;
             result = qp->ResultStorage( s );
             ( ( DFRel* )result.addr )->makeUndefined( );
             return 0;
@@ -631,8 +631,8 @@ repartitioning the d[f]rel and execute a function on the d[f]rel.
         std::string funText = fun1->GetValue( ) + matrixptr + fun2->GetValue( );
 
         #ifdef DRELDEBUG
-        cout << "funText" << endl;
-        cout << funText << endl;
+        std::cout << "funText" << std::endl;
+        std::cout << funText << std::endl;
         #endif
 
         ListExpr funList;

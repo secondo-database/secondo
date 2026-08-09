@@ -74,8 +74,8 @@ run method of the thread
 void  DServerShuffleSender::run()
 {
 #ifdef SHUFFLE_SENDER_DEBUG
-  cout << "Starting Sender:" << " " << m_runit 
-       << "for " << m_destHost << ":" << m_toPort << endl;
+  std::cout << "Starting Sender:" << " " << m_runit 
+       << "for " << m_destHost << ":" << m_toPort << std::endl;
 #endif
   DServerCmdCallBackCommunication *dscCallBack = 
      new DServerCmdCallBackCommunication(m_destHost, m_toPort
@@ -87,8 +87,8 @@ void  DServerShuffleSender::run()
 
   if (!dscCallBack -> startSocket())
     {
-      cerr << "Error Connecting Sender to " 
-           << m_destHost << ":" << m_toPort << endl;
+      std::cerr << "Error Connecting Sender to " 
+           << m_destHost << ":" << m_toPort << std::endl;
     }
 
   else if(dscCallBack -> startSocketCommunication())
@@ -125,14 +125,15 @@ void  DServerShuffleSender::run()
      } // dsc
    else
      {
-       cerr << "SHUFFLE SEND: COULD NOT CREATE GLOBAL SOCKET!" << endl;
+       std::cerr << "SHUFFLE SEND: COULD NOT CREATE GLOBAL SOCKET!"
+          << std::endl;
      }
 
    delete dscCallBack;
 
 #ifdef SHUFFLE_SENDER_DEBUG
-   cout << "SHUFFLE SENDER IS DONE! "
-        << " to " << m_toPort << "@" << m_destHost << endl;
+   std::cout << "SHUFFLE SENDER IS DONE! "
+        << " to " << m_toPort << "@" << m_destHost << std::endl;
 #endif
 } //
  

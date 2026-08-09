@@ -115,14 +115,14 @@ int calcSQFDVM(Word* args, Word& result,
     std::vector<FeatureSignatureTuple> fst1;
     for (int i = 0; i < fs1->GetNoFeatureSignatureTuples(); i++)
     {
-		fst1.push_back(fs1->GetFeatureSignatureTuple(i));
-	}
-	
-	std::vector<FeatureSignatureTuple> fst2;
+                fst1.push_back(fs1->GetFeatureSignatureTuple(i));
+        }
+        
+        std::vector<FeatureSignatureTuple> fst2;
     for (int i = 0; i < fs2->GetNoFeatureSignatureTuples(); i++)
     {
-		fst2.push_back(fs2->GetFeatureSignatureTuple(i));
-	}
+                fst2.push_back(fs2->GetFeatureSignatureTuple(i));
+        }
     
     res->Set(true, sqfd.calcSQFD(fst1, fst2));
         
@@ -130,18 +130,18 @@ int calcSQFDVM(Word* args, Word& result,
 }
 
 OperatorSpec calcSQFDSpec(
-	"featuresignature x featuresignature -> real",
-	"sqfd(_,_)",
-	"Computes the SQFD between two signatures",
-	"query sqfd (sig1, sig2)"
+        "featuresignature x featuresignature -> real",
+        "sqfd(_,_)",
+        "Computes the SQFD between two signatures",
+        "query sqfd (sig1, sig2)"
 );
 
 Operator calcSQFDOp(
-	"sqfd",
-	calcSQFDSpec.getStr(),
-	calcSQFDVM,
-	Operator::SimpleSelect,
-	calcSQFDTM
+        "sqfd",
+        calcSQFDSpec.getStr(),
+        calcSQFDVM,
+        Operator::SimpleSelect,
+        calcSQFDTM
 );
 
 /*
@@ -184,14 +184,14 @@ int calcEMDVM(Word* args, Word& result,
     std::vector<FeatureSignatureTuple> fst1;
     for (int i = 0; i < fs1->GetNoFeatureSignatureTuples(); i++)
     {
-		fst1.push_back(fs1->GetFeatureSignatureTuple(i));
-	}
-	
-	std::vector<FeatureSignatureTuple> fst2;
+                fst1.push_back(fs1->GetFeatureSignatureTuple(i));
+        }
+        
+        std::vector<FeatureSignatureTuple> fst2;
     for (int i = 0; i < fs2->GetNoFeatureSignatureTuples(); i++)
     {
-		fst2.push_back(fs2->GetFeatureSignatureTuple(i));
-	}
+                fst2.push_back(fs2->GetFeatureSignatureTuple(i));
+        }
     
     double dist = emdCalc.calcEMD(fst1, fst2);
     //std::cout << "dist:" << dist << std::endl;
@@ -201,18 +201,18 @@ int calcEMDVM(Word* args, Word& result,
 }
 
 OperatorSpec calcEMDSpec(
-	"featuresignature x featuresignature -> real",
-	"emd(_,_)",
-	"Computes the EMD between two signatures",
-	"query emd (sig1, sig2)"
+        "featuresignature x featuresignature -> real",
+        "emd(_,_)",
+        "Computes the EMD between two signatures",
+        "query emd (sig1, sig2)"
 );
 
 Operator calcEMDOp(
-	"emd",
-	calcEMDSpec.getStr(),
-	calcEMDVM,
-	Operator::SimpleSelect,
-	calcEMDTM
+        "emd",
+        calcEMDSpec.getStr(),
+        calcEMDVM,
+        Operator::SimpleSelect,
+        calcEMDTM
 );
 
 
@@ -224,7 +224,7 @@ Operator calcEMDOp(
 
 bool 
 FeatureSignature::readSignatureFromFile(
-	const std::string _fileName, 
+        const std::string _fileName, 
     const int colorSpace, 
     const int coaRange, 
     const int conRange, 
@@ -240,7 +240,7 @@ FeatureSignature::readSignatureFromFile(
         //|| S_ISDIR(fileName.st_mode)
     {
         std::cerr << "readSignatureFromFile: Cannot open file '" 
-        << this->fileName << "'!" << endl;
+        << this->fileName << "'!" << std::endl;
         SetDefined(false);
         return false;
     }
@@ -262,8 +262,8 @@ FeatureSignature::readSignatureFromFile(
     //unsigned int noDataPoints = ji.height * ji.width;
     
     unsigned int noDataPoints 
-		= (unsigned int) static_cast<double>(ji.width * ji.height) 
-		/ static_cast<double>(percentSamples);
+                = (unsigned int) static_cast<double>(ji.width * ji.height) 
+                / static_cast<double>(percentSamples);
 
     ji.clusterFeatures(noClusters, DIMENSIONS, noDataPoints);
 
@@ -347,13 +347,13 @@ int readSignatureFromFileFun(Word* args, Word& result,
     if(fileName->IsDefined())
     {
         res->readSignatureFromFile(
-				fileName->GetValue(),
-				colorSpace->GetIntval(), 
-				coaRange->GetIntval(), 
-				conRange->GetIntval(), 
-				patchSize->GetIntval(),
-				percentSamples->GetIntval(), 
-				noClusters->GetIntval());
+                                fileName->GetValue(),
+                                colorSpace->GetIntval(), 
+                                coaRange->GetIntval(), 
+                                conRange->GetIntval(), 
+                                patchSize->GetIntval(),
+                                percentSamples->GetIntval(), 
+                                noClusters->GetIntval());
     } 
     else 
     {
@@ -490,7 +490,7 @@ FeatureSignature::FeatureSignature(const int n,
   if( n > 0 )
   {
     for( int i = 0; i < n; i++ )
-    {	  
+    {     
       FeatureSignatureTuple fst(
       W[i], X[i], Y[i], R[i], G[i], B[i], COA[i], CON[i]);
       Append(fst);

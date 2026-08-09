@@ -90,7 +90,7 @@ private:
         strncpy(relationName, relNameString.c_str(), MaxRelNameLen + 1);
         if (relationName[MaxRelNameLen] != '\0') {
             relationName[MaxRelNameLen] = '\0';
-            cout << "relationName '" << relNameString
+            std::cout << "relationName '" << relNameString
                     << "' is too long. Would truncate to '"
                     << relationName << "'\n";
             assert (false);

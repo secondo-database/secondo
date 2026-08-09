@@ -102,7 +102,7 @@ bool GPXFileReader::Open(std::string strFileName)
     m_pXMLDoc = xmlParseFile(strFileName.c_str());
     if (m_pXMLDoc == NULL)
     {
-        cmsg.error() << "Failed to read " << strFileName << endl;
+        cmsg.error() << "Failed to read " << strFileName << std::endl;
         cmsg.send();
         return false;
     }
@@ -110,7 +110,7 @@ bool GPXFileReader::Open(std::string strFileName)
     xmlNodePtr pCurNode = xmlDocGetRootElement(m_pXMLDoc);
     if (pCurNode == NULL)
     {
-        cmsg.error() << "Failed to read " << strFileName << endl;
+        cmsg.error() << "Failed to read " << strFileName << std::endl;
         cmsg.send();
         xmlFreeDoc(m_pXMLDoc);
         m_pXMLDoc = NULL;
@@ -119,7 +119,7 @@ bool GPXFileReader::Open(std::string strFileName)
 
     if (xmlStrcmp(pCurNode->name, (const xmlChar *) "gpx") != 0)
     {
-        cmsg.error() << "Not a gpx document " << strFileName << endl;
+        cmsg.error() << "Not a gpx document " << strFileName << std::endl;
         cmsg.send();
         xmlFreeDoc(m_pXMLDoc);
         m_pXMLDoc = NULL;

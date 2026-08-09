@@ -110,8 +110,8 @@ parameters. Used for sortmergejoin and itHashJoin.
     ListExpr drelsimpleJoinTM( ListExpr args ) {
 
         #ifdef DRELDEBUG
-        cout << "drelsimpleJoinTM" << endl;
-        cout << nl->ToString( args ) << endl;
+        std::cout << "drelsimpleJoinTM" << std::endl;
+        std::cout << nl->ToString( args ) << std::endl;
         #endif
 
         std::string join = joinType == 0 ? "sortmergejoin" : "itHashJoin";
@@ -139,12 +139,14 @@ parameters. Used for sortmergejoin and itHashJoin.
         //If Rename is used, drel(1,2)Value must be changed
         if (nl->HasLength(drel1Value, 3)) {
             drel1Value = nl->Second(drel1Value);
-            cout <<"nl->Second(drel1value): "<< nl->ToString(drel1Value)<< endl;
+            std::cout <<"nl->Second(drel1value): "<< nl->ToString(drel1Value)
+               << std::endl;
             }
 
          if (nl->HasLength(drel2Value, 3)) {
             drel2Value = nl->Second(drel2Value);
-            cout <<"nl->Second(drel2value): "<< nl->ToString(drel2Value)<< endl;
+            std::cout <<"nl->Second(drel2value): "<< nl->ToString(drel2Value)
+               << std::endl;
             }
 
         ListExpr attr1Name = nl->First( nl->Third( args ) );
@@ -262,20 +264,22 @@ parameters. Used for sortmergejoin and itHashJoin.
 
 
                 #ifdef DRELDEBUG
-                cout << endl << "it hash join" << endl;
-                cout << "rel1Flag: " << rel1Flag << endl;
-                cout << "rel2Flag: " << rel2Flag << endl;
-                cout << "compatFlag: " << compatFlag << endl;
-                cout << "drel1Value: " << nl->ToString(drel1Value) << endl;
-                cout << "drel2Value: " << nl->ToString(drel2Value) << endl;
+                std::cout << std::endl << "it hash join" << std::endl;
+                std::cout << "rel1Flag: " << rel1Flag << std::endl;
+                std::cout << "rel2Flag: " << rel2Flag << std::endl;
+                std::cout << "compatFlag: " << compatFlag << std::endl;
+                std::cout << "drel1Value: " << nl->ToString(drel1Value)
+                   << std::endl;
+                std::cout << "drel2Value: " << nl->ToString(drel2Value)
+                   << std::endl;
                 #endif
 
             if (nl->HasLength(drel1Value, 3)) {
                 #ifdef DRELDEBUG
-                cout << "nl->Second(drel1value): ";
-                cout << nl->ToString(nl->Second(drel1Value)) << endl;
-                cout << "nl->Second(drel2value): ";
-                cout << nl->ToString(nl->Second(drel2Value)) << endl;
+                std::cout << "nl->Second(drel1value): ";
+                std::cout << nl->ToString(nl->Second(drel1Value)) << std::endl;
+                std::cout << "nl->Second(drel2value): ";
+                std::cout << nl->ToString(nl->Second(drel2Value)) << std::endl;
                 #endif
             }
 
@@ -284,8 +288,8 @@ parameters. Used for sortmergejoin and itHashJoin.
             int size2test = DRelHelpers::countDRel( 
                 nl->SymbolValue( drel2Value ) );
 
-            cout << "size1test: " << size1test << endl;
-            cout << "size2test: " << size2test << endl;
+            std::cout << "size1test: " << size1test << std::endl;
+            std::cout << "size2test: " << size2test << std::endl;
             
             if( !nl->IsAtom( drel1Value )
              || !nl->IsAtom( drel2Value )
@@ -297,20 +301,22 @@ parameters. Used for sortmergejoin and itHashJoin.
 
 
                 #ifdef DRELDEBUG
-                cout << endl << "it hash join" << endl;
-                cout << "rel1Flag: " << rel1Flag << endl;
-                cout << "rel2Flag: " << rel2Flag << endl;
-                cout << "compatFlag: " << compatFlag << endl;
-                cout << "drel1Value: " << nl->ToString(drel1Value) << endl;
-                cout << "drel2Value: " << nl->ToString(drel2Value) << endl;
+                std::cout << std::endl << "it hash join" << std::endl;
+                std::cout << "rel1Flag: " << rel1Flag << std::endl;
+                std::cout << "rel2Flag: " << rel2Flag << std::endl;
+                std::cout << "compatFlag: " << compatFlag << std::endl;
+                std::cout << "drel1Value: " << nl->ToString(drel1Value)
+                   << std::endl;
+                std::cout << "drel2Value: " << nl->ToString(drel2Value)
+                   << std::endl;
                 #endif
 
             if (nl->HasLength(drel1Value, 3)) {
                 #ifdef DRELDEBUG
-                cout << "nl->Second(drel1value): ";
-                cout << nl->ToString(nl->Second(drel1Value)) << endl;
-                cout << "nl->Second(drel2value): ";
-                cout << nl->ToString(nl->Second(drel2Value)) << endl;
+                std::cout << "nl->Second(drel1value): ";
+                std::cout << nl->ToString(nl->Second(drel1Value)) << std::endl;
+                std::cout << "nl->Second(drel2value): ";
+                std::cout << nl->ToString(nl->Second(drel2Value)) << std::endl;
                 #endif
             }
 
@@ -323,7 +329,8 @@ parameters. Used for sortmergejoin and itHashJoin.
                     resultRel,
                     nl->Third( nl->First( nl->First( args ) ) ) );
                     rel2Flag = false;
-                    cout << "repartition of drel 1 is necessary" << endl;
+                    std::cout << "repartition of drel 1 is necessary"
+                       << std::endl;
             }
             else {
                 resultType = nl->ThreeElemList(
@@ -331,7 +338,8 @@ parameters. Used for sortmergejoin and itHashJoin.
                     resultRel,
                     nl->Third( nl->First( nl->Second( args ) ) ) );
                     rel1Flag = false;
-                    cout << "repartition of drel 2 is necessary" << endl;
+                    std::cout << "repartition of drel 2 is necessary"
+                       << std::endl;
             }
         }
         else if( rel1Flag && !rel2Flag ) {
@@ -360,20 +368,23 @@ parameters. Used for sortmergejoin and itHashJoin.
         }
 
                 #ifdef DRELDEBUG
-                cout << endl << " Join normal vor query1/2" << endl;
-                cout << "rel1Flag: " << rel1Flag << endl;
-                cout << "rel2Flag: " << rel2Flag << endl;
-                cout << "compatFlag: " << compatFlag << endl;
-                cout << "drel1Value: " << nl->ToString(drel1Value) << endl;
-                cout << "drel2Value: " << nl->ToString(drel2Value) << endl;
+                std::cout << std::endl << " Join normal vor query1/2"
+                   << std::endl;
+                std::cout << "rel1Flag: " << rel1Flag << std::endl;
+                std::cout << "rel2Flag: " << rel2Flag << std::endl;
+                std::cout << "compatFlag: " << compatFlag << std::endl;
+                std::cout << "drel1Value: " << nl->ToString(drel1Value)
+                   << std::endl;
+                std::cout << "drel2Value: " << nl->ToString(drel2Value)
+                   << std::endl;
                 #endif
 
             if (nl->HasLength(drel1Value, 3)) {
                 #ifdef DRELDEBUG
-                cout << "nl->Second(drel1value): ";
-                cout << nl->ToString(nl->Second(drel1Value)) << endl;
-                cout << "nl->Second(drel2value): ";
-                cout << nl->ToString(nl->Second(drel2Value)) << endl;
+                std::cout << "nl->Second(drel1value): ";
+                std::cout << nl->ToString(nl->Second(drel1Value)) << std::endl;
+                std::cout << "nl->Second(drel2value): ";
+                std::cout << nl->ToString(nl->Second(drel2Value)) << std::endl;
                 #endif
             }   
 
@@ -396,8 +407,8 @@ parameters. Used for sortmergejoin and itHashJoin.
                 nl->StringAtom( nl->SymbolValue( attr1Name ) ),
                 nl->StringAtom( nl->SymbolValue( attr2Name ) ) ) );
 
-        cout << "resultType: " << nl->ToString(resultType) << endl;
-        cout << "appendList: " << nl->ToString(appendList) << endl;
+        std::cout << "resultType: " << nl->ToString(resultType) << std::endl;
+        std::cout << "appendList: " << nl->ToString(appendList) << std::endl;
 
         return nl->ThreeElemList( 
             nl->SymbolAtom( Symbols::APPEND( ) ),
@@ -426,7 +437,7 @@ The drelType argument has to be the nested list type of the drel object.
     ListExpr hashPartition( ListExpr drelType, void* ptr, std::string attr, 
         int elem ) {
 
-        cout << endl << "drel2darray" << endl;
+        std::cout << std::endl << "drel2darray" << std::endl;
 
         std::string queryS;
         distributionType type;
@@ -492,7 +503,7 @@ The drelType argument has to be the nested list type of the drel object.
                     + getDRelPortString()+")";
         }
 
-        cout << "queryS: " << queryS << endl;
+        std::cout << "queryS: " << queryS << std::endl;
 
         ListExpr query;
         nl->ReadFromString( queryS, query );
@@ -573,13 +584,15 @@ necessary. Used for sortmergejoin and itHashJoin.
                     boundary, getDRelPort());
 
                 if( !parti->repartition2DFMatrix( ) ) {
-                    cout << "attrName[0]: " <<   attrName[ 0 ] << endl;
-                    cout << "boundaryType: ";
-                    cout << nl->ToString(boundaryType) << endl;
-                    cout << "drelType[ 0 ]: ";
-                    cout << nl->ToString(drelType[ 0 ]) << endl;
-                    cout << "dType:" << dType << endl;
-                    cout << "repartition (dreljoin 1) failed!!" << endl;
+                    std::cout << "attrName[0]: " <<   attrName[ 0 ]
+                       << std::endl;
+                    std::cout << "boundaryType: ";
+                    std::cout << nl->ToString(boundaryType) << std::endl;
+                    std::cout << "drelType[ 0 ]: ";
+                    std::cout << nl->ToString(drelType[ 0 ]) << std::endl;
+                    std::cout << "dType:" << dType << std::endl;
+                    std::cout << "repartition (dreljoin 1) failed!!"
+                       << std::endl;
                     resultDFRel->makeUndefined( );
                     return 0;
                 }
@@ -608,7 +621,8 @@ necessary. Used for sortmergejoin and itHashJoin.
                     boundary, getDRelPort());
 
                 if( !parti->repartition2DFMatrix( ) ) {
-                    cout << "repartition (dreljoin 2) failed!!" << endl;
+                    std::cout << "repartition (dreljoin 2) failed!!"
+                       << std::endl;
                     resultDFRel->makeUndefined( );
                     return 0;
                 }

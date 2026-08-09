@@ -86,28 +86,30 @@ mpz_class noSegmentsOut;
  }
 
  void print(){
-  cout << "Input: "<<noSegmentsIn <<" Segmente"<<endl;
+  std::cout << "Input: "<<noSegmentsIn <<" Segmente"<<std::endl;
   if (noSegmentsOut >0){
-    cout << "Output: "<<noSegmentsOut <<" Segmente"<<endl;
+    std::cout << "Output: "<<noSegmentsOut <<" Segmente"<<std::endl;
   }
-  cout << "Anzahl der Aufrufe:"<<endl;
-  cout << "mightIntersect: "<<noCallMightIntersect<<endl;
-  cout << "intersects:     "<<noCallIntersect<<endl<<endl;
-  cout << "Vergleich der Schnittpunkte mit der Sweep-Line"<<endl;
-  cout << "ausschliesslich mit den Gitterdaten: "
-    <<noCallCmpIntersectionIntervall<<endl;
-  cout << "unter Verwendung der praezisen Daten: "
-    <<noCallCmpWithPreciseData<<endl<<endl;
-  cout << "Vergleich zweier Zahlen insgesamt:"<<endl;
-  cout << "ausschliesslich mit den Gitterdaten: "<<noCmpGrid<<endl;
-  cout << "unter Verwendung der praezisen Daten: "<<noCmpPrecise<<endl;
-  cout << "Anmerkung: Hier wurden nur die Vergleiche gezaehlt, bei denen ein "
+  std::cout << "Anzahl der Aufrufe:"<<std::endl;
+  std::cout << "mightIntersect: "<<noCallMightIntersect<<std::endl;
+  std::cout << "intersects:     "<<noCallIntersect<<std::endl<<std::endl;
+  std::cout << "Vergleich der Schnittpunkte mit der Sweep-Line"<<std::endl;
+  std::cout << "ausschliesslich mit den Gitterdaten: "
+    <<noCallCmpIntersectionIntervall<<std::endl;
+  std::cout << "unter Verwendung der praezisen Daten: "
+    <<noCallCmpWithPreciseData<<std::endl<<std::endl;
+  std::cout << "Vergleich zweier Zahlen insgesamt:"<<std::endl;
+  std::cout << "ausschliesslich mit den Gitterdaten: "<<noCmpGrid<<std::endl;
+  std::cout << "unter Verwendung der praezisen Daten: "<<noCmpPrecise
+     <<std::endl;
+  std::cout
+     << "Anmerkung: Hier wurden nur die Vergleiche gezaehlt, bei denen ein "
        << "Vergleich der Gitterdaten sinnvoll moeglich war. Vergleiche von "
        << "Zahlen, wie z.B. die Steigung zweier Segmente, wurden nicht "
        << "mitgezaehlt, da nur ein Ueberblick gewonnen darueber gewonnen werden"
        << " sollte, wie oft auf den Zugriff der praezisen Daten verzichtet "
        << "werden konnte, wenn eine Zahl als Tupel (int, mpq_class) vorliegt.)"
-       <<endl;
+       <<std::endl;
  }
 };
 

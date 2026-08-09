@@ -445,8 +445,8 @@ class ClosestPairLocalInfo{
         Tuple* t2 = r2->GetTuple(tid2,true);
       
         if(t1==0 || t2==0){
-           std::cerr << "TupleId stored in rtree not found" << endl;
-           std::cerr << " computing closest pair canceled" << endl;
+           std::cerr << "TupleId stored in rtree not found" << std::endl;
+           std::cerr << " computing closest pair canceled" << std::endl;
            count = k;
            return 0; 
         }

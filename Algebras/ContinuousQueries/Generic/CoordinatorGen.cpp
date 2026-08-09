@@ -175,7 +175,7 @@ void CoordinatorGen::Run()
 
                 // a handler sends logdata
                 if (msg.cmd == IdleGenP::logdata()) {
-                    std::cout << msg.params << endl;
+                    std::cout << msg.params << std::endl;
                     if (_logfile.is_open()) _logfile << msg.params << "\n";
                 } else
 
@@ -197,7 +197,7 @@ void CoordinatorGen::Run()
                 // set the logfile
                 if (msg.cmd == CoordinatorGenP::setlogfile()) {
                     std::cout << "Log data will be saved in " 
-                              << msg.params << endl;
+                              << msg.params << std::endl;
                     if (_logfile.is_open()) _logfile.close();
                     _logfile.open(msg.params);
                 } else
@@ -209,7 +209,8 @@ void CoordinatorGen::Run()
 
                 // a way to shut down the coordinator
                 if (msg.cmd == CoordinatorGenP::shutdown()) {
-                    std::cout << "Shutting down the coordinator..." << endl;
+                    std::cout << "Shutting down the coordinator..."
+                       << std::endl;
                     _lifecyle = coordinatorStatus::shutdown;
                 } else
 
@@ -318,13 +319,13 @@ void CoordinatorGen::createWorker(int id, std::string type)
 {
     if (id == 0) 
     {
-        std::cout << "Can't create worker, no idle handler." << endl;
+        std::cout << "Can't create worker, no idle handler." << std::endl;
         return;
     }
 
     if (_handlers.find(id) == _handlers.end()) 
     {
-        std::cout << "Can't create worker, ID is unknow." << endl;
+        std::cout << "Can't create worker, ID is unknow." << std::endl;
         return;
     }
 
@@ -342,7 +343,8 @@ void CoordinatorGen::createWorker(int id, std::string type)
         _handlers[id].info = type;
         _handlers[id].wait_since = ProtocolHelpers::getUnixTimestamp();
     } else {
-        std::cout << "worker: Error sending specializeHandler message." <<endl;
+        std::cout << "worker: Error sending specializeHandler message."
+           <<std::endl;
     }
 } 
 
@@ -375,7 +377,7 @@ void CoordinatorGen::registerWorker(int id)
                     _handlers[id].address, true).length())
             {
                 std::cout << "registerWorker: Error informing StSu " << 
-                    it->first << "." << endl;
+                    it->first << "." << std::endl;
             }
         } else
 
@@ -393,7 +395,7 @@ void CoordinatorGen::registerWorker(int id)
                 "nomo", it->second.address, true).length())
             {
                 std::cout << "registerWorker: Error informing Worker " << 
-                    it->first << "." << endl;
+                    it->first << "." << std::endl;
             }
         }
     }
@@ -411,13 +413,13 @@ void CoordinatorGen::createNoMo(int id)
 {
     if (id == 0) 
     {
-        std::cout << "Can't create nomo, no idle handler." << endl;
+        std::cout << "Can't create nomo, no idle handler." << std::endl;
         return;
     }
 
     if (_handlers.find(id) == _handlers.end()) 
     {
-        std::cout << "Can't create nomo, ID is unknow." << endl;
+        std::cout << "Can't create nomo, ID is unknow." << std::endl;
         return;
     }
 
@@ -434,7 +436,8 @@ void CoordinatorGen::createNoMo(int id)
         _handlers[id].status = handlerStatus::inactive;
         _handlers[id].wait_since = ProtocolHelpers::getUnixTimestamp();
     } else {
-        std::cout << "nomo: Error sending specializeHandler message." << endl;
+        std::cout << "nomo: Error sending specializeHandler message."
+           << std::endl;
     }
 } 
 
@@ -467,7 +470,7 @@ void CoordinatorGen::registerNoMo(int id)
                     _handlers[id].address, true).length())
             {
                 std::cout << "registerNoMo: Error informing Worker " << 
-                    it->first << "." << endl;
+                    it->first << "." << std::endl;
             }
         }
     }
@@ -504,7 +507,7 @@ void CoordinatorGen::registerStreamSupplier(int id)
                 "worker", it->second.address, true).length())
             {
                 std::cout << "registerStreamSupplier: Error informing " 
-                          << "about Worker " << it->first << "." << endl;
+                          << "about Worker " << it->first << "." << std::endl;
             }
         }
     }
@@ -523,7 +526,7 @@ void CoordinatorGen::doRemote(std::string cmd)
 
     if (cmdPos == std::string::npos) 
     {
-        std::cout << "remote: no pipe." << endl;
+        std::cout << "remote: no pipe." << std::endl;
         return;
     }
 
@@ -536,13 +539,13 @@ void CoordinatorGen::doRemote(std::string cmd)
     try {
         id = std::stoi(sId);
     } catch(...) {
-        std::cout << "remote: stoi failed." << endl;
+        std::cout << "remote: stoi failed." << std::endl;
         return;
     }
 
     if (_handlers.find(id) == _handlers.end())
     {
-        std::cout << "remote: id unknow." << endl;
+        std::cout << "remote: id unknow." << std::endl;
         return;
     }
 
@@ -733,7 +736,7 @@ void CoordinatorGen::doUserAuth(ProtocolHelpers::Message msg)
     }
     catch(...)
     {
-        std::cout << "error reveicing needed data for a new user" << endl;
+        std::cout << "error reveicing needed data for a new user" << std::endl;
         (void) _coordinationServer.Send(
             msg.socket,
             "error|Wrong Parameters! \n\n"
@@ -801,7 +804,8 @@ void CoordinatorGen::doGetQueries(ProtocolHelpers::Message msg)
     // check if a valid user is asking for his queries
     if (_users.find(msg.params) == _users.end()) 
     {
-        std::cout << "No user with hash " << msg.params << " found." << endl;
+        std::cout << "No user with hash " << msg.params << " found."
+           << std::endl;
 
         (void) _coordinationServer.Send(
             msg.socket,
@@ -859,7 +863,7 @@ void CoordinatorGen::doAddQuery(ProtocolHelpers::Message msg)
     }
     catch(...)
     {
-        std::cout << "error reveicing needed data for a new query" << endl;
+        std::cout << "error reveicing needed data for a new query" << std::endl;
         (void) _coordinationServer.Send(
             msg.socket,
             "error|Wrong Parameters! \n\n"
@@ -870,7 +874,7 @@ void CoordinatorGen::doAddQuery(ProtocolHelpers::Message msg)
     // check if user exists
     if (_users.find(hash) == _users.end()) 
     {
-        std::cout << "No user with hash " << hash << " found." << endl;
+        std::cout << "No user with hash " << hash << " found." << std::endl;
 
         (void) _coordinationServer.Send(
             msg.socket,
@@ -884,7 +888,7 @@ void CoordinatorGen::doAddQuery(ProtocolHelpers::Message msg)
     std::string err;
 
     if (!checkNewFunction(func, err)) {
-        std::cout << "Error in provided function: " << err << endl;
+        std::cout << "Error in provided function: " << err << std::endl;
         // msg an client
         
         (void) _coordinationServer.Send(

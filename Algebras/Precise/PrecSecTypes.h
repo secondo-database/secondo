@@ -1249,10 +1249,10 @@ class PrecLine : public StandardSpatialAttribute<2> {
     }
 
     std::ostream& Print(std::ostream& os ) const{
-       os << "precLine " << endl;
+       os << "precLine " << std::endl;
        for(size_t i =0; i< Size(); i++){
            MPrecHalfSegment hs = getHalfSegment(i);
-           os << hs << endl;
+           os << hs << std::endl;
         }
         return os;
     }
@@ -1513,10 +1513,10 @@ class PrecRegion : public StandardSpatialAttribute<2> {
     }
 
     std::ostream& Print(std::ostream& os ) const{
-       os << "precRegion " << endl;
+       os << "precRegion " << std::endl;
        for(size_t i =0; i< Size(); i++){
            MPrecHalfSegment hs = getHalfSegment(i);
-           os << hs << endl;
+           os << hs << std::endl;
         }
         return os;
     }

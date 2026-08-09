@@ -177,7 +177,7 @@ the distributed tuple.
         int size ) {
 
         #ifdef DRELDEBUG
-        cout << "createReplicationOpTree" << endl;
+        std::cout << "createReplicationOpTree" << std::endl;
         #endif
 
         ListExpr query = nl->ThreeElemList(
@@ -224,8 +224,8 @@ the distributed tuple.
                 nl->SymbolAtom( "Cell" ) ) );
 
         #ifdef DRELDEBUG
-        cout << "query" << endl;
-        cout << nl->ToString( query ) << endl;
+        std::cout << "query" << std::endl;
+        std::cout << nl->ToString( query ) << std::endl;
         #endif
 
         bool correct = false;
@@ -268,7 +268,7 @@ used to distirbute the tuple.
         std::string attrName, T* grid ) {
 
         #ifdef DRELDEBUG
-        cout << "createStreamCellGridOpTree" << endl;
+        std::cout << "createStreamCellGridOpTree" << std::endl;
         #endif
 
         ListExpr query = nl->ThreeElemList(
@@ -341,8 +341,8 @@ used to distirbute the tuple.
                                 nl->SymbolAtom( "Elem" ) ) ) ) ) ) );
 
         #ifdef DRELDEBUG
-        cout << "query" << endl;
-        cout << nl->ToString( query ) << endl;
+        std::cout << "query" << std::endl;
+        std::cout << nl->ToString( query ) << std::endl;
         #endif
 
         bool correct = false;
@@ -379,7 +379,7 @@ target array.
         Relation* rel, ListExpr relType, std::string attrName, int size ) {
 
         #ifdef DRELDEBUG
-        cout << "createCellGrid" << endl;
+        std::cout << "createCellGrid" << std::endl;
         #endif
 
         ListExpr query = nl->ThreeElemList(
@@ -417,8 +417,8 @@ target array.
             nl->IntAtom( size ) );
 
         #ifdef DRELDEBUG
-        cout << "query" << endl;
-        cout << nl->ToString( query ) << endl;
+        std::cout << "query" << std::endl;
+        std::cout << nl->ToString( query ) << std::endl;
         #endif
 
         Word resultGrid;
@@ -426,8 +426,8 @@ target array.
         T* grid = ( T* )resultGrid.addr;
 
         #ifdef DRELDEBUG
-        cout << "resultGrid" << endl;
-        grid->Print( cout );
+        std::cout << "resultGrid" << std::endl;
+        grid->Print( std::cout );
         #endif
 
         return grid;
@@ -445,8 +445,8 @@ Type mapping for the distribute operators.
     ListExpr distributeTM( ListExpr args ) {
 
         #ifdef DRELDEBUG
-        cout << "distributeTM" << endl;
-        cout << nl->ToString( args ) << endl;
+        std::cout << "distributeTM" << std::endl;
+        std::cout << nl->ToString( args ) << std::endl;
         #endif
 
         std::string err = "rel x string x distType [x ident] [x int] x rel "
@@ -466,9 +466,9 @@ Type mapping for the distribute operators.
         ListExpr reqDistType = nl->Third( args );
 
         #ifdef DRELDEBUG
-        cout << "relType: " << nl->ToString(relType) << endl;
-        cout << "nameType:" << nl->ToString(nameType) << endl;
-        cout << "reqDistType: " << nl->ToString(reqDistType) << endl;
+        std::cout << "relType: " << nl->ToString(relType) << std::endl;
+        std::cout << "nameType:" << nl->ToString(nameType) << std::endl;
+        std::cout << "reqDistType: " << nl->ToString(reqDistType) << std::endl;
         #endif
 
         ListExpr workerRelType = nl->TheEmptyList( );
@@ -637,8 +637,8 @@ Type mapping for the distribute operators.
             // create result type and append list for chash distribution
             else if( requestedDistType == chash ) {
 
-                cout << endl;
-                cout << "requestedDistType == chash" << endl;
+                std::cout << std::endl;
+                std::cout << "requestedDistType == chash" << std::endl;
 
                 // get result type from distributed5 operator
                 ListExpr result = distribute5TMT<A>(
@@ -853,8 +853,8 @@ Value mapping of the distribute operator to replicate data.
         Word& local, Supplier s ) {
 
         #ifdef DRELDEBUG
-        cout << "distributeVMTreplicated" << endl;
-        cout << args << endl;
+        std::cout << "distributeVMTreplicated" << std::endl;
+        std::cout << args << std::endl;
         #endif
 
         QueryProcessor* qps = new QueryProcessor( nl, am );
@@ -863,9 +863,9 @@ Value mapping of the distribute operator to replicate data.
         Relation* workers = ( Relation* )args[ 3 ].addr;
         FText* sourceRelType = ( FText* )args[ 7 ].addr;
 
-        cout << "rel: " << rel << endl;
-        cout << "workers: " << workers << endl;
-        cout << "sourceRelType: " << sourceRelType << endl;
+        std::cout << "rel: " << rel << std::endl;
+        std::cout << "workers: " << workers << std::endl;
+        std::cout << "sourceRelType: " << sourceRelType << std::endl;
 
         ListExpr sourceType;
         if( !nl->ReadFromString( sourceRelType->GetValue( ), sourceType ) ) {
@@ -916,8 +916,8 @@ Value mapping of the distribute operator to distribute by round robin.
         Word& local, Supplier s ) {
 
         #ifdef DRELDEBUG
-        cout << "distributeVMTrandom" << endl;
-        cout << args << endl;
+        std::cout << "distributeVMTrandom" << std::endl;
+        std::cout << args << std::endl;
         #endif
 
         QueryProcessor* qps = new QueryProcessor( nl, am );
@@ -965,8 +965,8 @@ Value mapping of the distribute operator to distribute by hash.
         Word& local, Supplier s ) {
 
         #ifdef DRELDEBUG
-        cout << "distributeVMThash" << endl;
-        cout << args << endl;
+        std::cout << "distributeVMThash" << std::endl;
+        std::cout << args << std::endl;
         #endif
 
         QueryProcessor* qps = new QueryProcessor( nl, am );
@@ -1018,7 +1018,7 @@ Value mapping of the distribute operator to distribute by hash.
             resultType );
 
         if( !correct ) {
-            cout << "can not create operator tree" << endl;
+            std::cout << "can not create operator tree" << std::endl;
             result = qp->ResultStorage( s );
             RType* drel = ( RType* )result.addr;
             drel->makeUndefined( );
@@ -1040,10 +1040,10 @@ Value mapping of the distribute operator to distribute by hash.
 
 
         #ifdef DRELDEBUG
-        cout << "hash" << endl;
-        cout << "funlist: " << nl->ToString(funList) << endl;
-        cout << "funarg1: " << nl->ToString(funarg1) << endl;
-        cout << "fundef: " << nl->ToString(fundef) << endl;  
+        std::cout << "hash" << std::endl;
+        std::cout << "funlist: " << nl->ToString(funList) << std::endl;
+        std::cout << "funarg1: " << nl->ToString(funarg1) << std::endl;
+        std::cout << "fundef: " << nl->ToString(fundef) << std::endl;  
         #endif 
 
         distribute4VMT<AType, DType, HType, CType>( argVec,
@@ -1074,8 +1074,8 @@ Value mapping of the distribute operator to distribute by range.
         Word& local, Supplier s ) {
 
         #ifdef DRELDEBUG
-        cout << "distributeVMTrange" << endl;
-        cout << args << endl;
+        std::cout << "distributeVMTrange" << std::endl;
+        std::cout << args << std::endl;
         #endif
 
         QueryProcessor* qps = new QueryProcessor( nl, am );
@@ -1136,10 +1136,10 @@ Value mapping of the distribute operator to distribute by range.
                 fundef );
 
         #ifdef DRELDEBUG
-        cout << "range" << endl;
-        cout << "funlist: " << nl->ToString(funList) << endl;
-        cout << "funarg1: " << nl->ToString(funarg1) << endl;
-        cout << "fundef: " << nl->ToString(fundef) << endl;        
+        std::cout << "range" << std::endl;
+        std::cout << "funlist: " << nl->ToString(funList) << std::endl;
+        std::cout << "funarg1: " << nl->ToString(funarg1) << std::endl;
+        std::cout << "fundef: " << nl->ToString(fundef) << std::endl;        
         #endif
 
         OpTree tree = 0;
@@ -1205,8 +1205,8 @@ Value mapping of the distribute operator for spatial distribution.
         Word& local, Supplier s ) {
 
         #ifdef DRELDEBUG
-        cout << "distributeVMTspatial" << endl;
-        cout << args << endl;
+        std::cout << "distributeVMTspatial" << std::endl;
+        std::cout << args << std::endl;
         #endif
 
         Relation* rel = ( Relation* )args[ 0 ].addr;
@@ -1280,8 +1280,8 @@ Value mapping of the distribute operator to distribute by consistent hash.
         Word& local, Supplier s ) {
 
         #ifdef DRELDEBUG
-        cout << "distributeVMTchash" << endl;
-        cout << args << endl;
+        std::cout << "distributeVMTchash" << std::endl;
+        std::cout << args << std::endl;
         #endif
 
         QueryProcessor* qps = new QueryProcessor( nl, am );
@@ -1289,7 +1289,7 @@ Value mapping of the distribute operator to distribute by consistent hash.
         Relation* rel = ( Relation* )args[ 0 ].addr;
         Relation* workers = ( Relation* )args[ 5 ].addr;
 
-        cout << "workers: " << workers << endl;
+        std::cout << "workers: " << workers << std::endl;
 
         OpTree stream = createStreamOpTree(
             qps, nl->Second( qp->GetType( s ) ), rel );
@@ -1320,8 +1320,8 @@ Value mapping of the distribute operator to distribute by consistent hash.
             nl->IntAtom( 3600000 ) ); 
 
         #ifdef DRELDEBUG
-        cout << "funarg1: " << nl->ToString(funarg1) << endl;
-        cout << "fundef: " << nl->ToString(fundef) << endl;
+        std::cout << "funarg1: " << nl->ToString(funarg1) << std::endl;
+        std::cout << "fundef: " << nl->ToString(fundef) << std::endl;
         #endif
             
 
@@ -1347,7 +1347,7 @@ Value mapping of the distribute operator to distribute by consistent hash.
             resultType );
 
         if( !correct ) {
-            cout << "can not create operator tree" << endl;
+            std::cout << "can not create operator tree" << std::endl;
             result = qp->ResultStorage( s );
             RType* drel = ( RType* )result.addr;
             drel->makeUndefined( );

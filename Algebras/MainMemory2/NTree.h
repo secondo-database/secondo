@@ -148,7 +148,7 @@ namespace mtreehelper{
     if (!p1->IsDefined() || !p2->IsDefined()) {
       return std::numeric_limits<double>::max();
     }
-    cout << "call DistanceRGB for " << p2->GetFilename() << endl;
+    std::cout << "call DistanceRGB for " << p2->GetFilename() << std::endl;
     return p1->DistanceRGB(p2);
   }
   
@@ -404,7 +404,7 @@ class StdDistComp{
     double operator()(const MTreeEntry<T>& o1, const MTreeEntry<T>& o2) {
       distStorage.increment();
       if (getNoDistFunCalls() % 100000 == 0) {
-        cout << "|";
+        std::cout << "|";
         std::cout.flush();
       }
       else if (getNoDistFunCalls() % 10000 == 0) {
@@ -936,9 +936,10 @@ struct PartitionStatus {
   }
   
   void print() {
-    cout << "min: (" << minPos << ", " << min << "), max: (" << maxPos << ", "
+    std::cout << "min: (" << minPos << ", " << min << "), max: (" << maxPos
+       << ", "
          << max << "), Factor = " << minMaxFactor << ", ME = " << meanError 
-         << ", MSE = " << meanSquaredError << endl;
+         << ", MSE = " << meanSquaredError << std::endl;
   }
   
   int min, max, minPos, maxPos;
@@ -1220,21 +1221,21 @@ class NTreeInnerNode : public NTreeNode<T, DistComp, variant> {
         }
       }
     }
-    out << " )" << endl;
+    out << " )" << std::endl;
     if (maxDist != 0) {
       out << "maxDist: <";
       for (int i = 0; i < node_t::count; i++) {
         out << maxDist[i] << (i == node_t::count - 1 ? "" : ", ");
       }
-      out << ">" << endl;
+      out << ">" << std::endl;
     }
     if (printDistMatrix && distMatrix != 0) {
-      out << "distMatrix:" << endl;
+      out << "distMatrix:" << std::endl;
       for (int i = 0; i < node_t::count; i++) {
         for (int j = 0; j <= i; j++) {
           out << distMatrix[i][j] << " ";
         }
-        out << endl;
+        out << std::endl;
       }
     }
     if (printPivotInfo && (distances2d != 0 || distances3d != 0)) {
@@ -1243,7 +1244,7 @@ class NTreeInnerNode : public NTreeNode<T, DistComp, variant> {
       if (candOrder == PIVOT3) {
         out << ", " << std::get<2>(refDistPos);
       }
-      out << endl;
+      out << std::endl;
       out << "pivot distances: ";
       for (int i = 0; i < node_t::count; i++) {
         if (candOrder == PIVOT3) {
@@ -1256,7 +1257,7 @@ class NTreeInnerNode : public NTreeNode<T, DistComp, variant> {
               << "), ";
         }
       }
-      out << endl;
+      out << std::endl;
     }
     out << ")";
     return out;
@@ -1491,7 +1492,7 @@ class NTreeInnerNode : public NTreeNode<T, DistComp, variant> {
       dc.print(*centers[i], printContents, out);
       out << ", ";
     }
-    out << endl << endl;
+    out << std::endl << std::endl;
     for (unsigned int i = 0; i < partitions.size(); i++) {
       out << spaces << "Partition #" << i << " with " << partitions[i].size()
           << " elems: {";
@@ -1499,9 +1500,9 @@ class NTreeInnerNode : public NTreeNode<T, DistComp, variant> {
         dc.print(partitions[i][j], printContents, out);
         out << ", ";
       }
-      out << "}" << endl;
+      out << "}" << std::endl;
     }
-    out << endl;
+    out << std::endl;
   }
   
   void build(std::vector<T>& contents, DistComp& dc, int depth,
@@ -1864,15 +1865,15 @@ class NTreeLeafNode : public NTreeNode<T, DistComp, variant> {
       }
       // dc.print(*entries[i], out);
     }
-    out << "\"]" << endl;
-    out << "maxDist = " << maxDist << endl;
+    out << "\"]" << std::endl;
+    out << "maxDist = " << maxDist << std::endl;
     if (distMatrix != 0) {
-      out << "distMatrix:" << endl;
+      out << "distMatrix:" << std::endl;
       for (int i = 0; i < node_t::count; i++) {
         for (int j = 0; j <= i; j++) {
           out << distMatrix[i][j] << " ";
         }
-        out << endl;
+        out << std::endl;
       }
     }
     return out;
@@ -1911,15 +1912,16 @@ struct NTreeStat {
     if (noDCTotal > 0) {
       noDCInnerNodes = noDCTotal - noDCLeaves;
     }
-    out << (isSearch ? "SEARCH" : "TREE") << " STATISTICS:" << endl;
-    out << (isSearch ? "------" : "----") << "-----------" << endl;
+    out << (isSearch ? "SEARCH" : "TREE") << " STATISTICS:" << std::endl;
+    out << (isSearch ? "------" : "----") << "-----------" << std::endl;
     out << (isSearch ? "visited: " : "created: ") << noInnerNodes 
-        << " inner nodes, " << noLeaves << " leaves" << endl;
+        << " inner nodes, " << noLeaves << " leaves" << std::endl;
     double avgDCInnerNode = (double)noDCInnerNodes / noInnerNodes;
     double avgDCLeaves = (double)noDCLeaves / noLeaves;
     out << "number of distance computations: " << noDCInnerNodes
          << " at inner nodes (avg. = " << avgDCInnerNode << "), " 
-         << noDCLeaves << " at leaves (avg. = " << avgDCLeaves << ")." << endl;
+         << noDCLeaves << " at leaves (avg. = " << avgDCLeaves << ")."
+            << std::endl;
     return out;
   }
   
@@ -2925,8 +2927,8 @@ class NTree {
     }
     assignNodeIds(0);
     computeStatistics(root);
-    cout << endl;
-    stat.print(cout);
+    std::cout << std::endl;
+    stat.print(std::cout);
   }
   
   void insert(const T& entry) {
@@ -2960,7 +2962,7 @@ class NTree {
   
   std::ostream& print(std::ostream& out) {
     out << "{" << getTypeName() << ", degree = " << degree << ", maxLeafSize = "
-        << maxLeafSize << "}" << endl;
+        << maxLeafSize << "}" << std::endl;
     if (!root) {
       out << "empty";
     }

@@ -75,7 +75,7 @@ void DistributionTaskManager::exec(bool* run) {
   // TODO: find out ideal n, writing seems much slower than expected
   int n = 5;
 
-  KOUT << "Starting Distribution Loop..." << endl;
+  KOUT << "Starting Distribution Loop..." << std::endl;
 
   time(&lastRestructure);
 
@@ -114,7 +114,7 @@ void DistributionTaskManager::exec(bool* run) {
     }
   }
 
-  KOUT << "Distribution Loop stopped..." << endl;
+  KOUT << "Distribution Loop stopped..." << std::endl;
 
   if (restructureProcess) {
     KOUT << "Waiting for restructure process...";
@@ -129,7 +129,7 @@ void DistributionTaskManager::exec(bool* run) {
 
   KOUT << "Transferred " << criteria.distributedBytes() << " bytes / "
        << setprecision(10) << criteria.distributedBytes() / (1024.0 * 1024.0)
-       << " MB" << endl;
+       << " MB" << std::endl;
 
   if (currentDistributionId > -1) {
     Distribution* currentDist =
@@ -175,7 +175,7 @@ bool DistributionTaskManager::removeTask(unsigned int index) {
 }
 
 void DistributionTaskManager::distributionUpdated() {
-  ROUT << "Syncing updates Distribution..." << endl;
+  ROUT << "Syncing updates Distribution..." << std::endl;
   vector<Connection*>& serverList = instance->sm.getConnectionList();
 
   Distribution* currentDist = instance->getDistribution(currentDistributionId);
@@ -220,7 +220,7 @@ void DistributionTaskManager::restructure(bool* run) {
         criteria.localRestructure.size() > 0) {
       criteria.reset();
 
-      ROUT << DebugTime() << "Starting Restructure." << endl;
+      ROUT << DebugTime() << "Starting Restructure." << std::endl;
 
       current->syncMutex.lock();
 
@@ -230,14 +230,14 @@ void DistributionTaskManager::restructure(bool* run) {
 
       string debugPath = instance->getRestructureFilePath("before");
       SaveDebugFile(debugPath, current);
-      ROUT << "Saving current distribution state:" << debugPath << endl;
+      ROUT << "Saving current distribution state:" << debugPath << std::endl;
 
       // 1.update local distribution => after we continue all future data will
       // directly be transferred to correct sever
       for (unsigned int splitIdx = 0; splitIdx < criteria.split.size();
            ++splitIdx) {
         if (serverList.size() - current->serverIdOrder.size() > 0) {
-          ROUT << "Splitting: " << splitIdx << endl;
+          ROUT << "Splitting: " << splitIdx << std::endl;
           int serverId = criteria.split[splitIdx];
           int serverIdx = instance->sm.getConnectionIndex(serverId);
 
@@ -249,10 +249,10 @@ void DistributionTaskManager::restructure(bool* run) {
             serverList[newServerIdx]->id = newServerId;
             if (!serverList[serverIdx]->check() ||
                 !serverList[serverIdx]->kvsConn->check()) {
-              cout << instance->localHost << " : "
+              std::cout << instance->localHost << " : "
                    << instance->localInterfacePort << " : "
                    << instance->localKvsPort << " : "
-                   << instance->currentDatabaseName << endl;
+                   << instance->currentDatabaseName << std::endl;
               if (!serverList[serverIdx]->initInterface(
                       instance->localHost, instance->localInterfacePort,
                       instance->localKvsPort, instance->currentDatabaseName)) {
@@ -290,7 +290,7 @@ void DistributionTaskManager::restructure(bool* run) {
         }
 
         ROUT << "Redistribution starting with:" << serverId << " +"
-             << criteria.localRestructure[restructureIdx].second << endl;
+             << criteria.localRestructure[restructureIdx].second << std::endl;
       }
 
       // 1.1 force finish all running batches?
@@ -307,11 +307,11 @@ void DistributionTaskManager::restructure(bool* run) {
       debugPath = instance->getRestructureFilePath("after");
       SaveDebugFile(debugPath, current);
       ROUT << "Saving distribution state after redistribution:" << debugPath
-           << endl;
+           << std::endl;
 
       // 2.send updated version to involved servers
 
-      ROUT << "Updating Serverlists on involved Servers" << endl;
+      ROUT << "Updating Serverlists on involved Servers" << std::endl;
 
       for (unsigned int serverIdx = 0; serverIdx < involvedServers.size();
            ++serverIdx) {
@@ -322,7 +322,7 @@ void DistributionTaskManager::restructure(bool* run) {
 
       syncDataState();
 
-      ROUT << "Sending Distribution Updates" << endl;
+      ROUT << "Sending Distribution Updates" << std::endl;
 
       string distData = current->toBin();
       // string distName = instance->getDistributionName(currentDistributionId);
@@ -335,7 +335,7 @@ void DistributionTaskManager::restructure(bool* run) {
       }
 
       ROUT << "Enabling continuous batches until restructure is complete..."
-           << endl;
+           << std::endl;
       for (unsigned int taskIdx = 0; taskIdx < tasks.size(); ++taskIdx) {
         tasks[taskIdx]->setContinueCurrentBatch(true);
       }
@@ -347,10 +347,10 @@ void DistributionTaskManager::restructure(bool* run) {
       // boost::thread(&DistributionTaskManager::restructurePhaseTwo, this,
       // involvedServers);
 
-      ROUT << "Starting restructure phase." << endl;
+      ROUT << "Starting restructure phase." << std::endl;
       restructurePhaseTwo(involvedServers);
 
-      ROUT << "Continuing normal operation..." << endl;
+      ROUT << "Continuing normal operation..." << std::endl;
     }
   }
 }
@@ -367,7 +367,7 @@ void DistributionTaskManager::restructurePhaseTwo(
     distParams.push_back(tasks[taskIdx]->distParams);
   }
 
-  ROUT << "Start redistribution threads." << endl;
+  ROUT << "Start redistribution threads." << std::endl;
 
   for (unsigned int serverIdx = 0; serverIdx < involvedServers.size();
        ++serverIdx) {
@@ -376,16 +376,16 @@ void DistributionTaskManager::restructurePhaseTwo(
                       involvedServers[serverIdx], distParams));
   }
 
-  ROUT << "Waiting for redistribution threads..." << endl;
+  ROUT << "Waiting for redistribution threads..." << std::endl;
 
   for (unsigned int distIdx = 0; distIdx < distThreads.size(); ++distIdx) {
     distThreads[distIdx].join();
   }
   distThreads.clear();
 
-  ROUT << "Redistribution threads finished..." << endl;
+  ROUT << "Redistribution threads finished..." << std::endl;
 
-  ROUT << "Disabling continuous batches ..." << endl;
+  ROUT << "Disabling continuous batches ..." << std::endl;
   for (unsigned int taskIdx = 0; taskIdx < tasks.size(); ++taskIdx) {
     tasks[taskIdx]->setContinueCurrentBatch(false);
   }
@@ -393,11 +393,11 @@ void DistributionTaskManager::restructurePhaseTwo(
   // 4.when distribute is finished we are ready to UPDATE distribution again
   // same as 2. just different distribution
 
-  ROUT << "Signal that restructure is complete." << endl;
+  ROUT << "Signal that restructure is complete." << std::endl;
 
   resetRedistribtionProgress();
 
-  ROUT << "Send updated distribution to all servers." << endl;
+  ROUT << "Send updated distribution to all servers." << std::endl;
 
   distributionUpdated();
 
@@ -424,7 +424,7 @@ void DistributionTaskManager::restructurePhaseTwo(
 
   Distribution* current = instance->getDistribution(currentDistributionId);
   if (current->needsSynchronisation()) {
-    ROUT << "Distribution needs synchronisation." << endl;
+    ROUT << "Distribution needs synchronisation." << std::endl;
     syncDistribution = true;
   }
   time(&lastRestructure);
@@ -467,20 +467,20 @@ void DistributionTaskManager::restructureCleanData(
 
 void DistributionTaskManager::syncDistributions(bool* run) {
   if (currentDistributionId > -1) {
-    ROUT << "Sync process started. (" << DebugTime() << ")" << endl;
+    ROUT << "Sync process started. (" << DebugTime() << ")" << std::endl;
     Distribution* current = instance->getDistribution(currentDistributionId);
     string distributionName =
         "Sync" + instance->getDistributionName(currentDistributionId);
 
-    ROUT << "Locking distribution..." << endl;
+    ROUT << "Locking distribution..." << std::endl;
     // 1. make sure no new entries can be created
     current->syncMutex.lock();
 
-    ROUT << "Process outstanding tuples..." << endl;
+    ROUT << "Process outstanding tuples..." << std::endl;
     // 2. make sure all data is send
     processDistributions(run, 200);
 
-    ROUT << "Force Batches..." << endl;
+    ROUT << "Force Batches..." << std::endl;
     // 2.1 force finish all running batches?
     for (unsigned int taskIdx = 0; taskIdx < tasks.size(); ++taskIdx) {
       if (!tasks[taskIdx]->finishBatch()) {
@@ -491,7 +491,7 @@ void DistributionTaskManager::syncDistributions(bool* run) {
       }
     }
 
-    ROUT << "Create snapshot" << endl;
+    ROUT << "Create snapshot" << std::endl;
     // 3. Prepare Snapshot
     Distribution* distCopy = Distribution::getInstance(current->toBin());
     distCopy->resetWeight();
@@ -502,7 +502,7 @@ void DistributionTaskManager::syncDistributions(bool* run) {
 
     debugPath = instance->getRestructureFilePath("sync__before");
     SaveDebugFile(debugPath, current);
-    ROUT << "Debug saved snapshot:" << debugPath << endl;
+    ROUT << "Debug saved snapshot:" << debugPath << std::endl;
 
     // 3.1 Prepare to send snapshot
     vector<DistributionParameter> distParams;
@@ -510,7 +510,7 @@ void DistributionTaskManager::syncDistributions(bool* run) {
       distParams.push_back(tasks[taskIdx]->distParams);
     }
 
-    ROUT << "Exchange sync data in threads.." << endl;
+    ROUT << "Exchange sync data in threads.." << std::endl;
     vector<boost::thread> distThreads;
     vector<Connection*>& serverList = instance->sm.getConnectionList();
     for (unsigned int serverIdx = 0; serverIdx < serverList.size();
@@ -521,19 +521,19 @@ void DistributionTaskManager::syncDistributions(bool* run) {
                         distributionName, distCopyData));
     }
 
-    ROUT << "Join threads..." << endl;
+    ROUT << "Join threads..." << std::endl;
     for (unsigned int serverIdx = 0; serverIdx < serverList.size();
          ++serverIdx) {
       distThreads[serverIdx].join();
 
-      ROUT << "Requesting Data.." << endl;
+      ROUT << "Requesting Data.." << std::endl;
       // 5. Request updated Snapshots
       string tempData;
       if (serverList[serverIdx]->kvsConn->requestDistribution(distributionName,
                                                               tempData)) {
         // 6.Merge Updates into distCopy
 
-        ROUT << "Merge data..." << endl;
+        ROUT << "Merge data..." << std::endl;
         Distribution* tempDist = Distribution::getInstance(tempData);
 
         debugPath = instance->getRestructureFilePath(
@@ -548,19 +548,19 @@ void DistributionTaskManager::syncDistributions(bool* run) {
       }
     }
 
-    ROUT << "Update Weights vector..." << endl;
+    ROUT << "Update Weights vector..." << std::endl;
     distCopy->updateWeightVector();
 
-    ROUT << "Update current Distribution..." << endl;
+    ROUT << "Update current Distribution..." << std::endl;
     current->fromBin(distCopy->toBin());
     current->syncMutex.unlock();
 
     debugPath = instance->getRestructureFilePath("sync_after");
     SaveDebugFile(debugPath, current);
-    ROUT << "Debug saved snapshot:" << debugPath << endl;
+    ROUT << "Debug saved snapshot:" << debugPath << std::endl;
 
     delete distCopy;
-    ROUT << "Sync finished ...(" << DebugTime() << ")" << endl;
+    ROUT << "Sync finished ...(" << DebugTime() << ")" << std::endl;
     time(&lastRestructure);
   }
 }
@@ -576,7 +576,7 @@ void DistributionTaskManager::syncDistributionsThread(
     ROUT << "Executing:"
          << "query " << distParams[distIdx].targetRelation << " feed "
          << dist->serverIdAssignment("ServerId", distName, false) << "count"
-         << endl;
+         << std::endl;
     server->exec("query " + distParams[distIdx].targetRelation + " feed " +
                  dist->serverIdAssignment("ServerId", distName, false) +
                  "count");
@@ -585,7 +585,8 @@ void DistributionTaskManager::syncDistributionsThread(
 
 void DistributionTaskManager::syncDataState() {
   if (currentDistributionId > -1) {
-    ROUT << "Data State Sync process started. (" << DebugTime() << ")" << endl;
+    ROUT << "Data State Sync process started. (" << DebugTime() << ")"
+       << std::endl;
     Distribution* current = instance->getDistribution(currentDistributionId);
     string distributionName =
         "Sync" + instance->getDistributionName(currentDistributionId);
@@ -594,7 +595,7 @@ void DistributionTaskManager::syncDataState() {
 
     string debugPath = instance->getRestructureFilePath("id_state_sync_before");
     SaveDebugFile(debugPath, current);
-    ROUT << "Debug saved snapshot:" << debugPath << endl;
+    ROUT << "Debug saved snapshot:" << debugPath << std::endl;
 
     vector<DistributionParameter> distParams;
     for (unsigned int taskIdx = 0; taskIdx < tasks.size(); ++taskIdx) {
@@ -604,7 +605,7 @@ void DistributionTaskManager::syncDataState() {
     string distData = current->toBin();
     Distribution* distCopy = Distribution::getInstance(distData);
 
-    ROUT << "Exchange sync data in threads.." << endl;
+    ROUT << "Exchange sync data in threads.." << std::endl;
     vector<boost::thread> distThreads;
     vector<Connection*>& serverList = instance->sm.getConnectionList();
     for (unsigned int serverIdx = 0; serverIdx < serverList.size();
@@ -614,19 +615,19 @@ void DistributionTaskManager::syncDataState() {
           serverList[serverIdx], distParams, distributionName, distData));
     }
 
-    ROUT << "Join threads..." << endl;
+    ROUT << "Join threads..." << std::endl;
     for (unsigned int serverIdx = 0; serverIdx < serverList.size();
          ++serverIdx) {
       distThreads[serverIdx].join();
 
-      ROUT << "Requesting Data.." << endl;
+      ROUT << "Requesting Data.." << std::endl;
       // 5. Request updated Snapshots
       string tempData;
       if (serverList[serverIdx]->kvsConn->requestDistribution(distributionName,
                                                               tempData)) {
         // 6.Merge Updates into distCopy
 
-        ROUT << "Merge data..." << endl;
+        ROUT << "Merge data..." << std::endl;
         Distribution* tempDist = Distribution::getInstance(tempData);
 
         debugPath = instance->getRestructureFilePath(
@@ -643,10 +644,10 @@ void DistributionTaskManager::syncDataState() {
 
     debugPath = instance->getRestructureFilePath("id_state_sync_after");
     SaveDebugFile(debugPath, current);
-    ROUT << "Debug saved snapshot:" << debugPath << endl;
+    ROUT << "Debug saved snapshot:" << debugPath << std::endl;
 
     delete distCopy;
-    ROUT << "Sync finished ...(" << DebugTime() << ")" << endl;
+    ROUT << "Sync finished ...(" << DebugTime() << ")" << std::endl;
   }
 }
 

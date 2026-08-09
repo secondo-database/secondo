@@ -150,7 +150,8 @@ private:
      heartbeatData.clear();
 
      if (! cassandra -> getHeartbeatData(heartbeatData) ) {
-        cerr << "[Error] Unable to heartbeat from system table" << endl;
+        std::cerr << "[Error] Unable to heartbeat from system table" 
+         << std::endl;
         return false;
      }
 
@@ -169,8 +170,9 @@ private:
 
        // Refresh data
        if (! cassandra -> getTokenRangesFromSystemtable(allTokenRanges) ) {
-         cerr << "[Error] Unable to collect token ranges from system table" 
-              << endl;
+         std::cerr 
+            << "[Error] Unable to collect token ranges from system table" 
+            << std::endl;
          return false;
        }
        
@@ -181,8 +183,8 @@ private:
        if (! cassandra -> getProcessedTokenRangesForQuery(
                   processedTokenRanges, queryId) ) {
       
-         cerr << "[Error] Unable to collect processed token ranges from "
-              << "system table" << endl;
+         std::cerr << "[Error] Unable to collect processed token ranges from "
+              << "system table" << std::endl;
          return false;
        }
      

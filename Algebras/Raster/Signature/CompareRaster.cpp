@@ -36,9 +36,9 @@ long compareSignatures4CRS( Signature4CRS *assinat4crs1,
   long result = -1;
 
   #ifdef DEBUGMESSAGES
-  cout << "comparing signatures..." << std::endl;
-  cout << "potency1 = " << assinat4crs1->map->potency << std::endl;
-  cout << "potency2 = " << assinat4crs2->map->potency << std::endl;
+  std::cout << "comparing signatures..." << std::endl;
+  std::cout << "potency1 = " << assinat4crs1->map->potency << std::endl;
+  std::cout << "potency2 = " << assinat4crs2->map->potency << std::endl;
   #endif
   if ( assinat4crs1->map->potency > assinat4crs2->map->potency )
     comparisonCellSize = 1l << assinat4crs1->map->potency;

@@ -45,7 +45,7 @@ bool KVSConnection::connect() {
     getline(iosock, init);
 
     if (init.compare("<SecondoKVS/>") == 0) {
-      iosock << "<SecondoKVS/>" << endl;
+      iosock << "<SecondoKVS/>" << std::endl;
       iosock.flush();
       return true;
     }
@@ -65,7 +65,7 @@ bool KVSConnection::check() {
   string ping;
 
   iostream& iosock = connection->GetSocketStream();
-  iosock << "<Ping/>" << endl;
+  iosock << "<Ping/>" << std::endl;
   getline(iosock, ping);
 
   return (ping.compare("<Ping/>") == 0);
@@ -75,7 +75,7 @@ void KVSConnection::close() {
   boost::lock_guard<boost::mutex> guard(mtx);
   if (connection) {
     iostream& iosock = connection->GetSocketStream();
-    iosock << "<Close/>\n" << endl;
+    iosock << "<Close/>\n" << std::endl;
     iosock.flush();
     connection->Close();
     delete connection;
@@ -88,7 +88,7 @@ bool KVSConnection::sendStream(const int& id, const string& streamType,
   if (!connection) {
     if (!check()) {
       KOUT << "KVSConnection: Failed to connect (" << host << ":" << port << ")"
-           << endl;
+           << std::endl;
       return false;
     }
   }
@@ -96,7 +96,7 @@ bool KVSConnection::sendStream(const int& id, const string& streamType,
   boost::lock_guard<boost::mutex> guard(mtx);
 
   iostream& iosock = connection->GetSocketStream();
-  iosock << "<RemoteStream>" << endl;
+  iosock << "<RemoteStream>" << std::endl;
   iosock.write((char*)&id, sizeof(id));
   unsigned int len = streamType.length();
   iosock.write((char*)&len, sizeof(len));
@@ -129,7 +129,7 @@ bool KVSConnection::sendStream(const int& id, const char* data,
   if (!connection) {
     if (!check()) {
       KOUT << "KVSConnection: Failed to connect (" << host << ":" << port << ")"
-           << endl;
+           << std::endl;
       return false;
     }
   }
@@ -137,7 +137,7 @@ bool KVSConnection::sendStream(const int& id, const char* data,
   boost::lock_guard<boost::mutex> guard(mtx);
 
   iostream& iosock = connection->GetSocketStream();
-  iosock << "<RemoteStreamPart>" << endl;
+  iosock << "<RemoteStreamPart>" << std::endl;
   iosock.write((char*)&id, sizeof(id));
 
   iosock.write(data, dataLen);
@@ -151,7 +151,7 @@ bool KVSConnection::sendStreamType(const int& id, const string& streamType) {
   if (!connection) {
     if (!check()) {
       KOUT << "KVSConnection: Failed to connect (" << host << ":" << port << ")"
-           << endl;
+           << std::endl;
       return false;
     }
   }
@@ -159,7 +159,7 @@ bool KVSConnection::sendStreamType(const int& id, const string& streamType) {
   boost::lock_guard<boost::mutex> guard(mtx);
 
   iostream& iosock = connection->GetSocketStream();
-  iosock << "<RemoteStreamType>" << endl;
+  iosock << "<RemoteStreamType>" << std::endl;
   iosock.write((char*)&id, sizeof(id));
 
   unsigned int len = streamType.length();
@@ -173,7 +173,7 @@ bool KVSConnection::endStream(const int& id) {
   if (!connection) {
     if (!check()) {
       KOUT << "KVSConnection: Failed to connect (" << host << ":" << port << ")"
-           << endl;
+           << std::endl;
       return false;
     }
   }
@@ -181,7 +181,7 @@ bool KVSConnection::endStream(const int& id) {
   boost::lock_guard<boost::mutex> guard(mtx);
 
   iostream& iosock = connection->GetSocketStream();
-  iosock << "<EndRemoteStream>" << endl;
+  iosock << "<EndRemoteStream>" << std::endl;
   iosock.write((char*)&id, sizeof(id));
   iosock.flush();
   return true;
@@ -190,7 +190,7 @@ unsigned int KVSConnection::transferCount(const int& id) {
   if (!connection) {
     if (!check()) {
       KOUT << "KVSConnection: Failed to connect (" << host << ":" << port << ")"
-           << endl;
+           << std::endl;
       return 0;
     }
   }
@@ -198,7 +198,7 @@ unsigned int KVSConnection::transferCount(const int& id) {
   boost::lock_guard<boost::mutex> guard(mtx);
 
   iostream& iosock = connection->GetSocketStream();
-  iosock << "<RemoteStreamCount>" << endl;
+  iosock << "<RemoteStreamCount>" << std::endl;
   iosock.write((char*)&id, sizeof(id));
   iosock.flush();
 
@@ -211,7 +211,7 @@ bool KVSConnection::removeStream(const int& id) {
   if (!connection) {
     if (!check()) {
       KOUT << "KVSConnection: Failed to connect (" << host << ":" << port << ")"
-           << endl;
+           << std::endl;
       return false;
     }
   }
@@ -219,7 +219,7 @@ bool KVSConnection::removeStream(const int& id) {
   boost::lock_guard<boost::mutex> guard(mtx);
 
   iostream& iosock = connection->GetSocketStream();
-  iosock << "<RemoveRemoteStream>" << endl;
+  iosock << "<RemoveRemoteStream>" << std::endl;
   iosock.write((char*)&id, sizeof(id));
   iosock.flush();
 
@@ -233,7 +233,7 @@ bool KVSConnection::sendDistributionUpdate(const string& distributionName,
   if (!connection) {
     if (!check()) {
       KOUT << "KVSConnection: Failed to connect (" << host << ":" << port << ")"
-           << endl;
+           << std::endl;
       return false;
     }
   }
@@ -241,7 +241,7 @@ bool KVSConnection::sendDistributionUpdate(const string& distributionName,
   boost::lock_guard<boost::mutex> guard(mtx);
 
   iostream& iosock = connection->GetSocketStream();
-  iosock << "<SendDistributionUpdate/>" << endl;
+  iosock << "<SendDistributionUpdate/>" << std::endl;
   unsigned int len = 0;
 
   len = distributionName.length();
@@ -263,7 +263,7 @@ bool KVSConnection::requestDistribution(const string& distributionName,
   if (!connection) {
     if (!check()) {
       KOUT << "KVSConnection: Failed to connect (" << host << ":" << port << ")"
-           << endl;
+           << std::endl;
       return false;
     }
   }
@@ -271,7 +271,7 @@ bool KVSConnection::requestDistribution(const string& distributionName,
   boost::lock_guard<boost::mutex> guard(mtx);
 
   iostream& iosock = connection->GetSocketStream();
-  iosock << "<RequestDistribution/>" << endl;
+  iosock << "<RequestDistribution/>" << std::endl;
 
   unsigned int len = distributionName.length();
   iosock.write((char*)&len, sizeof(len));
@@ -296,7 +296,7 @@ unsigned int KVSConnection::requestTransferId() {
   if (!connection) {
     if (!check()) {
       KOUT << "KVSConnection: Failed to connect (" << host << ":" << port << ")"
-           << endl;
+           << std::endl;
       return 0;
     }
   }
@@ -304,7 +304,7 @@ unsigned int KVSConnection::requestTransferId() {
   boost::lock_guard<boost::mutex> guard(mtx);
 
   iostream& iosock = connection->GetSocketStream();
-  iosock << "<RequestTransferId/>" << endl;
+  iosock << "<RequestTransferId/>" << std::endl;
 
   string response;
 
@@ -323,7 +323,7 @@ string KVSConnection::requestServerList() {
   if (!connection) {
     if (!check()) {
       KOUT << "KVSConnection: Failed to connect (" << host << ":" << port << ")"
-           << endl;
+           << std::endl;
       return "";
     }
   }
@@ -331,7 +331,7 @@ string KVSConnection::requestServerList() {
   boost::lock_guard<boost::mutex> guard(mtx);
 
   iostream& iosock = connection->GetSocketStream();
-  iosock << "<RequestServerList/>" << endl;
+  iosock << "<RequestServerList/>" << std::endl;
 
   string response;
   getline(iosock, response);
@@ -349,7 +349,7 @@ string KVSConnection::requestSCPPath() {
   if (!connection) {
     if (!check()) {
       KOUT << "KVSConnection: Failed to connect (" << host << ":" << port << ")"
-           << endl;
+           << std::endl;
       // default
       return "/home/secondo/bin/kvs";
     }
@@ -358,7 +358,7 @@ string KVSConnection::requestSCPPath() {
   boost::lock_guard<boost::mutex> guard(mtx);
 
   iostream& iosock = connection->GetSocketStream();
-  iosock << "<RequestSCPPath/>" << endl;
+  iosock << "<RequestSCPPath/>" << std::endl;
 
   string response;
   getline(iosock, response);
@@ -377,7 +377,7 @@ int KVSConnection::tryRestructureLock(int id) {
   if (!connection) {
     if (!check()) {
       KOUT << "KVSConnection: Failed to connect (" << host << ":" << port << ")"
-           << endl;
+           << std::endl;
       return -1;
     }
   }
@@ -385,7 +385,7 @@ int KVSConnection::tryRestructureLock(int id) {
   boost::lock_guard<boost::mutex> guard(mtx);
 
   iostream& iosock = connection->GetSocketStream();
-  iosock << "<TryRestructureLock/>" << endl;
+  iosock << "<TryRestructureLock/>" << std::endl;
   iosock.write((char*)&id, sizeof(id));
   iosock.flush();
 
@@ -405,7 +405,7 @@ bool KVSConnection::updateRestructureLock() {
   if (!connection) {
     if (!check()) {
       KOUT << "KVSConnection: Failed to connect (" << host << ":" << port << ")"
-           << endl;
+           << std::endl;
       return false;
     }
   }
@@ -413,14 +413,14 @@ bool KVSConnection::updateRestructureLock() {
   boost::lock_guard<boost::mutex> guard(mtx);
 
   iostream& iosock = connection->GetSocketStream();
-  iosock << "<UpdateRestructureLock/>" << endl;
+  iosock << "<UpdateRestructureLock/>" << std::endl;
   return true;
 }
 bool KVSConnection::unlockRestructureLock(int id) {
   if (!connection) {
     if (!check()) {
       KOUT << "KVSConnection: Failed to connect (" << host << ":" << port << ")"
-           << endl;
+           << std::endl;
       return false;
     }
   }
@@ -428,7 +428,7 @@ bool KVSConnection::unlockRestructureLock(int id) {
   boost::lock_guard<boost::mutex> guard(mtx);
 
   iostream& iosock = connection->GetSocketStream();
-  iosock << "<UnlockRestructureLock/>" << endl;
+  iosock << "<UnlockRestructureLock/>" << std::endl;
   iosock.write((char*)&id, sizeof(id));
   iosock.flush();
 
@@ -510,7 +510,7 @@ bool Connection::connectInterface() {
     delete mynl;
     mynl = 0;
 
-    KOUT << "Connection failed: " << errorMsg << endl;
+    KOUT << "Connection failed: " << errorMsg << std::endl;
 
     return false;
   }
@@ -527,20 +527,20 @@ bool Connection::initInterface(string localIp, int localInterfacePort,
       interfaceConn->setTimeout(1);
     }
 
-    KOUT << "Connecting to Interface:" << endl;
+    KOUT << "Connecting to Interface:" << std::endl;
     if (!interfaceConn->Initialize("", "", host,
                                    stringutils::int2str(interfacePort), config,
                                    errorMsg, true)) {
-      KOUT << "Problem: " << errorMsg << endl;
+      KOUT << "Problem: " << errorMsg << std::endl;
       return false;
     } else {
-      KOUT << "Success!" << endl;
+      KOUT << "Success!" << std::endl;
     }
   }
 
   // init commands
   exec("close database");
-  KOUT << "trying to open database:" << databaseName << endl;
+  KOUT << "trying to open database:" << databaseName << std::endl;
   if (!exec("open database " + databaseName)) {
     return false;
   }
@@ -649,7 +649,7 @@ bool Connection::exec(string command) {
     interfaceConn->Secondo(command, resList, serr);
     if (serr.code != 0) {
       KOUT << "Error while executing command (" << command
-           << "): " << interfaceConn->GetErrorMessage(serr.code) << endl;
+           << "): " << interfaceConn->GetErrorMessage(serr.code) << std::endl;
       return false;
     } else {
       return true;
@@ -668,7 +668,7 @@ bool Connection::exec(string command, const bool& expected) {
     interfaceConn->Secondo(command, resList, serr);
     if (serr.code != 0) {
       KOUT << "Error while executing command (" << command
-           << "): " << interfaceConn->GetErrorMessage(serr.code) << endl;
+           << "): " << interfaceConn->GetErrorMessage(serr.code) << std::endl;
       return false;
     } else {
       if (mynl->ListLength(resList) == 2 &&
@@ -693,7 +693,7 @@ bool Connection::exec(string command, const int& expected) {
     interfaceConn->Secondo(command, resList, serr);
     if (serr.code != 0) {
       KOUT << "Error while executing command (" << command
-           << "): " << interfaceConn->GetErrorMessage(serr.code) << endl;
+           << "): " << interfaceConn->GetErrorMessage(serr.code) << std::endl;
       return false;
     } else {
       if (mynl->ListLength(resList) == 2 &&

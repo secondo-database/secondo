@@ -78,8 +78,8 @@ namespace drel {
     ListExpr DRELFUNARG( ListExpr args ) {
 
         #ifdef DRELDEBUG
-        cout << "DRELFUNARG" << endl;
-        cout << nl->ToString( args ) << endl;
+        std::cout << "DRELFUNARG" << std::endl;
+        std::cout << nl->ToString( args ) << std::endl;
         #endif
 
         if( !nl->HasMinLength( args, pos ) ) {

@@ -16,8 +16,8 @@ Additionally some specialized functions are provided.
 #define AVLTREE_H
 
    /* 
-#define __AVL_TRACE__ cout << __FILE__ << "@" << __LINE__ << ":" << \
-        __PRETTY_FUNCTION__ << endl;
+#define __AVL_TRACE__ std::cout << __FILE__ << "@" << __LINE__ << ":" << \
+        __PRETTY_FUNCTION__ << std::endl;
   
    */
   //#define __AVL_TRACE__ cout << __FUNCTION__ << endl;
@@ -668,9 +668,9 @@ The format is understand by the tree viewer of Secondo's Javagui.
 
 */
 void Print(std::ostream& out)const{
-   out << "( tree (" << endl;
+   out << "( tree (" << std::endl;
    Print(root, out);
-   out << "))" << endl;
+   out << "))" << std::endl;
 } 
 
 
@@ -1724,16 +1724,18 @@ static bool CheckCmp(Node const* const root,
   // check the sons
   if(smaller){
     if(! ( Comparator::smaller(root->content , content))){
-        cout << root->content << endl <<" is located in the left subtree of "
-             << endl
-             << content << " but it's not smaller" << endl;
+        std::cout << root->content << std::endl
+           <<" is located in the left subtree of "
+             << std::endl
+             << content << " but it's not smaller" << std::endl;
         return false;
     }
   } else {
     if(! (Comparator::smaller(content , root->content))){
-        cout << root->content << endl <<" is located in the right subtree of "
-             << endl
-             << content << " but it's not greater" << endl;
+        std::cout << root->content << std::endl
+           <<" is located in the right subtree of "
+             << std::endl
+             << content << " but it's not greater" << std::endl;
         return false;
     }
   }

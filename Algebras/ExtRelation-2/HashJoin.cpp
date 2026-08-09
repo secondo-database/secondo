@@ -61,11 +61,11 @@ std::ostream& PrintProgressInfo(std::ostream& os, ProgressInfo& info)
 {
   cmsg.info() << "Card: " << info.Card
               << ", Time: " << info.Time
-              << ", Progress: " << info.Progress << endl
+              << ", Progress: " << info.Progress << std::endl
               << "BTime: " << info.BTime
               << ", BProgress: " << info.BProgress
               << ", Size: " << info.Size
-              << ", SizeExt: " << info.SizeExt << endl;
+              << ", SizeExt: " << info.SizeExt << std::endl;
   cmsg.send();
 
   return os;
@@ -79,12 +79,12 @@ std::ostream& PrintProgressInfo(std::ostream& os, ProgressInfo& info)
 
 std::ostream& Bucket::Print(std::ostream& os)
 {
-  os << "Bucket " << number << " (" << tuples.size() << " tuples)" << endl;
+  os << "Bucket " << number << " (" << tuples.size() << " tuples)" << std::endl;
 
   for(size_t i = 0; i < tuples.size(); i++)
   {
     Tuple* t = tuples[i].tuple;
-    os << *t << "(Refs: " << t->GetNumOfRefs() << ")" << endl;
+    os << *t << "(Refs: " << t->GetNumOfRefs() << ")" << std::endl;
   }
 
   return os;
@@ -217,7 +217,7 @@ std::vector<Tuple*> HashTable::GetTuples(int bucket)
 
 std::ostream& HashTable::Print(std::ostream& os)
 {
-  os << "------------- Hash-Table content --------------" << endl;
+  os << "------------- Hash-Table content --------------" << std::endl;
 
   for(size_t i = 0; i < buckets.size(); i++)
   {
@@ -343,7 +343,7 @@ std::ostream& Partition::Print(std::ostream& os)
        << this->GetTotalSize() << " bytes (Size), "
        << this->GetTotalExtSize() << " bytes (ExtSize)"
        << "InMemory: " << this->buffer->InMemory()
-       << endl;
+       << std::endl;
 
   //this->buffer->Print(os);
 
@@ -587,7 +587,7 @@ void PartitionManager::subpartition( size_t n,
       cmsg.info() << "Partition (" << n
                   << ") is smaller than available memory"
                   << ", no subpartitioning necessary"
-                  << endl;
+                  << std::endl;
       cmsg.send();
     }
     partitions[n]->SetSubpartitioned();
@@ -602,7 +602,7 @@ void PartitionManager::subpartition( size_t n,
       cmsg.info() << "Maximum recursion level ("
                   << maxRecursion << ") reached "
                   << "- subpartitioning stopped!"
-                  << endl;
+                  << std::endl;
       cmsg.send();
     }
     partitions[n]->SetSubpartitioned();
@@ -618,7 +618,7 @@ void PartitionManager::subpartition( size_t n,
                   << ") contains only "
                   << partitions[n]->GetInterval().GetLength()
                   << " buckets, minimum is 4!"
-                  << endl;
+                  << std::endl;
       cmsg.send();
     }
     partitions[n]->SetSubpartitioned();
@@ -668,7 +668,7 @@ void PartitionManager::subpartition( size_t n,
 
   if ( traceMode )
   {
-    cmsg.info() << "Partition " << n << " is split into" << endl;
+    cmsg.info() << "Partition " << n << " is split into" << std::endl;
     cmsg.info() << n << ": ";
     p->Print(cmsg.info());
     cmsg.info() << k << ": ";
@@ -811,7 +811,7 @@ bool PartitionManager::LoadPartition( int n,
         cmsg.info() << "LoadPartition(" << n << "): " << counter << " / "
                     << progressInfo->partitionProgressInfo[n].tuples
                     << " tuples"
-                    << endl;
+                    << std::endl;
         cmsg.send();
       }
       return false;
@@ -823,7 +823,7 @@ bool PartitionManager::LoadPartition( int n,
     cmsg.info() << "LoadPartition(" << n << "): " << counter << " / "
                 << progressInfo->partitionProgressInfo[n].tuples
                 << " tuples"
-                << endl;
+                << std::endl;
     cmsg.send();
   }
 
@@ -837,7 +837,8 @@ bool PartitionManager::LoadPartition( int n,
 
 std::ostream& PartitionManager::Print(std::ostream& os)
 {
-  os << "-------------------- Partitioning -----------------------" << endl;
+  os << "-------------------- Partitioning -----------------------"
+     << std::endl;
 
   for(size_t i = 0; i < partitions.size(); i++)
   {

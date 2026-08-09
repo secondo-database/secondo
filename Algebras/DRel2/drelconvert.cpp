@@ -70,8 +70,8 @@ Get a d[f]rel or a d[f]arry as argument.
     ListExpr drel2darrayTM( ListExpr args ) {
 
         #ifdef DRELDEBUG
-        cout << "drel2darrayTM" << endl;
-        cout << nl->ToString( args ) << endl;
+        std::cout << "drel2darrayTM" << std::endl;
+        std::cout << nl->ToString( args ) << std::endl;
         #endif
 
         std::string err = "d[f]rel or d[f]array expected";
@@ -135,8 +135,8 @@ Creates a d[f]array.
         Word& local, Supplier s ) {
 
         #ifdef DRELDEBUG
-        cout << "drel2darrayVMT" << endl;
-        cout <<  args  << endl;
+        std::cout << "drel2darrayVMT" << std::endl;
+        std::cout <<  args  << std::endl;
         #endif
 
         result = qp->ResultStorage( s );
@@ -160,8 +160,8 @@ Creates a d[f]rel.
         Word& local, Supplier s ) {
 
         #ifdef DRELDEBUG
-        cout << "darray2drelVMT" << endl;
-        cout <<  args  << endl;
+        std::cout << "darray2drelVMT" << std::endl;
+        std::cout <<  args  << std::endl;
         #endif
 
         result = qp->ResultStorage( s );

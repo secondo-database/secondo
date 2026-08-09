@@ -85,8 +85,8 @@ Expect a d[f]el.
     ListExpr dsummarizeTM( ListExpr args ) {
 
         #ifdef DRELDEBUG
-        cout << "dsummarizeTM" << endl;
-        cout << nl->ToString( args ) << endl;
+        std::cout << "dsummarizeTM" << std::endl;
+        std::cout << nl->ToString( args ) << std::endl;
         #endif
 
         std::string err = "d[f]rel expected";
@@ -150,8 +150,8 @@ Selects all elements of the d[f]rel from the workers.
         Word& local, Supplier s ) {
 
         #ifdef DRELDEBUG
-        cout << "dsummarizeVMT 1" << endl;
-        cout <<  args  << endl;
+        std::cout << "dsummarizeVMT 1" << std::endl;
+        std::cout <<  args  << std::endl;
         #endif
 
         return distributed2::dsummarizeVMT<dsummarizeRelInfo<T>, T>( 
@@ -178,8 +178,8 @@ Selects all elements of the d[f]rel from the workers.
         Word& local, Supplier s ) {
 
         #ifdef DRELDEBUG
-        cout << "dsummarizeVMT 2" << endl;
-        cout << args << endl;
+        std::cout << "dsummarizeVMT 2" << std::endl;
+        std::cout << args << std::endl;
         #endif
 
         DRelLocalSummarize* li = ( DRelLocalSummarize* )local.addr;
@@ -213,7 +213,8 @@ Selects all elements of the d[f]rel from the workers.
 
                 Word dfrelResult;
                 if( !QueryProcessor::ExecuteQuery( queryS, dfrelResult ) ) {
-                    cout << "error while remove the dist attributes" << endl;
+                    std::cout << "error while remove the dist attributes"
+                       << std::endl;
                     return CANCEL;
                 }
 

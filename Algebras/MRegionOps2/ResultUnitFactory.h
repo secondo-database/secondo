@@ -75,11 +75,11 @@ struct DoubleCompare {
 
     inline bool operator()(const double& d1, const double& d2) const {
         if(d1 < d2)
-	{
-		return d1;	
-	}
-	else
-		return d2;
+        {
+                return d1;      
+        }
+        else
+                return d2;
         //return NumericUtil::Lower(d1, d2);
     }
 };
@@ -122,10 +122,10 @@ This method starts the construction of all ~ResultUnits~.
 
 */
 
-	void Start();
+        void Start();
 
-	inline void AddPFace(PFace* pf)
-	{ pFaces.push_back(pf);}
+        inline void AddPFace(PFace* pf)
+        { pFaces.push_back(pf);}
 
     mpq_class t1;
     mpq_class t12;
@@ -183,7 +183,7 @@ A pointer to the current ~ResultUnit~.
     std::set<double, DoubleCompare> time;
     std::set<double, DoubleCompare>::const_iterator timeIter;
 
-	std::vector<PFace*> pFaces;
+        std::vector<PFace*> pFaces;
 };
 
 
@@ -217,7 +217,8 @@ public:
     ResultUnit(const Interval<Instant> _interval) :
         interval(_interval),
         index(0) {
-	cout << "ResultUnitFactory.h - ResultUnit::Constructor()" << endl;  
+        std::cout << "ResultUnitFactory.h - ResultUnit::Constructor()"
+                  << std::endl;
     }
 
 /*
@@ -245,7 +246,7 @@ This method must be called before adding the first ~MSegment~.
 
     inline void StartBulkLoad() {
         index = 0;
-	
+        
     }
 
 

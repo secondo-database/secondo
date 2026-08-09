@@ -127,7 +127,7 @@ std::ostream& JRITreeElement::Print(std::ostream& os) const
 {
   os << "JRITreeElement: ";
   rint.Print(os);
-  os << ", left son: " << left << ", right son: " << right << endl;
+  os << ", left son: " << left << ", right son: " << right << std::endl;
   return os;
 }
 

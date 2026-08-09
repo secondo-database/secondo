@@ -140,7 +140,7 @@ int TestOp_VM_1(Word* args, Word& result, int message,
             Tuple* newt = ptd->ProjectTuple(vt, match);
             if (newt != NULL) {
                 LOG << "---Projected Tuple: ---------" << ENDL;
-                newt->Print(cout);
+                newt->Print(std::cout);
                 LOG << "-------------------" << ENDL;
                 delete newt;
             }
@@ -171,10 +171,10 @@ int TestOp_VM_1(Word* args, Word& result, int message,
             VTuple* vtsrc = TestTuples::Create4();
             VTuple* vtdst = TestTuples::Create4_1();
             LOG << "---Source-Tuple: --------" << ENDL;
-            vtsrc->getTuple()->Print(cout);
+            vtsrc->getTuple()->Print(std::cout);
             LOG << "-------------------" << ENDL;
             LOG << "---Dest-Tuple: --------" << ENDL;
-            vtdst->getTuple()->Print(cout);
+            vtdst->getTuple()->Print(std::cout);
             LOG << "-------------------" << ENDL;
 
             bool match = vtsrc->getTupleDescr()->
@@ -185,7 +185,7 @@ int TestOp_VM_1(Word* args, Word& result, int message,
             LOG << "Projected: " << match << ENDL;
             if (newt != NULL) {
                 LOG << "---Projected Tuple: ---------" << ENDL;
-                newt->Print(cout);
+                newt->Print(std::cout);
                 LOG << "-------------------" << ENDL;
                 delete newt;
             }

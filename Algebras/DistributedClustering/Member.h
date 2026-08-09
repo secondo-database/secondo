@@ -325,7 +325,7 @@ dimension between this and the committed point.
   }
   
   void printPoint(){
-    cout << getXVal();
+    std::cout << getXVal();
   }
   
 /*
@@ -456,7 +456,7 @@ dimension between this and the committed point.
   }
   
   void printPoint(){
-    cout << getXVal();
+    std::cout << getXVal();
   }
   
 /*
@@ -598,7 +598,7 @@ dimension between this and the committed point.
   }
   
   void printPoint(){
-    cout << "("<< point->GetX()<<  ", " << point->GetY() <<  ") ";
+    std::cout << "("<< point->GetX()<<  ", " << point->GetY() <<  ") ";
   }
   
 /*

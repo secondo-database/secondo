@@ -54,16 +54,16 @@ enum player
 
 
 void traceMove( const string& pgn, char agent, char startfile, 
-		 int startrow, char endfile, int endrow, bool captures )
+                 int startrow, char endfile, int endrow, bool captures )
 {
 
   if (trace) 
   {
-  cout << "pgn: " << pgn 
+  std::cout << "pgn: " << pgn 
        << "  recognized: " << agent 
        << startfile << startrow << endfile << endrow
-       << "  captures: " << captures << endl; 
-  }	  
+       << "  captures: " << captures << std::endl; 
+  }       
 }
 
 bool 
@@ -97,9 +97,9 @@ parseMove( char &startFile, int &startRow,
     case 'N':
       if ( agentSet )
       {
-        cerr << "unexpected Capital Letter in '" + 
+        std::cerr << "unexpected Capital Letter in '" + 
                                     pgn + "'";
-	
+        
         return false;
       }
       agent = ( playerNo == WHITE ) ? toupper( pgn[ i ] ) : tolower( pgn[ i ] );
@@ -120,7 +120,7 @@ parseMove( char &startFile, int &startRow,
       }
       if ( endFile != ' ' ) { 
          startFile = endFile;
-      }	      
+      }       
       endFile = pgn[ i ];
       break;
     case '1':
@@ -133,7 +133,7 @@ parseMove( char &startFile, int &startRow,
     case '8':
       if ( endRow != 0 ) { 
         startRow = endRow;
-      }	
+      } 
       endRow = atoi( pgn.substr( i, 1 ).c_str() );
       break;
     case 'x':
@@ -150,7 +150,7 @@ parseMove( char &startFile, int &startRow,
       }
       else
       {
-        cerr << "unexpected continuation of 'O'\n" << endl;
+        std::cerr << "unexpected continuation of 'O'\n" << std::endl;
         return false;
       }
       agent = ( playerNo == WHITE ) ? 'K' : 'k';
@@ -163,7 +163,7 @@ parseMove( char &startFile, int &startRow,
     }
   }
 
-  if ( endRow == 0 || endFile == ' ' ) { // what is this good for?	  
+  if ( endRow == 0 || endFile == ' ' ) { // what is this good for?        
       traceMove(pgn, agent, startFile, startRow, endFile, endRow, captures);
       return true;
   }
@@ -203,7 +203,7 @@ parseMove( char &startFile, int &startRow,
         if ( startRow == 2 &&
              position->TestField( "P", startFile, startRow ) ) break;
       }
-      cerr << "Didn't find white pawn to make move\n" << endl;
+      std::cerr << "Didn't find white pawn to make move\n" << std::endl;
       
       return false;
       break;
@@ -228,7 +228,7 @@ parseMove( char &startFile, int &startRow,
         if ( startRow == 7 &&
              position->TestField( "p", startFile, startRow ) ) break;
       }
-      cerr << "Didn't find black pawn to make move\n" << endl;
+      std::cerr << "Didn't find black pawn to make move\n" << std::endl;
       
       return false;
       break;
@@ -245,9 +245,9 @@ parseMove( char &startFile, int &startRow,
         if ( startRow <= 8 && 
             ( agentFound = position->TestField( string( 1, agent ),
                                   startFile, startRow ) ) ) break;
-        cerr << "Didn't find Knight to make move\n" << endl;
+        std::cerr << "Didn't find Knight to make move\n" << std::endl;
         
-	return false;
+        return false;
         break;
       }
       else if ( startRow != 0 )
@@ -261,9 +261,9 @@ parseMove( char &startFile, int &startRow,
         if ( startFile <= 'h' && 
             ( agentFound = position->TestField( string( 1, agent ),
                            startFile, startRow ) ) ) break;
-        cerr << "Didn't find Knight to make move\n" << endl;
-	
-	return false;
+        std::cerr << "Didn't find Knight to make move\n" << std::endl;
+        
+        return false;
         break;
       }
       else
@@ -317,7 +317,7 @@ parseMove( char &startFile, int &startRow,
                                                  startFile, startRow ) ) )
           break;
       }
-      cerr << "Didn't find Knight to make move\n" << endl;
+      std::cerr << "Didn't find Knight to make move\n" << std::endl;
       
       return false;
       break;
@@ -351,7 +351,7 @@ parseMove( char &startFile, int &startRow,
           break;
       }
       if ( agentFound ) break;
-      cerr << "Didn't find Bishop to make move\n" << endl;
+      std::cerr << "Didn't find Bishop to make move\n" << std::endl;
       
       return false;
       break;
@@ -464,8 +464,8 @@ parseMove( char &startFile, int &startRow,
       }
       if ( startFile == ' ' || startRow == 0 )
       {
-        cerr << "Didn't find Rook to make move\n";
-	
+        std::cerr << "Didn't find Rook to make move\n";
+        
       }
       break;
     case 'Q':
@@ -692,16 +692,16 @@ parseMove( char &startFile, int &startRow,
       }
       if ( startFile == ' ' || startRow == 0 )
       {
-        cerr << "Didn't find Rook to make move\n" << endl;
-	
-	return false;
+        std::cerr << "Didn't find Rook to make move\n" << std::endl;
+        
+        return false;
       }
       break;
     case 'K':
     case 'k':
       for ( int i = -1; i <= 1; i++ ) {
         
-	if (agentFound) // short exit
+        if (agentFound) // short exit
           break;
 
         for ( int j = -1; j <= 1; j++ ) {
@@ -713,25 +713,25 @@ parseMove( char &startFile, int &startRow,
           startRow = endRow + j;
           if ( startRow >= 1 && startFile >= 'a' && 
                startRow <= 8 && startFile <= 'h' &&
-	       !((i == 0) && (j == 0)) )
-	  {
+               !((i == 0) && (j == 0)) )
+          {
             agentFound = position->TestField( string( 1, agent ), 
                                               startFile, startRow );
-	    //cerr << "Test for " << agent << ": " 
-	    //	 << startFile << startRow << " " << agentFound << endl;
+            //cerr << "Test for " << agent << ": " 
+            //   << startFile << startRow << " " << agentFound << endl;
           }
         }
       }
       if (!agentFound) { 
-        cmsg.error() << "Didn't find King to make move\n" << endl;
+        cmsg.error() << "Didn't find King to make move\n" << std::endl;
         cmsg.send();
         traceMove(pgn, agent, startFile, startRow, endFile, endRow, captures);
         return false;
-      }	
+      } 
       break;
     default: {
-      cerr << "Internal Error: wrong agent"
-                                  " in move calculation\n" << endl;
+      std::cerr << "Internal Error: wrong agent"
+                                  " in move calculation\n" << std::endl;
       
       return false; }  
     } // switch
@@ -780,8 +780,8 @@ Chessgame* ParseFile( ifstream* file )
   result->GetMetainfoValue("White", &white);
   result->GetMetainfoValue("Black", &black);
 
-  cerr << "Parsing game notation for " 
-       << white << " vs. " << black << endl << endl;
+  std::cerr << "Parsing game notation for " 
+       << white << " vs. " << black << std::endl << std::endl;
   
   // read Movetext section
   int playerNo=0;
@@ -886,13 +886,13 @@ Chessgame* ParseFile( ifstream* file )
       }
       else
       {
-	if (!skipToNextMatch) {
+        if (!skipToNextMatch) {
 
-	if (trace)	
-	  result->GetLastPosition()->ShowBoard(cerr);
+        if (trace)      
+          result->GetLastPosition()->ShowBoard(std::cerr);
 
         bool ok = parseMove( startFile, startRow, endFile, 
-			     endRow, playerNo, pgn,
+                             endRow, playerNo, pgn,
                              result->GetLastPosition() );
        
         if (ok)
@@ -900,16 +900,16 @@ Chessgame* ParseFile( ifstream* file )
           result->AddMove( startFile, startRow, endFile, endRow, pgn );
           if ( playerNo == WHITE ) playerNo = BLACK;
         } else {
-	  result->AddMetainfoEntry( "Result", "Parse Error for " + pgn );
+          result->AddMetainfoEntry( "Result", "Parse Error for " + pgn );
           skipToNextMatch = true;
         }
-        }	
+        }       
         *file >> pgn;
       }
     }
   }
   // ignore rest of current line (usually only the '\n' char)
-  while ( file->get( inChar ) && inChar != '\n' ) cout << inChar;
+  while ( file->get( inChar ) && inChar != '\n' ) std::cout << inChar;
   return result;
 }
 

@@ -191,32 +191,32 @@ struct Point2D
         pThird = p2;
       }
 
-	  // if third Point is equal to first or second => true!
-	  if(pThird==pFirst || pThird==pSecond)
+          // if third Point is equal to first or second => true!
+          if(pThird==pFirst || pThird==pSecond)
       {
         return true;
       }
       else // there are 3 different points!
       {
-	    if(AlmostEqual(pThird.x,pFirst.x))
-		{
-		  // because pFirst and pSecond are not on vertical line:
-		  return false;
-		}
-		else
-		{
-		  double m1 = (pSecond.y-pFirst.y)/(pSecond.x-pFirst.x);
-		  double m2 = (pThird.y-pFirst.y)/(pThird.x-pFirst.x);
-		  if(AlmostEqual(m1,m2))
-		  {
-			 return true;
-		  }
-		  else
-		  {
-			 return false;
-		  }
-		}
-	  }
+            if(AlmostEqual(pThird.x,pFirst.x))
+                {
+                  // because pFirst and pSecond are not on vertical line:
+                  return false;
+                }
+                else
+                {
+                  double m1 = (pSecond.y-pFirst.y)/(pSecond.x-pFirst.x);
+                  double m2 = (pThird.y-pFirst.y)/(pThird.x-pFirst.x);
+                  if(AlmostEqual(m1,m2))
+                  {
+                         return true;
+                  }
+                  else
+                  {
+                         return false;
+                  }
+                }
+          }
     }
   }
 
@@ -234,10 +234,10 @@ struct Point2D
    }
    else
    {
-   	 // {p1, p2, *this} are on same line
-	 if(AlmostEqual(p1.x,p2.x))
-	 {
-	   // VERTICAL CASE:
+         // {p1, p2, *this} are on same line
+         if(AlmostEqual(p1.x,p2.x))
+         {
+           // VERTICAL CASE:
        Point2D pSegmentUpp = p1;
        Point2D pSegmentLow = p2;
        if(p1.y < p2.y)
@@ -256,10 +256,10 @@ struct Point2D
        {
          return false;
        }
-	 }
-	 else
-	 {
-	   // NON-VERTICAL CASE:
+         }
+         else
+         {
+           // NON-VERTICAL CASE:
        Point2D pSegmentLeft, pSegmentRight;
        if(p1.x < p2.x)
        {
@@ -286,14 +286,14 @@ struct Point2D
        {
          return false;
        }
-	 }
+         }
    }
   }
 
   void PrintOut() const
   {
-     cout << " (x,y) == (" << (*this).x << ", " << (*this).y <<
-       ") " <<endl;
+     std::cout << " (x,y) == (" << (*this).x << ", " << (*this).y <<
+       ") " <<std::endl;
   }
 
   double x;
@@ -347,14 +347,14 @@ struct SymbolicTuple
   {
     if(!this->mbbox.IsDefined())
     {
-  	  return this->mbbox;
+          return this->mbbox;
     }
     else
     {
       double minx = mbbox.MinD(0);
-	  double maxx = mbbox.MaxD(0);
-	  double miny = mbbox.MinD(1);
-	  double maxy = mbbox.MaxD(1);
+          double maxx = mbbox.MaxD(0);
+          double miny = mbbox.MinD(1);
+          double maxy = mbbox.MaxD(1);
     double minMax[] = {minx - FACTOR, maxx + FACTOR, 
                        miny - FACTOR, maxy + FACTOR };
       return Rectangle<2>( true,minMax);
@@ -363,10 +363,10 @@ struct SymbolicTuple
 
   void PrintOut() const
   {
-     cout << " (startIndex, endIndex, isNormal) == ("
+     std::cout << " (startIndex, endIndex, isNormal) == ("
           << (*this).startIndex << ", "
           << (*this).endIndex  << ", "
-          << (*this).isNormal << ") " <<  endl;
+          << (*this).isNormal << ") " <<  std::endl;
   }
 
   // datastructure:
@@ -629,7 +629,7 @@ opens space for ~nConstraints~ linear Constraints and ~nTuple~ symbolic tuples.
 The copy constructor.
 
 */
-	void Destroy();
+        void Destroy();
 /*
 This function should be called before the destructor if one wants to destroy the
 persistent array of tupels and the persistent array of linear constraints.

@@ -116,7 +116,7 @@ namespace pointcloud {
             worked through later on demand.
             */
             void readLasFileNames(const std::string &lasDir) {
-                cout << "Las files to be processed:" << endl;
+                std::cout << "Las files to be processed:" << std::endl;
                 if (lasDir.substr((lasDir.length() -1), 1) != "/") {
                   // file name provided
                   lasFileList.push_front(lasDir);
@@ -137,7 +137,7 @@ namespace pointcloud {
                             }
                             if ((entry->d_type & DT_REG) == DT_REG) {
                                 std::string lasFilNam = lasDir + entry->d_name;
-                                cout << lasFilNam << endl;
+                                std::cout << lasFilNam << std::endl;
                                 lasFileList.push_front(lasFilNam);
                             }
                         }
@@ -152,8 +152,8 @@ namespace pointcloud {
                 pError = false;
 
                 // test output las file name to be read
-                cout  << endl;
-                cout << "Processing las file : " << fileName  << endl;
+                std::cout  << std::endl;
+                std::cout << "Processing las file : " << fileName  << std::endl;
                 lasreader reader(fileName);
                 if(!reader.isOk()){
                    fError = true;
@@ -178,11 +178,11 @@ namespace pointcloud {
                 minY = fMinY;
                 maxZ = fMaxZ;
                 minZ = fMinZ;
-                cout << std::setprecision(14);
-                cout << "Absolute Min Point (" << minX << ", " 
-                    << minY << ", " << minZ << ")" << endl;
-                cout << "Absolute Max Point (" << maxX << ", " 
-                    << maxY << ", " << maxZ << ")" << endl;
+                std::cout << std::setprecision(14);
+                std::cout << "Absolute Min Point (" << minX << ", " 
+                    << minY << ", " << minZ << ")" << std::endl;
+                std::cout << "Absolute Max Point (" << maxX << ", " 
+                    << maxY << ", " << maxZ << ")" << std::endl;
                 lasPoint* point;
                 size_t icount = 0;
                 while( (point = reader.next())!=0){
@@ -197,7 +197,8 @@ namespace pointcloud {
                     delete point; 
                     icount++;
                 }
-                cout << "Number of points read: " << icount - 1 << endl;
+                std::cout << "Number of points read: " << icount - 1
+                   << std::endl;
                 // Set Min Max values of PC 
                 setMinMaxValues(minXArray, maxXArray, minYArray, maxYArray);
                 return 0;
@@ -209,14 +210,15 @@ namespace pointcloud {
                 pError = false;
 
                 // test output las file name to be read
-                cout  << endl;
-                cout << "Processing las file : " << laspcFileName  << endl;
+                std::cout  << std::endl;
+                std::cout << "Processing las file : " << laspcFileName
+                   << std::endl;
                 std::ifstream lasFile(laspcFileName.c_str(), 
                                       std::ios::in|std::ios::binary);
                 if (!lasFile) {
                     // handle error
                     fError = true;
-                    cout << "Error opening lasfile." << endl;
+                    std::cout << "Error opening lasfile." << std::endl;
                     return -2;
                 } 
 
@@ -227,16 +229,16 @@ namespace pointcloud {
                 sSignature = std::string(fSignature,4);
                 if (sSignature != "LASF") {
                     // Error Handling
-                    cout << 
+                    std::cout << 
                     "Error: 'LASF' Signature missing."
-                    << "Not a valid lasfile???" << endl;
+                    << "Not a valid lasfile???" << std::endl;
                     fError = true;
                     return -2;
                 }
-                cout << "Signature (LASF): " << sSignature << endl;
+                std::cout << "Signature (LASF): " << sSignature << std::endl;
                 uint16_t fileSourceId;
                 lasFile.read(reinterpret_cast<char*>(&fileSourceId), 2);
-                cout << "fileSourceId is " << fileSourceId << endl;
+                std::cout << "fileSourceId is " << fileSourceId << std::endl;
 
                 uint16_t globalEncoding;
                 lasFile.read(reinterpret_cast<char*>(&globalEncoding),2);
@@ -249,9 +251,9 @@ namespace pointcloud {
                 lasFile.read(reinterpret_cast<char*>(&fVerMinor), 1);
                 unsigned int sVerMajor = (unsigned int) fVerMajor;
                 unsigned int sVerMinor = (unsigned int) fVerMinor;
-                cout << "Version: " << sVerMajor << "."
-                        << sVerMinor << endl;
-                cout << "globalEncoding" << globalEncoding << endl;
+                std::cout << "Version: " << sVerMajor << "."
+                        << sVerMinor << std::endl;
+                std::cout << "globalEncoding" << globalEncoding << std::endl;
                 
                 char systemIdentifier[32];
                 char generatingSoftware[32];
@@ -263,26 +265,28 @@ namespace pointcloud {
                 lasFile.read(reinterpret_cast<char*>(&dayOfYear),2);
                 lasFile.read(reinterpret_cast<char*>(&year),2);
                 lasFile.read(reinterpret_cast<char*>(&headerSize),2);
-                cout << "system identifier " << systemIdentifier << endl;
-                cout << "generatingSoftware " << generatingSoftware << endl;
-                cout << "&dayOfYear " << dayOfYear << endl;
-                cout << "year " << year << endl;
-                cout << "headersize " << headerSize << endl;
+                std::cout << "system identifier " << systemIdentifier
+                   << std::endl;
+                std::cout << "generatingSoftware " << generatingSoftware
+                   << std::endl;
+                std::cout << "&dayOfYear " << dayOfYear << std::endl;
+                std::cout << "year " << year << std::endl;
+                std::cout << "headersize " << headerSize << std::endl;
 
                 lasFile.read(reinterpret_cast<char*>
                     (&fOffsetToPointData), 4);
-                cout << "Offset to point data: "
-                        << fOffsetToPointData << endl;
+                std::cout << "Offset to point data: "
+                        << fOffsetToPointData << std::endl;
                 lasFile.seekg(static_cast<std::ios::off_type>(5), 
                               std::ios::cur);
                 lasFile.read(reinterpret_cast<char*>
                     (&fPointDataRecLength), 2);
-                cout << "Point data record length: "
-                        << fPointDataRecLength << endl;
+                std::cout << "Point data record length: "
+                        << fPointDataRecLength << std::endl;
                 lasFile.read(reinterpret_cast<char*>
                     (&fNumPointRecs), 4);
-                cout << "No of point records: "
-                        << fNumPointRecs << endl;
+                std::cout << "No of point records: "
+                        << fNumPointRecs << std::endl;
 
 
                 cellOffsetX = (fMaxX - fMinX) / noGridCellsSide;
@@ -310,21 +314,22 @@ namespace pointcloud {
                 double minYArray[noGridCells];
                 double maxYArray[noGridCells];
                 // Output some status information during run
-                cout << "noGridCellsSide: " << noGridCellsSide << endl;
-                cout << "cellOffsetX: " << cellOffsetX << endl;
-                cout << "cellOffsetY: " << cellOffsetY << endl;
-                cout << "noGridCells: " << noGridCells << endl;
+                std::cout << "noGridCellsSide: " << noGridCellsSide
+                   << std::endl;
+                std::cout << "cellOffsetX: " << cellOffsetX << std::endl;
+                std::cout << "cellOffsetY: " << cellOffsetY << std::endl;
+                std::cout << "noGridCells: " << noGridCells << std::endl;
                 maxX = fMaxX;
                 minX = fMinX;
                 maxY = fMaxY;
                 minY = fMinY;
                 maxZ = fMaxZ;
                 minZ = fMinZ;
-                cout << std::setprecision(14);
-                cout << "Absolute Min Point (" << minX << ", " 
-                    << minY << ", " << minZ << ")" << endl;
-                cout << "Absolute Max Point (" << maxX << ", " 
-                    << maxY << ", " << maxZ << ")" << endl;
+                std::cout << std::setprecision(14);
+                std::cout << "Absolute Min Point (" << minX << ", " 
+                    << minY << ", " << minZ << ")" << std::endl;
+                std::cout << "Absolute Max Point (" << maxX << ", " 
+                    << maxY << ", " << maxZ << ")" << std::endl;
                 // read point data and build 2D Tree
                 lasFile.seekg(static_cast<std::ios::off_type>
                           (fOffsetToPointData), std::ios::beg);
@@ -349,19 +354,20 @@ namespace pointcloud {
                     }
                     icount++;
                 }
-                cout << "Number of points read: " << icount - 1 << endl;
+                std::cout << "Number of points read: " << icount - 1
+                   << std::endl;
                 // Set Min Max values of PC 
                 setMinMaxValues(minXArray, maxXArray, minYArray, maxYArray);
                 if (lasFile) {
                     lasFile.close();
                 }
                 if ((pError) || ((icount - 1) < fNumPointRecs)) {
-                    cout << "Error with point data in las file:  " 
-                            << laspcFileName << endl;
+                    std::cout << "Error with point data in las file:  " 
+                            << laspcFileName << std::endl;
                 }
                 if (fError) {
-                    cout << "Error processing file: " << laspcFileName 
-                            << endl;
+                    std::cout << "Error processing file: " << laspcFileName 
+                            << std::endl;
                     return 0;
                 }
                 return 0;
@@ -411,12 +417,12 @@ namespace pointcloud {
                 if (cellNoX > noGridCellsSide) {
                     if (cellNoX > (noGridCellsSide + 1)) {
                         pError = true;
-                        cout << "No " << icount 
+                        std::cout << "No " << icount 
                                 << "   Error: point value not within min"
                                 << " max area (" << pointX << ", " << pointY 
                                 << ", " << pointZ << ")" 
                                 << "   Will continue with reading next point..."
-                                << endl;
+                                << std::endl;
                         return -2;                    
                     }
                     cellNoX = noGridCellsSide;
@@ -425,12 +431,12 @@ namespace pointcloud {
                 if (cellNoY > noGridCellsSide) {
                     if (cellNoY > (noGridCellsSide + 1)) {
                         pError = true;
-                        cout << "No " << icount 
+                        std::cout << "No " << icount 
                                 << "   Error: point value not within min"
                                 << " max area (" << pointX << ", " << pointY 
                                 << ", " << pointZ << ")" 
                                 << "   Will continue with reading next point..."
-                                << endl;
+                                << std::endl;
                         return -2;                    
                     }
                     cellNoY = noGridCellsSide;
@@ -438,12 +444,12 @@ namespace pointcloud {
                 cellNo = cellNoX + (noGridCellsSide * (cellNoY - 1));
                 if ((cellNo < 1) || (cellNo > noGridCells)) { 
                     pError = true;
-                        cout << "No " << icount 
+                        std::cout << "No " << icount 
                                 << "   Error: point value not within min"
                                 << " max area (" << pointX << ", " << pointY 
                                 << ", " << pointZ << ")" 
                                 << "   Will continue with reading next point..."
-                                << endl;
+                                << std::endl;
                     return -2;
                 }
                 // addCpointnode

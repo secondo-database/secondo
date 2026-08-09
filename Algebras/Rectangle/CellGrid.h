@@ -370,56 +370,10 @@ inline bool isValidCellIndex( const int32_t& index, const int& d) const;
 /*
 2.1 Implementation of the class ~CellGrid~
 
-*/
-
-/*
 Check the validity of parameters in the constructor.
 Simulate the function for the rectangle algebra.
 
 */
-	/*
-template<unsigned dim>
-inline CellGrid<dim>::CellGrid( const bool defined, ... )
-  : Attribute(defined)
-{
-  va_list ap;
-  va_start(ap, defined);
-  for ( int i = 0; i < 3 ; i++ )
-  {
-    // first round for the origin of the grid,
-    // second round for the cell width,
-    // and the third round for the cell numbers of (dim-1) axes
-    if (i < 2 )
-    {
-      for ( unsigned i = 0; i < dim; i++ )
-      {
-        double ag = va_arg( ap, double );
-        if ( 0 == i ){
-          p0[i] = ag;
-        }
-        else{
-          cw[i] = ag;
-        }
-      }
-    }
-    else
-    {
-      //The grid opens at the Dth axis
-      for ( unsigned i = 0; i < (dim - 1); i++){
-        int32_t num = va_arg( ap, int32_t );
-        no_cells[i] = num;
-      }
-    }
-  }
-  va_end(ap);
-
-  if (!Proper())
-  {
-    this->del.isDefined = false;
-  }
-}
-
-	*/
 
 /*
 Called after the above function, while the parameters have been checked.
@@ -713,21 +667,21 @@ std::ostream& CellGrid<dim>::Print( std::ostream &os) const
     return os<< "(CellGrid" << dim << "D: undefined)";
   }
 
-  os << "(CellGrid" << dim << "D: defined, " << endl;
+  os << "(CellGrid" << dim << "D: defined, " << std::endl;
   os << " origin: ( ";
   for (int i=0; (unsigned)i<dim; i++)
     os << p0[i] << " , ";
-  os << ") " << endl;
+  os << ") " << std::endl;
 
   os << " cell-widths: ( ";
   for (int i=0; (unsigned)i<dim; i++)
     os << cw[i] << " , ";
-  os << ") " << endl;
+  os << ") " << std::endl;
 
   os << " cell-numbers: ( ";
   for (int i=0; (unsigned)i<dim - 1 ; i++)
     os << no_cells[i] << " , ";
-  os << ") )" << endl;
+  os << ") )" << std::endl;
 
   return os;
 }

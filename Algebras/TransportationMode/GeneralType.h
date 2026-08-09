@@ -212,7 +212,7 @@ class IORef:public Attribute{
         SetDefined(true);
       }  
       else{
-        cout<<"invalid symbol"<<endl;
+        std::cout<<"invalid symbol"<<std::endl;
         SetDefined(false);
       }
 //      cout<<"oid "<<oid <<" label "<<label<<endl; 
@@ -240,7 +240,7 @@ class IORef:public Attribute{
   unsigned int GetOid() const {return oid;}
   unsigned int GetLabel() const{return label;}
   std::ostream& Print(std::ostream& o) const{
-    o<<"oid "<<oid<<" label "<<GetSymbolStr(label)<<endl; 
+    o<<"oid "<<oid<<" label "<<GetSymbolStr(label)<<std::endl; 
     return o;
   }
   private:
@@ -280,7 +280,7 @@ struct Loc{
     loc2 = loc.loc2; 
     return *this; 
   }
-  void Print(){cout<<"loc1 "<<loc1<<" loc2 "<<loc2<<endl;}
+  void Print(){std::cout<<"loc1 "<<loc1<<" loc2 "<<loc2<<std::endl;}
 };
 
 /*
@@ -433,8 +433,8 @@ struct GenRangeElem{
   }
   void Print()
   {
-    cout<<"obj id "<<oid<<" start_pos "<<start_pos<<
-         " no "<<num<<" transportation mode "<<str_tm[tm]<<endl; 
+    std::cout<<"obj id "<<oid<<" start_pos "<<start_pos<<
+         " no "<<num<<" transportation mode "<<str_tm[tm]<<std::endl; 
   }
 };
 
@@ -531,7 +531,7 @@ public:
           }
           l.EndBulkLoad();
       }else{
-        cout<<"not valid index in Get()"<<endl;
+        std::cout<<"not valid index in Get()"<<std::endl;
         assert(false);
       }
   }
@@ -540,7 +540,7 @@ public:
     if(0 <= i && i < elemlist.Size())
         elemlist.Get(i, grelem);
     else{
-      cout<<"not valid index in GetElem()"<<endl;
+      std::cout<<"not valid index in GetElem()"<<std::endl;
       assert(false);
     }
   }
@@ -549,7 +549,7 @@ public:
     if(0 <= i && i < seglist.Size())
       seglist.Get(i, hs);
     else{
-      cout<<"not valid index in GetSeg()"<<endl; 
+      std::cout<<"not valid index in GetSeg()"<<std::endl; 
       assert(false);
     }  
   }
@@ -852,8 +852,8 @@ struct Road_Seg{
   
   void Print()
   {
-    cout<<" sid "<<sid<<" range: "<<r_loc.start<<" "<<r_loc.end
-        <<" "<<count<<endl;
+    std::cout<<" sid "<<sid<<" range: "<<r_loc.start<<" "<<r_loc.end
+        <<" "<<count<<std::endl;
   }
 
 };
@@ -1373,8 +1373,8 @@ struct InfraRef{
   }
   void Print()
   {
-    cout<<"ref id "<<infra_id<<" infra type "<<GetSymbolStr(infra_type)
-        <<" low refid "<<ref_id_low<<" high refid "<<ref_id_high<<endl; 
+    std::cout<<"ref id "<<infra_id<<" infra type "<<GetSymbolStr(infra_type)
+        <<" low refid "<<ref_id_low<<" high refid "<<ref_id_high<<std::endl; 
   }
 }; 
 

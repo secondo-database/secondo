@@ -82,11 +82,11 @@ int printstreamVM(Word* args, Word& result, int message,
             VTuple* tup = stream->request();
             result.addr = tup;
             if(tup){
-              cout << "received VTUPLE: " << endl;
+              std::cout << "received VTUPLE: " << std::endl;
               //tup->getTupleDescr()->Print(cout) << endl;
               //cout << "-------------------- " << endl;
-              tup->getTuple()->Print(cout) << endl;
-              cout << "==================== " << endl << endl;
+              tup->getTuple()->Print(std::cout) << std::endl;
+              std::cout << "==================== " << std::endl << std::endl;
             }
             return result.addr?YIELD:CANCEL;
         }

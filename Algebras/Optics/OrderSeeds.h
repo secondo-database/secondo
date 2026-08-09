@@ -257,9 +257,9 @@ void OrderSeeds<S>::decrease(TupleId id, double newDist){
    Tuple* tuple = objs->GetTuple(id);
    double oldDist = objs->getReachDist(id); 
    if(newDist > oldDist){
-     cout << "decrease increases distance" << endl;
-     cout << "olddist = " << oldDist << endl;
-     cout << "newDist = " << newDist << endl;
+     std::cout << "decrease increases distance" << std::endl;
+     std::cout << "olddist = " << oldDist << std::endl;
+     std::cout << "newDist = " << newDist << std::endl;
      assert(oldDist > newDist);
    }
    objs->updateReachability(id, newDist);
@@ -292,7 +292,7 @@ bool OrderSeeds<S>::checkStructureDebug(){
   for(size_t i=0;i<heap.size();i++){
      size_t mapped =  index[heap[i]];
       if(mapped!=i){
-         cout << "error in index found" << endl;
+         std::cout << "error in index found" << std::endl;
          return false;
       }
   }
@@ -302,7 +302,7 @@ bool OrderSeeds<S>::checkStructureDebug(){
      TupleId id = it->first;
      int index = it->second;
      if(heap[index] != id){
-        cout << "error in index found" << endl;
+        std::cout << "error in index found" << std::endl;
         return false;
      }
   }
@@ -315,11 +315,11 @@ bool OrderSeeds<S>::checkStructureDebug(){
      int s1 = f*2 -1;
      int s2 = s1 +1;
      if(s1<heap.size() && fdist > getReachDist(s1)){
-        cout << "Error in heap structure" << endl;
+        std::cout << "Error in heap structure" << std::endl;
         if(firstError){
-            cout << "Heap : " << endl;
+            std::cout << "Heap : " << std::endl;
             for(size_t j=0;j<heap.size();j++){
-                cout << heap[j] << getReachDist(j) << endl;
+                std::cout << heap[j] << getReachDist(j) << std::endl;
             }
            firstError=false;
         }
@@ -327,11 +327,11 @@ bool OrderSeeds<S>::checkStructureDebug(){
         return false;
      } 
      if(s2<heap.size() && fdist > getReachDist(s2)){
-        cout << "Error in heap structure" << endl;
+        std::cout << "Error in heap structure" << std::endl;
         if(firstError){
-            cout << "Heap : " << endl;
+            std::cout << "Heap : " << std::endl;
             for(size_t j=0;j<heap.size();j++){
-                cout << heap[j] << getReachDist(j) << endl;
+                std::cout << heap[j] << getReachDist(j) << std::endl;
             }
            firstError=false;
         }

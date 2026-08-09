@@ -38,11 +38,11 @@ double Poly::Area() {
 
 */
 double Poly::IntersectionArea(Poly& p) {
-    cerr << "Calling inter...\n";
+    std::cerr << "Calling inter...\n";
     
     double ret = inter(p.points, points);
     
-    cerr << "Finished inter...\n";
+    std::cerr << "Finished inter...\n";
     
     return ret;
 }

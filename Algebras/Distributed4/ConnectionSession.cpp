@@ -106,9 +106,10 @@ Which is the case is tracked in "deleteci"[1].
 */
   ConnectionSession::~ConnectionSession() {
     if(!rollback.empty()) {
-      cerr << "ConnectionSession for " << ci->getHost() << ":" << ci->getPort()
+      std::cerr << "ConnectionSession for " << ci->getHost() << ":"
+         << ci->getPort()
         << " was destroyed with " << rollback.size() << " entries in the "
-        "rollback list. Performing rollback now." << endl;
+        "rollback list. Performing rollback now." << std::endl;
       int err;
       string msg;
       ListExpr res;
@@ -265,7 +266,7 @@ useful, though, for example, to create relations with no tuples in them.
           ")");
     } catch(const runtime_error& e) {
       cmsg.info() << e.what() << " Waiting for " << (exclusive ? "exclusive" :
-          "sharable") << " ownership." << endl;
+          "sharable") << " ownership." << std::endl;
       cmsg.send();
       run("query lock(\"" + name + "\", " + (exclusive ? "TRUE" : "FALSE") +
           ")", "query unlock(\"" + name + "\")");

@@ -36,7 +36,7 @@ static Face JoinFaces (Face f1, Face f2, Pt jp) {
 
     // Find the segment with the lowest-left start-point
     for (unsigned int i = 0; i < v.size(); i++) {
-        cerr << "X: " << v[i].ToString() << "\n";
+        std::cerr << "X: " << v[i].ToString() << "\n";
         if ((v[i].s.y < miny) || ((v[i].s.y == miny) &&
                 (v[i].s.x < minx)) || (start < 0)) {
             start = i;
@@ -44,7 +44,7 @@ static Face JoinFaces (Face f1, Face f2, Pt jp) {
             minx = v[i].s.x;
         }
     }
-    cerr << "Found startpoint " << start << "\n";
+    std::cerr << "Found startpoint " << start << "\n";
     ret.v.insert(ret.v.end(), v.begin()+start, v.end());
     ret.v.insert(ret.v.end(), v.begin(), v.begin()+start);
     

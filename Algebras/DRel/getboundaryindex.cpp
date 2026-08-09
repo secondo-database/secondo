@@ -62,8 +62,8 @@ Except a boundary and an attribute with the same type as the bounary.
     ListExpr getBoundaryIndexTM( ListExpr args ) {
 
         #ifdef DRELDEBUG
-        cout << "getBoundaryIndexTM" << endl;
-        cout << nl->ToString( args ) << endl;
+        std::cout << "getBoundaryIndexTM" << std::endl;
+        std::cout << nl->ToString( args ) << std::endl;
         #endif
 
         std::string err = "vector(t), attr expected";

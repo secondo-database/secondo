@@ -52,11 +52,11 @@ namespace mregionops2 {
 
 ResultUnit::ResultUnit()
 {
-cout << "ResultUnit ctor\n";
+std::cout << "ResultUnit ctor\n";
 }
 void ResultUnit::EndBulkLoad(bool merge)
 {
-cout << "ResultUnit EndBulkLoad\n";
+std::cout << "ResultUnit EndBulkLoad\n";
 }
 
 URegionEmb2* ResultUnit::ConvertToURegionEmb(DbArray<MSegmentData>* segments,

@@ -207,9 +207,9 @@ struct RNPath_elem:public Path_elem{
 
   void Print()
   {
-    cout<<" tri_index " <<tri_index<<" realweight "<<real_w
-        <<" weight "<<weight<<endl;
-    ri.Print(cout);
+    std::cout<<" tri_index " <<tri_index<<" realweight "<<real_w
+        <<" weight "<<weight<<std::endl;
+    ri.Print(std::cout);
   }
 
 };
@@ -235,8 +235,8 @@ struct GPoint_Dist{
   }
   void Print()
   {
-    cout<<gp<<endl;
-    cout<<p<<" "<<dist<<endl;
+    std::cout<<gp<<std::endl;
+    std::cout<<p<<" "<<dist<<std::endl;
   }
   
 };
@@ -289,7 +289,7 @@ struct RoadNav{
 };
 
 #define LOOP_PRINT1(s) for(unsigned int i = 0; i < s.size();i++){ \
-                      cout<<i<<" "<<s[i]<<endl;\
+                      std::cout<<i<<" "<<s[i]<<std::endl;\
                       }
 
 #define LOOP_PRINT2(s) for(unsigned int i = 0; i < s.size();i++){ \

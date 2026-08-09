@@ -86,7 +86,7 @@ public:
     os << "SectId: " << sectId << ", Direction: ";
     if (upDown) os << "up";
     else os << "down";
-    os << endl;
+    os << std::endl;
     return os;
   }
 
@@ -170,7 +170,7 @@ public:
     os << "EntryValue: ";
     value.Print(os);
     os << "LeftSon: " << leftSonIndex;
-    os << ", RigthSon: " << rightSonIndex << endl;
+    os << ", RigthSon: " << rightSonIndex << std::endl;
     return os;
   };
 
@@ -216,7 +216,7 @@ public:
       tree.Get(i,elem);
       os << i << ".Element: ";
       elem.Print(os);
-      os << endl;
+      os << std::endl;
     }
     return os;
   }
@@ -471,11 +471,11 @@ struct SectTreeEntry{
 
 std::ostream& Print ( std::ostream& os ) const
 {
-  os << "SectTreeEntry: TupleId: " << secttid << endl;
+  os << "SectTreeEntry: TupleId: " << secttid << std::endl;
   os << "RouteId: " << rid << ", start: " << start;
   os << ", end: " << end << ", startbool: " << startbool;
-  os << ", endbool: " << endbool << endl;
-  os << endl;
+  os << ", endbool: " << endbool << std::endl;
+  os << std::endl;
   return os;
 };
 
@@ -519,7 +519,7 @@ public:
 
   std::ostream& Print(std::ostream& os) const
   {
-    os << "Distance: " << dist << ", Up: " << upDown << endl;
+    os << "Distance: " << dist << ", Up: " << upDown << std::endl;
     return os;
   }
 
@@ -965,10 +965,10 @@ Set Methods of ~gpoint~
       os << "NetworkId: " << m_iNetworkId
           << " RouteId: " << m_xRouteLocation.rid
           << "  Position: " << m_xRouteLocation.d
-          << " Side: " << m_xRouteLocation.side << endl;
+          << " Side: " << m_xRouteLocation.side << std::endl;
       }
       else
-        os << "not defined." << endl;
+        os << "not defined." << std::endl;
       return os;
     }
 
@@ -1362,7 +1362,7 @@ Checks if a transition is possible.
 
   std::ostream& Print(std::ostream& os) const
   {
-    os << m_iConnectivityCode << endl;
+    os << m_iConnectivityCode << std::endl;
     return os;
   }
 
@@ -1445,8 +1445,8 @@ Redefinition of the assignment operator.
   {
     os << "Directed Section: TupleId: " << (long) m_iSectionTid;
     os << ", UpDownFlag: ";
-    if (m_bUpDown ) os << "Up" << endl;
-    else os << "Down" << endl;
+    if (m_bUpDown ) os << "Up" << std::endl;
+    else os << "Down" << std::endl;
     return os;
   }
 
@@ -1520,8 +1520,8 @@ Copy-Constructor
     if (m_bFirstUpDown) os << " Up";
     else os << " Down";
     os << " 2.Section: " << m_iSecondSectionTid;
-    if (m_bSecondUpDown) os << " Up" << endl;
-    else os << " Down" << endl;
+    if (m_bSecondUpDown) os << " Up" << std::endl;
+    else os << " Down" << std::endl;
     return os;
   }
 
@@ -1760,7 +1760,7 @@ struct JunctionSortEntry
     os << "JunctionSortEntry First Route : " << m_bFirstRoute;
     os << "Tuple: ";
     m_pJunction->Print(os);
-    os << endl;
+    os << std::endl;
     return os;
   }
 };
@@ -1970,7 +1970,7 @@ int Compare(const JunctionTidSortEntry& in_xOther) const
     os << "JunctionTidSortEntry: ";
     if (m_bFirstRoute) os << "firstRoute";
     else os << "secondRoute";
-    os << ", TupleId: " << m_pJunction << endl;
+    os << ", TupleId: " << m_pJunction << std::endl;
     return os;
   }
 };
@@ -3171,14 +3171,14 @@ Deletes the tree.
     {
       os << "Root: rid: " << m_iRouteId ;
       os << ", small: " << m_dStart ;
-      os << ", big: " << m_dEnd << endl;
+      os << ", big: " << m_dEnd << std::endl;
       os << "left son: ";
       if (m_left != 0) m_left->Print(os);
-      else os << "not defined" << endl;
+      else os << "not defined" << std::endl;
       os << "right son: ";
       if (m_right != 0) m_right->Print(os);
-      else os << "not defined" << endl;
-      os << endl;
+      else os << "not defined" << std::endl;
+      os << std::endl;
       return os;
     }
 
@@ -3226,7 +3226,7 @@ struct RouteIntervalEntry
   {
     os << "RouteInterval:";
     ri.Print(os);
-    os << ", left: " << left << ", right: " << right << endl;
+    os << ", left: " << left << ", right: " << right << std::endl;
     return os;
   }
 
@@ -3333,11 +3333,11 @@ struct RITreeP
       rie.GetEntry().Print(os);
       os << "left son: ";
       if (rie.GetLeft() > -1) Print(os, rie.GetLeft());
-      else os << "not defined" << endl;
+      else os << "not defined" << std::endl;
       os << "right son: ";
       if (rie.GetRight() > -1) Print(os, rie.GetRight());
-      else os << "not defined" << endl;
-      os << endl;
+      else os << "not defined" << std::endl;
+      os << std::endl;
       return os;
     }
     return os;
@@ -3634,7 +3634,7 @@ class GPointsSections
       m_gp.Print(os);
       os << ", Point: ";
       m_p.Print(os);
-      os << ", TupleId: " << (long int) m_tid << endl;
+      os << ", TupleId: " << (long int) m_tid << std::endl;
       return os;
     };
 

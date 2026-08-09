@@ -227,7 +227,7 @@ void DServer::Terminate()
     }
   else
     {
-      cout << "ERROR: No Server Running!" << endl;
+      std::cout << "ERROR: No Server Running!" << std::endl;
     }
 
 }
@@ -289,8 +289,8 @@ bool DServer::Multiply(int count)
         }
       catch(const exception &e)
         {
-          cout << "Error starting DServer on " 
-               << getServerHostName() << ":" << getServerPortStr() << endl;
+          std::cout << "Error starting DServer on " 
+               << getServerHostName() << ":" << getServerPortStr() << std::endl;
           return false;
         }
    }
@@ -335,24 +335,24 @@ DServer::checkServer(bool writeError) const
   if (m_interface == 0)
     {
       if (writeError)
-        cerr << "ERROR: Not connected to worker on "
-             << getServerHostName() << ":" << getServerPortStr() << endl;
+        std::cerr << "ERROR: Not connected to worker on "
+             << getServerHostName() << ":" << getServerPortStr() << std::endl;
       return false;
     }
 
   if (!m_interface->isInitialized())
     {
       if (writeError)
-        cerr << "ERROR: Could not establish connection to worker on "
-             << getServerHostName() << ":" << getServerPortStr() << endl;
+        std::cerr << "ERROR: Could not establish connection to worker on "
+             << getServerHostName() << ":" << getServerPortStr() << std::endl;
       return false;
     }
 
   if ((unsigned int)getNumChilds() != m_childs.size())
     {
       if (writeError)
-        cerr << "ERROR: Workers are not setup correctly, restart cluster" 
-             << endl;
+        std::cerr << "ERROR: Workers are not setup correctly, restart cluster" 
+             << std::endl;
       return false;
     }
 
@@ -365,6 +365,6 @@ DServer::checkServer(bool writeError) const
 */  
 void DServer::print() const
 {
-  cout << (unsigned long)(this) << " : " << " " 
-       << getServerHostName() << " " << getServerPortStr() << endl;
+  std::cout << (unsigned long)(this) << " : " << " " 
+       << getServerHostName() << " " << getServerPortStr() << std::endl;
 }

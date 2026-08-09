@@ -93,7 +93,7 @@ class MGraphCommon : public MemoryObject{
                   costPos(_costPos){
         ListExpr k;
         if(!nl->ReadFromString(_type,k)){
-          std::cerr << "Invalid type description " << _type << endl;
+          std::cerr << "Invalid type description " << _type << std::endl;
           assert(false);
         }
         // remove mem(mgraphX ...
@@ -562,8 +562,8 @@ hops and the forbidden node, then the search spans the whole graph.
        }
        std::vector<std::vector<ddsgedge> > edges;
        size_t noEdges = fillddsg(edges, scaleCost);
-       out << "d" << endl;
-       out << edges.size() << " " << noEdges << endl;
+       out << "d" << std::endl;
+       out << edges.size() << " " << noEdges << std::endl;
        for(size_t i=0;i<edges.size();i++){
           std::vector<ddsgedge>& v = edges[i];
           for(size_t j=0;j<v.size();j++){
@@ -624,11 +624,11 @@ hops and the forbidden node, then the search spans the whole graph.
      std::ostream& print(std::ostream& out, std::vector<std::string>* names, 
                          bool printBackward){
 
-       out << "Graph " << endl;
+       out << "Graph " << std::endl;
        if(names != nullptr){
-          out << "sourcePos : " << sourcePos << endl;
-          out << "targetPos : " << targetPos << endl;
-          out << "costPost  : " << costPos   << endl;
+          out << "sourcePos : " << sourcePos << std::endl;
+          out << "targetPos : " << targetPos << std::endl;
+          out << "costPost  : " << costPos   << std::endl;
        }
        for(size_t node = 0; node < graph.size() ; node++){
           printNode(out, node, graph[node], names, printBackward); 
@@ -650,27 +650,27 @@ hops and the forbidden node, then the search spans the whole graph.
                           alist& edges, std::vector<std::string>* names,
                           bool backward){
 
-       out << " --- Node " << nodeNumber << " --- " << endl;
+       out << " --- Node " << nodeNumber << " --- " << std::endl;
        auto fit = edges.first.begin();
        if(backward){
-           out << "   --- outgoing edges " << endl;
+           out << "   --- outgoing edges " << std::endl;
        }
        while( fit != edges.first.end()){
           fit->print(out, names);
           fit++;
-          out << endl;
+          out << std::endl;
        }
        if(backward){
-          out << endl;  
-          out << "   --- incoming  edges " << endl;
+          out << std::endl;  
+          out << "   --- incoming  edges " << std::endl;
           auto bit = edges.second.begin();
           while(bit != edges.second.end()){
             bit->print(out,names);
             bit++;
-            out << endl;
+            out << std::endl;
           }
        }
-       out << endl;
+       out << std::endl;
    }
 
 
@@ -1329,7 +1329,8 @@ This method contracts this graph using a two-step priority computation.
        size_t p2 = 0;
 
        std::cout << "start with queue of size " << queue.size() << std::endl;
-       std::cout << "write a dot each " << prog << " processed nodes" << endl;
+       std::cout << "write a dot each " << prog << " processed nodes"
+          << std::endl;
        
        std::vector<MEdge> shortcuts;
        allShortCuts.clear();
@@ -1373,8 +1374,9 @@ This method contracts this graph using a two-step priority computation.
 
               /*
               if(shortcuts.size() > (size_t)(in + out)){
-                cout << "insert " << shortcuts.size() << " shortcuts " << endl;
-                cout << "removed " << in + out << " edges " << endl;
+                std::cout << "insert " << shortcuts.size() << " shortcuts "
+                   << std::endl;
+                std::cout << "removed " << in + out << " edges " << std::endl;
               }
               */
               for(size_t i=0;i<shortcuts.size();i++){
@@ -1401,16 +1403,16 @@ This method contracts this graph using a two-step priority computation.
               p2++; // some progress counter
               if(p2==prog){
                 p2=0;
-                cout << ".";
-                cout.flush();
+                std::cout << ".";
+                std::cout.flush();
               }              
             }
           }
        }
-       cout << "processed " << nodeOrder.size() << "nodes" << endl;
-       cout << "shortcut edges " << allShortCuts.size() << endl;
-       cout << "removed edges " << removedEdges << endl;
-       cout << "number of reinitializations " << reinits << endl;
+       std::cout << "processed " << nodeOrder.size() << "nodes" << std::endl;
+       std::cout << "shortcut edges " << allShortCuts.size() << std::endl;
+       std::cout << "removed edges " << removedEdges << std::endl;
+       std::cout << "number of reinitializations " << reinits << std::endl;
 
        return cs;
     }
@@ -1446,7 +1448,7 @@ neighbors as priority.
        int weight_contractedNeighbors = 1;
 
 
-       cout << "init prio" << endl;
+       std::cout << "init prio" << std::endl;
        int minPrio =  1000000;
        int maxPrioQ = -1000000;
        queue_t queue;
@@ -1457,9 +1459,9 @@ neighbors as priority.
           if(minPrio > p) minPrio=p;
           if(maxPrioQ < p) maxPrioQ = p;
        }
-       cout << "prio initialized" << endl;
-       cout << "minPrio = " << minPrio;
-       cout << "maxPrio = " << maxPrioQ; 
+       std::cout << "prio initialized" << std::endl;
+       std::cout << "minPrio = " << minPrio;
+       std::cout << "maxPrio = " << maxPrioQ; 
 
        nodeOrder.clear();
        size_t blockCount = 0;
@@ -1470,7 +1472,8 @@ neighbors as priority.
        size_t p2 = 0;
 
        std::cout << "start with queue of size " << queue.size() << std::endl;
-       std::cout << "write a dot each " << prog << " processed nodes" << endl;
+       std::cout << "write a dot each " << prog << " processed nodes"
+          << std::endl;
        
        std::vector<MEdge> shortcuts;
        allShortCuts.clear();
@@ -1568,8 +1571,8 @@ neighbors as priority.
             p2++; // some progress counter
             if(p2==prog){
                p2=0;
-               cout << ".";
-               cout.flush();
+               std::cout << ".";
+               std::cout.flush();
              }              
           }
        }
@@ -1583,13 +1586,14 @@ neighbors as priority.
        }
 
 
-       cout << "processed " << nodeOrder.size() << "nodes" << endl;
-       cout << "shortcut edges " << allShortCuts.size() << endl;
-       cout << "removed edges " << removedEdges << endl;
-       cout << "reinitializations " << reinits << endl;
-       cout << "maximum shortcuts per node " << maxShortcutsPerNode << endl;
-       cout << "sum reinsertions " << sumreinsertions << endl;
-       cout << "max reinsertions " << maxreinsertions << endl;
+       std::cout << "processed " << nodeOrder.size() << "nodes" << std::endl;
+       std::cout << "shortcut edges " << allShortCuts.size() << std::endl;
+       std::cout << "removed edges " << removedEdges << std::endl;
+       std::cout << "reinitializations " << reinits << std::endl;
+       std::cout << "maximum shortcuts per node " << maxShortcutsPerNode
+          << std::endl;
+       std::cout << "sum reinsertions " << sumreinsertions << std::endl;
+       std::cout << "max reinsertions " << maxreinsertions << std::endl;
        return cs;
     }
 

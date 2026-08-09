@@ -792,7 +792,7 @@ member variables are provided for convenience.
 
         if(!p_stype->isDefined()){
 
-           cout << "undefined stype " << endl; 
+           std::cout << "undefined stype " << std::endl; 
            return nl->SymbolAtom(Symbol::UNDEFINED());
         }
 

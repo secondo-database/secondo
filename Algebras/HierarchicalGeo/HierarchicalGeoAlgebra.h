@@ -114,7 +114,7 @@ The creation of an uncertain value, setting the epsilon value.
 
 */
   Uncertain( const Uncertain& rhs) :
-	  epsilon(rhs.epsilon), def(rhs.def) {}
+          epsilon(rhs.epsilon), def(rhs.def) {}
 
   virtual ~Uncertain() {}
 
@@ -966,7 +966,7 @@ compared. The order of the contained units is ignored here!
     os << "(HierarchicalEntity: " << generalizedby << " " << layer << " "
       << index << " " << originstart << " " << originend << "\n\t";
     value.Print(os);
-    os << "\n)" << endl;
+    os << "\n)" << std::endl;
     return os;
   }
 
@@ -1876,7 +1876,7 @@ int UncertainEpsilon( Word* args, Word& result, int message, Word& local,
   if( u->UncertainIsDefined() )
   {
     // +++++ for debugging purposes only +++
-    cout << "epsilon ist = " << u->GetEpsilon() << "\n";
+    std::cout << "epsilon ist = " << u->GetEpsilon() << "\n";
 
     ((CcReal*)result.addr)->Set( u->GetEpsilon() );
   }

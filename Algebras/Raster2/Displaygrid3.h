@@ -38,7 +38,7 @@ namespace raster2
          nl->AtomType(value) == SymbolType &&
          nl->SymbolValue(value) == Symbol::UNDEFINED())
       {
-        cout << Symbol::UNDEFINED();
+        std::cout << Symbol::UNDEFINED();
       }
       
       else
@@ -82,7 +82,7 @@ namespace raster2
             int days = nl->IntValue(nl->First(durationValuesListExpr));
             int milliseconds = nl->IntValue(nl->Second(durationValuesListExpr));
             
-            cout << "grid3: (x = " << x << ", y = " << y <<
+            std::cout << "grid3: (x = " << x << ", y = " << y <<
                   ", length = " << length << ", duration = (" << days <<
                   " days, " << milliseconds << " milliseconds))";
           }

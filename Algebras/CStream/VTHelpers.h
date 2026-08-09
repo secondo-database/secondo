@@ -62,10 +62,10 @@ public:
     }
 
     static void PrintList(std::string name, ListExpr l, int maxdepth) {
-        cout << name << 
-        "-----------------------------------------------" << endl;
+        std::cout << name << 
+        "-----------------------------------------------" << std::endl;
         PrintListRec(l, "", 1, maxdepth);
-        cout << endl << endl;
+        std::cout << std::endl << std::endl;
     }
 
     static void PrintListRec(ListExpr l, std::string prefix,
@@ -80,8 +80,8 @@ public:
             std::ostringstream ss;
             ss<<(i+1)<<".";
             std::string s = ss.str();
-            cout << prefix << s << nl->ToString(nl->First(temp)) 
-            << endl;
+            std::cout << prefix << s << nl->ToString(nl->First(temp)) 
+            << std::endl;
             PrintListRec(nl->First(temp), prefix + s, 
             depth+1, maxdepth);
             temp = nl->Rest(temp);

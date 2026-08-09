@@ -80,13 +80,13 @@ bool unlock(named_sharable_mutex* mutex) {
   }
 
   if(mutex->try_lock_sharable()) {
-    cout << "The mutex seems to have previously been locked for sharable "
-      "ownership." << endl;
+    std::cout << "The mutex seems to have previously been locked for sharable "
+      "ownership." << std::endl;
     mutex->unlock_sharable();
     mutex->unlock_sharable();
   } else {
-    cout << "The mutex seems to have previously been locked for exclusive "
-      "ownership." << endl;
+    std::cout << "The mutex seems to have previously been locked for exclusive "
+      "ownership." << std::endl;
     mutex->unlock();
   }
 
@@ -100,17 +100,18 @@ ownership or is unlocked.
 
 */
 bool getstate(named_sharable_mutex* mutex) {
-  cout << "The mutex seems to be in the following state:" << endl << endl;
+  std::cout << "The mutex seems to be in the following state:" << std::endl
+     << std::endl;
   if(mutex->try_lock()) {
     mutex->unlock();
-    cout << "unlocked" << endl;
+    std::cout << "unlocked" << std::endl;
   } else if(mutex->try_lock_sharable()) {
     mutex->unlock_sharable();
-    cout << "sharable" << endl;
+    std::cout << "sharable" << std::endl;
   } else {
-    cout << "exclusive" << endl;
+    std::cout << "exclusive" << std::endl;
   }
-  cout << endl;
+  std::cout << std::endl;
   return true;
 }
 /*
@@ -131,21 +132,23 @@ error is encountered.
 
 */
 int die(const string& msg) {
-  cerr << "ERROR: " << msg << endl;
-  cerr << endl;
-  cerr << "Usage: mutexset <shmpath> {";
+  std::cerr << "ERROR: " << msg << std::endl;
+  std::cerr << std::endl;
+  std::cerr << "Usage: mutexset <shmpath> {";
   for(auto it{actions.begin()}; it != actions.end(); ++it) {
     if(it != actions.begin())
-      cerr << ",";
-    cerr << it->first;
+      std::cerr << ",";
+    std::cerr << it->first;
   }
-  cerr << "}" << endl;
-  cerr << endl;
-  cerr << "<shmpath> must start with \"" << shmpath_prefix << "\". It must "
-    "refer to an already existing named_sharable_mutex." << endl;
-  cerr << endl;
-  cerr << "The action arguments may be shortened as desired down to a single "
-    "character (i.e.: mutexset /dev/shm/secondo:foo u)." << endl;
+  std::cerr << "}" << std::endl;
+  std::cerr << std::endl;
+  std::cerr << "<shmpath> must start with \"" << shmpath_prefix
+     << "\". It must "
+    "refer to an already existing named_sharable_mutex." << std::endl;
+  std::cerr << std::endl;
+  std::cerr
+     << "The action arguments may be shortened as desired down to a single "
+    "character (i.e.: mutexset /dev/shm/secondo:foo u)." << std::endl;
   return 1;
 }
 /*
@@ -197,12 +200,14 @@ Call the function determined from "action"[1] on the mutex referenced by
 
 */
   if(it->second(mutex)) {
-    cout << "The action \"" << it->first << "\" was successfully performed on "
-      << shmpath << "." << endl;
+    std::cout << "The action \"" << it->first
+       << "\" was successfully performed on "
+      << shmpath << "." << std::endl;
     return 0;
   } else {
-    cerr << "The action \"" << it->first << "\" failed on " << shmpath << "."
-      << endl;
+    std::cerr << "The action \"" << it->first << "\" failed on " << shmpath
+       << "."
+      << std::endl;
     return 2;
   }
 }

@@ -56,7 +56,7 @@ int be_init_sf_vm(Word *args, Word &result, int message, Word &local,
     std::cerr << "Error: Basic engine is already initialized. "
               << "Please shutdown first, using be_shutdown_cluster()."
               << std::endl
-              << endl;
+              << std::endl;
 
     ((CcBool *)result.addr)->Set(true, false);
     return 0;
@@ -93,7 +93,7 @@ int be_init_sf_vm(Word *args, Word &result, int message, Word &local,
   }
 
   if (!workerRelationName->IsDefined()) {
-    std::cerr << "Error: Worker relation name is undefined" << endl;
+    std::cerr << "Error: Worker relation name is undefined" << std::endl;
     ((CcBool *)result.addr)->Set(true, false);
     return 0;
   }

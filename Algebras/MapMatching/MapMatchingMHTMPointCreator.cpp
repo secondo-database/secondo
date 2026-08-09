@@ -211,9 +211,9 @@ void MPointCreator::ProcessPoints(
              pUPoint(new temporalalgebra::UPoint(TimeInterval, Pt1, Pt1));
         m_pResMPoint->Add(*pUPoint);
 
-        cout << "Warning: Handle vecCurvesBetweenPoints with size " 
+        std::cout << "Warning: Handle vecCurvesBetweenPoints with size " 
              << vecCurvesBetweenPoints.size() 
-             << " as almost equal" << endl;
+             << " as almost equal" << std::endl;
         //assert(vecCurvesBetweenPoints.size() == 0);
     }
     else
@@ -384,9 +384,9 @@ void MPointCreator::ProcessPoints(
                                                         Pt2, Pt2));
 
                 if (! pUPoint->IsDefined() || ! pUPoint->IsValid()) {
-                    cout << "Warning: Ignoring invalid ";
-                    pUPoint->Print(cout);
-                    cout << endl;
+                    std::cout << "Warning: Ignoring invalid ";
+                    pUPoint->Print(std::cout);
+                    std::cout << std::endl;
                 } else {
                     m_pResMPoint->Add(*pUPoint);
                 }

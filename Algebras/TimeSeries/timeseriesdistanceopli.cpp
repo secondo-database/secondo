@@ -38,7 +38,7 @@ TimeSeriesDistanceOpLI::TimeSeriesDistanceOpLI(Word ts1, Word ts2, Word f) :
 }
 
 TimeSeriesDistanceOpLI::~TimeSeriesDistanceOpLI(){
-    cout << "Delete Local Info";
+    std::cout << "Delete Local Info";
     this->ts1_stream.close();
 
     this->ts2_stream.close();
@@ -51,7 +51,7 @@ TimeSeriesDistanceOpLI::~TimeSeriesDistanceOpLI(){
  // @brief TimeSeriesDistanceOpLI::compute
 void TimeSeriesDistanceOpLI::compute(){
     Tuple* funarg_ts1 = this->ts1_stream.request();
-    funarg_ts1->Print( cout) << endl;
+    funarg_ts1->Print( std::cout) << std::endl;
     Tuple* funarg_ts2 = this->ts2_stream.request();
 
     while(funarg_ts1 && funarg_ts2)

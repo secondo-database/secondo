@@ -224,7 +224,7 @@ Creates a d[f]rel.
         CcInt* posValue = (CcInt*) args[3].addr;
 
         if(! posValue->IsDefined()) {
-            std::cerr << "Partitioning attribute is undefined" << endl;
+            std::cerr << "Partitioning attribute is undefined" << std::endl;
             return 0;
         }
 
@@ -278,7 +278,7 @@ Creates a d[f]rel.
             } 
         }
 
-        std::cerr << "Error: Unsupported type " << type << endl;
+        std::cerr << "Error: Unsupported type " << type << std::endl;
         return -1;
     }
 

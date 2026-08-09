@@ -57,12 +57,15 @@ reference counters. There are reference counters on tuples and also
 on attributes. Some assertions were removed, since the code is
 stable.
 
-June 2006, Corrected a bug caused by improper reference counting of tuples observed in
+June 2006, Corrected a bug caused by improper reference counting of
+tuples observed in
 operator ~mergesec~.
 
-June 2006, Christian D[ue]ntgen added operators ~symmproduct~ and ~symmproductextend~.
+June 2006, Christian D[ue]ntgen added operators ~symmproduct~ and
+~symmproductextend~.
 
-August 2006, Christian D[ue]ntgen added signature ((stream T) int) -> (stream T) to operator ~head~.
+August 2006, Christian D[ue]ntgen added signature ((stream T) int) ->
+(stream T) to operator ~head~.
 
 January 2007, M. Spiekermann. Reference counting in groupby corrected, since it
 causes a segmentation fault, when the Tuplebuffer needs to be flushed on disk.
@@ -212,7 +215,8 @@ than half of ~subSet~, we simple draw a subset of size
 ~setSize~ - ~subsetSize~ and take the complement of that set as result set.
 
 If the optional parameter ~subsetSize~ is set to ~true~, the optional parameter
-~randSeed~ (defaults to 0) is used as the starting sequence offset for the random
+~randSeed~ (defaults to 0) is used as the starting sequence offset for
+the random
 number generator. Otherwise, the offset is calculated from the current time and
 will differ for each call.
 
@@ -281,7 +285,7 @@ MakeRandomSubset(vector<int>& result, int subsetSize, int setSize,
   if ( drawSize > drawMax )
   {
     drawSize = drawMax;
-    cerr << "Warning: Sample size reduced to 3/4*RAND_MAX." << endl;
+    std::cerr << "Warning: Sample size reduced to 3/4*RAND_MAX." << std::endl;
   }
 
   TRACE("*** sample parameters ***")
@@ -1476,7 +1480,8 @@ struct varInfo : OperatorInfo {
 10.5 Operator ~stats~
 
 This operator calculates several aggregation functions and statistics on a
-stream of tuples containing two mumeric attributes. And returns a single tuple with
+stream of tuples containing two mumeric attributes. And returns a
+single tuple with
 all the results:
 
   * CountX - Number of defined instances for the first attribute X
@@ -1519,8 +1524,10 @@ all the results:
 Type mapping for ~stats~ is
 
 ----  ((stream (tuple ((x1 t1)...(xn tn))) xi xj)  -> stream(tuple(
-             (CountX int) (MinX real) (MaxX real) (SumX real) (AvgX real) (VarX real)
-             (CountY int) (MinY real) (MaxY real) (SumY real) (AvgY real) (VarY real)
+             (CountX int) (MinX real) (MaxX real) (SumX real)
+             (AvgX real) (VarX real)
+             (CountY int) (MinY real) (MaxY real) (SumY real)
+             (AvgY real) (VarY real)
              (Count int) (CountXY int) (CovXY real) (CorrXY real)))
               APPEND ((i ti) (j tj))
 
@@ -1771,7 +1778,8 @@ template<class Tx, class Rx, class Ty, class Ry> int
         }
         tp->AppendTuple(currentTuple);
         if(currentTuple->DeleteIfAllowed()){
-            cout << "stats :: deleting a tuple stored in a buffer !!!" << endl;
+            std::cout << "stats :: deleting a tuple stored in a buffer !!!"
+                      << std::endl;
         }
         qp->Request(args[0].addr, currentTupleWord);
       }
@@ -3851,7 +3859,7 @@ public:
 
   TupleType *resultTupleType;
   int stableValue;
-  bool sizesFinal;		//true after stableValue reached
+  bool sizesFinal;              //true after stableValue reached
   int noOldAttrs, noNewAttrs;
   double *attrSizeTmp;
   double *attrSizeExtTmp;
@@ -3981,7 +3989,7 @@ int Extend(Word* args, Word& result, int message, Word& local, Supplier s)
           eli->Size = 0.0;
           eli->SizeExt = 0.0;
 
-		//old attrs
+                //old attrs
           for (int i = 0; i < eli->noOldAttrs; i++)
           {
             eli->attrSize[i] = p1.attrSize[i];
@@ -3990,7 +3998,7 @@ int Extend(Word* args, Word& result, int message, Word& local, Supplier s)
             eli->SizeExt += eli->attrSizeExt[i];
           }
 
-        	//new attrs
+                //new attrs
           if ( eli->read < eli->stableValue )
           {
             for (int j = 0; j < eli->noNewAttrs; j++)
@@ -4016,7 +4024,7 @@ int Extend(Word* args, Word& result, int message, Word& local, Supplier s)
           eli->sizesInitialized = true;
           eli->sizesChanged = true;
         }
-		//ensure sizes are updated only once for passing the threshold
+                //ensure sizes are updated only once for passing the threshold
         if ( eli->read >= eli->stableValue ) eli->sizesFinal = true;
 
 
@@ -5403,7 +5411,7 @@ ExtProjectExtendValueMap(Word* args, Word& result, int message,
       ProgressInfo *pRes;
       const double uProjectExtend = 0.0012;    //millisecs per tuple
       const double vProjectExtend = 0.00085;   //millisecs per tuple
-	                                           //and attribute
+                                                   //and attribute
 
       pRes = (ProgressInfo*) result.addr;
 
@@ -5423,10 +5431,10 @@ ExtProjectExtendValueMap(Word* args, Word& result, int message,
         if ( !eli->sizesInitialized || p1.sizesChanged ||
            ( eli->read >= eli->stableValue && !eli->sizesFinal ) )
         {
-	  eli->Size = 0.0;
-	  eli->SizeExt = 0.0;
+          eli->Size = 0.0;
+          eli->SizeExt = 0.0;
 
-          for( int i = 0; i < eli->noOldAttrs; i++)	//old attrs
+          for( int i = 0; i < eli->noOldAttrs; i++)     //old attrs
           {
             son = qp->GetSupplier(args[4].addr, i);
             qp->Request(son, elem2);
@@ -5437,7 +5445,7 @@ ExtProjectExtendValueMap(Word* args, Word& result, int message,
             eli->SizeExt += eli->attrSizeExt[i];
           }
 
-          if ( eli->read < eli->stableValue )		//new attrs
+          if ( eli->read < eli->stableValue )           //new attrs
           {
             for (int j = 0; j < eli->noNewAttrs; j++)
             {
@@ -6284,7 +6292,7 @@ int GroupByValueMapping
           << "GroupBy.MAX_MEMORY ("
           << gbli->MAX_MEMORY / 1024 << " MB): = "
           << gbli->MAX_MEMORY / gbli->t->GetExtSize()
-          << " Tuples" << endl;
+          << " Tuples" << std::endl;
         cmsg.send();
       }
       else
@@ -6524,7 +6532,7 @@ int GroupByValueMapping
           << "GroupBy.MAX_MEMORY ("
           << gbli->MAX_MEMORY / 1024 << " MB): = "
           << gbli->MAX_MEMORY / gbli->t->GetExtSize()
-          << " Tuples" << endl;
+          << " Tuples" << std::endl;
         cmsg.send();
       }
       else
@@ -7134,7 +7142,8 @@ Operator extrelaggregateB (
 
 Result type of symmjoin operation.
 
-----    ((stream (tuple (x1 ... xn))) (stream (tuple (y1 ... ym))) (map tuple tuple bool)
+----    ((stream (tuple (x1 ... xn))) (stream (tuple (y1 ... ym)))
+        (map tuple tuple bool)
 
         -> (stream (tuple (x1 ... xn y1 ... ym)))
 ----
@@ -7212,7 +7221,7 @@ SymmJoin(Word* args, Word& result, int message, Word& local, Supplier s)
     {
       long MAX_MEMORY = qp->MemoryAvailableForOperator();
       cmsg.info("ERA:ShowMemInfo") << "SymmJoin.MAX_MEMORY ("
-                                   << MAX_MEMORY/1024 << " MB): " << endl;
+                                   << MAX_MEMORY/1024 << " MB): " << std::endl;
       cmsg.send();
       pli = new SymmJoinLocalInfo;
       pli->rightRel = new TupleBuffer( MAX_MEMORY / 2 );
@@ -7472,7 +7481,7 @@ SymmJoin(Word* args, Word& result, int message, Word& local, Supplier s)
 
       long MAX_MEMORY = qp->MemoryAvailableForOperator();
       cmsg.info("ERA:ShowMemInfo") << "SymmJoin.MAX_MEMORY ("
-                                   << MAX_MEMORY/1024 << " MB): " << endl;
+                                   << MAX_MEMORY/1024 << " MB): " << std::endl;
       cmsg.send();
 
 
@@ -7975,7 +7984,7 @@ SymmProductExtend(Word* args, Word& result,
     {
       long MAX_MEMORY = qp->MemoryAvailableForOperator();
       cmsg.info("ERA:ShowMemInfo") << "SymmProductExtend.MAX_MEMORY ("
-                                   << MAX_MEMORY/1024 << " MB): " << endl;
+                                   << MAX_MEMORY/1024 << " MB): " << std::endl;
       cmsg.send();
       pli = new SymmProductExtendLocalInfo;
       pli->rightRel = new TupleBuffer( MAX_MEMORY / 2 );
@@ -8263,7 +8272,8 @@ Operator extrelsymmproductextend (
 
 5.10.6 Operator ~symmproduct~
 
-This operator calculates the cartesian product of two tuplestreams in a symmetrical and
+This operator calculates the cartesian product of two tuplestreams in a
+symmetrical and
 non-blocking manner. It behaves like
 
 ---- _ _ symmjoin [ TRUE ]
@@ -8343,7 +8353,7 @@ SymmProduct(Word* args, Word& result, int message, Word& local, Supplier s)
     {
       long MAX_MEMORY = qp->MemoryAvailableForOperator();
       cmsg.info("ERA:ShowMemInfo") << "SymmProduct.MAX_MEMORY ("
-                                   << MAX_MEMORY/1024 << " MB): " << endl;
+                                   << MAX_MEMORY/1024 << " MB): " << std::endl;
       cmsg.send();
       pli = new SymmProductLocalInfo;
       pli->rightRel = new TupleBuffer( MAX_MEMORY / 2 );
@@ -8841,12 +8851,12 @@ int printrefs_vm( Word* args, Word& result, int message,
       {
         Tuple* t = static_cast<Tuple*>( w.addr );
         int tRefs = t->GetNumOfRefs();
-        cout << (void*)t << ": " << tRefs << "(";
+        std::cout << (void*)t << ": " << tRefs << "(";
         for(int i = 0; i < t->GetNoAttributes(); i++)
         {
-          cout << " " << t->GetAttribute(i)->NoRefs();
+          std::cout << " " << t->GetAttribute(i)->NoRefs();
         }
-        cout << " )" << endl;
+        std::cout << " )" << std::endl;
 
         result.addr = t;
         return YIELD;
@@ -8926,7 +8936,7 @@ class ExtRelationAlgebra : public Algebra
     AddOperator(&extrelmergejoin);
 
     AddOperator(&extrelsortmergejoin);
-		AddOperator(&extrelsmouterjoin);
+                AddOperator(&extrelsmouterjoin);
      AddOperator(&extrelhashjoin);
     AddOperator(&extrelloopjoin);
     AddOperator(&extrelextendstream);
@@ -8936,7 +8946,7 @@ class ExtRelationAlgebra : public Algebra
     AddOperator(&extrelaggregate);
     AddOperator(&extrelaggregateB);
     AddOperator(&extrelsymmjoin);
-		AddOperator(&extrelsymmouterjoin);
+                AddOperator(&extrelsymmouterjoin);
     AddOperator(&extrelsymmproductextend);
     AddOperator(&extrelsymmproduct);
     AddOperator(&extrelprojectextend);
@@ -8954,8 +8964,8 @@ class ExtRelationAlgebra : public Algebra
    extrelrdup.EnableProgress();
    extrelmergejoin.EnableProgress();
    extrelsortmergejoin.EnableProgress();
-	 extrelsmouterjoin.EnableProgress();
-	 extrelsymmouterjoin.EnableProgress();
+         extrelsmouterjoin.EnableProgress();
+         extrelsymmouterjoin.EnableProgress();
    extrelhashjoin.EnableProgress();
    extrelloopjoin.EnableProgress();
    extrelgroupby.EnableProgress();

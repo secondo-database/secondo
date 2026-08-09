@@ -119,7 +119,8 @@ int luaInit(void) {
         st = luaL_loadfile(L, LUASCRIPTNAME ".lua");
         if (st) {
             // Either it wasn't present or a parse-error occurred
-            cerr << "Error parsing LUA-file: " << lua_tostring(L, -1) << "\n";
+            std::cerr << "Error parsing LUA-file: " << lua_tostring(L, -1)
+               << "\n";
             return -1;
         }
     }
@@ -128,7 +129,7 @@ int luaInit(void) {
     st = lua_pcall(L, 0, 0, 0);
     if (st) {
         // Runtime error
-        cerr << "Error running LUA-file: " << lua_tostring(L, -1) << "\n";
+        std::cerr << "Error running LUA-file: " << lua_tostring(L, -1) << "\n";
         return -1;
     }
 
@@ -226,7 +227,8 @@ vector<Matches> _matchFacesLua(std::set<Face*> *src,
 
     int st = lua_pcall(L, 4, 1, 0); // The actual Lua-functioncall happens here
     if (st) {
-        cerr << "Error calling matchFaces: " << lua_tostring(L, -1) << "\n";
+        std::cerr << "Error calling matchFaces: " << lua_tostring(L, -1)
+           << "\n";
         return ret;
     }
 
@@ -455,7 +457,7 @@ LUA_FUNCTION(overlap) {
     Poly r2 = dst->MakePoly(dsttransform.first.x, dsttransform.first.y,
             dsttransform.second.x, dsttransform.second.y, false);
 
-    cerr << "Before IntersectionArea\n";
+    std::cerr << "Before IntersectionArea\n";
     
     // Calculate the intersection of the regions in "intersect"
     double intersectarea = r1.IntersectionArea(r2); // Calculate the area
@@ -531,7 +533,7 @@ LUA_FUNCTION(print) {
    if ((lua_gettop(L) != 1) || !lua_isstring(L, 1))
      return 0;
    
-   cerr << lua_tolstring(L, 1, NULL) << endl;
+   std::cerr << lua_tolstring(L, 1, NULL) << std::endl;
    
    return 0;
 }

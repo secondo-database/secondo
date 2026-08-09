@@ -844,13 +844,13 @@ partition histogram.
 
     std::ostream& Print(std::ostream& os)
     {
-      cmsg.info() << HEADLINE_PHISTOGRAM << endl
+      cmsg.info() << HEADLINE_PHISTOGRAM << std::endl
                   << "Interval: [" << interval.GetLow() << ","
                   << interval.GetHigh() << "]"
                   << ", tuples: " << tuples
                   << ", totalSize: " << totalSize
                   << ", totalExtSize: " << totalExtSize
-                  << endl;
+                  << std::endl;
 
       for(size_t i = 0; i < data.size(); i++)
       {
@@ -858,7 +858,7 @@ partition histogram.
                     << ", Tuples: " << data[i].count
                     << ", totalSize: " << data[i].totalSize
                     << ", totalExtSize: " << data[i].totalExtSize
-                    << endl;
+                    << std::endl;
       }
 
       cmsg.send();
@@ -956,7 +956,7 @@ Copy constructor.
          << ", TuplesProc: " << tuplesProc
          << ", noOfPasses: " << noOfPasses
          << ", curPassNo: " << curPassNo
-         << endl;
+         << std::endl;
 
       return os;
     }
@@ -1064,10 +1064,10 @@ Otherwise ~false~ is returned.
 
     std::ostream& Print(std::ostream& os)
     {
-      os << "PartitionManagerProgressInfo" << endl
+      os << "PartitionManagerProgressInfo" << std::endl
          << "subTotalTuples: " << subTotalTuples
          << ", subTuples: " << subTuples
-         << endl;
+         << std::endl;
 
       for (size_t i = 0; i < partitionProgressInfo.size(); i++)
       {
@@ -1559,7 +1559,7 @@ containing ~bucket~
     {
       for(size_t i = 0; i < partitions.size(); i++)
       {
-        cmsg.info() << "Partition => " << i << endl;
+        cmsg.info() << "Partition => " << i << std::endl;
         partitions[i]->GetPartitionHistogram().Print(cmsg.info());
         cmsg.send();
       }

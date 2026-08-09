@@ -250,7 +250,7 @@ std::ostream& CellGrid2D::Print( std::ostream &os ) const {
      << " origin: (" << x0 << "," << y0 << "), "
      << " cellwidths: " << wx << " x " << wy << " (X x Y), "
      << " cells along X-axis: " << no_cells_x
-     << ")" << endl;
+     << ")" << std::endl;
   return os;
 }
 

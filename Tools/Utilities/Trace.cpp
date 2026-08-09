@@ -35,7 +35,8 @@ string Array2HexStr(const char* data, size_t size, size_t offset /*= 0*/)
 
   size_t i = 0;
   const size_t k = 16;
-  res << endl << "Memory plot of address " << (void*)data << ":" << endl;
+  res << std::endl << "Memory plot of address " << (void*)data << ":"
+     << std::endl;
   res << std::hex; 
   while ( i < size )
   {
@@ -45,7 +46,7 @@ string Array2HexStr(const char* data, size_t size, size_t offset /*= 0*/)
     res << val << " ";
     i++;
     if ( (i % k) == 0) {
-      res << endl;
+      res << std::endl;
     }  
   }  
   return res.str();  

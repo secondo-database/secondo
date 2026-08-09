@@ -1185,12 +1185,12 @@ a tuple
 
 
   std::ostream& Print(std::ostream& out) const{
-    out << "Tuple: (" << endl;
+    out << "Tuple: (" << std::endl;
     for(size_t i = 0; i < noAttributes; i++) {
        GetAttribute(i)->Print(out);
-       cout << endl;
+       std::cout << std::endl;
     }
-    out << "       )" << endl;
+    out << "       )" << std::endl;
     return out;
   }
   
@@ -1478,7 +1478,10 @@ Debugging stuff
 
 */
 #ifdef MALLOC_CHECK_
-  void free (void* ptr) { cerr << "freeing ptr " << ptr << endl; ::free(ptr); }
+  void free (void* ptr) {
+    std::cerr << "freeing ptr " << ptr << std::endl;
+    ::free(ptr);
+  }
 #endif
 
 };

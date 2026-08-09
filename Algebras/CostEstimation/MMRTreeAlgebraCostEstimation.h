@@ -180,22 +180,24 @@ public:
            pRes->Progress = (double) elapsedTime / (double) pRes->Time;
 
              if(DEBUG) {
-               cout << "DEBUG: ellapsed time " << elapsedTime
-                << " of " << pRes->Time << endl;
+               std::cout << "DEBUG: ellapsed time " << elapsedTime
+                << " of " << pRes->Time << std::endl;
 
-               cout << "DEBUG: iteration / tuplefileWritten " << iteration
-                << " / " << tupleFileWritten << endl;
+               std::cout << "DEBUG: iteration / tuplefileWritten " << iteration
+                << " / " << tupleFileWritten << std::endl;
 
-               cout << "DEBUG: read in iteration " << readInIteration << endl;
-               cout << "DEBUG: tuples in tuplefile " << tuplesPerIteration 
-                    << endl;
-               cout << "DEBUG: tuplesize1 (est) " << p1.Size << " / (real) " 
-                   << sizeOfTupleSt1 << endl;
+               std::cout << "DEBUG: read in iteration " << readInIteration
+                  << std::endl;
+               std::cout << "DEBUG: tuples in tuplefile " << tuplesPerIteration 
+                    << std::endl;
+               std::cout << "DEBUG: tuplesize1 (est) " << p1.Size
+                  << " / (real) " 
+                   << sizeOfTupleSt1 << std::endl;
              }
 
         } else {
            if(DEBUG) {
-             cout << p2 << endl;
+             std::cout << p2 << std::endl;
            }
 
            pRes->Progress = p2.Progress;
@@ -233,12 +235,12 @@ public:
              * yItSpatialJoin * pRes->Card;
          
           if(DEBUG) {
-             cout << "Progress is " << pRes->Progress << endl;
-             cout << "Time is " << pRes->Time << endl;
-             cout << "BProgress is " << pRes->BProgress << endl;
-             cout << "BTime is " << pRes->BTime << endl;
-             cout << "Card is: " << pRes->Card << endl;
-             cout << "Paritions: " << partitions << endl;
+             std::cout << "Progress is " << pRes->Progress << std::endl;
+             std::cout << "Time is " << pRes->Time << std::endl;
+             std::cout << "BProgress is " << pRes->BProgress << std::endl;
+             std::cout << "BTime is " << pRes->BTime << std::endl;
+             std::cout << "Card is: " << pRes->Card << std::endl;
+             std::cout << "Paritions: " << partitions << std::endl;
           }
 
          pRes->CopySizes(pli);
@@ -437,10 +439,12 @@ size_t getNoOfPartitions(size_t s1Card, size_t s1Size, size_t maxmem) const {
           floor(((double) s1Card / (double) tuplesInMemory) + 0.8);
 
         if(DEBUG) {
-           cout << "DEBUG: Size per Tuple: " << sizePerTuple << endl;
-           cout << "DEBUG: Tuples in memory are: " << tuplesInMemory << endl;
-           cout << "DEBUG: total Tuples are: " << s1Card << endl;
-           cout << "DEBUG: No of partitons is: " << noOfPartitions << endl;
+           std::cout << "DEBUG: Size per Tuple: " << sizePerTuple << std::endl;
+           std::cout << "DEBUG: Tuples in memory are: " << tuplesInMemory
+              << std::endl;
+           std::cout << "DEBUG: total Tuples are: " << s1Card << std::endl;
+           std::cout << "DEBUG: No of partitons is: " << noOfPartitions
+              << std::endl;
         }   
         
         return noOfPartitions;

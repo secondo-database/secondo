@@ -67,7 +67,7 @@ int OperatorCheckDBServiceStatus::mapValue(Word* args,
            dbService->printMetadata(out);
         } else {
            out << "DBService is started, but instance not found." 
-               << endl; 
+               << std::endl; 
         }
         r = out.str();
     }

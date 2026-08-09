@@ -501,20 +501,20 @@ std::ostream& JList<ListElem>::Print(std::ostream& os) const
 {
   if (IsDefined())
   {
-    os << "Begin List: " << endl;
+    os << "Begin List: " << std::endl;
     ListElem p(false);
     for (int i = 0; i < elemlist.Size(); i++)
     {
       os << i << ". ";
       elemlist.Get(i,p);
       p.Print(os);
-      os << endl;
+      os << std::endl;
     }
-    os << endl << "end of List." << endl;
+    os << std::endl << "end of List." << std::endl;
   }
   else
   {
-    os << "List is " <<  Symbol::UNDEFINED() << endl;
+    os << "List is " <<  Symbol::UNDEFINED() << std::endl;
   }
   return os;
 }

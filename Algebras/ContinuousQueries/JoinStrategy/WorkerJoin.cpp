@@ -294,7 +294,7 @@ void WorkerJoin::TightLoop()
             catch(...)
             {
                 tupleId = 0;
-                std::cout << "failed to extract id or tuple" << endl;
+                std::cout << "failed to extract id or tuple" << std::endl;
             }
 
             if (!tupleId) {
@@ -343,7 +343,7 @@ void WorkerJoin::TightLoop()
             
             hitlist = hitlist.substr(0, hitlist.size()-1);
 
-            std::cout << "Tpl: " << tupleId << " | Hits: " << hits << endl;
+            std::cout << "Tpl: " << tupleId << " | Hits: " << hits << std::endl;
 
                 t->DeleteIfAllowed();
                 // result->Close();
@@ -444,11 +444,11 @@ Word WorkerJoin::executeQueryString(std::string querystring)
 
             if ( !QueryProcessor::ExecuteQuery(exestring, resultword) ) 
             {   
-                std::cout << "Error while executing query." << endl;
+                std::cout << "Error while executing query." << std::endl;
                 resultword.setAddr(0);
             }
         } else {
-            std::cout << "Error while parsing query: " << parseRes << endl;
+            std::cout << "Error while parsing query: " << parseRes << std::endl;
             resultword.setAddr(0);
         }
 
@@ -456,7 +456,7 @@ Word WorkerJoin::executeQueryString(std::string querystring)
     }
     catch(const std::exception& e)
     {
-        std::cout << "Catched an error while executing query..." << endl;
+        std::cout << "Catched an error while executing query..." << std::endl;
         resultword.setAddr(0);
     }
 
@@ -498,21 +498,26 @@ Prints out some information.
 
 void WorkerJoin::showStatus()
 {
-    std::cout << "**************************************************" << endl;
-    std::cout << "WorkerJoin::Status"                         << endl << endl;
+    std::cout << "**************************************************"
+       << std::endl;
+    std::cout << "WorkerJoin::Status"                         << std::endl
+       << std::endl;
 
-    std::cout << "Current Query:" << endl << _querystring             << endl;
+    std::cout << "Current Query:" << std::endl << _querystring
+       << std::endl;
     
-    std::cout << "Query Parts and their number in queries: "          << endl;
+    std::cout << "Query Parts and their number in queries: "
+       << std::endl;
 
     for (std::vector<std::pair <std::string, std::string>>::iterator 
         it = _queryparts.begin(); 
         it != _queryparts.end(); it++)
     {
-        std::cout << it->first << ": " << _queries[it->first] << endl;
+        std::cout << it->first << ": " << _queries[it->first] << std::endl;
     }
     
-    std::cout << "**************************************************" << endl;
+    std::cout << "**************************************************"
+       << std::endl;
     
 }
 

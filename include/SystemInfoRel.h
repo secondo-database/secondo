@@ -153,15 +153,15 @@ class SystemInfoRel
            clog << sep;
         it++;
       } 
-      clog << endl;  
+      clog << std::endl;  
       
       // write configuration file
       std::ostream& cfg = cmsg.file(name+".cfg");  
       
       cfg << "# Generated file: Can be used together with "
-          << "commands.csv by CVS2Secondo!" << endl
-          << "Separator  |" << endl
-          << "Object " << name << endl
+          << "commands.csv by CVS2Secondo!" << std::endl
+          << "Separator  |" << std::endl
+          << "Object " << name << std::endl
           << "Scheme ";
      
       it = attrList->begin();
@@ -172,7 +172,7 @@ class SystemInfoRel
           cfg << " \\t ";
         it++;
       }   
-      cfg << endl;
+      cfg << std::endl;
   }
 
   NList relSchema() const
@@ -222,7 +222,7 @@ class SystemInfoRel
   void append(InfoTuple* t, bool dump) 
   {
     if (dump)
-      cmsg.file(logFile) << *t << endl; 
+      cmsg.file(logFile) << *t << std::endl; 
     tuples.push_back(t); 
   }
 
@@ -274,7 +274,7 @@ class SystemTables {
      if (instance) {
        return *instance;
      } else {
-       cout << "Creating SystemTable instance!" << endl;
+       std::cout << "Creating SystemTable instance!" << std::endl;
        instance = new SystemTables;
        return *instance;
      }  
@@ -289,7 +289,8 @@ class SystemTables {
      std::string type="virtual";
      if (rel->isPersistent)
        type="persistent";
-     cout << "  registering " << type << " system table " << name << endl;
+     std::cout << "  registering " << type << " system table " << name
+               << std::endl;
      tables[name] = rel;
      rel->initSchema();
   }

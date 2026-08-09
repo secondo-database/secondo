@@ -108,9 +108,9 @@ struct Section_Cell{
   }
   void Print()
   {
-    cout<<"cell_id "<<cell_id
+    std::cout<<"cell_id "<<cell_id
         <<" sec_intersect_count "<<sec_intersect_count
-        <<" minimum bus route "<<count_1<<endl;
+        <<" minimum bus route "<<count_1<<std::endl;
   }
 };
 
@@ -162,8 +162,8 @@ struct BusStop{
   }
   void Print()
   {
-    cout<<"br_id "<<br_id<<" stop_id "<<br_stop_id
-        <<" rid "<<rid<<" pos "<<pos<<" sid "<<sid<<endl; 
+    std::cout<<"br_id "<<br_id<<" stop_id "<<br_stop_id
+        <<" rid "<<rid<<" pos "<<pos<<" sid "<<sid<<std::endl; 
   }
 }; 
 
@@ -185,7 +185,7 @@ struct BusStop_Ext:public BusStop{
   void Print()
   {
     BusStop::Print(); 
-    cout<<"loc "<<loc<<" start_small "<<start_small<<endl; 
+    std::cout<<"loc "<<loc<<" start_small "<<start_small<<std::endl; 
   }
   bool operator<(const BusStop_Ext& bse) const
   {
@@ -219,8 +219,8 @@ struct GP_Point{
   }
   void Print()
   {
-    cout<<"rid "<<rid<<" pos1 "<<pos1<<" pos2 "<<pos2
-         <<" loc1 "<<loc1<<" loc2 "<<loc2<<" oid "<<oid<<endl;
+    std::cout<<"rid "<<rid<<" pos1 "<<pos1<<" pos2 "<<pos2
+         <<" loc1 "<<loc1<<" loc2 "<<loc2<<" oid "<<oid<<std::endl;
   }
 
 };
@@ -405,7 +405,7 @@ struct Pos_Speed{
   }
   void Print()
   {
-    cout<<"pos "<<pos<<" speed "<<speed_val<<endl; 
+    std::cout<<"pos "<<pos<<" speed "<<speed_val<<std::endl; 
   }
 };
 
@@ -681,8 +681,8 @@ struct BR_Elem{
   }
   void Print()
   {
-    cout<<"seg id "<<br_seg_id<<" start_pos "<<start_pos
-        <<"num "<<no<<endl; 
+    std::cout<<"seg id "<<br_seg_id<<" start_pos "<<start_pos
+        <<"num "<<no<<std::endl; 
   }
 };
 
@@ -900,7 +900,7 @@ struct MyPoint_Tid:public MyPoint{
     }
      void Print()
     {
-        cout<<" loc " <<loc<<" dist "<<dist<<" tid "<<tid<<endl; 
+        std::cout<<" loc " <<loc<<" dist "<<dist<<" tid "<<tid<<std::endl; 
     }
 };
 
@@ -1130,10 +1130,10 @@ struct BNPath_elem:public Path_elem{
 
   void Print()
   {
-    cout<<" tri_index " <<tri_index<<" realweight "<<real_w
+    std::cout<<" tri_index " <<tri_index<<" realweight "<<real_w
         <<" weight "<<weight;
-    if(tm >= 0)cout<<" tm "<<str_tm[tm]<<endl;
-    else cout<<"tm: none"<<endl;
+    if(tm >= 0)std::cout<<" tm "<<str_tm[tm]<<std::endl;
+    else std::cout<<"tm: none"<<std::endl;
   }
 
 };
@@ -1201,10 +1201,10 @@ struct BNPath_elem2:public Path_elem{
 
   void Print()
   {
-    cout<<" tri_index " <<tri_index<<" realweight "<<real_w
+    std::cout<<" tri_index " <<tri_index<<" realweight "<<real_w
         <<" weight "<<weight;
-    if(tm >= 0)cout<<" tm "<<str_tm[tm]<<endl;
-    else cout<<"tm: none"<<endl;
+    if(tm >= 0)std::cout<<" tm "<<str_tm[tm]<<std::endl;
+    else std::cout<<"tm: none"<<std::endl;
   }
 };
 
@@ -1309,8 +1309,8 @@ struct UBTrainTrip{
   }
   void Print()
   {
-    cout<<"line id "<<line_id<<" direction "<<direction
-        <<" trip "<<train_trip<<endl; 
+    std::cout<<"line id "<<line_id<<" direction "<<direction
+        <<" trip "<<train_trip<<std::endl; 
   }
   
   bool operator<(const UBTrainTrip& ubtrain) const
@@ -1379,8 +1379,8 @@ struct UBahn_Stop{
   }
   void Print()
   {
-    cout<<"line id "<<line_id<<" stop id "<<stop_id<<" dir "<<d
-        <<" loc "<<loc<<" tid "<<tid<<endl;
+    std::cout<<"line id "<<line_id<<" stop id "<<stop_id<<" dir "<<d
+        <<" loc "<<loc<<" tid "<<tid<<std::endl;
   }
 
 };

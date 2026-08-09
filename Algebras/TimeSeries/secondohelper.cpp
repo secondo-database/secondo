@@ -56,15 +56,15 @@ void SecondoHelper::getTSData(vector<Tuple *> &ts_data, vector<double>& data)
 void SecondoHelper::printMatrix(const vector<vector<double> > &matrix,
                                 const string description)
 {
-    cout << description << endl;
+    std::cout << description << std::endl;
     for(size_t row = 0; row < matrix.size(); ++row)
     {
-        cout << "Row : " << to_string(row);
+        std::cout << "Row : " << to_string(row);
         for(size_t column = 0; column < matrix[row].size(); ++column)
         {
-            cout << "column: " << to_string(matrix[row][column]) << "|";
+            std::cout << "column: " << to_string(matrix[row][column]) << "|";
         }
-        cout << endl;
+        std::cout << std::endl;
     }
 
 }
@@ -73,14 +73,14 @@ void SecondoHelper::printMatrix(const vector<vector<double> > &matrix,
  // Helper function to print vector and name/ text for vector;
 void SecondoHelper::printVector(const vector<double> &vector, const string name)
 {
-   cout <<endl;
-   cout << name << endl;
+   std::cout <<std::endl;
+   std::cout << name << std::endl;
    for(size_t i = 0; i < vector.size(); i++)
    {
-       cout << "Value " << to_string(i+1) <<": "
+       std::cout << "Value " << to_string(i+1) <<": "
             << to_string(vector[i]) << " | ";
    }
-   cout <<endl;
+   std::cout <<std::endl;
 }
 
  // @brief computeMean computes the mean value of the given vector

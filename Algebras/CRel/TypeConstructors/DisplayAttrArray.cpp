@@ -61,6 +61,6 @@ void DisplayAttrArray::Display(ListExpr type, ListExpr value)
 
     values = nl->Rest(values);
 
-    cout << '\n';
+    std::cout << '\n';
   }
 }

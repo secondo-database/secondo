@@ -260,13 +260,13 @@ void BitArray::test(bool reproducible) {
 
     std::srand(reproducible ? 0 : std::time(nullptr));
 
-    cout << "Starting BitArray::test()" << endl;
-    cout << "BITS_PER_ENTRY = " << BITS_PER_ENTRY << endl;
+    std::cout << "Starting BitArray::test()" << std::endl;
+    std::cout << "BITS_PER_ENTRY = " << BITS_PER_ENTRY << std::endl;
 
     BitArray ba = BitArray(150, false);
     ba.reportTest("create BitArray (bits are random)");
-    cout << "_size = " << formatInt(ba._size) << endl;
-    cout << "_entryCount = " << formatInt(ba._entryCount) << endl;
+    std::cout << "_size = " << formatInt(ba._size) << std::endl;
+    std::cout << "_entryCount = " << formatInt(ba._entryCount) << std::endl;
 
     ba.initializeAll(true);
     ba.reportTest("initializeAll(true)");
@@ -274,13 +274,13 @@ void BitArray::test(bool reproducible) {
     ba.initializeAll(false);
     ba.reportTest("initializeAll(false)");
 
-    cout << "initializeFirst(0..150, true)" << endl;
+    std::cout << "initializeFirst(0..150, true)" << std::endl;
     for (int i = 0; i <= 150; ++i) {
         ba.initializeFirst(i, true);
         ba.reportTest("");
     }
 
-    cout << "initializeFirst(0..150, false)" << endl;
+    std::cout << "initializeFirst(0..150, false)" << std::endl;
     for (int i = 0; i <= 150; ++i) {
         ba.initializeFirst(i, false);
         ba.reportTest("");
@@ -297,13 +297,13 @@ void BitArray::test(bool reproducible) {
     ba.set(149, true);
     ba.reportTest("set(0 / 9 / 63 / 64 / 127 / 149, true)");
 
-    cout << "Iterator(): ";
+    std::cout << "Iterator(): ";
     auto it = ba.getIterator();
     int index;
     while ((index = it->next()) >= 0) {
-        cout << index << " ";
+        std::cout << index << " ";
     }
-    cout << endl;
+    std::cout << std::endl;
 
     ba.set(9, false);
     ba.set(63, false);
@@ -323,24 +323,24 @@ void BitArray::test(bool reproducible) {
         st << "initializeRandom(" << testTrueCount << ")";
         ba.reportTest(st.str());
 
-        cout << "Iterator(all): ";
+        std::cout << "Iterator(all): ";
         size_t count = 0;
         it = ba.getIterator();
         while ((index = it->next()) >= 0) {
-            cout << index << " ";
+            std::cout << index << " ";
             ++count;
         }
-        cout << " (" << formatInt(count) << " values)" << endl;
+        std::cout << " (" << formatInt(count) << " values)" << std::endl;
     }
 
     // size_t rndSelCounts[] { 0, 1, 5, 8, 19, 20, 21 };
     for (size_t rndSelCount = 0; rndSelCount < 22; ++rndSelCount) {
-        cout << "Iterator(random " << rndSelCount << "): ";
+        std::cout << "Iterator(random " << rndSelCount << "): ";
         it = ba.getIterator(rndSelCount);
         while ((index = it->next()) >= 0) {
-            cout << index << " ";
+            std::cout << index << " ";
         }
-        cout << endl;
+        std::cout << std::endl;
     }
 
     // test performance
@@ -349,14 +349,14 @@ void BitArray::test(bool reproducible) {
     double tStart = clock();
     BitArray ba2 = BitArray(7000000, false);
     double tStop = clock();
-    cout << "BitArray(" << formatInt(7000000) << ": " <<
-            (tStop - tStart) / clocksPerMSec << " ms" << endl;
+    std::cout << "BitArray(" << formatInt(7000000) << ": " <<
+            (tStop - tStart) / clocksPerMSec << " ms" << std::endl;
 
     tStart = clock();
     ba2.initializeAll(true);
     tStop = clock();
-    cout << "initializeAll(true): " <<
-            (tStop - tStart) / clocksPerMSec << " ms" << endl;
+    std::cout << "initializeAll(true): " <<
+            (tStop - tStart) / clocksPerMSec << " ms" << std::endl;
 
     tStart = clock();
     it = ba2.getIterator();
@@ -365,26 +365,26 @@ void BitArray::test(bool reproducible) {
         sum += index;
     }
     tStop = clock();
-    cout << "iterate over true bits (checksum = " << sum << ":) " <<
-            (tStop - tStart) / clocksPerMSec << " ms" << endl;
+    std::cout << "iterate over true bits (checksum = " << sum << ":) " <<
+            (tStop - tStart) / clocksPerMSec << " ms" << std::endl;
 
     tStart = clock();
     ba2.initializeFirst(100000, true);
     tStop = clock();
-    cout << "initializeFirst(" << formatInt(100000) << ", true): " <<
-            (tStop - tStart) / clocksPerMSec << " ms" << endl;
+    std::cout << "initializeFirst(" << formatInt(100000) << ", true): " <<
+            (tStop - tStart) / clocksPerMSec << " ms" << std::endl;
 
     tStart = clock();
     ba2.initializeRandom(100000);
     tStop = clock();
-    cout << "initializeRandom(" << formatInt(100000) << "): " <<
-            (tStop - tStart) / clocksPerMSec << " ms" << endl;
+    std::cout << "initializeRandom(" << formatInt(100000) << "): " <<
+            (tStop - tStart) / clocksPerMSec << " ms" << std::endl;
 
     tStart = clock();
     size_t trueCount = ba2.getTrueCount();
     tStop = clock();
-    cout << "getTrueCount() (returns " << trueCount << "): " <<
-            (tStop - tStart) / clocksPerMSec << " ms" << endl;
+    std::cout << "getTrueCount() (returns " << trueCount << "): " <<
+            (tStop - tStart) / clocksPerMSec << " ms" << std::endl;
 
     tStart = clock();
     it = ba2.getIterator();
@@ -393,8 +393,8 @@ void BitArray::test(bool reproducible) {
         sum += index;
     }
     tStop = clock();
-    cout << "iterate over true bits (checksum = " << sum << ":) " <<
-            (tStop - tStart) / clocksPerMSec << " ms" << endl;
+    std::cout << "iterate over true bits (checksum = " << sum << ":) " <<
+            (tStop - tStart) / clocksPerMSec << " ms" << std::endl;
 
     ba2.initializeRandom(6000000);
     tStart = clock();
@@ -404,17 +404,17 @@ void BitArray::test(bool reproducible) {
         sum += index;
     }
     tStop = clock();
-    cout << "iterate over a sample of " << formatInt(100000) <<
+    std::cout << "iterate over a sample of " << formatInt(100000) <<
             " out of " << formatInt(6000000) << " true bits "
             << "(checksum = " << sum << ":) " <<
-            (tStop - tStart) / clocksPerMSec << " ms" << endl;
+            (tStop - tStart) / clocksPerMSec << " ms" << std::endl;
 
-    cout << "getIterator(random 100): ";
+    std::cout << "getIterator(random 100): ";
     it = ba2.getIterator(100);
     while ((index = it->next()) >= 0) {
-        cout << index << " ";
+        std::cout << index << " ";
     }
-    cout << endl;
+    std::cout << std::endl;
 }
 
 /*

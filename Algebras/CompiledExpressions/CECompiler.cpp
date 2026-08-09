@@ -3653,27 +3653,27 @@ the ~CEQueryProcessor~.
       ptrCEQY->setCompilePath(pwdCurrent, tmpPathGenCode);
     
     if (debugMode)
-      cout << endl
+      std::cout << std::endl
            << "*** Compiled Expressions Algebra: Generate Query Begin ***"
-           << endl;
+           << std::endl;
       
     try {
       if (traceMode)
-        cout << "Create CEOpTree..."
-             << endl;
+        std::cout << "Create CEOpTree..."
+             << std::endl;
       ptrCECOpTree = CECOpNode::createCECOpTree(ceAnnotateList, NULL);
       ptrCECOpTree->createApplyopTree(NULL, ptrApplyopTree);
       if (traceMode)
-        cout << "Search for Compiled Expressions Algebra-Operators..."
-             << endl;
+        std::cout << "Search for Compiled Expressions Algebra-Operators..."
+             << std::endl;
       ptrCECOpTree->checkIsCEAOperator(true);
       if (traceMode)
-        cout << "Search for Compiled-Root-Nodes..."
-             << endl;
+        std::cout << "Search for Compiled-Root-Nodes..."
+             << std::endl;
       ptrCECOpTree->checkIsCERootNode(true);
       if (traceMode)
-        cout << "Annotate CEOpTree..." 
-             << endl;
+        std::cout << "Annotate CEOpTree..." 
+             << std::endl;
       ptrCECOpTree->accept(NumberingCECOpNodes);
       CopyCECOpNodesResultTypeToCEQY.setCEQuery(ptrCEQY);
       ptrCECOpTree->accept(CopyCECOpNodesResultTypeToCEQY);
@@ -3685,16 +3685,16 @@ the ~CEQueryProcessor~.
     if (lokalInitQuery) {
       if (ptrCECOpTree->getIsCERootNode(true)) {
         if (traceMode)
-          cout << "CEOpTree-RootNode is compiled Root-Node."
-               << endl;
+          std::cout << "CEOpTree-RootNode is compiled Root-Node."
+               << std::endl;
         try {
           castRootApplyop = static_cast<CECOpNodeApplyop*>(ptrCECOpTree);
           castRootApplyop->getInstCEGenerateFunctionStatus()
                            ->setCallLibFunctionName("executeQueryFunction");
           castRootApplyop->unsetIsCERootNodeNoCECOpNodeRoot();
           if (traceMode)
-            cout << "Generate Code..."
-                 << endl;
+            std::cout << "Generate Code..."
+                 << std::endl;
           codeGenerationOK = CECodeGenerator::getInstance()
                                ->generateCECode(ptrCECOpTree, ptrCEQY);
           castRootApplyop->getInstCEGenerateFunctionStatus()
@@ -3714,16 +3714,16 @@ the ~CEQueryProcessor~.
         }
         
         if (traceMode)
-          cout << "CEOpTree insert "
+          std::cout << "CEOpTree insert "
                <<  SearchCompiledExpressionRoot.sizeRootNodes()
                << " Root-Nodes."
-               << endl;
+               << std::endl;
         
         if (lokalInitQuery
           && SearchCompiledExpressionRoot.sizeRootNodes() > 0) {
           if (traceMode)
-            cout << "Generate Code..."
-                 << endl;
+            std::cout << "Generate Code..."
+                 << std::endl;
 
           std::string ceCallLibFunctionName;
           bool lokalCodeGenerationOK;
@@ -3773,18 +3773,18 @@ the ~CEQueryProcessor~.
             oFileCode.close();
             
             if (traceMode) {
-              cout << "------------------------------"
-                   << endl
+              std::cout << "------------------------------"
+                   << std::endl
                    << "The following code is created:"
-                   << endl
+                   << std::endl
                    << "------------------------------"
-                   << endl;
+                   << std::endl;
               CECodeGenerator::getInstance()
-                               ->getStreamGeneratedCECode(cout,
+                               ->getStreamGeneratedCECode(std::cout,
                                                           ptrCEQY);
-              cout << "-----------------------------------"
+              std::cout << "-----------------------------------"
                    << "-----------------------------------"
-                   << endl;
+                   << std::endl;
             }
 
             std::ofstream oFileMake("makefile");
@@ -3803,13 +3803,13 @@ the ~CEQueryProcessor~.
     
     if (lokalInitQuery && codeGenerationOK) {
       if (traceMode)
-        cout << "Compile Code..."
-             << endl;
+        std::cout << "Compile Code..."
+             << std::endl;
       try {
         int returnCode = std::system("(make >/dev/null 2>&1; exit $?)");
         if (WEXITSTATUS(returnCode)) {
-          cout << "MAKE ERROR: Reset Query to original Queryprocessor..."
-               << endl;
+          std::cout << "MAKE ERROR: Reset Query to original Queryprocessor..."
+               << std::endl;
           throw CECRuntimeError("Can't compiled the generated code.");
         }
       } catch (...) {
@@ -3824,8 +3824,8 @@ the ~CEQueryProcessor~.
     
     if (lokalInitQuery && codeGenerationOK) {
       if (traceMode)
-        cout << "Load the generated library..."
-             << endl;
+        std::cout << "Load the generated library..."
+             << std::endl;
       try {
         ptrCEQY->getPtrCEQP()->loadCompiledExpressions
                                  (tmpPathGenCode + PATH_SLASH + libName,
@@ -3859,8 +3859,9 @@ the ~CEQueryProcessor~.
     
     if (lokalInitQuery) {
       if (traceMode)
-        cout << "Change the annotated list to format of the QueryProcessor..."
-             << endl;
+        std::cout
+           << "Change the annotated list to format of the QueryProcessor..."
+             << std::endl;
       try {
         ptrCECOpTree->checkCECGenerateAnnotateList();
         if (CECOpNodeApplyop* onApplyop = dynamic_cast<CECOpNodeApplyop*>
@@ -3877,21 +3878,21 @@ the ~CEQueryProcessor~.
 
     if (ptrCECOpTree) {
       if (traceMode)
-        cout << "Delete CEOpTree..."
-             << endl;
+        std::cout << "Delete CEOpTree..."
+             << std::endl;
 
       delete ptrCECOpTree;
     }
     FileSystem::SetCurrentFolder(pwdCurrent);
     
     if (debugMode) {
-      cout << endl
+      std::cout << std::endl
            << "Annotated list from CE-Compiler:"
-           << endl;
-      nl->WriteListExpr(ceAnnotateList, cout, true,  2);
-      cout << endl
+           << std::endl;
+      nl->WriteListExpr(ceAnnotateList, std::cout, true,  2);
+      std::cout << std::endl
            << "*** Compiled Expressions Algebra: Generate Query End ***"
-           << endl;
+           << std::endl;
     }
   }
   
@@ -3908,11 +3909,11 @@ without the functionality of the ~Compiled Expressions Algebra~.
   CECompiler::resetAnnotateListToOrigForm(ListExpr& list,
                                           bool output) {
     if (output)
-      cout << "An Error is occurred!"
-           << endl
+      std::cout << "An Error is occurred!"
+           << std::endl
            << "Change the annotated list to the original"
            << " format of the QueryProcessor."
-           << endl;
+           << std::endl;
 
     ListExpr symbol, tmpList;
     std::string strSymbol;

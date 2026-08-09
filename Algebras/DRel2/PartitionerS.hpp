@@ -165,8 +165,9 @@ Copies the grid object to all workers.
 */
         bool sharegrid( ) {
 
-            cout << endl;
-            cout << "Start: Bring grid object to the workers ..." << endl;
+            std::cout << std::endl;
+            std::cout << "Start: Bring grid object to the workers ..."
+               << std::endl;
 
             if( !grid ) {
                 if( !computeGrid( ) ){
@@ -182,34 +183,38 @@ Copies the grid object to all workers.
             "))))";
 
             #ifdef DRELDEBUG
-            cout << "query to share grid" << endl;
-            cout << query << endl;
+            std::cout << "query to share grid" << std::endl;
+            std::cout << query << std::endl;
             #endif
 
             Word result;
             if( !QueryProcessor::ExecuteQuery( query, result ) ) {
-                cout << "ERROR: Bring grid to the workers failed!" << endl;
+                std::cout << "ERROR: Bring grid to the workers failed!"
+                   << std::endl;
                 return false;
             }
 
             FText* res = ( FText* )result.addr;
 
             if( !res ) {
-                cout << "ERROR: Bring grid to the workers failed!" << endl;
+                std::cout << "ERROR: Bring grid to the workers failed!"
+                   << std::endl;
                 return false;
             }
 
             if( !res->IsDefined( ) ) {
-                cout << "ERROR: Bring grid to the workers failed!" << endl;
+                std::cout << "ERROR: Bring grid to the workers failed!"
+                   << std::endl;
                 delete res;
                 return false;
             }
 
-            cout << res->GetValue( ) << endl;
+            std::cout << res->GetValue( ) << std::endl;
 
             delete res;
 
-            cout << "Done. grid object is now on the workers!" << endl;
+            std::cout << "Done. grid object is now on the workers!"
+               << std::endl;
 
             return true;
         }
@@ -415,18 +420,21 @@ Repartitions the drel to a DFMatrix.
             nl->ReadFromString( queryS, query );
 
             if( !nl->HasLength( resultType, 3 ) ) {
-                cout << "ERROR: Create new partitioning failed!1" << endl;
+                std::cout << "ERROR: Create new partitioning failed!1"
+                   << std::endl;
                 return false;
             }
 
             ListExpr matrixType = nl->Third( resultType );
             if( !distributed2::DFMatrix::checkType( matrixType ) ) {
-                cout << "ERROR: Create new partitioning failed!2" << endl;
+                std::cout << "ERROR: Create new partitioning failed!2"
+                   << std::endl;
                  return false;
             }
 
             if( !createPartitionOpTree( query ) ) {
-                cout << "ERROR: Create new partitioning failed!3" << endl;
+                std::cout << "ERROR: Create new partitioning failed!3"
+                   << std::endl;
                 return false;
             }
 
@@ -455,7 +463,8 @@ Repartitions the drel to a DFMatrix.
             matrix = ( distributed2::DFMatrix* )result.addr;
 
             if( !matrix ) {
-                cout << "ERROR: Create new partitioning failed!4" << endl;
+                std::cout << "ERROR: Create new partitioning failed!4"
+                   << std::endl;
                 qp->Destroy( tree, false );
                 delete qp;
                 matrix = 0;
@@ -463,15 +472,16 @@ Repartitions the drel to a DFMatrix.
             }
 
             if( !matrix->IsDefined( ) ) {
-                cout << "ERROR: Create new partitioning failed!5" << endl;
+                std::cout << "ERROR: Create new partitioning failed!5"
+                   << std::endl;
                 qp->Destroy( tree, false );
                 delete qp;
                 matrix = 0;
                 return false;
             }
 
-            cout << "Done. New partitioning is created on the workers!" 
-                 << endl;
+            std::cout << "Done. New partitioning is created on the workers!" 
+                 << std::endl;
 
             return true;
         }

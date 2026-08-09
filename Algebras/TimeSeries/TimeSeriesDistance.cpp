@@ -68,8 +68,8 @@ using std::list;
      */
     ListExpr TimeSeriesDistance::appendNumericIndices(NList numeric_index_ts1,
                                                       NList numeric_index_ts2){
-        numeric_index_ts1.print(cout) << endl;
-        numeric_index_ts2.print(cout) << endl;
+        numeric_index_ts1.print(std::cout) << std::endl;
+        numeric_index_ts2.print(std::cout) << std::endl;
 
         if(numeric_index_ts1.length() != numeric_index_ts2.length()){
             return NList::typeError("Equal number of"
@@ -89,7 +89,7 @@ using std::list;
                         element.intAtom(numeric_index_ts2.elem(i).intval()));
         }
 
-        argumentList.print(cout)<<endl;
+        argumentList.print(std::cout)<<std::endl;
 
        return NList(NList(Symbol::APPEND()),
                     argumentList, CcReal::BasicType()).listExpr();
@@ -116,10 +116,10 @@ using std::list;
         }
 
         list<int> indexOfNumerics;
-        cout<<"Tuple Description:";
-        NList(type.second()).print(cout) <<endl;
-        cout<<"Tuple detail:";
-        NList(type.second().second()).print(cout) <<endl;
+        std::cout<<"Tuple Description:";
+        NList(type.second()).print(std::cout) <<std::endl;
+        std::cout<<"Tuple detail:";
+        NList(type.second().second()).print(std::cout) <<std::endl;
         ListExpr rest = type.second().second().listExpr();
         ListExpr current;
 
@@ -159,15 +159,15 @@ using std::list;
                                                            Supplier s)
     {
 
-        cout<<"Inside Value Mapping"<< endl;
+        std::cout<<"Inside Value Mapping"<< std::endl;
 
         qp->Open(args[0].addr);//Open first argument stream
         qp->Open(args[1].addr);//Open second argument stream
-        cout<<"After argument stream" <<endl;
+        std::cout<<"After argument stream" <<std::endl;
         Stream<Tuple> ts1Stream(args[0]);
         Stream<Tuple> ts2Stream(args[1]);
         int lenghOfIndexList = ((CcInt*)args[2].addr)->GetIntval();
-        cout<<"Länge der Indexlisten: " << lenghOfIndexList <<endl;
+        std::cout<<"Länge der Indexlisten: " << lenghOfIndexList <<std::endl;
 
         int endOfArguments = lenghOfIndexList *2 + 2;
 
@@ -244,7 +244,8 @@ using std::list;
     }
 
     ListExpr TimeSeriesDistance::distanceOpFunTypeMap(ListExpr args){
-        cout << "Arguments: " <<endl << nl->ToString(args) << endl;
+        std::cout << "Arguments: " <<std::endl << nl->ToString(args)
+           << std::endl;
 
         if(nl->ListLength(args)!=3){
           return listutils::typeError("three arguments expected");
@@ -270,7 +271,7 @@ using std::list;
                                                                 Supplier s){
 
         TimeSeriesDistanceOpLI* localInfo = 0;
-        cout << "Value mapping arguments message: " << message <<endl;
+        std::cout << "Value mapping arguments message: " << message <<std::endl;
 
         localInfo = new TimeSeriesDistanceOpLI(args[0], args[1], args[2]);
         local.addr = localInfo;
@@ -280,7 +281,7 @@ using std::list;
         result = qp->ResultStorage(s);
         CcReal* resultDistance = (CcReal*) result.addr;
         resultDistance->Set(true, localInfo->getResult());
-        cout <<"Result: " << localInfo->getResult() << endl;
+        std::cout <<"Result: " << localInfo->getResult() << std::endl;
 
         delete localInfo;
         return 0;

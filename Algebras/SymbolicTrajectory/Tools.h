@@ -442,7 +442,7 @@ class Tools {
         return false;
       }
       if (type == Point::BasicType()) {
-        ((Point*)geo.addr)->Print(cout);
+        ((Point*)geo.addr)->Print(std::cout);
         points.push_back(geo);
       }
       else if (type == Line::BasicType()) {
@@ -451,8 +451,9 @@ class Tools {
       else if (type == Region::BasicType()) {
         regions.push_back(geo);
       }
-      cout << "pushed back " << points.size() << " points, " << lines.size() 
-           << " lines, " << regions.size() << " regions" << endl;
+      std::cout << "pushed back " << points.size() << " points, "
+         << lines.size() 
+           << " lines, " << regions.size() << " regions" << std::endl;
     }
     Region regUnion(1);
     switch (rel) {

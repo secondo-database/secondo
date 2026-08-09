@@ -43,14 +43,14 @@ ListExpr MPoint2Property() {
 
 
 void MPoint2::memClear() {
-    cout << "MPoint2::memClear["<< id << "]()\n";
+    std::cout << "MPoint2::memClear["<< id << "]()\n";
     if (hasMemoryUnits()) {
         MemStorageManager* storage = MemStorageManager::getInstance();
         storage->clear(id);
         id = 0;
     } else {
         //TODO: only allow memClear if we have memUnits???
-        cout << "no MemoryUnits present\n";
+        std::cout << "no MemoryUnits present\n";
         //assert(false);
     }
 }
@@ -59,7 +59,7 @@ void MPoint2::memClear() {
 // if data is pushed to mem, no commit on the containing tuple and relation
 // is required.
 void MPoint2::memAppend(const temporalalgebra::UPoint& upoint) {
-    cout << "MPoint2::memAppend[" << id << "](" << upoint << ")\n";
+    std::cout << "MPoint2::memAppend[" << id << "](" << upoint << ")\n";
     assert(hasMemoryUnits());
     MemStorageManager* storage = MemStorageManager::getInstance();
     storage->append(id, upoint);
@@ -91,8 +91,8 @@ bool MPoint2::hasMemoryUnits() const {
 /*static*/ MemStorageId MPoint2::findMemStorageId(const BackReference& backRef) {
     MemStorageManager* storage = MemStorageManager::getInstance();
     MemStorageId my_id = storage->getId(backRef);
-    cout << " MPoint2::findMemStorageId(" << backRef << "): "
-            <<my_id << endl;
+    std::cout << " MPoint2::findMemStorageId(" << backRef << "): "
+            <<my_id << std::endl;
     return my_id;
 }
 
@@ -100,14 +100,14 @@ bool MPoint2::hasMemoryUnits() const {
 /*static*/ Unit MPoint2::getFinalUnit(const MemStorageId& id) {
     MemStorageManager* storage = MemStorageManager::getInstance();
     Unit finalUnit = storage->getFinalUnit(id);
-    cout << "MPoint2::getFinalUnit(id: " << id << "): "
-            << finalUnit << endl;
+    std::cout << "MPoint2::getFinalUnit(id: " << id << "): "
+            << finalUnit << std::endl;
     return finalUnit;
 }
 /*static*/ void MPoint2::appendUnit(const MemStorageId& id, const Unit& unit){
     MemStorageManager* storage = MemStorageManager::getInstance();
-    cout << "MPoint2::appendUnit(id: " << id
-            << ", unit: " << unit << ")" << endl;
+    std::cout << "MPoint2::appendUnit(id: " << id
+            << ", unit: " << unit << ")" << std::endl;
     storage->append(id, unit);
 }
 
@@ -122,7 +122,7 @@ void MPoint2::setMemId(const MemStorageId new_id) {
 /*virtual*/ void MPoint2::Initialize( SmiFileId fileId,
         TupleId tupleId,
         int attrno) {
-    cout << *this << "::Initialize("
+    std::cout << *this << "::Initialize("
             << "fileId:" << fileId
             << ", tupleId: " << tupleId
             << ", attrno: " << attrno
@@ -130,7 +130,7 @@ void MPoint2::setMemId(const MemStorageId new_id) {
 }
 
 /*virtual*/ void MPoint2::Finalize() {
-    cout << *this << "::Finalize()\n";
+    std::cout << *this << "::Finalize()\n";
 }
 
 std::ostream& MPoint2::Print(std::ostream &os) const {
@@ -142,7 +142,7 @@ std::ostream& MPoint2::Print(std::ostream &os) const {
 
 
 MPoint2::MPoint2() {
-    cout << "MPoint2(): " << *this << endl;
+    std::cout << "MPoint2(): " << *this << std::endl;
 } // should do nothing
 
 MPoint2::MPoint2( const MPoint2& rhs ) :
@@ -152,11 +152,11 @@ MPoint2::MPoint2( const MPoint2& rhs ) :
              bbox2(rhs.bbox2.IsDefined())
 {
     if (!rhs.IsDefined()) {
-        cout << "Undefined\n";
+        std::cout << "Undefined\n";
         return;
     }
 
-    cout << "MPoint2( "<< rhs << " )\n";
+    std::cout << "MPoint2( "<< rhs << " )\n";
 
     //optimized Flob-Copy for persistent data
     // TODO: check if resizing to total size makes sense
@@ -175,7 +175,7 @@ MPoint2::MPoint2( const MPoint2& rhs ) :
 
     bbox2 = rhs.GetBBox();
 
-    cout << "MPoint2("<< rhs << "): " <<  *this << endl;
+    std::cout << "MPoint2("<< rhs << "): " <<  *this << std::endl;
 }
 
 /*explicit*/ MPoint2::MPoint2(const bool defined):
@@ -184,7 +184,7 @@ MPoint2::MPoint2( const MPoint2& rhs ) :
                  units2(0),
                  bbox2(false)
 {
-    cout << "MPoint2(defined: " << defined << "): " << *this << endl;
+    std::cout << "MPoint2(defined: " << defined << "): " << *this << std::endl;
 
     // Do not allocate ID/Mem slot if no units2 are present:
     // - work around issue that first MPoint2 is created without open DB
@@ -200,16 +200,16 @@ MPoint2::MPoint2( const MPoint2& rhs ) :
                  units2(0),
                  bbox2(false)
 {
-    cout << "MPoint2(dummy: " << dummy << "): " << *this << endl;
+    std::cout << "MPoint2(dummy: " << dummy << "): " << *this << std::endl;
 }
 
 
 MPoint2::~MPoint2() {
-    cout << "~MPoint2(): " << *this << endl;
+    std::cout << "~MPoint2(): " << *this << std::endl;
 }
 
 MPoint2& MPoint2::operator=(const MPoint2& rhs){
-    cout << *this << ".operator= (" << rhs << ")\n";
+    std::cout << *this << ".operator= (" << rhs << ")\n";
 
     if (&rhs == this) {
         return *this;
@@ -240,7 +240,7 @@ MPoint2& MPoint2::operator=(const MPoint2& rhs){
 
     bbox2 = rhs.GetBBox();
 
-    cout << "operator=(): " << *this << endl;
+    std::cout << "operator=(): " << *this << std::endl;
     return *this;
 }
 
@@ -248,8 +248,8 @@ MPoint2& MPoint2::operator=(const MPoint2& rhs){
 
 ListExpr MPoint2::ToListExpr(const ListExpr& typeInfo) const{
 
-    cout << "MPoint2::ToListExpr[" << id << "]( .. )\n";
-    cout << "IsDefined()=" << IsDefined() << endl;
+    std::cout << "MPoint2::ToListExpr[" << id << "]( .. )\n";
+    std::cout << "IsDefined()=" << IsDefined() << std::endl;
     temporalalgebra::MPoint* mpoint = new temporalalgebra::MPoint(0);
 
     if (IsDefined()) {
@@ -266,7 +266,7 @@ ListExpr MPoint2::ToListExpr(const ListExpr& typeInfo) const{
 
         mpoint->EndBulkLoad(false);
         mpoint->SetDefined(true);
-        cout << *mpoint << endl;
+        std::cout << *mpoint << std::endl;
     } else {
         mpoint->SetDefined(false);
     }
@@ -281,7 +281,7 @@ ListExpr MPoint2::ToListExpr(const ListExpr& typeInfo) const{
 }
 
 bool MPoint2::ReadFrom(const ListExpr LE, const ListExpr& typeInfo) {
-    cout << "MPoint2::ReadFrom[" << id << "]( "
+    std::cout << "MPoint2::ReadFrom[" << id << "]( "
             + nl->ToString(LE) + ", .. )\n";
     Clear();
 
@@ -302,7 +302,7 @@ bool MPoint2::ReadFrom(const ListExpr LE, const ListExpr& typeInfo) {
 
     temporalalgebra::MPoint* mpoint =
             static_cast<temporalalgebra::MPoint*> (mp_ptr.addr);
-    cout << "MPoint2::ReadFrom( .. )" << *mpoint << endl;
+    std::cout << "MPoint2::ReadFrom( .. )" << *mpoint << std::endl;
     if (mpoint->IsDefined()) {
         temporalalgebra::UPoint unit(false);
         int noOfComponents = mpoint->GetNoComponents();
@@ -316,7 +316,7 @@ bool MPoint2::ReadFrom(const ListExpr LE, const ListExpr& typeInfo) {
         SetDefined(false);
     }
     mpoint->DeleteIfAllowed();
-    cout << "IsDefined()=" << IsDefined() << endl;
+    std::cout << "IsDefined()=" << IsDefined() << std::endl;
     return true;
 }
 
@@ -357,18 +357,18 @@ size_t MPoint2::HashValue() const{
 }
 
 void MPoint2::CopyFrom(const Attribute* attr) {
-    cout << *this << "::CopyFrom("
+    std::cout << *this << "::CopyFrom("
             << *(static_cast<const MPoint2*>(attr)) << ")\n";
     operator=( *((MPoint2*) attr));
-    cout << *this << "::CopyFrom("
+    std::cout << *this << "::CopyFrom("
             << *(static_cast<const MPoint2*>(attr)) << ")\n";
 }
 
 
 MPoint2* MPoint2::Clone() const{
-    cout << *this << "::Clone()\n";
+    std::cout << *this << "::Clone()\n";
     MPoint2* res = new MPoint2(*this);
-    cout << *this << "::Clone(): " << *res << endl;
+    std::cout << *this << "::Clone(): " << *res << std::endl;
     return res;
 }
 
@@ -409,7 +409,7 @@ inline /*virtual*/ Flob* MPoint2::GetFLOB ( const int i ) {
 // Functions added to replace direct member access from TemporalAlgebra
 Rectangle<3> MPoint2::GetBBox() const {
     Rectangle<3> res(bbox2);
-    cout << "GetBBox()\n";
+    std::cout << "GetBBox()\n";
     if (hasMemoryUnits()) { // currently this implies #units2 > 0
         MemStorageManager* storage = MemStorageManager::getInstance();
 
@@ -420,14 +420,14 @@ Rectangle<3> MPoint2::GetBBox() const {
                 ++pos) {
             Rectangle<3> unitBBox = storage->Get(id, pos).BoundingBox();
 
-            cout << "before: res=" << res << endl;
-            cout << "adding: bbx=" << unitBBox << endl;
+            std::cout << "before: res=" << res << std::endl;
+            std::cout << "adding: bbx=" << unitBBox << std::endl;
             if (!bbox2.IsDefined()) {
                 res = unitBBox;
             } else {
                 res.Extend(unitBBox);
             }
-            cout << "after:  res=" << res << endl << endl;
+            std::cout << "after:  res=" << res << std::endl << std::endl;
         }
     }
     return res;
@@ -454,17 +454,17 @@ void MPoint2::Get( const int i, Unit &unit ) const
         bool ok = units2.Get( i, unit );
 
         if(!ok){
-            cout << "Problem in getting data from " << units2 << std::endl;
+            std::cout << "Problem in getting data from " << units2 << std::endl;
             assert(ok);
         }
     }
 
     if ( !unit.IsValid() )
     {
-        cout << __FILE__ << "," << __LINE__ << ":"
+        std::cout << __FILE__ << "," << __LINE__ << ":"
                 << __PRETTY_FUNCTION__
                 << " Get(" << i << ", Unit): Unit is invalid:";
-        unit.Print(cout); cout << std::endl;
+        unit.Print(std::cout); std::cout << std::endl;
         assert( unit.IsValid());
     }
 }
@@ -536,7 +536,7 @@ bool MPoint2::EndBulkLoad(const bool sort, const bool checkvalid) //TODO
         units2.clean();
         memClear();
     } else if( sort ){
-        cout << "not fully impelemented yet\n";
+        std::cout << "not fully impelemented yet\n";
         //   assert(false);
         units2.Sort( temporalalgebra::UnitCompare<UPoint> );
         //memSort(UnitCompare<Unit>) //TODO
@@ -582,9 +582,9 @@ void MPoint2::Resize(size_t n){
     // shrinkToFit may be better??
     // or only reduce size if the existing units fit?
     if (n < (size_t)GetNoComponents()) {
-        cout << "cannot Resize() to " << n
+        std::cout << "cannot Resize() to " << n
                 << ", as requested size is smaller than current size "
-                << GetNoComponents() << endl;
+                << GetNoComponents() << std::endl;
         assert(false);
         return;
     }

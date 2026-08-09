@@ -79,7 +79,7 @@ void
 DServerCmdWriteRel::run()
 { 
 #if DS_CMD_WRITEREL_DEBUG
-  cout << "DServerCmdWriteRel::run" << getIndexStr() << endl;
+  std::cout << "DServerCmdWriteRel::run" << getIndexStr() << std::endl;
 #endif
 
   if (!checkWorkerAvailable())
@@ -103,7 +103,7 @@ DServerCmdWriteRel::run()
         ",p" + master_port + ")";
 
 #if DS_CMD_WRITEREL_DEBUG
-      cout << "Sending:" << sendCmd << endl;
+      std::cout << "Sending:" << sendCmd << std::endl;
 #endif
       //The sendD-operator on the worker is started 
       if (!sendSecondoCmdToWorkerSOS(sendCmd, true))
@@ -227,7 +227,7 @@ DServerCmdWriteRel::run()
     }
 
 #if DS_CMD_WRITEREL_DEBUG
-  cout << "DServerCmdWriteRel::run DONE" << endl;
+  std::cout << "DServerCmdWriteRel::run DONE" << std::endl;
 #endif
 } // run()
 

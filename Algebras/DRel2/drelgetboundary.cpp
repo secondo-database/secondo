@@ -72,8 +72,8 @@ namespace drel {
     ListExpr getboundaryTM( ListExpr args ) {
 
         #ifdef DRELDEBUG
-        cout << "getboundaryTM" << endl;
-        cout << nl->ToString( args ) << endl;
+        std::cout << "getboundaryTM" << std::endl;
+        std::cout << nl->ToString( args ) << std::endl;
         #endif
 
         std::string err = "d[f]rel expected ";
@@ -107,8 +107,8 @@ Get the boundary object of a partitioned by range d[f]rel.
         Word& local, Supplier s ) {
 
         #ifdef DRELDEBUG
-        cout << "getboundaryVMT" << endl;
-        cout << args << endl;
+        std::cout << "getboundaryVMT" << std::endl;
+        std::cout << args << std::endl;
         #endif
 
         result = qp->ResultStorage( s );

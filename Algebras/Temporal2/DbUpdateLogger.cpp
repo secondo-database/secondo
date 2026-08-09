@@ -47,7 +47,7 @@ void DbUpdateLogger::logPushToFlobs(const MemStorageId id){
 }
 
 void DbUpdateLogger::replayLog(MemStorageManager& manager) {
-    cout << "DbUpdateLogger::replayLog()\n";
+    std::cout << "DbUpdateLogger::replayLog()\n";
     smifile->Open(smiLogFileName);
     SmiRecordFileIterator iterator;
     smifile->SelectAll(iterator);
@@ -56,7 +56,7 @@ void DbUpdateLogger::replayLog(MemStorageManager& manager) {
     while (iterator.Next(rec)) {
         LogData* myLog = new LogData;
         rec.Read(myLog, sizeof(LogData));
-        cout << *myLog << endl;
+        std::cout << *myLog << std::endl;
         manager.applyLog(*myLog);
         delete myLog;
     }
@@ -65,9 +65,9 @@ void DbUpdateLogger::replayLog(MemStorageManager& manager) {
 
 void DbUpdateLogger::truncateLog() {
 
-    cout << "DbUpdateLogger::truncateLog()\n";
+    std::cout << "DbUpdateLogger::truncateLog()\n";
     bool res = smifile->Truncate();
-    cout << "res: " << res << endl;
+    std::cout << "res: " << res << std::endl;
 }
 
 void DbUpdateLogger::writeLogRecord(const LogData& val) {

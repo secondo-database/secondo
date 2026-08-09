@@ -1155,8 +1155,8 @@ int MappingMakemvalue(Word* args,Word& result,int message,
                                               GetAttribute(attributeIndex);
       if(currentAttr == 0)
       {
-        cout << endl << "ERROR in " << __PRETTY_FUNCTION__
-             << ": received Nullpointer!" << endl;
+        std::cout << std::endl << "ERROR in " << __PRETTY_FUNCTION__
+             << ": received Nullpointer!" << std::endl;
         assert( false );
       }
       else if(currentAttr->IsDefined())
@@ -1164,8 +1164,9 @@ int MappingMakemvalue(Word* args,Word& result,int message,
         unit = static_cast<Unit*>(currentAttr);
         m->Add( *unit );
       } else {
-        std::cerr << endl << __PRETTY_FUNCTION__ << ": Dropping undef unit. "
-             << endl;
+        std::cerr << std::endl << __PRETTY_FUNCTION__
+           << ": Dropping undef unit. "
+             << std::endl;
       }
       currentTuple->DeleteIfAllowed();
       qp->Request(args[0].addr, currentTupleWord);
@@ -1206,14 +1207,16 @@ int MappingMakemvaluePlain(Word* args,Word& result,int message,
   while ( qp->Received(args[0].addr) ) { // get all tuples
       unit1 = static_cast<Unit*>(currentUnit.addr);
       if(unit1 == 0) {
-        cout << endl << __PRETTY_FUNCTION__ << ": Received Nullpointer!"
-             << endl;
+        std::cout << std::endl << __PRETTY_FUNCTION__
+           << ": Received Nullpointer!"
+             << std::endl;
         assert( false );
       } else if(unit1->IsDefined()) {
           allUnits.Append(*unit1);
       } else {
-        std::cerr << endl << __PRETTY_FUNCTION__ << ": Dropping undef unit "
-             << endl;
+        std::cerr << std::endl << __PRETTY_FUNCTION__
+           << ": Dropping undef unit "
+             << std::endl;
       }
       unit1->DeleteIfAllowed();
       qp->Request(args[0].addr, currentUnit);
@@ -1335,13 +1338,15 @@ int MappingMakemvalue_movingregion(Word* args,Word& result,int message,
         GetAttribute(attributeIndex));
 
       if(currentUnit == 0) {
-        cout << endl << __PRETTY_FUNCTION__ << ": Received Nullpointer!"<< endl;
+        std::cout << std::endl << __PRETTY_FUNCTION__
+           << ": Received Nullpointer!"<< std::endl;
         assert( false );
       } else if(currentUnit->IsDefined()) {
           m->AddURegion( *currentUnit );
       } else {
-        std::cerr << endl << __PRETTY_FUNCTION__ << ": Dropping undef URegion "
-             << endl;
+        std::cerr << std::endl << __PRETTY_FUNCTION__
+           << ": Dropping undef URegion "
+             << std::endl;
       }
       currentTuple->DeleteIfAllowed();
       qp->Request(args[0].addr, currentTupleWord);
@@ -1373,13 +1378,15 @@ int MappingMakemvalue_movingregionPlain(Word* args,Word& result,int message,
     {
       unit = (URegion*) currentUnit.addr;
       if(unit == 0) {
-        cout << endl << __PRETTY_FUNCTION__ << ":received Nullpointer!" << endl;
+        std::cout << std::endl << __PRETTY_FUNCTION__
+           << ":received Nullpointer!" << std::endl;
         assert( false );
       } else if(unit->IsDefined()) {
           m->AddURegion( *unit );
       } else {
-        std::cerr << endl << __PRETTY_FUNCTION__ << ": Dropping undef URegion "
-            << endl;
+        std::cerr << std::endl << __PRETTY_FUNCTION__
+           << ": Dropping undef URegion "
+            << std::endl;
       }
       unit->DeleteIfAllowed();
       qp->Request(args[0].addr, currentUnit);
@@ -2066,14 +2073,14 @@ int MappingUnitAtPeriods( Word* args, Word& result, int message,
     }
 
     result.setAddr(0 );
-    cout << "MappingUnitAtPeriods: REQUEST finished: CANCEL (4)"
-         << endl;
-    cout << "Intervals should overlap: " << endl;
-    cout << "  Unit's timeInterval = ";
+    std::cout << "MappingUnitAtPeriods: REQUEST finished: CANCEL (4)"
+         << std::endl;
+    std::cout << "Intervals should overlap: " << std::endl;
+    std::cout << "  Unit's timeInterval = ";
     TUPrintTimeInterval(unit->timeInterval);
-    cout << "  Current Period's interval = ";
+    std::cout << "  Current Period's interval = ";
     TUPrintTimeInterval(interval);
-    cout << endl;
+    std::cout << std::endl;
     assert( false );
     return CANCEL; // should not happen
 
@@ -2172,13 +2179,13 @@ int MappingUnitStreamAtPeriods( Word* args, Word& result, int message,
       // We have an interval overlapping the unit's interval now
       // Return unit restricted to overlapping part of both intervals
       if (!unit->timeInterval.Intersects( interval) ){ // This may not happen!
-        cout << __FILE__ << __LINE__ << __PRETTY_FUNCTION__
-             << ": Intervals do not overlap, but should do so:" << endl;
-        cout << "  Unit's timeInterval = ";
+        std::cout << __FILE__ << __LINE__ << __PRETTY_FUNCTION__
+             << ": Intervals do not overlap, but should do so:" << std::endl;
+        std::cout << "  Unit's timeInterval = ";
         TUPrintTimeInterval(unit->timeInterval);
-        cout << endl << "  Current Period's interval = ";
+        std::cout << std::endl << "  Current Period's interval = ";
         TUPrintTimeInterval(interval);
-        cout << endl;
+        std::cout << std::endl;
         assert(false);
       }
       unit->AtInterval( interval, resultUnit); // intersect unit and interval
@@ -3418,14 +3425,14 @@ int TUDistance_UPoint_UPoint( Word* args, Word& result, int message,
   else
     { // get intersection of deftime intervals
 #ifdef TUA_DEBUG
-      cout << __PRETTY_FUNCTION__ << ":" << endl
-           << "   iv1=" << TUPrintTimeInterval(u1->timeInterval) << endl
-           << "   iv2=" << TUPrintTimeInterval(u2->timeInterval) << endl;
+      std::cout << __PRETTY_FUNCTION__ << ":" << std::endl
+           << "   iv1=" << TUPrintTimeInterval(u1->timeInterval) << std::endl
+           << "   iv2=" << TUPrintTimeInterval(u2->timeInterval) << std::endl;
 #endif
       u1->timeInterval.Intersection( u2->timeInterval, iv );
 #ifdef TUA_DEBUG
-      cout << __PRETTY_FUNCTION__ << ": iv="
-           << TUPrintTimeInterval(iv) << endl;
+      std::cout << __PRETTY_FUNCTION__ << ": iv="
+           << TUPrintTimeInterval(iv) << std::endl;
 #endif
       // calculate result
       u1->Distance( *u2, *res );
@@ -3465,9 +3472,9 @@ int TUDistance_UPoint_Point( Word* args, Word& result, int message,
       theUPoint = args[1];
       thePoint  = args[0];
   } else {
-      cout << "\nWrong argument configuration in "
+      std::cout << "\nWrong argument configuration in "
            << __PRETTY_FUNCTION__ << ": argConfDescriptor2="
-           << argConfDescriptor2 << endl;
+           << argConfDescriptor2 << std::endl;
       assert( false );
       return 0;
   }
@@ -3551,9 +3558,9 @@ int TUDistance_UInt_Int( Word* args, Word& result, int message,
     }
   else
     {
-      cout << "\nWrong argument configuration in "
+      std::cout << "\nWrong argument configuration in "
            << "'TUDistance_UInt_Int'. argConfDescriptor2="
-           << argConfDescriptor2 << endl;
+           << argConfDescriptor2 << std::endl;
       return 0;
     }
 
@@ -3697,9 +3704,9 @@ int TUDistance_UReal_Real( Word* args, Word& result, int message,
     }
     else
     {
-      cout << "\nWrong argument configuration in "
+      std::cout << "\nWrong argument configuration in "
           << "'TUDistance_UReal_Real'. argConfDescriptor2="
-          << argConfDescriptor2 << endl;
+          << argConfDescriptor2 << std::endl;
       return 0;
     }
 
@@ -3838,7 +3845,7 @@ int temporalunitDistanceSelect( ListExpr args )
     return 5;
 
   else
-    cout << "\nERROR in temporalunitDistanceSelect!" << endl;
+    std::cout << "\nERROR in temporalunitDistanceSelect!" << std::endl;
 
   return -1;
 }
@@ -3919,8 +3926,9 @@ int atmaxUReal( Word* args, Word& result, int message,
 
       ureal = (UReal*)(args[0].addr);
 #ifdef TUA_DEBUG
-        cout << "  Argument ureal value: " << TUPrintUReal(ureal) << endl
-             << "  1" << endl;
+        std::cout << "  Argument ureal value: " << TUPrintUReal(ureal)
+           << std::endl
+             << "  1" << std::endl;
 #endif
       sli = new AtExtrURealLocalInfo;
       sli->resultUnitVector.clear();
@@ -3933,7 +3941,7 @@ int atmaxUReal( Word* args, Word& result, int message,
           // -> return empty stream
           sli->NoOfResults = 0;
 #ifdef TUA_DEBUG
-          cout << "       ureal undef: no solution" << endl;
+          std::cout << "       ureal undef: no solution" << std::endl;
 #endif
           return 0;
         }
@@ -3951,10 +3959,10 @@ int atmaxUReal( Word* args, Word& result, int message,
 
       result.setAddr( sli->resultUnitVector[sli->ResultsDelivered].Clone() );
 #ifdef TUA_DEBUG
-        cout << "    delivered result[" << sli->ResultsDelivered+1
+        std::cout << "    delivered result[" << sli->ResultsDelivered+1
              << "/" << sli->NoOfResults<< "]="
              << TUPrintUReal((UReal*)(result.addr))
-             << endl;
+             << std::endl;
 #endif
       sli->ResultsDelivered++;
       return YIELD;
@@ -4039,7 +4047,7 @@ int temporalunitAtmaxSelect( ListExpr args )
       if( nl->IsEqual( arg1, UReal::BasicType() ) )
         return 3;
     }
-  cout << "\ntemporalunitAtmaxSelect: Wrong type!" << endl;
+  std::cout << "\ntemporalunitAtmaxSelect: Wrong type!" << std::endl;
   return -1;
 }
 
@@ -4094,8 +4102,9 @@ int atminUReal( Word* args, Word& result, int message,
 
       ureal = (UReal*)(args[0].addr);
 #ifdef TUA_DEBUG
-        cout << "  Argument ureal value: " << TUPrintUReal(ureal) << endl
-             << "  1" << endl;
+        std::cout << "  Argument ureal value: " << TUPrintUReal(ureal)
+           << std::endl
+             << "  1" << std::endl;
 #endif
       sli = new AtExtrURealLocalInfo;
       sli->resultUnitVector.clear();
@@ -4108,7 +4117,7 @@ int atminUReal( Word* args, Word& result, int message,
           // -> return empty stream
           sli->NoOfResults = 0;
 #ifdef TUA_DEBUG
-          cout << "       ureal undef: no solution" << endl;
+          std::cout << "       ureal undef: no solution" << std::endl;
 #endif
           return 0;
         }
@@ -4126,10 +4135,10 @@ int atminUReal( Word* args, Word& result, int message,
 
       result.setAddr( sli->resultUnitVector[sli->ResultsDelivered].Clone() );
 #ifdef TUA_DEBUG
-        cout << "    delivered result[" << sli->ResultsDelivered+1
+        std::cout << "    delivered result[" << sli->ResultsDelivered+1
              << "/" << sli->NoOfResults<< "]="
              << TUPrintUReal((UReal*)(result.addr))
-             << endl;
+             << std::endl;
 #endif
       sli->ResultsDelivered++;
       return YIELD;
@@ -4654,7 +4663,8 @@ int temporalUnitIntersection_CU_CU( Word* args, Word& result, int message,
     case OPEN:
 
 #ifdef TUA_DEBUG
-        cout << "temporalUnitIntersection_CU_CU: received OPEN" << endl;
+        std::cout << "temporalUnitIntersection_CU_CU: received OPEN"
+           << std::endl;
 #endif
       sli = new TUIntersectionLocalInfo;
       sli->finished = true;
@@ -4674,7 +4684,7 @@ int temporalUnitIntersection_CU_CU( Word* args, Word& result, int message,
         { // get intersection of deftime intervals
           uv1->timeInterval.Intersection( uv2->timeInterval, iv );
 #ifdef TUA_DEBUG
-          cout << "  iv=" << TUPrintTimeInterval( iv ) << endl;
+          std::cout << "  iv=" << TUPrintTimeInterval( iv ) << std::endl;
 #endif
           // store result
           (sli->resultValues[sli->NoOfResults]).setAddr( uv1->Clone() );
@@ -4682,12 +4692,12 @@ int temporalUnitIntersection_CU_CU( Word* args, Word& result, int message,
           sli->NoOfResults++;
           sli->finished = false;
 #ifdef TUA_DEBUG
-          cout << "  added result" << endl;
+          std::cout << "  added result" << std::endl;
 #endif
         }// else: no result
       local.setAddr(sli);
 #ifdef TUA_DEBUG
-      cout << "temporalUnitIntersection_CU_CU: finished OPEN" << endl;
+      std::cout << "temporalUnitIntersection_CU_CU: finished OPEN" << std::endl;
 #endif
 
       return 0;
@@ -4695,12 +4705,14 @@ int temporalUnitIntersection_CU_CU( Word* args, Word& result, int message,
     case REQUEST:
 
 #ifdef TUA_DEBUG
-      cout << "temporalUnitIntersection_CU_CU: received REQUEST" << endl;
+      std::cout << "temporalUnitIntersection_CU_CU: received REQUEST"
+         << std::endl;
 #endif
       if(local.addr == 0)
         {
 #ifdef TUA_DEBUG
-          cout << "temporalUnitIntersection_CU_CU: CANCEL (1)" << endl;
+          std::cout << "temporalUnitIntersection_CU_CU: CANCEL (1)"
+             << std::endl;
 #endif
           return CANCEL;
         }
@@ -4708,7 +4720,8 @@ int temporalUnitIntersection_CU_CU( Word* args, Word& result, int message,
       if(sli->finished)
         {
 #ifdef TUA_DEBUG
-          cout << "temporalUnitIntersection_CU_CU: CANCEL (2)" << endl;
+          std::cout << "temporalUnitIntersection_CU_CU: CANCEL (2)"
+             << std::endl;
 #endif
           return CANCEL;
         }
@@ -4720,13 +4733,13 @@ int temporalUnitIntersection_CU_CU( Word* args, Word& result, int message,
             ->DeleteIfAllowed();
           sli->NoOfResultsDelivered++;
 #ifdef TUA_DEBUG
-          cout << "temporalUnitIntersection_CU_CU: YIELD" << endl;
+          std::cout << "temporalUnitIntersection_CU_CU: YIELD" << std::endl;
 #endif
           return YIELD;
         }
       sli->finished = true;
 #ifdef TUA_DEBUG
-      cout << "temporalUnitIntersection_CU_CU: CANCEL (3)" << endl;
+      std::cout << "temporalUnitIntersection_CU_CU: CANCEL (3)" << std::endl;
 #endif
       return CANCEL;
 
@@ -4768,7 +4781,7 @@ int temporalUnitIntersection_CU_C( Word* args, Word& result, int message,
     case OPEN:
 
 #ifdef TUA_DEBUG
-      cout << "temporalUnitIntersection_CU_C: received OPEN" << endl;
+      std::cout << "temporalUnitIntersection_CU_C: received OPEN" << std::endl;
 #endif
       sli = new TUIntersectionLocalInfo;
       sli->finished = true;
@@ -4783,7 +4796,7 @@ int temporalUnitIntersection_CU_C( Word* args, Word& result, int message,
         { u1 = args[1]; u2 = args[0];}
 
 #ifdef TUA_DEBUG
-      cout << "  uargindex =" << uargindex << endl;
+      std::cout << "  uargindex =" << uargindex << std::endl;
 #endif
       uv1 = (UT*) (u1.addr);
       uv2 = (T*) (u2.addr);
@@ -4796,25 +4809,26 @@ int temporalUnitIntersection_CU_C( Word* args, Word& result, int message,
           sli->NoOfResults++;
           sli->finished = false;
 #ifdef TUA_DEBUG
-          cout << "  Added Result" << endl;
+          std::cout << "  Added Result" << std::endl;
 #endif
         }// else: no result
       local.setAddr(sli);
 #ifdef TUA_DEBUG
-      cout << "temporalUnitIntersection_CU_C: finished OPEN" << endl;
+      std::cout << "temporalUnitIntersection_CU_C: finished OPEN" << std::endl;
 #endif
       return 0;
 
     case REQUEST:
 
 #ifdef TUA_DEBUG
-      cout << "temporalUnitIntersection_CU_C: received REQUEST" << endl;
+      std::cout << "temporalUnitIntersection_CU_C: received REQUEST"
+         << std::endl;
 #endif
       if(local.addr == 0)
         {
 #ifdef TUA_DEBUG
-          cout << "temporalUnitIntersection_CU_C: finished REQUEST: "
-               << "CANCEL (1)" << endl;
+          std::cout << "temporalUnitIntersection_CU_C: finished REQUEST: "
+               << "CANCEL (1)" << std::endl;
 #endif
           return CANCEL;
         }
@@ -4822,8 +4836,8 @@ int temporalUnitIntersection_CU_C( Word* args, Word& result, int message,
       if(sli->finished)
         {
 #ifdef TUA_DEBUG
-          cout << "temporalUnitIntersection_CU_C: finished REQUEST: "
-               << "CANCEL (2)" << endl;
+          std::cout << "temporalUnitIntersection_CU_C: finished REQUEST: "
+               << "CANCEL (2)" << std::endl;
 #endif
           return CANCEL;
         }
@@ -4835,15 +4849,15 @@ int temporalUnitIntersection_CU_C( Word* args, Word& result, int message,
             ->DeleteIfAllowed();
           sli->NoOfResultsDelivered++;
 #ifdef TUA_DEBUG
-          cout << "temporalUnitIntersection_CU_C: finished REQUEST: "
-               << "YIELD" << endl;
+          std::cout << "temporalUnitIntersection_CU_C: finished REQUEST: "
+               << "YIELD" << std::endl;
 #endif
           return YIELD;
         }
       sli->finished = true;
 #ifdef TUA_DEBUG
-      cout << "temporalUnitIntersection_CU_C: finished REQUEST: "
-           << "CANCEL (3)" << endl;
+      std::cout << "temporalUnitIntersection_CU_C: finished REQUEST: "
+           << "CANCEL (3)" << std::endl;
 #endif
       return CANCEL;
 
@@ -4962,7 +4976,7 @@ int temporalUnitIntersection_ureal_ureal( Word* args, Word& result, int message,
         localinfo->resvector.push_back(unit);
 //         cout << "temporalUnitIntersection_ureal_ureal():  Added unit ";
 //         unit.Print(cout);
-        cout << endl;
+        std::cout << std::endl;
       }
       localinfo->finished = ( localinfo->NoOfResults <= 0 );
 //       cout << "temporalUnitIntersection_ureal_ureal(): NoOfResults="
@@ -5104,7 +5118,8 @@ temporalUnitIntersection_upoint_upoint( Word* args, Word& result, int message,
     case OPEN:
 
 #ifdef TUA_DEBUG
-      cout << "temporalUnitIntersection_upoint_upoint: received OPEN" << endl;
+      std::cout << "temporalUnitIntersection_upoint_upoint: received OPEN"
+         << std::endl;
 #endif
       sli = new TUIntersectionLocalInfo;
       sli->finished = true;
@@ -5128,22 +5143,22 @@ temporalUnitIntersection_upoint_upoint( Word* args, Word& result, int message,
       else
         delete( res );
 #ifdef TUA_DEBUG
-      cout << "temporalUnitIntersection_upoint_upoint: finished OPEN (6)"
-           << endl;
+      std::cout << "temporalUnitIntersection_upoint_upoint: finished OPEN (6)"
+           << std::endl;
 #endif
       return 0;
 
     case REQUEST:
 
 #ifdef TUA_DEBUG
-      cout << "temporalUnitIntersection_upoint_upoint: received REQUEST"
-           << endl;
+      std::cout << "temporalUnitIntersection_upoint_upoint: received REQUEST"
+           << std::endl;
 #endif
       if(local.addr == 0)
         {
 #ifdef TUA_DEBUG
-          cout << "temporalUnitIntersection_upoint_upoint: CANCEL (1)"
-               << endl;
+          std::cout << "temporalUnitIntersection_upoint_upoint: CANCEL (1)"
+               << std::endl;
 #endif
           return CANCEL;
         }
@@ -5151,15 +5166,15 @@ temporalUnitIntersection_upoint_upoint( Word* args, Word& result, int message,
       if(sli->finished)
         {
 #ifdef TUA_DEBUG
-          cout << "temporalUnitIntersection_upoint_upoint: CANCEL (2)"
-               << endl;
+          std::cout << "temporalUnitIntersection_upoint_upoint: CANCEL (2)"
+               << std::endl;
 #endif
           return CANCEL;
         }
 #ifdef TUA_DEBUG
-        cout << "  NoOfResults=" << sli->NoOfResults << endl
+        std::cout << "  NoOfResults=" << sli->NoOfResults << std::endl
              << "  NoOfResultsDelivered=" << sli->NoOfResultsDelivered
-             << endl;
+             << std::endl;
 #endif
       if(sli->NoOfResultsDelivered < sli->NoOfResults)
         {
@@ -5169,14 +5184,15 @@ temporalUnitIntersection_upoint_upoint( Word* args, Word& result, int message,
             ->DeleteIfAllowed();
           sli->NoOfResultsDelivered++;
 #ifdef TUA_DEBUG
-          cout << "temporalUnitIntersection_upoint_upoint: YIELD"
-               << endl;
+          std::cout << "temporalUnitIntersection_upoint_upoint: YIELD"
+               << std::endl;
 #endif
           return YIELD;
         }
       sli->finished = true;
 #ifdef TUA_DEBUG
-      cout << "temporalUnitIntersection_upoint_upoint: CANCEL (3)" << endl;
+      std::cout << "temporalUnitIntersection_upoint_upoint: CANCEL (3)"
+         << std::endl;
 #endif
       return CANCEL;
 
@@ -5313,7 +5329,7 @@ inside the given Line. It returns the existing intervals in a Periods-Object.
 static void TUUPointInsideLine(UPoint *u, Line& ln, Periods& pResult)
 {
 #ifdef TUA_DEBUG
-  cout<<"MPointLineInside called"<<endl;
+  std::cout<<"MPointLineInside called"<<std::endl;
 #endif
   pResult.Clear();
   if( !u->IsDefined() || !ln.IsDefined() ){
@@ -5331,7 +5347,7 @@ static void TUUPointInsideLine(UPoint *u, Line& ln, Periods& pResult)
   Interval<Instant> newper; //part of the result
 
 #ifdef TUA_DEBUG
-  cout << "up = " << *up << endl;
+  std::cout << "up = " << *up << std::endl;
 #endif
 
   for( int n = 0; n < ln.Size(); n++)
@@ -5339,13 +5355,13 @@ static void TUUPointInsideLine(UPoint *u, Line& ln, Periods& pResult)
       Instant t;
       ln.Get(n, l);
 #ifdef TUA_DEBUG
-        cout << "up = " << *up << endl;
-        cout << "ln: Segment # "<< n << " l = " << l << endl;
+        std::cout << "up = " << *up << std::endl;
+        std::cout << "ln: Segment # "<< n << " l = " << l << std::endl;
 #endif
       if (l.GetRightPoint().GetX() == l.GetDomPoint().GetX()
        && l.GetRightPoint().GetY() == l.GetDomPoint().GetY()) {
 #ifdef TUA_DEBUG
-        cout<<"right point is dominating -> continue"<<endl;
+        std::cout<<"right point is dominating -> continue"<<std::endl;
 #endif
         continue;
       }
@@ -5362,7 +5378,7 @@ static void TUUPointInsideLine(UPoint *u, Line& ln, Periods& pResult)
        && (l.GetLeftPoint().GetY() > up->p0.GetY()
        &&  l.GetLeftPoint().GetY() > up->p1.GetY()))) {
 #ifdef TUA_DEBUG
-        cout<<"Bounding Boxes not crossing!"<<endl;
+        std::cout<<"Bounding Boxes not crossing!"<<std::endl;
 #endif
         continue;
       }
@@ -5374,12 +5390,12 @@ static void TUUPointInsideLine(UPoint *u, Line& ln, Periods& pResult)
            / (l.GetRightPoint().GetX() - l.GetLeftPoint().GetX());
         bl =  l.GetLeftPoint().GetY() - l.GetLeftPoint().GetX() * al;
 #ifdef TUA_DEBUG
-        cout<<"al: "<<al<<" bl: "<<bl<<endl;
+        std::cout<<"al: "<<al<<" bl: "<<bl<<std::endl;
 #endif
       }
 #ifdef TUA_DEBUG
       else
-        cout<<"l is vertical"<<endl;
+        std::cout<<"l is vertical"<<std::endl;
 #endif
       vup = up->p1.GetX() == up->p0.GetX();
       if(!vup){
@@ -5387,49 +5403,49 @@ static void TUUPointInsideLine(UPoint *u, Line& ln, Periods& pResult)
             / (up->p1.GetX() - up->p0.GetX());
         bup =  up->p0.GetY() - up->p0.GetX() * aup;
 #ifdef TUA_DEBUG
-        cout<<"aup: "<<aup<<" bup: "<<bup<<endl;
+        std::cout<<"aup: "<<aup<<" bup: "<<bup<<std::endl;
 #endif
       }
 #ifdef TUA_DEBUG
       else
-          cout<<"up is vertical"<<endl;
+          std::cout<<"up is vertical"<<std::endl;
 #endif
       if(vl && vup){
 #ifdef TUA_DEBUG
-          cout<<"both elements are vertical!"<<endl;
+          std::cout<<"both elements are vertical!"<<std::endl;
 #endif
         if(up->p1.GetX() != l.GetLeftPoint().GetX()){
 #ifdef TUA_DEBUG
-          cout<<"elements are vertical but not at same line"<<endl;
+          std::cout<<"elements are vertical but not at same line"<<std::endl;
 #endif
           continue;
         }
         else {
 #ifdef TUA_DEBUG
-          cout<<"elements on same line"<<endl;
+          std::cout<<"elements on same line"<<std::endl;
 #endif
           if(up->p1.GetY() < l.GetLeftPoint().GetY()
            && up->p0.GetY() < l.GetLeftPoint().GetY()){
 #ifdef TUA_DEBUG
-            cout<<"uPoint lower as linesegment"<<endl;
+            std::cout<<"uPoint lower as linesegment"<<std::endl;
 #endif
             continue;
           }
           else if(up->p1.GetY() > l.GetRightPoint().GetY()
            && up->p0.GetY() > l.GetRightPoint().GetY()){
 #ifdef TUA_DEBUG
-            cout<<"uPoint higher as linesegment"<<endl;
+            std::cout<<"uPoint higher as linesegment"<<std::endl;
 #endif
             continue;
           }
           else{
 #ifdef TUA_DEBUG
-            cout<<"uPoint and linesegment partequal"<<endl;
+            std::cout<<"uPoint and linesegment partequal"<<std::endl;
 #endif
             if (up->p0.GetY() <= l.GetLeftPoint().GetY()
              && up->p1.GetY() >= l.GetLeftPoint().GetY()){
 #ifdef TUA_DEBUG
-              cout<<"uPoint starts below linesegemet"<<endl;
+              std::cout<<"uPoint starts below linesegemet"<<std::endl;
 #endif
               t.ReadFrom((l.GetLeftPoint().GetY() - up->p0.GetY())
                      / (up->p1.GetY() - up->p0.GetY())
@@ -5438,7 +5454,7 @@ static void TUUPointInsideLine(UPoint *u, Line& ln, Periods& pResult)
                      +  up->timeInterval.start.ToDouble());
               t.SetType(datetime::instanttype);
 #ifdef TUA_DEBUG
-              cout<<"t "<<t.ToString()<<endl;
+              std::cout<<"t "<<t.ToString()<<std::endl;
 #endif
               newper.start = t;
               newper.lc = (up->timeInterval.start == t)
@@ -5447,7 +5463,7 @@ static void TUUPointInsideLine(UPoint *u, Line& ln, Periods& pResult)
             if(up->p1.GetY() <= l.GetLeftPoint().GetY()
              && up->p0.GetY() >= l.GetLeftPoint().GetY()){
 #ifdef TUA_DEBUG
-              cout<<"uPoint ends below linesegemet"<<endl;
+              std::cout<<"uPoint ends below linesegemet"<<std::endl;
 #endif
               t.ReadFrom((l.GetLeftPoint().GetY() - up->p0.GetY())
                       / (up->p1.GetY() - up->p0.GetY())
@@ -5456,7 +5472,7 @@ static void TUUPointInsideLine(UPoint *u, Line& ln, Periods& pResult)
                       +  up->timeInterval.start.ToDouble());
               t.SetType(datetime::instanttype);
 #ifdef TUA_DEBUG
-              cout<<"t "<<t.ToString()<<endl;
+              std::cout<<"t "<<t.ToString()<<std::endl;
 #endif
               newper.end = t;
               newper.rc = (up->timeInterval.end == t)
@@ -5465,7 +5481,7 @@ static void TUUPointInsideLine(UPoint *u, Line& ln, Periods& pResult)
             if(up->p0.GetY() <= l.GetRightPoint().GetY()
              && up->p1.GetY() >= l.GetRightPoint().GetY()){
 #ifdef TUA_DEBUG
-              cout<<"uPoint ends above linesegemet"<<endl;
+              std::cout<<"uPoint ends above linesegemet"<<std::endl;
 #endif
               t.ReadFrom((l.GetRightPoint().GetY() - up->p0.GetY())
                       / (up->p1.GetY() - up->p0.GetY())
@@ -5474,7 +5490,7 @@ static void TUUPointInsideLine(UPoint *u, Line& ln, Periods& pResult)
                       +  up->timeInterval.start.ToDouble());
               t.SetType(datetime::instanttype);
 #ifdef TUA_DEBUG
-              cout<<"t "<<t.ToString()<<endl;
+              std::cout<<"t "<<t.ToString()<<std::endl;
 #endif
               newper.end = t;
               newper.rc = (up->timeInterval.end == t)
@@ -5483,7 +5499,7 @@ static void TUUPointInsideLine(UPoint *u, Line& ln, Periods& pResult)
             if(up->p1.GetY() <= l.GetRightPoint().GetY()
              && up->p0.GetY() >= l.GetRightPoint().GetY()){
 #ifdef TUA_DEBUG
-              cout<<"uPoint starts above linesegemet"<<endl;
+              std::cout<<"uPoint starts above linesegemet"<<std::endl;
 #endif
               t.ReadFrom((l.GetRightPoint().GetY() - up->p0.GetY())
                       / (up->p1.GetY() - up->p0.GetY())
@@ -5492,7 +5508,7 @@ static void TUUPointInsideLine(UPoint *u, Line& ln, Periods& pResult)
                       + up->timeInterval.start.ToDouble());
               t.SetType(datetime::instanttype);
 #ifdef TUA_DEBUG
-              cout<<"t "<<t.ToString()<<endl;
+              std::cout<<"t "<<t.ToString()<<std::endl;
 #endif
               newper.start = t;
               newper.lc = (up->timeInterval.start == t)
@@ -5501,7 +5517,7 @@ static void TUUPointInsideLine(UPoint *u, Line& ln, Periods& pResult)
             if (up->p0.GetY() <= l.GetRightPoint().GetY()
              && up->p0.GetY() >= l.GetLeftPoint().GetY()){
 #ifdef TUA_DEBUG
-              cout<<"uPoint starts inside linesegemet"<<endl;
+              std::cout<<"uPoint starts inside linesegemet"<<std::endl;
 #endif
               newper.start = up->timeInterval.start;
               newper.lc =    up->timeInterval.lc;
@@ -5509,7 +5525,7 @@ static void TUUPointInsideLine(UPoint *u, Line& ln, Periods& pResult)
             if( up->p1.GetY() <= l.GetRightPoint().GetY()
              && up->p1.GetY() >= l.GetLeftPoint().GetY()){
 #ifdef TUA_DEBUG
-              cout<<"uPoint ends inside linesegemet"<<endl;
+              std::cout<<"uPoint ends inside linesegemet"<<std::endl;
 #endif
               newper.end = up->timeInterval.end;
               newper.rc =  up->timeInterval.rc;
@@ -5517,7 +5533,7 @@ static void TUUPointInsideLine(UPoint *u, Line& ln, Periods& pResult)
             if(newper.start == newper.end
              && (!newper.lc || !newper.rc)){
 #ifdef TUA_DEBUG
-              cout<<"not an interval"<<endl;
+              std::cout<<"not an interval"<<std::endl;
 #endif
               continue;
             }
@@ -5526,7 +5542,7 @@ static void TUUPointInsideLine(UPoint *u, Line& ln, Periods& pResult)
       }
       else if(vl){
 #ifdef TUA_DEBUG
-        cout<<"vl is vertical vup not"<<endl;
+        std::cout<<"vl is vertical vup not"<<std::endl;
 #endif
         t.ReadFrom((l.GetRightPoint().GetX() - up->p0.GetX())
                 / (up->p1.GetX() - up->p0.GetX())
@@ -5535,7 +5551,7 @@ static void TUUPointInsideLine(UPoint *u, Line& ln, Periods& pResult)
                 +  up->timeInterval.start.ToDouble());
         t.SetType(datetime::instanttype);
 #ifdef TUA_DEBUG
-        cout<<"t "<<t.ToString()<<endl;
+        std::cout<<"t "<<t.ToString()<<std::endl;
 #endif
         if((up->timeInterval.start == t && !up->timeInterval.lc)
          ||  (up->timeInterval.end == t && !up->timeInterval.rc))
@@ -5543,7 +5559,7 @@ static void TUUPointInsideLine(UPoint *u, Line& ln, Periods& pResult)
 
         if(up->timeInterval.start > t|| up->timeInterval.end < t){
 #ifdef TUA_DEBUG
-          cout<<"up outside line"<<endl;
+          std::cout<<"up outside line"<<std::endl;
 #endif
           continue;
         }
@@ -5555,7 +5571,7 @@ static void TUUPointInsideLine(UPoint *u, Line& ln, Periods& pResult)
          || (pt.GetY() > l.GetLeftPoint().GetY() &&
              pt.GetY() > l.GetRightPoint().GetY())){
 #ifdef TUA_DEBUG
-          cout<<"pt outside up!"<<endl;
+          std::cout<<"pt outside up!"<<std::endl;
 #endif
           continue;
         }
@@ -5567,7 +5583,7 @@ static void TUUPointInsideLine(UPoint *u, Line& ln, Periods& pResult)
       }
       else if(vup){
 #ifdef TUA_DEBUG
-        cout<<"vup is vertical vl not"<<endl;
+        std::cout<<"vup is vertical vl not"<<std::endl;
 #endif
         if(up->p1.GetY() != up->p0.GetY()) {
           t.ReadFrom((up->p0.GetX() * al + bl - up->p0.GetY())
@@ -5577,19 +5593,19 @@ static void TUUPointInsideLine(UPoint *u, Line& ln, Periods& pResult)
                   +  up->timeInterval.start.ToDouble());
           t.SetType(datetime::instanttype);
 #ifdef TUA_DEBUG
-          cout<<"t "<<t.ToString()<<endl;
+          std::cout<<"t "<<t.ToString()<<std::endl;
 #endif
           if((up->timeInterval.start == t && !up->timeInterval.lc)
            ||  (up->timeInterval.end == t && !up->timeInterval.rc)){
 #ifdef TUA_DEBUG
-            cout<<"continue"<<endl;
+            std::cout<<"continue"<<std::endl;
 #endif
             continue;
           }
 
           if(up->timeInterval.start > t|| up->timeInterval.end < t){
 #ifdef TUA_DEBUG
-            cout<<"up outside line"<<endl;
+            std::cout<<"up outside line"<<std::endl;
 #endif
             continue;
           }
@@ -5601,7 +5617,7 @@ static void TUUPointInsideLine(UPoint *u, Line& ln, Periods& pResult)
            || (pt.GetY() > l.GetLeftPoint().GetY() &&
                pt.GetY() > l.GetRightPoint().GetY())){
 #ifdef TUA_DEBUG
-            cout<<"pt outside up!"<<endl;
+            std::cout<<"pt outside up!"<<std::endl;
 #endif
             continue;
           }
@@ -5613,17 +5629,17 @@ static void TUUPointInsideLine(UPoint *u, Line& ln, Periods& pResult)
         }
         else {
 #ifdef TUA_DEBUG
-          cout<<"up is not moving"<<endl;
+          std::cout<<"up is not moving"<<std::endl;
 #endif
           if(al * up->p1.GetX() + bl == up->p1.GetY()){
 #ifdef TUA_DEBUG
-            cout<<"Point lies on line"<<endl;
+            std::cout<<"Point lies on line"<<std::endl;
 #endif
             newper = up->timeInterval;
           }
           else {
 #ifdef TUA_DEBUG
-            cout<<"continue 2"<<endl;
+            std::cout<<"continue 2"<<std::endl;
 #endif
             continue;
           }
@@ -5631,18 +5647,18 @@ static void TUUPointInsideLine(UPoint *u, Line& ln, Periods& pResult)
       }
       else if(aup == al){
 #ifdef TUA_DEBUG
-        cout<<"both lines have same gradient"<<endl;
+        std::cout<<"both lines have same gradient"<<std::endl;
 #endif
         if(bup != bl){
 #ifdef TUA_DEBUG
-          cout<<"colinear but not equal"<<endl;
+          std::cout<<"colinear but not equal"<<std::endl;
 #endif
           continue;
         }
          if(up->p0.GetX() <= l.GetLeftPoint().GetX()
          && up->p1.GetX() >= l.GetLeftPoint().GetX()){
 #ifdef TUA_DEBUG
-           cout<<"uPoint starts left of linesegment"<<endl;
+           std::cout<<"uPoint starts left of linesegment"<<std::endl;
 #endif
            t.ReadFrom((l.GetLeftPoint().GetX() - up->p0.GetX())
                    / (up->p1.GetX() - up->p0.GetX())
@@ -5651,7 +5667,7 @@ static void TUUPointInsideLine(UPoint *u, Line& ln, Periods& pResult)
                    +  up->timeInterval.start.ToDouble());
            t.SetType(datetime::instanttype);
 #ifdef TUA_DEBUG
-           cout<<"t "<<t.ToString()<<endl;
+           std::cout<<"t "<<t.ToString()<<std::endl;
 #endif
            newper.start = t;
            newper.lc = (up->timeInterval.start == t)
@@ -5660,7 +5676,7 @@ static void TUUPointInsideLine(UPoint *u, Line& ln, Periods& pResult)
         if(up->p1.GetX() <= l.GetLeftPoint().GetX()
         && up->p0.GetX() >= l.GetLeftPoint().GetX()){
 #ifdef TUA_DEBUG
-          cout<<"uPoint ends left of linesegment"<<endl;
+          std::cout<<"uPoint ends left of linesegment"<<std::endl;
 #endif
            t.ReadFrom((l.GetLeftPoint().GetX() - up->p0.GetX())
                    / (up->p1.GetX() - up->p0.GetX())
@@ -5669,7 +5685,7 @@ static void TUUPointInsideLine(UPoint *u, Line& ln, Periods& pResult)
                    +  up->timeInterval.start.ToDouble());
            t.SetType(datetime::instanttype);
 #ifdef TUA_DEBUG
-           cout<<"t "<<t.ToString()<<endl;
+           std::cout<<"t "<<t.ToString()<<std::endl;
 #endif
            newper.end = t;
            newper.rc = (up->timeInterval.end == t)
@@ -5678,7 +5694,7 @@ static void TUUPointInsideLine(UPoint *u, Line& ln, Periods& pResult)
         if(up->p0.GetX() <= l.GetRightPoint().GetX()
         && up->p1.GetX() >= l.GetRightPoint().GetX()){
 #ifdef TUA_DEBUG
-          cout<<"uPoint ends right of linesegment"<<endl;
+          std::cout<<"uPoint ends right of linesegment"<<std::endl;
 #endif
            t.ReadFrom((l.GetRightPoint().GetX() - up->p0.GetX())
                    / (up->p1.GetX() - up->p0.GetX())
@@ -5687,7 +5703,7 @@ static void TUUPointInsideLine(UPoint *u, Line& ln, Periods& pResult)
                    +  up->timeInterval.start.ToDouble());
            t.SetType(datetime::instanttype);
 #ifdef TUA_DEBUG
-           cout<<"t "<<t.ToString()<<endl;
+           std::cout<<"t "<<t.ToString()<<std::endl;
 #endif
            newper.end = t;
            newper.rc = (up->timeInterval.end == t)
@@ -5696,7 +5712,7 @@ static void TUUPointInsideLine(UPoint *u, Line& ln, Periods& pResult)
         if(up->p1.GetX() <= l.GetRightPoint().GetX()
         && up->p0.GetX() >= l.GetRightPoint().GetX()){
 #ifdef TUA_DEBUG
-           cout<<"uPoint starts right of linesegment"<<endl;
+           std::cout<<"uPoint starts right of linesegment"<<std::endl;
 #endif
            t.ReadFrom((l.GetRightPoint().GetX() - up->p0.GetX())
                    / (up->p1.GetX() - up->p0.GetX())
@@ -5705,7 +5721,7 @@ static void TUUPointInsideLine(UPoint *u, Line& ln, Periods& pResult)
                    +  up->timeInterval.start.ToDouble());
            t.SetType(datetime::instanttype);
 #ifdef TUA_DEBUG
-           cout<<"t "<<t.ToString()<<endl;
+           std::cout<<"t "<<t.ToString()<<std::endl;
 #endif
            newper.start = t;
            newper.lc = (up->timeInterval.start == t)
@@ -5714,7 +5730,7 @@ static void TUUPointInsideLine(UPoint *u, Line& ln, Periods& pResult)
         if(up->p0.GetX() <= l.GetRightPoint().GetX()
         && up->p0.GetX() >= l.GetLeftPoint().GetX()){
 #ifdef TUA_DEBUG
-           cout<<"uPoint starts inside linesegment"<<endl;
+           std::cout<<"uPoint starts inside linesegment"<<std::endl;
 #endif
            newper.start = up->timeInterval.start;
            newper.lc =    up->timeInterval.lc;
@@ -5722,7 +5738,7 @@ static void TUUPointInsideLine(UPoint *u, Line& ln, Periods& pResult)
         if(up->p1.GetX() <= l.GetRightPoint().GetX()
         && up->p1.GetX() >= l.GetLeftPoint().GetX()){
 #ifdef TUA_DEBUG
-          cout<<"uPoint ends inside linesegment"<<endl;
+          std::cout<<"uPoint ends inside linesegment"<<std::endl;
 #endif
            newper.end = up->timeInterval.end;
            newper.rc =  up->timeInterval.rc;
@@ -5730,13 +5746,13 @@ static void TUUPointInsideLine(UPoint *u, Line& ln, Periods& pResult)
         if(newper.start == newper.end
         && (!newper.lc || !newper.rc)){
 #ifdef TUA_DEBUG
-          cout<<"not an interval"<<endl;
+          std::cout<<"not an interval"<<std::endl;
 #endif
           continue;
         }
       } else{
 #ifdef TUA_DEBUG
-        cout<<"both lines have different gradients"<<endl;
+        std::cout<<"both lines have different gradients"<<std::endl;
 #endif
         t.ReadFrom(((bl - bup) / (aup - al) - up->p0.GetX())
                 / (up->p1.GetX() - up->p0.GetX())
@@ -5747,14 +5763,14 @@ static void TUUPointInsideLine(UPoint *u, Line& ln, Periods& pResult)
         if((up->timeInterval.start == t && !up->timeInterval.lc)
          ||  (up->timeInterval.end == t && !up->timeInterval.rc)){
 #ifdef TUA_DEBUG
-          cout<<"continue"<<endl;
+          std::cout<<"continue"<<std::endl;
 #endif
           continue;
         }
 
         if(up->timeInterval.start > t|| up->timeInterval.end < t){
 #ifdef TUA_DEBUG
-          cout<<"up outside line"<<endl;
+          std::cout<<"up outside line"<<std::endl;
 #endif
           continue;
         }
@@ -5766,7 +5782,7 @@ static void TUUPointInsideLine(UPoint *u, Line& ln, Periods& pResult)
          || (pt.GetY() > l.GetLeftPoint().GetY() &&
              pt.GetY() > l.GetRightPoint().GetY())){
 #ifdef TUA_DEBUG
-          cout<<"pt outside up!"<<endl;
+          std::cout<<"pt outside up!"<<std::endl;
 #endif
           continue;
         }
@@ -5777,8 +5793,9 @@ static void TUUPointInsideLine(UPoint *u, Line& ln, Periods& pResult)
         newper.rc = true;
       }
 #ifdef TUA_DEBUG
-      cout<<"newper ["<< newper.start.ToString()<<" "<<newper.end.ToString()
-          <<" "<<newper.lc<<" "<<newper.rc<<"]"<<endl;
+      std::cout<<"newper ["<< newper.start.ToString()<<" "
+         <<newper.end.ToString()
+          <<" "<<newper.lc<<" "<<newper.rc<<"]"<<std::endl;
 #endif
       period->Clear();
       period->StartBulkLoad();
@@ -5810,7 +5827,7 @@ and end points.
 static void TUCompletePeriods2MPoint(UPoint* u, Periods* pResult,
   MPoint* endResult){
 #ifdef TUA_DEBUG
-    cout<<"TUCompletePeriods2MPoint called"<<endl;
+    std::cout<<"TUCompletePeriods2MPoint called"<<std::endl;
 #endif
   endResult->Clear();
   if( !u->IsDefined() || !pResult->IsDefined() ){
@@ -5830,18 +5847,18 @@ static void TUCompletePeriods2MPoint(UPoint* u, Periods* pResult,
     if(!up->IsDefined())
         continue;
 #ifdef TUA_DEBUG
-    cout<<"*up = "<< *up <<endl;
+    std::cout<<"*up = "<< *up <<std::endl;
 #endif
     if(!pfinished) {
       pResult->Get(m, per);
 #ifdef TUA_DEBUG
-      cout<<"per "<<m<<" ["<<per.start.ToString()<<" "
-        <<per.end.ToString()<<" "<<per.lc<<" "<<per.rc<<"]"<<endl;
+      std::cout<<"per "<<m<<" ["<<per.start.ToString()<<" "
+        <<per.end.ToString()<<" "<<per.lc<<" "<<per.rc<<"]"<<std::endl;
 #endif
     }
     if(pfinished) {
 #ifdef TUA_DEBUG
-      cout<<"no per any more. break 1"<<endl;
+      std::cout<<"no per any more. break 1"<<std::endl;
 #endif
       break;
     }
@@ -5849,19 +5866,19 @@ static void TUCompletePeriods2MPoint(UPoint* u, Periods* pResult,
      || (up->timeInterval.end == per.start
      && !up->timeInterval.rc && per.lc))) {
 #ifdef TUA_DEBUG
-      cout<<"per not totally after up"<<endl;
+      std::cout<<"per not totally after up"<<std::endl;
 #endif
       if(up->timeInterval.start < per.start
        || (up->timeInterval.start == per.start
        && up->timeInterval.lc && !per.lc)) {
 #ifdef TUA_DEBUG
-        cout<<"up starts before per"<<endl;
+        std::cout<<"up starts before per"<<std::endl;
 #endif
         newUp.timeInterval = per;
       }
       else {
 #ifdef TUA_DEBUG
-        cout<<"per starts before or with up"<<endl;
+        std::cout<<"per starts before or with up"<<std::endl;
 #endif
         newUp.timeInterval.start = up->timeInterval.start;
         newUp.timeInterval.lc = up->timeInterval.lc;
@@ -5871,7 +5888,7 @@ static void TUCompletePeriods2MPoint(UPoint* u, Periods* pResult,
          || (up->timeInterval.end == per.end
          && per.rc && !up->timeInterval.rc)) {
 #ifdef TUA_DEBUG
-            cout<<"per ends after up (break)"<<endl;
+            std::cout<<"per ends after up (break)"<<std::endl;
 #endif
             newUp.timeInterval.end = up->timeInterval.end;
             newUp.timeInterval.rc = up->timeInterval.rc;
@@ -5880,18 +5897,19 @@ static void TUCompletePeriods2MPoint(UPoint* u, Periods* pResult,
             up->TemporalFunction(newUp.timeInterval.end, pt, true);
             newUp.p1 = pt;
 #ifdef TUA_DEBUG
-            cout<<"Add3 ("<<newUp.p0.GetX()<<" "<<newUp.p0.GetY()
+            std::cout<<"Add3 ("<<newUp.p0.GetX()<<" "<<newUp.p0.GetY()
               <<")->("<<newUp.p1.GetX()<<" "<<newUp.p1.GetY()
               <<") ["<<newUp.timeInterval.start.ToString()<<" "
               <<newUp.timeInterval.end.ToString()<<" "
-              <<newUp.timeInterval.lc<<" "<<newUp.timeInterval.rc<<"]"<<endl;
+              <<newUp.timeInterval.lc<<" "<<newUp.timeInterval.rc<<"]"
+                 <<std::endl;
 #endif
             endResult->Add(newUp);
             break;
         }
         else {
 #ifdef TUA_DEBUG
-          cout<<"per ends inside up"<<endl;
+          std::cout<<"per ends inside up"<<std::endl;
 #endif
           newUp.timeInterval.end = per.end;
           newUp.timeInterval.rc = per.rc;
@@ -5900,39 +5918,39 @@ static void TUCompletePeriods2MPoint(UPoint* u, Periods* pResult,
           up->TemporalFunction(newUp.timeInterval.end, pt, true);
           newUp.p1 = pt;
 #ifdef TUA_DEBUG
-          cout<<"Add4 ("<<newUp.p0.GetX()<<" "<<newUp.p0.GetY()
+          std::cout<<"Add4 ("<<newUp.p0.GetX()<<" "<<newUp.p0.GetY()
              <<")->("<<newUp.p1.GetX()<<" "<<newUp.p1.GetY()
             <<") ["<<newUp.timeInterval.start.ToString()<<" "
             <<newUp.timeInterval.end.ToString()<<" "
-            <<newUp.timeInterval.lc<<" "<<newUp.timeInterval.rc<<"]"<<endl;
+            <<newUp.timeInterval.lc<<" "<<newUp.timeInterval.rc<<"]"<<std::endl;
 #endif
           endResult->Add(newUp);
         }
         if(m == pResult->GetNoComponents() - 1){
 #ifdef TUA_DEBUG
-          cout<<"last per"<<endl;
+          std::cout<<"last per"<<std::endl;
 #endif
           pfinished = true;
         }
         else {
           pResult->Get(++m, per);
 #ifdef TUA_DEBUG
-          cout<<"per "<<m<<" ["<<per.start.ToString()
-            <<" "<<per.end.ToString()<<" "<<per.lc<<" "<<per.rc<<"]"<<endl;
+          std::cout<<"per "<<m<<" ["<<per.start.ToString()
+            <<" "<<per.end.ToString()<<" "<<per.lc<<" "<<per.rc<<"]"<<std::endl;
 #endif
         }
         if(!pfinished && (per.start < up->timeInterval.end
            || (per.start == up->timeInterval.end
            && up->timeInterval.rc && per.rc))){
 #ifdef TUA_DEBUG
-          cout<<"next per starts in same up"<<endl;
+          std::cout<<"next per starts in same up"<<std::endl;
 #endif
           newUp.timeInterval.start = per.start;
           newUp.timeInterval.lc = per.lc;
         }
         else {
 #ifdef TUA_DEBUG
-          cout<<"next interval after up -> finish up"<<endl;
+          std::cout<<"next interval after up -> finish up"<<std::endl;
 #endif
           break;
         }
@@ -5966,8 +5984,8 @@ int temporalUnitIntersection_upoint_line( Word* args, Word& result,
     case OPEN:
 
 #ifdef TUA_DEBUG
-      cout << "temporalUnitIntersection_upoint_line<"
-           << uargindex << ">: Received OPEN" << endl;
+      std::cout << "temporalUnitIntersection_upoint_line<"
+           << uargindex << ">: Received OPEN" << std::endl;
 #endif
       p = new Periods(10);
       sli = new TUIntersectionLocalInfo;
@@ -5980,7 +5998,7 @@ int temporalUnitIntersection_upoint_line( Word* args, Word& result,
       // initialize arguments, such that a0 always contains the upoint
       //                       and a1 the line
 #ifdef TUA_DEBUG
-      cout << "  uargindex=" << uargindex << endl;
+      std::cout << "  uargindex=" << uargindex << std::endl;
 #endif
       if (uargindex == 0)
         { a0 = args[0]; a1 = args[1]; }
@@ -5993,7 +6011,8 @@ int temporalUnitIntersection_upoint_line( Word* args, Word& result,
       if ( !u->IsDefined() || !l->IsDefined() || l->IsEmpty() )
         {
 #ifdef TUA_DEBUG
-          cout << "  Undef/Empty arg -> Empty Result" << endl << endl;
+          std::cout << "  Undef/Empty arg -> Empty Result" << std::endl
+             << std::endl;
 #endif
           // nothing to do
         }
@@ -6004,13 +6023,14 @@ int temporalUnitIntersection_upoint_line( Word* args, Word& result,
           sli->NoOfResults = sli->mpoint->GetNoComponents();
           sli->finished = (sli->NoOfResults <= 0);
 #ifdef TUA_DEBUG
-          cout << "  " << sli->NoOfResults << " result units" << endl << endl;
+          std::cout << "  " << sli->NoOfResults << " result units" << std::endl
+             << std::endl;
 #endif
         }
       delete p;
 #ifdef TUA_DEBUG
-      cout << "temporalUnitIntersection_upoint_line: Finished OPEN"
-           << endl;
+      std::cout << "temporalUnitIntersection_upoint_line: Finished OPEN"
+           << std::endl;
 #endif
       return 0;
 
@@ -6078,7 +6098,7 @@ int temporalUnitIntersection_upoint_uregion( Word* args, Word& result,
 #ifdef TUA_DEBUG
         std::cerr << "temporalUnitIntersection_upoint_uregion<"
              << uargindex << ", " << regionismoving
-             << ">: Received OPEN" << endl;
+             << ">: Received OPEN" << std::endl;
 #endif
       sli = new TUIntersectionLocalInfo;
       sli->finished = true;
@@ -6090,7 +6110,7 @@ int temporalUnitIntersection_upoint_uregion( Word* args, Word& result,
       // initialize arguments, such that a0 always contains the upoint
       //                       and a1 the uregion/region
 #ifdef TUA_DEBUG
-      std::cerr << "  uargindex=" << uargindex << endl;
+      std::cerr << "  uargindex=" << uargindex << std::endl;
 #endif
       if (uargindex == 0)
         { a0 = args[0]; a1 = args[1]; }
@@ -6100,7 +6120,7 @@ int temporalUnitIntersection_upoint_uregion( Word* args, Word& result,
         {
           std::cerr << "temporalUnitIntersection_upoint_uregion<"
                << uargindex << ", " << regionismoving
-               << ">: WRONG uargindex!" << endl;
+               << ">: WRONG uargindex!" << std::endl;
           return -1;
         }
       u = (UPoint*)(a0.addr);
@@ -6115,7 +6135,8 @@ int temporalUnitIntersection_upoint_uregion( Word* args, Word& result,
            (!regionismoving && !f->IsDefined()) )
         {
 #ifdef TUA_DEBUG
-            std::cerr << "  Undef arg -> Empty Result" << endl << endl;
+            std::cerr << "  Undef arg -> Empty Result" << std::endl
+               << std::endl;
 #endif
           // nothing to do
         }
@@ -6146,12 +6167,12 @@ int temporalUnitIntersection_upoint_uregion( Word* args, Word& result,
           sli->finished = (sli->NoOfResults <= 0);
 #ifdef TUA_DEBUG
           std::cerr << "  " << sli->NoOfResults << " result units" 
-                    << endl << endl;
+                    << std::endl << std::endl;
 #endif
         }
 #ifdef TUA_DEBUG
       std::cerr << "temporalUnitIntersection_upoint_uregion: Finished OPEN"
-           << endl;
+           << std::endl;
 #endif
       return 0;
 
@@ -6159,14 +6180,14 @@ int temporalUnitIntersection_upoint_uregion( Word* args, Word& result,
 #ifdef TUA_DEBUG
         std::cerr << "temporalUnitIntersection_upoint_uregion<"
              << uargindex << ", " << regionismoving
-             << ">: Received REQUEST" << endl;
+             << ">: Received REQUEST" << std::endl;
 #endif
       if(local.addr == 0)
         {
 #ifdef TUA_DEBUG
           std::cerr << "temporalUnitIntersection_upoint_uregion<"
                << uargindex << ", " << regionismoving
-               << ">: Finished REQUEST (1)" << endl;
+               << ">: Finished REQUEST (1)" << std::endl;
 #endif
           return CANCEL;
         }
@@ -6176,7 +6197,7 @@ int temporalUnitIntersection_upoint_uregion( Word* args, Word& result,
 #ifdef TUA_DEBUG
           std::cerr << "temporalUnitIntersection_upoint_uregion<"
                << uargindex << ", " << regionismoving
-               << ">: Finished REQUEST (2)" << endl;
+               << ">: Finished REQUEST (2)" << std::endl;
 #endif
           return CANCEL;
         }
@@ -6188,7 +6209,7 @@ int temporalUnitIntersection_upoint_uregion( Word* args, Word& result,
 #ifdef TUA_DEBUG
           std::cerr << "temporalUnitIntersection_upoint_uregion<"
                << uargindex << ", " << regionismoving
-               << ">: Finished REQUEST (YIELD)" << endl;
+               << ">: Finished REQUEST (YIELD)" << std::endl;
 #endif
           return YIELD;
         }
@@ -6196,7 +6217,7 @@ int temporalUnitIntersection_upoint_uregion( Word* args, Word& result,
 #ifdef TUA_DEBUG
       std::cerr << "temporalUnitIntersection_upoint_uregion<"
            << uargindex << ", " << regionismoving
-           << ">: Finished REQUEST (3)" << endl;
+           << ">: Finished REQUEST (3)" << std::endl;
 #endif
       return CANCEL;
 
@@ -6205,7 +6226,7 @@ int temporalUnitIntersection_upoint_uregion( Word* args, Word& result,
 #ifdef TUA_DEBUG
       std::cerr << "temporalUnitIntersection_upoint_uregion<"
            << uargindex << ", " << regionismoving
-           << ">: Received CLOSE" << endl;
+           << ">: Received CLOSE" << std::endl;
 #endif
       if (local.addr != 0)
         {
@@ -6217,14 +6238,14 @@ int temporalUnitIntersection_upoint_uregion( Word* args, Word& result,
 #ifdef TUA_DEBUG
       std::cerr << "temporalUnitIntersection_upoint_uregion<"
            << uargindex << ", " << regionismoving
-           << ">: Finished CLOSE" << endl;
+           << ">: Finished CLOSE" << std::endl;
 #endif
       return 0;
     } // end switch
 
   std::cerr << "temporalUnitIntersection_upoint_uregion<"
        << uargindex << ", " << regionismoving
-       << ">: Received UNKNOWN COMMAND" << endl;
+       << ">: Received UNKNOWN COMMAND" << std::endl;
   return 0;
 }
 
@@ -6275,7 +6296,7 @@ int temporalUnitIntersection_upoint_region( Word* args, Word& result,
       } else if (uargindex == 1) {
         a0 = args[1]; a1 = args[0];
       } else {
-        std::cerr << __PRETTY_FUNCTION__ << ": WRONG uargindex!" << endl;
+        std::cerr << __PRETTY_FUNCTION__ << ": WRONG uargindex!" << std::endl;
         return -1;
       }
       u = static_cast<UPoint*>(a0.addr);
@@ -6287,7 +6308,7 @@ int temporalUnitIntersection_upoint_region( Word* args, Word& result,
           sli->finished = (sli->NoOfResults <= 0);
         } else {
           std::cerr << __PRETTY_FUNCTION__ << ": INFO: UPoint::AtRegion failed!"
-               << endl;
+               << std::endl;
         }
       }
       return 0;
@@ -6315,7 +6336,7 @@ int temporalUnitIntersection_upoint_region( Word* args, Word& result,
       return 0;
     } // end switch
 
-  std::cerr << __PRETTY_FUNCTION__ << ": Received UNKNOWN COMMAND" << endl;
+  std::cerr << __PRETTY_FUNCTION__ << ": Received UNKNOWN COMMAND" << std::endl;
   return 0;
 }
 
@@ -6325,7 +6346,7 @@ int temporalUnitIntersection_uregion_region( Word* args, Word& result,
                                              Word& local, Supplier s )
 {
   std::cerr << "temporalUnitIntersection_uregion_region(): Not yet Implemented!"
-       << endl;
+       << std::endl;
   return 0;
 }
 
@@ -6444,10 +6465,10 @@ int temporalunitIntersectionSelect( ListExpr args )
       nl->IsEqual( arg2, UPoint::BasicType() ) )    return 20;
 
   std::cerr << "ERROR: Unmatched case in temporalunitIntersectionSelect" 
-            << endl;
+            << std::endl;
   std::string argstr;
   nl->WriteToString(argstr, args);
-  std::cerr << "       Argumets = '" << argstr << "'." << endl;
+  std::cerr << "       Argumets = '" << argstr << "'." << std::endl;
   return -1;
 }
 
@@ -6498,7 +6519,7 @@ TemporalUnitAtTypeMapUnit( ListExpr args )
     arg2 = nl->Second( args );
 
 #ifdef TUA_DEBUG
-    cout << "\nTemporalUnitAtTypeMapUnit: 0" << endl;
+    std::cout << "\nTemporalUnitAtTypeMapUnit: 0" << std::endl;
 #endif
     if( nl->IsEqual( arg1, UBool::BasicType() )
       && nl->IsEqual( arg2, CcBool::BasicType() ) )
@@ -6534,7 +6555,7 @@ TemporalUnitAtTypeMapUnit( ListExpr args )
       return nl->SymbolAtom( UPoint::BasicType() );
   }
 #ifdef TUA_DEBUG
-  cout << "\nTemporalUnitAtTypeMapUnit: 1" << endl;
+  std::cout << "\nTemporalUnitAtTypeMapUnit: 1" << std::endl;
 #endif
   return nl->SymbolAtom( Symbol::TYPEERROR() );
 }
@@ -7641,7 +7662,7 @@ int temporalUnitInside_up_ur( Word* args, Word& result, int message,
     case OPEN:
 
 #ifdef TUA_DEBUG
-      std::cerr << "temporalUnitInside_up_ur: Received OPEN" << endl;
+      std::cerr << "temporalUnitInside_up_ur: Received OPEN" << std::endl;
 #endif
 
       sli = new TUInsideLocalInfo;
@@ -7662,7 +7683,7 @@ int temporalUnitInside_up_ur( Word* args, Word& result, int message,
       if ( !u->IsDefined() || !r->IsDefined() )
         {
 #ifdef TUA_DEBUG
-          std::cerr << "  Undef arg -> Empty Result" << endl << endl;
+          std::cerr << "  Undef arg -> Empty Result" << std::endl << std::endl;
 #endif
           // nothing to do
         }
@@ -7684,23 +7705,24 @@ int temporalUnitInside_up_ur( Word* args, Word& result, int message,
           sli->finished = (sli->NoOfResults <= 0);
 #ifdef TUA_DEBUG
           std::cerr << "  " << sli->NoOfResults << " result units" 
-                    << endl << endl;
+                    << std::endl << std::endl;
 #endif
         }
 #ifdef TUA_DEBUG
       std::cerr << "temporalUnitInside_up_ur: Finished OPEN"
-           << endl;
+           << std::endl;
 #endif
       return 0;
 
     case REQUEST:
 #ifdef TUA_DEBUG
-      std::cerr << "temporalUnitInside_up_ur: Received REQUEST"<< endl;
+      std::cerr << "temporalUnitInside_up_ur: Received REQUEST"<< std::endl;
 #endif
       if(local.addr == 0)
         {
 #ifdef TUA_DEBUG
-          std::cerr << "temporalUnitInside_up_ur: Finished REQUEST (1)" << endl;
+          std::cerr << "temporalUnitInside_up_ur: Finished REQUEST (1)"
+             << std::endl;
 #endif
           return CANCEL;
         }
@@ -7708,7 +7730,8 @@ int temporalUnitInside_up_ur( Word* args, Word& result, int message,
       if(sli->finished)
         {
 #ifdef TUA_DEBUG
-          std::cerr << "temporalUnitInside_up_ur: Finished REQUEST (2)"<< endl;
+          std::cerr << "temporalUnitInside_up_ur: Finished REQUEST (2)"
+             << std::endl;
 #endif
           return CANCEL;
         }
@@ -7719,20 +7742,20 @@ int temporalUnitInside_up_ur( Word* args, Word& result, int message,
           sli->NoOfResultsDelivered++;
 #ifdef TUA_DEBUG
           std::cerr << "temporalUnitInside_up_ur: "
-               << "Finished REQUEST (YIELD)" << endl;
+               << "Finished REQUEST (YIELD)" << std::endl;
 #endif
           return YIELD;
         }
       sli->finished = true;
 #ifdef TUA_DEBUG
-      std::cerr << "temporalUnitInside_up_ur: Finished REQUEST (3)"<< endl;
+      std::cerr << "temporalUnitInside_up_ur: Finished REQUEST (3)"<< std::endl;
 #endif
       return CANCEL;
 
     case CLOSE:
 
 #ifdef TUA_DEBUG
-      std::cerr << "temporalUnitInside_up_ur: Received CLOSE"<< endl;
+      std::cerr << "temporalUnitInside_up_ur: Received CLOSE"<< std::endl;
 #endif
       if (local.addr != 0)
         {
@@ -7742,13 +7765,13 @@ int temporalUnitInside_up_ur( Word* args, Word& result, int message,
           local.setAddr(0);
         }
 #ifdef TUA_DEBUG
-      std::cerr << "temporalUnitInside_up_ur: Finished CLOSE"<< endl;
+      std::cerr << "temporalUnitInside_up_ur: Finished CLOSE"<< std::endl;
 #endif
       return 0;
     } // end switch
 
   std::cerr << "temporalUnitInside_up_ur: Received UNKNOWN COMMAND"
-       << endl;
+       << std::endl;
   return 0;
 }
 
@@ -7756,8 +7779,8 @@ int temporalUnitInside_up_ur( Word* args, Word& result, int message,
 int temporalUnitInside_up_l( Word* args, Word& result, int message,
                                     Word& local, Supplier s )
 {
-  cout << "\nATTENTION: temporalUnitInside_up_l "
-       << "not yet implemented!" << endl;
+  std::cout << "\nATTENTION: temporalUnitInside_up_l "
+       << "not yet implemented!" << std::endl;
   assert( false );
   return 0;
 }
@@ -7766,8 +7789,8 @@ int temporalUnitInside_up_l( Word* args, Word& result, int message,
 int temporalUnitInside_up_pts( Word* args, Word& result, int message,
                                     Word& local, Supplier s )
 {
-  cout << "\nATTENTION: temporalUnitInside_up_pts "
-       << "not yet implemented!" << endl;
+  std::cout << "\nATTENTION: temporalUnitInside_up_pts "
+       << "not yet implemented!" << std::endl;
   assert( false );
   return 0;
 }
@@ -7776,8 +7799,8 @@ int temporalUnitInside_up_pts( Word* args, Word& result, int message,
 int temporalUnitInside_ur_pts( Word* args, Word& result, int message,
                                     Word& local, Supplier s )
 {
-  cout << "\nATTENTION: temporalUnitInside_ur_pts "
-       << "not yet implemented!" << endl;
+  std::cout << "\nATTENTION: temporalUnitInside_ur_pts "
+       << "not yet implemented!" << std::endl;
   assert( false );
   return 0;
 }
@@ -7828,10 +7851,10 @@ int temporalunitInsideSelect( ListExpr args )
   if( nl->IsEqual( arg1, URegion::BasicType() )  &&
       nl->IsEqual( arg2, Points::BasicType() ) )  return 3;
 
-  std::cerr << "ERROR: Unmatched case in temporalunitInsideSelect" << endl;
+  std::cerr << "ERROR: Unmatched case in temporalunitInsideSelect" << std::endl;
   std::string argstr;
   nl->WriteToString(argstr, args);
-  std::cerr << "       Argumets = '" << argstr << "'." << endl;
+  std::cerr << "       Argumets = '" << argstr << "'." << std::endl;
   return -1;
 }
 
@@ -9605,7 +9628,7 @@ int TU_VM_ComparePredicateValue_URegion(Word* args, Word& result,
 //   URegion   *u2  = (URegion*) args[1].addr;
 
   std::cerr << "TU_VM_ComparePredicateValue_URegion() not yet implemented!"
-       << endl;
+       << std::endl;
   return -1; // should not be reached
 }
 
@@ -10420,14 +10443,14 @@ int MappingUnitWhen( Word* args, Word& result, int message,
     }
 
     result.setAddr(0 );
-    cout << "MappingUnitWhen: REQUEST finished: CANCEL (4)"
-         << endl;
-    cout << "Intervals should overlap: " << endl;
-    cout << "  Unit's timeInterval = ";
+    std::cout << "MappingUnitWhen: REQUEST finished: CANCEL (4)"
+         << std::endl;
+    std::cout << "Intervals should overlap: " << std::endl;
+    std::cout << "  Unit's timeInterval = ";
     TUPrintTimeInterval(unit->timeInterval);
-    cout << "  Current Period's interval = ";
+    std::cout << "  Current Period's interval = ";
     TUPrintTimeInterval(interval);
-    cout << endl;
+    std::cout << std::endl;
     assert( false );
     return CANCEL; // should not happen
   }break;
@@ -10538,13 +10561,13 @@ int MappingUnitStreamWhen( Word* args, Word& result, int message,
       // We have an interval overlapping the unit's interval now
       // Return unit restricted to overlapping part of both intervals
       if (!unit->timeInterval.Intersects( interval) ){ // This may not happen!
-        cout << __FILE__ << __LINE__ << __PRETTY_FUNCTION__
-             << ": Intervals do not overlap, but should do so:" << endl;
-        cout << "  Unit's timeInterval = ";
+        std::cout << __FILE__ << __LINE__ << __PRETTY_FUNCTION__
+             << ": Intervals do not overlap, but should do so:" << std::endl;
+        std::cout << "  Unit's timeInterval = ";
         TUPrintTimeInterval(unit->timeInterval);
-        cout << endl << "  Current Period's interval = ";
+        std::cout << std::endl << "  Current Period's interval = ";
         TUPrintTimeInterval(interval);
-        cout << endl;
+        std::cout << std::endl;
         assert(false);
       }
       unit->AtInterval( interval, resultUnit); // intersect unit and interval

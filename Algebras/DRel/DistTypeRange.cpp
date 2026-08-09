@@ -48,13 +48,13 @@ Implementation.
         DistTypeHash( _type, _attr ), key( rand( ) ), boundary( _boundary ) {
 
         #ifdef DRELDEBUG
-        cout << "DistTypeRange::DistTypeRange" << endl;
-        cout << "type" << endl;
-        cout << _type << endl;
-        cout << "attr" << endl;
-        cout << _attr << endl;
-        cout << "key" << endl;
-        cout << key << endl;
+        std::cout << "DistTypeRange::DistTypeRange" << std::endl;
+        std::cout << "type" << std::endl;
+        std::cout << _type << std::endl;
+        std::cout << "attr" << std::endl;
+        std::cout << _attr << std::endl;
+        std::cout << "key" << std::endl;
+        std::cout << key << std::endl;
         #endif
     }
     
@@ -63,13 +63,13 @@ Implementation.
         DistTypeHash( _type, _attr ), key( _key ), boundary( _boundary ) {
 
         #ifdef DRELDEBUG
-        cout << "DistTypeRange::DistTypeRange" << endl;
-        cout << "type" << endl;
-        cout << _type << endl;
-        cout << "attr" << endl;
-        cout << _attr << endl;
-        cout << "key" << endl;
-        cout << _key << endl;
+        std::cout << "DistTypeRange::DistTypeRange" << std::endl;
+        std::cout << "type" << std::endl;
+        std::cout << _type << std::endl;
+        std::cout << "attr" << std::endl;
+        std::cout << _attr << std::endl;
+        std::cout << "key" << std::endl;
+        std::cout << _key << std::endl;
         #endif
     }
 
@@ -82,7 +82,7 @@ Implementation.
         {
         boundary = new collection::Collection(*(_distType.boundary));
         #ifdef DRELDEBUG
-        cout << "DistTypeRange copy constructor" << endl;
+        std::cout << "DistTypeRange copy constructor" << std::endl;
         #endif
     }
 
@@ -93,7 +93,7 @@ Implementation.
     DistTypeRange& DistTypeRange::operator=( const DistTypeRange& _distType ) {
 
         #ifdef DRELDEBUG
-        cout << "DistTypeRange assignment operator" << endl;
+        std::cout << "DistTypeRange assignment operator" << std::endl;
         #endif
 
         if( this == &_distType ) {
@@ -111,7 +111,7 @@ Implementation.
 */
     DistTypeRange::~DistTypeRange( ) {
         #ifdef DRELDEBUG
-        cout << "DistTypeRange destructor" << endl;
+        std::cout << "DistTypeRange destructor" << std::endl;
         #endif
         if(boundary){
           delete boundary;
@@ -127,7 +127,7 @@ Compares the current DistType with another one.
     bool DistTypeRange::isEqual( DistTypeBasic* _distType ) {
 
         #ifdef DRELDEBUG
-        cout << "DistTypeRange::isEqual" << endl;
+        std::cout << "DistTypeRange::isEqual" << std::endl;
         #endif
 
         if( typeid( *_distType ) != typeid( *this ) ) {
@@ -148,7 +148,7 @@ Returns the key.
     int DistTypeRange::getKey( ) {
 
         #ifdef DRELDEBUG
-        cout << "DistTypeRange::getKey" << endl;
+        std::cout << "DistTypeRange::getKey" << std::endl;
         #endif
 
         return key;
@@ -163,7 +163,7 @@ Returns the boundary.
     collection::Collection* DistTypeRange::getBoundary( ) {
 
         #ifdef DRELDEBUG
-        cout << "DistTypeRange::getBoundary" << endl;
+        std::cout << "DistTypeRange::getBoundary" << std::endl;
         #endif
 
         return boundary;
@@ -179,7 +179,7 @@ of a suported type to distribute by this type.
     bool DistTypeRange::allowedAttrType( ListExpr _list ) {
 
         #ifdef DRELDEBUG
-        cout << "DistTypeRange::allowedAttrType" << endl;
+        std::cout << "DistTypeRange::allowedAttrType" << std::endl;
         #endif
 
         /*return CcInt::checkType( _list )
@@ -198,7 +198,7 @@ Make a copy of the current object.
     DistTypeBasic* DistTypeRange::copy( ) {
 
         #ifdef DRELDEBUG
-        cout << "DistTypeRange::copy" << endl;
+        std::cout << "DistTypeRange::copy" << std::endl;
         #endif
 
         return new DistTypeRange( *this );
@@ -213,7 +213,7 @@ Checks whether the type in nested list format fits to this disttype.
     bool DistTypeRange::checkType( ListExpr list ) {
 
         #ifdef DRELDEBUG
-        cout << "DistTypeRange::checkType" << endl;
+        std::cout << "DistTypeRange::checkType" << std::endl;
         #endif
 
         if( !nl->HasLength( list, 4 ) ) {
@@ -245,9 +245,9 @@ Writes a DistType to the storage.
         size_t& offset, const ListExpr typeInfo ) {
 
         #ifdef DRELDEBUG
-        cout << "DistTypeRange::save" << endl;
-        cout << "typeInfo" << endl;
-        cout << nl->ToString( typeInfo ) << endl;
+        std::cout << "DistTypeRange::save" << std::endl;
+        std::cout << "typeInfo" << std::endl;
+        std::cout << nl->ToString( typeInfo ) << std::endl;
         #endif
 
         if( !DistTypeHash::save( valueRecord, offset, 
@@ -274,9 +274,9 @@ Returns the object as a list.
     ListExpr DistTypeRange::toListExpr( ListExpr typeInfo ) {
 
         #ifdef DRELDEBUG
-        cout << "DistTypeRange::toListExpr" << endl;
-        cout << "typeInfo" << endl;
-        cout << nl->ToString( typeInfo ) << endl;
+        std::cout << "DistTypeRange::toListExpr" << std::endl;
+        std::cout << "typeInfo" << std::endl;
+        std::cout << nl->ToString( typeInfo ) << std::endl;
         #endif
 
         Word value( boundary );
@@ -295,8 +295,8 @@ Prints the dist type informations. Used for debugging.
 */
     void DistTypeRange::print( ) {
         DistTypeHash::print( );
-        cout << "key" << endl;
-        cout << key << endl;
+        std::cout << "key" << std::endl;
+        std::cout << key << std::endl;
     }
 
 } // end of namespace drel

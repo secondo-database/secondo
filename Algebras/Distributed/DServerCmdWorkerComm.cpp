@@ -139,9 +139,9 @@ DServerCmdWorkerCommunication::closeWorkerStreamCommunication()
     }
 
 #ifdef DS_CMD_WORKER_COMM
-  cout << "CLOSING WORKER connection "
+  std::cout << "CLOSING WORKER connection "
        << m_worker -> getServerHostName() << ":"
-       << m_worker -> getServerPort() << endl;
+       << m_worker -> getServerPort() << std::endl;
 #endif
 
   m_worker -> getServer() -> Terminate();
@@ -169,13 +169,13 @@ DServerCmdWorkerCommunication::
                                       bool useThreads)
 {
 #ifdef DS_CMD_WORKER_COMM
-  cout << (unsigned long)this << "SecondoCmd:"  
-       << inFlag << " - "<< inCmd << " as " << endl;
+  std::cout << (unsigned long)this << "SecondoCmd:"  
+       << inFlag << " - "<< inCmd << " as " << std::endl;
   if (useThreads)
-    cout << " Thread";
+    std::cout << " Thread";
   else
-    cout << " NO Thread";
-  cout << endl;
+    std::cout << " NO Thread";
+  std::cout << std::endl;
 #endif
   
   bool ret = true;

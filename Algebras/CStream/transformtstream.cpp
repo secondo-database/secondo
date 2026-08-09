@@ -135,7 +135,7 @@ ListExpr transformtstream_TM(ListExpr args) {
     // arg: stream of tuples
     ListExpr arg = nl->First(args);
 
-    cout << nl->ToString(arg) << endl;
+    std::cout << nl->ToString(arg) << std::endl;
     if (!listutils::isTupleStream(arg)) {
         return listutils::typeError("stream(tuple(...)) expected");
     }

@@ -93,7 +93,7 @@ ConnectionInfo::ConnectionInfo(const std::string& _host,
            stopTimeout(false);
         }
       } catch(...){
-        std::cerr << " Problem in ConnectionInfo constructor" << endl;
+        std::cerr << " Problem in ConnectionInfo constructor" << std::endl;
         if(timeout>0){
            stopTimeout(false);
         }
@@ -112,12 +112,12 @@ bool ConnectionInfo::reconnect(bool showCommands, CommandLog& log,
     try{
        this->si->Terminate();
     } catch(...) {
-       std::cerr << "reconnect: Exception during terminate" << endl;
+       std::cerr << "reconnect: Exception during terminate" << std::endl;
     }
     try{
        delete this->si;
     } catch(...) {
-       std::cerr << "reconnect: Exception during deletion of si " << endl;
+       std::cerr << "reconnect: Exception during deletion of si " << std::endl;
     }
     si = new SecondoInterfaceCS(true, mynl, true);
     si->addMessageHandler(hbobserver);
@@ -129,8 +129,8 @@ bool ConnectionInfo::reconnect(bool showCommands, CommandLog& log,
     if (!si->Initialize(user, passwd, host, stringutils::int2str(port), config,
                         "",errMsg, true)) {
       std::cerr << "reconnect: Initialisation of newly created "
-              "secondoInterface failed" << endl;
-      std::cerr << "Error : " << errMsg << endl;
+              "secondoInterface failed" << std::endl;
+      std::cerr << "Error : " << errMsg << std::endl;
       return false;
     }
     if(si!=0){
@@ -147,7 +147,8 @@ bool ConnectionInfo::reconnect(bool showCommands, CommandLog& log,
            stopTimeout(false);
         }
       } catch(...){
-        std::cerr << "error during collecting standard information" << endl;
+        std::cerr << "error during collecting standard information"
+           << std::endl;
         if(timeout>0){
            stopTimeout(false);
         }
@@ -587,9 +588,9 @@ void ConnectionInfo::simpleCommandFromList(const std::string& command1,
        serr.msg = "command not executed";
     }
     if(serr.code != 0){
-       std::cerr << "error during secondo command" << endl;
-       std::cerr << "code : " << serr.code << endl;
-       std::cerr << "msg : " << serr.msg << endl;
+       std::cerr << "error during secondo command" << std::endl;
+       std::cerr << "code : " << serr.code << std::endl;
+       std::cerr << "msg : " << serr.msg << std::endl;
     }
 
 
@@ -611,7 +612,7 @@ void ConnectionInfo::simpleCommandFromList(const std::string& command1,
         mynl->Destroy(myResList);
     }
   } catch(...){
-     std::cerr << "Exception during simpleCommandFromList " << endl;
+     std::cerr << "Exception during simpleCommandFromList " << std::endl;
   }
   if(timeout>0){
       stopTimeout(true);
@@ -1235,7 +1236,7 @@ bool ConnectionInfo::retrieve(const std::string& objName,
             return true;
         }
         std::cerr << "Could not use fast retrieval for a relation, failback" 
-                  << endl;
+                  << std::endl;
     }
     {
       guard_type  guard(simtx);
@@ -1411,8 +1412,9 @@ bool ConnectionInfo::retrieveRelationInFile(const std::string& fileName,
     if (!mynl->HasLength(resList, 2)
             || mynl->AtomType(mynl->Second(resList)) != BoolType)
     {
-        std::cerr << "command " << cmd << " returns unexpected result" << endl;
-        std::cerr << mynl->ToString(resList) << endl;
+        std::cerr << "command " << cmd << " returns unexpected result"
+           << std::endl;
+        std::cerr << mynl->ToString(resList) << std::endl;
         return false;
     }
     if (!mynl->BoolValue(mynl->Second(resList)))
@@ -1426,7 +1428,7 @@ bool ConnectionInfo::retrieveRelationInFile(const std::string& fileName,
     // copy the file to local file system
     if (si->requestFile(base + ".tmp", base + ".tmp", true) != 0)
     {
-        std::cerr << "Requesting file " + base + ".tmp failed" << endl;
+        std::cerr << "Requesting file " + base + ".tmp failed" << std::endl;
         return false;
     }
     result = createRelationFromFile(base + ".tmp", resType);
@@ -1510,9 +1512,9 @@ bool ConnectionInfo::retrieveRelationFile(const std::string& objName,
     showCommand(si, host, port, cmd, false, showCommands);
     if (serr.code != 0)
     {
-        std::cerr << "Creating filetransfer directory failed" << endl;
-        std::cerr << "serr.code = " << serr.code << endl;
-        std::cerr << "serr.Msg = " << serr.msg << endl;
+        std::cerr << "Creating filetransfer directory failed" << std::endl;
+        std::cerr << "serr.code = " << serr.code << std::endl;
+        std::cerr << "serr.Msg = " << serr.msg << std::endl;
         if(timeout>0){
           stopTimeout(false);
         }
@@ -1617,30 +1619,30 @@ bool ConnectionInfo::retrieveAnyFile(const std::string& remoteName,
                       commandLog, forceExec, timeout);
         if (err)
         {
-            std::cerr << "command " << cmd << " failed" << endl;
+            std::cerr << "command " << cmd << " failed" << std::endl;
             return false;
         }
         if (!nl->HasLength(result, 2))
         {
-            std::cerr << "unexpected result for command " << cmd << endl;
+            std::cerr << "unexpected result for command " << cmd << std::endl;
             std::cerr << "expected (type value), got " << nl->ToString(result)
-                    << endl;
+                    << std::endl;
             return false;
         }
         if (nl->AtomType(nl->Second(result)) != BoolType)
         {
-            std::cerr << "unexpected result for command " << cmd << endl;
+            std::cerr << "unexpected result for command " << cmd << std::endl;
             std::cerr << "expected (bool boolatom), got " 
-                      << nl->ToString(result) << endl;
+                      << nl->ToString(result) << std::endl;
             return false;
         }
         if (!nl->BoolValue(nl->Second(result)))
         {
-            std::cerr << "copying file failed" << endl;
+            std::cerr << "copying file failed" << std::endl;
             if(true) {
-               cout <<  "remote Server : " << (*this) << endl;
-               cout << "command " << endl << cmd << endl;
-               cout << "returned false" << endl;
+               std::cout <<  "remote Server : " << (*this) << std::endl;
+               std::cout << "command " << std::endl << cmd << std::endl;
+               std::cout << "returned false" << std::endl;
             }
             return false;
         }
@@ -1657,7 +1659,7 @@ bool ConnectionInfo::retrieveAnyFile(const std::string& remoteName,
                       commandLog, forceExec, timeout);
         if (err)
         {
-            std::cerr << "command " << cmd << " failed" << endl;
+            std::cerr << "command " << cmd << " failed" << std::endl;
         }
     }
     return errres == 0;
@@ -1691,9 +1693,9 @@ Word ConnectionInfo::createRelationFromFile(const std::string& fname,
     if (!nl->Equal(resType, typeInFile))
     {
         std::cerr << "Type conflict between expected type and type in file" 
-                  << endl
-                  << "Expected : " << nl->ToString(resType) << endl
-                  << "Type in  File " << nl->ToString(typeInFile) << endl;
+                  << std::endl
+                  << "Expected : " << nl->ToString(resType) << std::endl
+                  << "Type in  File " << nl->ToString(typeInFile) << std::endl;
         tt->DeleteIfAllowed();
         return result;
     }
@@ -1742,7 +1744,7 @@ void ConnectionInfo::killConnection(){
 }
 
 void ConnectionInfo::timeout(){
-  std::cout << "received timeout signal" << endl;
+  std::cout << "received timeout signal" << std::endl;
   killConnection();
 }
 
@@ -1778,9 +1780,9 @@ void showError(const ConnectionInfo* ci, const std::string& command ,
    static boost::mutex mtx;
    boost::lock_guard<boost::mutex> lock(mtx);
    if(errorCode){
-      std::cerr << "command " << command << endl
-           << " failed on server " << (*ci) << endl
-           << "with code " << errorCode << " : " << errorMessage << endl;
+      std::cerr << "command " << command << std::endl
+           << " failed on server " << (*ci) << std::endl
+           << "with code " << errorCode << " : " << errorMessage << std::endl;
    }
 }
 
@@ -1790,9 +1792,9 @@ void showError(const SecondoInterfaceCS* ci, const std::string& command ,
    static boost::mutex mtx;
    boost::lock_guard<boost::mutex> lock(mtx);
    if(errorCode){
-      std::cerr << "command " << command << endl
-           << " failed on server " << (ci->getHost()) << endl
-           << "with code " << errorCode << " : " << errorMessage << endl;
+      std::cerr << "command " << command << std::endl
+           << " failed on server " << (ci->getHost()) << std::endl
+           << "with code " << errorCode << " : " << errorMessage << std::endl;
    }
 }
 

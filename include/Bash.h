@@ -54,11 +54,11 @@ public:
   }
 
   static void setBold(){
-     cout << "\033[1m";
+     std::cout << "\033[1m";
   }
 
   static void setUnderline(){
-     cout << "\033[4m";
+     std::cout << "\033[4m";
   }
 
   static void positionCursor(int line, int col){

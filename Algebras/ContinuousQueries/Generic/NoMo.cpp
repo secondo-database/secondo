@@ -302,11 +302,11 @@ void NoMo::Run()
                     if (msg.params.length() > 1)
                     {
                         std::cout << "Fake mails be saved in " 
-                                  << msg.params << endl;
+                                  << msg.params << std::endl;
                         if (_fakemailfile.is_open()) _fakemailfile.close();
                         _fakemailfile.open(msg.params);
                     } else {
-                        std::cout << "std::cout only" << endl;
+                        std::cout << "std::cout only" << std::endl;
                     }
                 }
             } else
@@ -316,7 +316,7 @@ void NoMo::Run()
                 msg.cmd == "disconnected") 
             {
                 std::cout << "shutting down due to " << msg.cmd 
-                    << " " << msg.params << endl;
+                    << " " << msg.params << std::endl;
                 
                 _running = false;
             } 
@@ -433,7 +433,7 @@ bool NoMo::sendEmail(std::string from, std::string to, std::string subject,
             if ( !QueryProcessor::ExecuteQuery(exestring, resultword) ) 
             {   
                 LOG << "Error while executing send query." << ENDL;
-		LOG << "NL query is " << exestring << ENDL;
+                LOG << "NL query is " << exestring << ENDL;
                 resultword.setAddr(0);
             }
         } else {

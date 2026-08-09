@@ -124,7 +124,7 @@ bool KeyValueStore::setMaster(string host, int interfacePort, int kvsPort) {
     delete masterConn;
   }
 
-  KOUT << "Setting master..." << endl;
+  KOUT << "Setting master..." << std::endl;
 
   localHost = host;
   localInterfacePort = interfacePort;
@@ -219,7 +219,7 @@ bool KeyValueStore::retryConnection(unsigned int index) {
 bool KeyValueStore::syncServerList() {
   if (masterConn != 0 && masterConn->kvsConn->check()) {
     string serverList = masterConn->kvsConn->requestServerList();
-    cout << "Requested Serverlist:" << serverList << endl;
+    std::cout << "Requested Serverlist:" << serverList << std::endl;
     return sm.updateServerList(serverList);
   } else {
     KOUT << "Failed to connect to Master-Server";
@@ -263,13 +263,13 @@ string KeyValueStore::serverInformationString() {
 
 void KeyValueStore::setDatabase(string databaseName) {
   currentDatabaseName = databaseName;
-  KOUT << "Setting current db:" << currentDatabaseName << endl;
+  KOUT << "Setting current db:" << currentDatabaseName << std::endl;
 }
 
 string KeyValueStore::useDatabase(string databaseName) {
   vector<Connection*> connList(sm.getConnectionList());
 
-  KOUT << "Changing client databases..." << endl;
+  KOUT << "Changing client databases..." << std::endl;
 
   // data
   int errResult;
@@ -279,21 +279,21 @@ string KeyValueStore::useDatabase(string databaseName) {
 
   currentDatabaseName = databaseName;
 
-  cout << "Setting current db:" << currentDatabaseName << endl;
+  std::cout << "Setting current db:" << currentDatabaseName << std::endl;
 
   string openCmd("open database ");
   openCmd += databaseName;
   openCmd += ";";
 
   for (unsigned int i = 0; i < connList.size(); i++) {
-    output << i << " :trying close command...\n" << endl;
+    output << i << " :trying close command...\n" << std::endl;
     connList[i]->simpleCommand("close database;", errResult, strResult);
 
-    output << i << " :trying: " << openCmd << endl;
+    output << i << " :trying: " << openCmd << std::endl;
 
     connList[i]->simpleCommand(openCmd, errResult, strResult);
     output << i << " : result = " << strResult << " errCode = " << errResult
-           << endl;
+           << std::endl;
   }
 
   return output.str();
@@ -429,7 +429,7 @@ bool KeyValueStore::distAddRectDebug(int refId, int nrcoords, double* coords,
                                      set<int>* resultIds, bool requestOnly) {
   map<int, Distribution*>::iterator item = distributionsMap.find(refId);
 
-  cout << "calling distAddRectDebug" << endl;
+  std::cout << "calling distAddRectDebug" << std::endl;
 
   if (item != distributionsMap.end()) {
     Distribution* dist = item->second;
@@ -439,10 +439,10 @@ bool KeyValueStore::distAddRectDebug(int refId, int nrcoords, double* coords,
     SaveDebugFile(debugPath, dist);
 
     if (requestOnly) {
-      cout << "calling request" << endl;
+      std::cout << "calling request" << std::endl;
       dist->requestDebug(nrcoords, coords, resultIds);
     } else {
-      cout << "calling add" << endl;
+      std::cout << "calling add" << std::endl;
       dist->addDebug(nrcoords, coords, resultIds);
     }
 
@@ -504,7 +504,7 @@ bool KeyValueStore::qtDistinct(const int& refId, const double& x,
 
       return (id == qtd->pointId(x, y));
     } else {
-      KOUT << "Error: qtDistinct wrong type" << endl;
+      KOUT << "Error: qtDistinct wrong type" << std::endl;
     }
   }
   return false;
@@ -515,7 +515,7 @@ bool KeyValueStore::initClients(string localIp, int localInterfacePort,
   vector<Connection*>& connectionList = sm.getConnectionList();
   Connection* currentConn = 0;
 
-  KOUT << "Initializing:" << endl;
+  KOUT << "Initializing:" << std::endl;
 
   bool result = true;
 
@@ -523,7 +523,7 @@ bool KeyValueStore::initClients(string localIp, int localInterfacePort,
     currentConn = connectionList[connIdx];
 
     KOUT << connIdx << " : " << currentConn->host << ":"
-         << currentConn->interfacePort << ":" << endl;
+         << currentConn->interfacePort << ":" << std::endl;
 
     this->localHost = localIp;
     this->localInterfacePort = localInterfacePort;
@@ -536,7 +536,7 @@ bool KeyValueStore::initClients(string localIp, int localInterfacePort,
       result = false;
       KOUT << "=> failed to initialize!";
     }
-    KOUT << endl << endl;
+    KOUT << std::endl << std::endl;
   }
   return result;
 }
@@ -564,17 +564,17 @@ string KeyValueStore::getDistributionName(int id) {
 bool KeyValueStore::execCommand(string command) {
   vector<Connection*>& serverList = sm.getConnectionList();
 
-  KOUT << "Executing: " << command << endl << endl;
+  KOUT << "Executing: " << command << std::endl << std::endl;
 
   for (unsigned int serverIdx = 0; serverIdx < serverList.size(); ++serverIdx) {
     int error = 0;
     string result;
-    KOUT << "Server " << serverIdx << ":" << endl;
+    KOUT << "Server " << serverIdx << ":" << std::endl;
     serverList[serverIdx]->simpleCommand(command, error, result);
     if (error != 0) {
-      KOUT << "Command failed:" << result << endl;
+      KOUT << "Command failed:" << result << std::endl;
     } else {
-      KOUT << result << endl;
+      KOUT << result << std::endl;
     }
   }
 
@@ -590,7 +590,7 @@ bool KeyValueStore::startClient(int port) {
           Socket::CreateGlobal("localhost", stringutils::int2str(port));
 
       if (gate && gate->IsOk()) {
-        KOUT << left << setw(5) << port << ": Created gate." << endl;
+        KOUT << left << setw(5) << port << ": Created gate." << std::endl;
         listenThreads.insert(make_pair(
             port, make_pair(new boost::thread(&KeyValueStore::listenThread,
                                               this, port, gate),
@@ -598,11 +598,12 @@ bool KeyValueStore::startClient(int port) {
         return true;
       }
     } else {
-      KOUT << left << setw(5) << port << ": Client already started." << endl;
+      KOUT << left << setw(5) << port << ": Client already started."
+         << std::endl;
       return true;
     }
 
-    KOUT << left << setw(5) << port << ": startClient failed." << endl;
+    KOUT << left << setw(5) << port << ": startClient failed." << std::endl;
   }
   return false;
 }
@@ -652,7 +653,7 @@ void KeyValueStore::connectionThread(Socket* client) {
 
     string cmd;
     // greeting
-    iosock << "<SecondoKVS/>" << endl;
+    iosock << "<SecondoKVS/>" << std::endl;
 
     getline(iosock, cmd);
     if (cmd.compare("<SecondoKVS/>") == 0) {
@@ -802,9 +803,9 @@ void KeyValueStore::connectionThread(Socket* client) {
             KOUT << "Error: Can't set source stream.\n";
           }
         } else if (cmd.compare("<Ping/>") == 0) {
-          iosock << "<Ping/>" << endl;
+          iosock << "<Ping/>" << std::endl;
         } else if (cmd.compare("<TryRestructureLock/>") == 0) {
-          iosock << "<TryRestructureLock>" << endl;
+          iosock << "<TryRestructureLock>" << std::endl;
           int result = -1;
           int serverId = 0;
           iosock.read((char*)&serverId, sizeof(serverId));
@@ -832,7 +833,7 @@ void KeyValueStore::connectionThread(Socket* client) {
             conn->rLock.updateLock();
           }
         } else if (cmd.compare("<UnlockRestructureLock/>") == 0) {
-          iosock << "<UnlockRestructureLock>" << endl;
+          iosock << "<UnlockRestructureLock>" << std::endl;
           bool result = false;
           int serverId = 0;
           iosock.read((char*)&serverId, sizeof(serverId));
@@ -848,7 +849,7 @@ void KeyValueStore::connectionThread(Socket* client) {
           iosock.flush();
         } else if (cmd.compare("<RequestTransferId/>") == 0) {
           unsigned int tempId = getTransferId();
-          iosock << "<TransferId>" << endl;
+          iosock << "<TransferId>" << std::endl;
           iosock.write((char*)&tempId, sizeof(tempId));
           iosock.flush();
         } else if (cmd.compare("<SendDistributionUpdate/>") == 0) {
@@ -882,7 +883,7 @@ void KeyValueStore::connectionThread(Socket* client) {
           iosock.write((char*)&result, sizeof(bool));
           iosock.flush();
         } else if (cmd.compare("<RequestDistribution/>") == 0) {
-          cout << "Answering distribution Request..." << endl;
+          std::cout << "Answering distribution Request..." << std::endl;
           unsigned int len = 0;
 
           iosock.read((char*)&len, sizeof(len));
@@ -906,14 +907,15 @@ void KeyValueStore::connectionThread(Socket* client) {
           }
 
           iosock.flush();
-          cout << "Finished Answering distribution Request..." << endl;
+          std::cout << "Finished Answering distribution Request..."
+             << std::endl;
         } else if (cmd.compare("<RequestSCPPath/>") == 0) {
-          iosock << "<RequestSCPPath>" << endl;
-          iosock << getSCPTransferPath() << endl;
+          iosock << "<RequestSCPPath>" << std::endl;
+          iosock << getSCPTransferPath() << std::endl;
           iosock.flush();
         } else if (cmd.compare("<RequestServerList/>") == 0) {
-          iosock << "<RequestServerList>" << endl;
-          iosock << sm.getServerListString() << endl;
+          iosock << "<RequestServerList>" << std::endl;
+          iosock << sm.getServerListString() << std::endl;
           iosock.flush();
         } else if (cmd.compare("<Close/>") == 0) {
           closeConn = true;
@@ -928,7 +930,7 @@ void KeyValueStore::connectionThread(Socket* client) {
     KOUT << client->GetSocketAddress() << " : ios_base::failure exception.\n";
     if (!client->IsOk()) {
       KOUT << client->GetSocketAddress()
-           << " : Socket Error: " << client->GetErrorText() << endl;
+           << " : Socket Error: " << client->GetErrorText() << std::endl;
     }
   }
 }

@@ -108,7 +108,7 @@ void WorkerLoop::addQuery(int id, std::string function)
     // build funList
     ListExpr funList;
     if( !nl->ReadFromString(function, funList)) {
-        std::cout << "Error building funList" << endl;
+        std::cout << "Error building funList" << std::endl;
         return;
     }
 
@@ -131,7 +131,7 @@ void WorkerLoop::addQuery(int id, std::string function)
             resultType );
     }
     catch(SI_Error ERR_IN_QUERY_EXPR) {
-        std::cout << "Error building tree" << endl;
+        std::cout << "Error building tree" << std::endl;
         return;
     }
 
@@ -210,7 +210,7 @@ void WorkerLoop::TightLoop()
             catch(...)
             {
                 tupleId = 0;
-                std::cout << "failed to extract id or tuple" << endl;
+                std::cout << "failed to extract id or tuple" << std::endl;
             }
 
             if (!tupleId) {
@@ -243,7 +243,7 @@ void WorkerLoop::TightLoop()
 
             hitlist = hitlist.substr(0, hitlist.size()-1);
 
-            std::cout << "Tpl: " << tupleId << " | Hits: " << hits << endl;
+            std::cout << "Tpl: " << tupleId << " | Hits: " << hits << std::endl;
 
             // notify all nomos
             if (hits) notifyAllNoMos(tupleId, tupleString, hitlist);
@@ -295,10 +295,14 @@ Prints out some information.
 
 void WorkerLoop::showStatus()
 {
-    std::cout << "**************************************************" << endl;
-    std::cout << "WorkerLoop::Status"                         << endl << endl;
-    std::cout << "Number of Queries: " << (int)_queries.size()        << endl;
-    std::cout << "**************************************************" << endl;
+    std::cout << "**************************************************"
+       << std::endl;
+    std::cout << "WorkerLoop::Status"                         << std::endl
+       << std::endl;
+    std::cout << "Number of Queries: " << (int)_queries.size()
+       << std::endl;
+    std::cout << "**************************************************"
+       << std::endl;
 }
 
 }

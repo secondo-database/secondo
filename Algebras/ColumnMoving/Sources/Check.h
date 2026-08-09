@@ -31,18 +31,18 @@ std::cout, if the condition is not met
 
 #define check(condition, message)                 \
   if (!(condition)) {                             \
-    std::cout << endl << (message) << endl;       \
+    std::cout << std::endl << (message) << std::endl;       \
   }
 
 #define checkr(condition, message)                \
   if (!(condition)) {                             \
-    std::cout << endl << (message) << endl;       \
+    std::cout << std::endl << (message) << std::endl;       \
     return;                                       \
   }
 
 #define checkrv(condition, message, returnValue)  \
   if (!(condition)) {                             \
-    std::cout << endl << (message) << endl;       \
+    std::cout << std::endl << (message) << std::endl;       \
     return (returnValue);                         \
   }
 

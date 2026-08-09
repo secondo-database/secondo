@@ -147,7 +147,8 @@ class psortThread{
             tt->DeleteIfAllowed();
             if(h1) delete h1;
             if(h2) delete h2;
-            std::cout << "thread has processed " << count << " tuples" << endl;
+            std::cout << "thread has processed " << count << " tuples"
+               << std::endl;
         }
 
         OutHeap* getOut(){

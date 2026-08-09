@@ -1130,17 +1130,17 @@ template<unsigned dim>
 std::ostream& R_TreeNodePnJ<dim>::Print( std::ostream &os )
 {
   os <<  "  Leaf=" << leaf << "  Count=" << count <<
-         "  insertOverflow=" << insertOverflow << endl;
+         "  insertOverflow=" << insertOverflow << std::endl;
   for (int i = 1; i <= count; i++)
     {
-       os << "  Entry: " << i << endl;
-       os << "    Box:" << endl;
+       os << "  Entry: " << i << std::endl;
+       os << "    Box:" << std::endl;
 
        for ( unsigned int j = 1; j <= dim; j++)
-         cout << "      Dim:" << j << "  " << entry[i-1].box.MinD(j-1)
-              << "   " << entry[i-1].box.MaxD(j-1) << endl;
+         std::cout << "      Dim:" << j << "  " << entry[i-1].box.MinD(j-1)
+              << "   " << entry[i-1].box.MaxD(j-1) << std::endl;
 
-       os << "    Pointer=" << entry[i-1].pointer << "  " << endl;
+       os << "    Pointer=" << entry[i-1].pointer << "  " << std::endl;
     }
   return os;
 }
@@ -1303,7 +1303,7 @@ Perhaps for debugging or some other interesting aspects of the R-Tree.
     void DebugOutput(ArrayIndex nodeNo);
 /*
 For debugging purposes only.
-If nodeNo == -1 the entire tree is printed on cout.
+If nodeNo == -1 the entire tree is printed on std::cout.
 Otherwise the node rtree[address] with address==nodeNo is printed.
 
 */
@@ -2233,11 +2233,13 @@ bool R_TreePnJ<dim>::Next (R_TreeEntryPnJ<dim>& result,
 template <unsigned dim>
 void R_TreePnJ<dim>::Info()
 {
-  cout << "CurrentHeightOfTree: " << Height() << endl;
-  cout << "Var maxFanOut:       " << MaxEntries() << endl << endl;
+  std::cout << "CurrentHeightOfTree: " << Height() << std::endl;
+  std::cout << "Var maxFanOut:       " << MaxEntries() << std::endl
+     << std::endl;
 
-  cout << "CurrentNodesInTree:  " << NodeCount() << endl;
-  cout << "MaxNodesInTree:      " << MaxNodeCount() << endl << endl;
+  std::cout << "CurrentNodesInTree:  " << NodeCount() << std::endl;
+  std::cout << "MaxNodesInTree:      " << MaxNodeCount() << std::endl
+     << std::endl;
 
   //collect information about nodes
   int innerNodesNo = 0;
@@ -2258,32 +2260,37 @@ void R_TreePnJ<dim>::Info()
     { innerNodesNo++; }
   }
 
-  cout << "InnerNodes:          " << innerNodesNo << endl;
+  std::cout << "InnerNodes:          " << innerNodesNo << std::endl;
 
-  cout << "CurrentLeaves:       " << LeavesCount() << endl;
-  cout << "EstimatedLeaves:     " << EstimatedLeaves() << endl << endl;
-  cout << "FullLeaves:          " << fullLeavesNo << endl;
-  cout << "OverflowedLeaves:    " << emptyLeavesNo << endl << endl;
+  std::cout << "CurrentLeaves:       " << LeavesCount() << std::endl;
+  std::cout << "EstimatedLeaves:     " << EstimatedLeaves() << std::endl
+     << std::endl;
+  std::cout << "FullLeaves:          " << fullLeavesNo << std::endl;
+  std::cout << "OverflowedLeaves:    " << emptyLeavesNo << std::endl
+     << std::endl;
 
-  cout << "CurrentEntriesInTree:" << EntryCount() -
+  std::cout << "CurrentEntriesInTree:" << EntryCount() -
                                          (MaxEntries() * emptyLeavesNo) 
-                                  << endl
-                                  << endl;
+                                  << std::endl
+                                  << std::endl;
 
-  cout << "SplittingMethod:     ";
-    if (do_linear_split) cout << "do_linear_split" << endl << endl;
-    if (do_quadratic_split) cout << "do_quadratic_split" << endl << endl;
-    if (do_axis_split) cout << "do_axis_split" << endl << endl;
+  std::cout << "SplittingMethod:     ";
+    if (do_linear_split) std::cout << "do_linear_split" << std::endl
+       << std::endl;
+    if (do_quadratic_split) std::cout << "do_quadratic_split" << std::endl
+       << std::endl;
+    if (do_axis_split) std::cout << "do_axis_split" << std::endl << std::endl;
 
-  cout << "SizeOfRTreeEntry:    " << sizeof( R_TreeEntryPnJ<dim> ) 
-                                  << " Bytes" << endl;
-  cout << "SizeOfRTreeNode:     " << rtree[0]->Size() << " Bytes" << endl;
-  cout << "SizeOfRTree:         " << SizeOfRTree ()
+  std::cout << "SizeOfRTreeEntry:    " << sizeof( R_TreeEntryPnJ<dim> ) 
+                                  << " Bytes" << std::endl;
+  std::cout << "SizeOfRTreeNode:     " << rtree[0]->Size() << " Bytes"
+     << std::endl;
+  std::cout << "SizeOfRTree:         " << SizeOfRTree ()
                                   <<" = "<<SizeOfRTree()/1024<<" kBytes"
                                   <<" = "<<SizeOfRTree()/1048576
-                                  <<" MBytes"<<endl;
-  cout << "SizeOfHeader:        " <<SizeOfRTreeHeader()<<" Bytes"
-                                  <<endl<<endl;
+                                  <<" MBytes"<<std::endl;
+  std::cout << "SizeOfHeader:        " <<SizeOfRTreeHeader()<<" Bytes"
+                                  <<std::endl<<std::endl;
 
 }
 
@@ -2301,8 +2308,8 @@ void R_TreePnJ<dim>::DebugOutput(ArrayIndex nodeNo)
 
   for (int j = begin; j <= end; j ++)
     {
-     cout << endl << "Node:" << j << endl;
-     (rtree[j])->Print(cout);
+     std::cout << std::endl << "Node:" << j << std::endl;
+     (rtree[j])->Print(std::cout);
     }
 }
 

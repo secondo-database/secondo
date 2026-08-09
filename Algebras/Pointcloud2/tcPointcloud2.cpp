@@ -992,10 +992,10 @@ size_t Pointcloud2::copySelectionFrom(const Pointcloud2* source,
     const bool useRTree = (intersectionRatio < INTERSECTION_RATIO_THRESHOLD
         && source->getPointCount() > POINT_COUNT_THRESHOLD);
 
-    cout << "intersection ratio = " << intersectionRatio;
-    cout << ", source point count = " << source->getPointCount();
-    cout << " => " << (useRTree ? "traversing RTree." :
-            "reading SmiRecordFile") << endl;
+    std::cout << "intersection ratio = " << intersectionRatio;
+    std::cout << ", source point count = " << source->getPointCount();
+    std::cout << " => " << (useRTree ? "traversing RTree." :
+            "reading SmiRecordFile") << std::endl;
 
     const size_t initialPointCount = _pointCount;
     startInsert();
@@ -1141,7 +1141,7 @@ void Pointcloud2::cluster(const double eps, const size_t minPts,
     // und muss die Implementierung dafür dann doppelt vorliegen?
 
     // DEBUG
-    cout << endl << "Point count: " << _pointCount << endl;
+    std::cout << std::endl << "Point count: " << _pointCount << std::endl;
     // for(size_t i = 1; i <= _pointCount; ++i) { // getPoint 1-based!
     //     cout << getPoint(i)->toString() << endl;
     // }
@@ -1278,12 +1278,12 @@ std::vector<PointIndex> Pointcloud2::getAllPoints(
     if (REPORT_TO_CONSOLE) {
         for (size_t smiId = 1; smiId <= _pointCount; ++smiId) {
             size_t index = indexOfSmiId[smiId];
-            cout << "SmiRecId " << smiId << ": index " << index;
+            std::cout << "SmiRecId " << smiId << ": index " << index;
             if (pointSpace[index]._isLastInSeq)
-                cout << " (last in sequence)";
-            cout << endl;
+                std::cout << " (last in sequence)";
+            std::cout << std::endl;
         }
-        cout << endl;
+        std::cout << std::endl;
     }
 
     // --------------------------------
@@ -1306,9 +1306,9 @@ std::vector<PointIndex> Pointcloud2::getAllPoints(
 
     if (REPORT_TO_CONSOLE) {
         for(size_t i = 1; i <= _pointCount; ++i) { // pointSpace is 1-based
-            cout << pointSpace[i].toString() << endl;
+            std::cout << pointSpace[i].toString() << std::endl;
             if (pointSpace[i]._isLastInSeq)
-                cout << "----------" << endl;
+                std::cout << "----------" << std::endl;
         }
     }
 

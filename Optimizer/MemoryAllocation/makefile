@@ -131,17 +131,22 @@ CCFLAGS += $(MAFLAGS)
 MO_OBJECTS := MemoryOptimization.o
 MemoryOptimization.$(OBJEXT): MemoryOptimization.$(OBJEXT)
 MemoryOptimization.$(OBJEXT): MemoryOptimization.cpp
-	$(CC) -c -o $@ $< $(CCFLAGS) $(MAFLAGS)
+	$(CC) -c -o $@ $< $(CCFLAGS) $(MAFLAGS) \
+	    -MMD -MP -MF MemoryOptimization.dep
 endif
 # NVK ADDED MA END
 
 MainTTYCS.$(OBJEXT): MainTTY.$(OBJEXT)
 MainTTYCS.$(OBJEXT): MainTTY.cpp
-	$(CC) -c -o $@ $< $(CCFLAGS) -DSEC_TTYCS 
+	$(CC) -c -o $@ $< $(CCFLAGS) -DSEC_TTYCS \
+	    -MMD -MP -MF MainTTYCS.dep
 
 SecondoPL.$(OBJEXT): $(ENTROPY_OBJ) $(MO_OBJECTS)
+# A local pattern rule, so it overrides the %.o rule in makefile.env for
+# every .cpp here -- and used to take that rule's -MMD away with it.
 %.$(OBJEXT): %.cpp
-	$(CC) -c -o $@ $< $(CCFLAGS) $(JNIINCLUDE) $(MAFLAGS)
+	$(CC) -c -o $@ $< $(CCFLAGS) $(JNIINCLUDE) $(MAFLAGS) \
+	    -MMD -MP -MF $*.dep
 
 # Rules for linkage
 #

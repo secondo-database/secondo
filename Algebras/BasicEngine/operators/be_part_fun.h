@@ -54,13 +54,13 @@ int be_partFunSFVM(Word *args, Word &result, int message, Word &local,
   try {
 
     if (be_control == nullptr || !be_control->isMaster()) {
-      cout << noWorker << endl;
+      std::cout << noWorker << std::endl;
       res->makeUndefined();
       return 0;
     }
 
     if (slot->GetIntval() <= 0) {
-      cout << negSlots << endl;
+      std::cout << negSlots << std::endl;
       res->makeUndefined();
       return 0;
     }

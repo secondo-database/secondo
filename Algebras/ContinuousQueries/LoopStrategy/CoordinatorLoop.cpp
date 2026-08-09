@@ -202,7 +202,7 @@ bool CoordinatorLoop::checkNewFunction(std::string function, std::string &err)
     // build funList
     ListExpr funList;
     if( !nl->ReadFromString(function, funList)) {
-        std::cout << "Error building funList" << endl;
+        std::cout << "Error building funList" << std::endl;
         err = "Error building funList";
         return false;
     }
@@ -229,7 +229,7 @@ bool CoordinatorLoop::checkNewFunction(std::string function, std::string &err)
             resultType );
     }
     catch(SI_Error ERR_IN_QUERY_EXPR) {
-        std::cout << "Error building tree" << endl;
+        std::cout << "Error building tree" << std::endl;
         err = "Error building tree";
         // delete tqp;
         return false;

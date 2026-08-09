@@ -77,7 +77,7 @@ void
 DServerCmdCopy::run()
 { 
 #if DS_CMD_COPY_DEBUG
-  cout << "DServerCmdCopy::run" << endl;
+  std::cout << "DServerCmdCopy::run" << std::endl;
 #endif
 
   if (!checkWorkerAvailable())
@@ -94,8 +94,8 @@ DServerCmdCopy::run()
       if (getIndex() != getReplaceIndex())
         {
 #if DS_CMD_COPY_DEBUG
-          cout << "DServerCmdCopy::run - substituing:" 
-               << getReplaceIndex()<< endl;
+          std::cout << "DServerCmdCopy::run - substituing:" 
+               << getReplaceIndex()<< std::endl;
 #endif
 
           //Element is copied on the worker
@@ -103,8 +103,8 @@ DServerCmdCopy::run()
             + getWorker() -> getName() + getIndexStr(); 
 
 #if DS_CMD_COPY_DEBUG
-          cout << "DServerCmdCopy::run - sending" 
-               << cmd << endl;
+          std::cout << "DServerCmdCopy::run - sending" 
+               << cmd << std::endl;
 #endif
           if (!sendSecondoCmdToWorkerSOS(cmd))
             { 
@@ -126,6 +126,6 @@ DServerCmdCopy::run()
     }
 
 #if DS_CMD_COPY_DEBUG
-  cout << "DServerCmdCopy::run DONE" << endl;
+  std::cout << "DServerCmdCopy::run DONE" << std::endl;
 #endif
 } // run()

@@ -115,7 +115,7 @@ Type mapping of the operator file2stream
                 getline( f, line );
 
                 #ifdef DRELDEBUG
-                cout << "line: " << line << endl;
+                std::cout << "line: " << line << std::endl;
                 #endif
 
                 // skip empty lines
@@ -151,7 +151,7 @@ Reads a file and create a drel.
         Word& local, Supplier s ) {
 
         #ifdef DRELDEBUG
-        cout << "file2streamVMT" << endl;
+        std::cout << "file2streamVMT" << std::endl;
         #endif
 
         FileReader<R>* reader = ( FileReader<R>* )local.addr;
@@ -163,8 +163,8 @@ Reads a file and create a drel.
                 std::string filename = ( ( R* )args[ 0 ].addr )->GetValue( );
 
                 #ifdef DRELDEBUG
-                cout << "OPEN" << endl;
-                cout << "filename: " << filename << endl;
+                std::cout << "OPEN" << std::endl;
+                std::cout << "filename: " << filename << std::endl;
                 #endif
 
                 if ( reader ) {
@@ -179,7 +179,7 @@ Reads a file and create a drel.
             case REQUEST: {
 
                 #ifdef DRELDEBUG
-                cout << "REQUEST" << endl;
+                std::cout << "REQUEST" << std::endl;
                 #endif
                
                 result.addr = reader ? reader->getTuple( ) : 0;
@@ -189,7 +189,7 @@ Reads a file and create a drel.
             case CLOSE: {
 
                 #ifdef DRELDEBUG
-                cout << "CLOSE" << endl;
+                std::cout << "CLOSE" << std::endl;
                 #endif
 
                 if ( reader ) {

@@ -819,26 +819,26 @@ bool checkBox(bool print = true) const{
   if(max<0){ // an object node
      bool res = box.IsDefined();
      if(print && !res){
-        cout << "undefined object node" << endl;
+        std::cout << "undefined object node" << std::endl;
      }
      return res;
   }
   if(count == 0){
      bool res = !box.IsDefined();
      if(print && !res){
-        cout << "box defined but count == 0" << endl; 
+        std::cout << "box defined but count == 0" << std::endl; 
      }
      return  res;
   }
   if(count < 0){
      if(print){
-        cout << "count < 0 " << endl;
+        std::cout << "count < 0 " << std::endl;
      }
      return false;
   }
   if(!box.IsDefined()){
      if(print){
-       cout << "count >0 but box is undefined" << endl;
+       std::cout << "count >0 but box is undefined" << std::endl;
      }
      return false;
   }
@@ -848,9 +848,11 @@ bool checkBox(bool print = true) const{
   }
   bool res =  abox == box; 
   if(print && !res){
-     cout << "boxes differ";
-     cout << "computed box = "; abox.Print(cout); cout << endl;
-     cout << "stored box = "; box.Print(cout) ; cout  << endl;
+     std::cout << "boxes differ";
+     std::cout << "computed box = "; abox.Print(std::cout); std::cout
+        << std::endl;
+     std::cout << "stored box = "; box.Print(std::cout) ; std::cout
+        << std::endl;
   }
   return res;
 }
@@ -1231,14 +1233,14 @@ Prints some statistical information about this tree to ~o~.
 */
 template<unsigned dim, class T>
 std::ostream& RtreeT<dim,T>::printStats(std::ostream& o)const{
-  o << "Tree[" << endl
-    << "  min = " << min << endl
-    << "  max = " << max << endl
-    << "  nodes = " << noNodes(root) << endl
-    << "  leafs = " << noLeaves(root) << endl
-    << " height = " << height(root) << endl
-    << " objects = " << noObjects(root) << endl
-    << " usedMem = " << usedMem() << endl
+  o << "Tree[" << std::endl
+    << "  min = " << min << std::endl
+    << "  max = " << max << std::endl
+    << "  nodes = " << noNodes(root) << std::endl
+    << "  leafs = " << noLeaves(root) << std::endl
+    << " height = " << height(root) << std::endl
+    << " objects = " << noObjects(root) << std::endl
+    << " usedMem = " << usedMem() << std::endl
     << " ] ";
     return o;
 }
@@ -1301,7 +1303,7 @@ void RtreeT<dim,T>::printAsRelRec(Node<dim,T>* root, std::ostream& o,
       << getListString(root->box) << " "
       << nodeId++ << " " 
       << father 
-      << " )" << endl;
+      << " )" << std::endl;
   } else {
     int myId = nodeId;
     nodeId++;
@@ -1310,7 +1312,7 @@ void RtreeT<dim,T>::printAsRelRec(Node<dim,T>* root, std::ostream& o,
       << getListString(root->box) << " "
       << myId  << " "
       << father
-      << " )" << endl;
+      << " )" << std::endl;
     for(int i=0;i<root->count; i++){
        printAsRelRec( root->sons[i],o, level+1, nodeId, myId);
     }
@@ -1324,7 +1326,7 @@ void RtreeT<dim,T>::printAsRelRec(Node<dim,T>* root, std::ostream& o,
 
 template<unsigned dim, class T>
 void RtreeT<dim,T>::printAsTree(std::ostream& o) const {
-   o << "( tree " << endl;
+   o << "( tree " << std::endl;
    printAsTreeRec(root,o);
    o << ")"; 
 }
@@ -1334,7 +1336,7 @@ template<unsigned dim, class T>
 void RtreeT<dim, T>::printAsTreeRec(const Node<dim,T>* root, 
                                     std::ostream& o)const{
    if(!root){
-      o << "()" << endl;
+      o << "()" << std::endl;
    } else {
       o << "(" 
         << root->getLabel() << "  " ;
@@ -1347,7 +1349,7 @@ void RtreeT<dim, T>::printAsTreeRec(const Node<dim,T>* root,
      } else {
        o << "()" ; 
      }
-     o << ")" << endl;
+     o << ")" << std::endl;
    }
 }
 
@@ -1759,8 +1761,8 @@ bool RtreeT<dim,T>::checkBox(const Node<dim,T>* root,
    } else {
      if(!root->checkBox(print)){
         if(print){
-           cout << "Wrong boxes at level " << level << endl;
-           cout << "There are " << root->count << "entries" << endl;
+           std::cout << "Wrong boxes at level " << level << std::endl;
+           std::cout << "There are " << root->count << "entries" << std::endl;
         }
         return false;
      } 
@@ -1785,16 +1787,18 @@ bool RtreeT<dim,T>::checkSonNumber(const Node<dim,T>* root,
 
     if(root->count > max){ // too much entries
       if(print){
-          cout << "Node with more than " << max << " entries found " << endl;
-          cout << " problem at level " << level << endl;
+          std::cout << "Node with more than " << max << " entries found "
+             << std::endl;
+          std::cout << " problem at level " << level << std::endl;
       }
       return false;
     }
     if((level>0) ){ // not the root node
       if((root->count) < (this->min)  ){ // too less entries
         if(print){
-          cout << "Node with less than " << min << " entries found " << endl;
-          cout << "Problem at Level " << level << endl;
+          std::cout << "Node with less than " << min << " entries found "
+             << std::endl;
+          std::cout << "Problem at Level " << level << std::endl;
         }
         return false;
       }
@@ -1831,7 +1835,7 @@ bool RtreeT<dim,T>::checkLeafLevel(const Node<dim,T>* root,
        ok = checkLeafLevel(root->sons[i],print);
     }
     if(!ok && print){
-       cout << "Leaves on different levels found " << endl;
+       std::cout << "Leaves on different levels found " << std::endl;
     }
     return ok;
   }

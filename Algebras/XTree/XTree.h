@@ -355,27 +355,27 @@ Prints some infos about the tree to cmsg.info().
 */
     void printTreeInfos()
     {
-        cmsg.info() << endl
-            << "<xtree infos>" << endl
+        cmsg.info() << std::endl
+            << "<xtree infos>" << std::endl
             << "   dimension                 : "
-            << dim() << endl
+            << dim() << std::endl
             << "   entries                   : "
-            << entryCount() << endl
+            << entryCount() << std::endl
             << "   height                    : "
-            << height() << endl
+            << height() << std::endl
             << "   directory nodes           : "
-            << internalCount() << endl
+            << internalCount() << std::endl
             << "   leaf nodes                : "
-            << leafCount() << endl
+            << leafCount() << std::endl
             << "   supernodes                : "
-            << supernodeCount() << endl
+            << supernodeCount() << std::endl
             << "   assigned config           : "
-            << configName() << endl
+            << configName() << std::endl
             << "   assigned type             : "
-            << header.typeName << endl
+            << header.typeName << std::endl
             << "   assigned getdata function : "
-            << header.getdataName << endl
-            << endl << endl;
+            << header.getdataName << std::endl
+            << std::endl << std::endl;
         cmsg.send();
     }
 

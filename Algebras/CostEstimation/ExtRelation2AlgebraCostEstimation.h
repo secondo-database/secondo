@@ -181,19 +181,20 @@ public:
            pRes->Progress = (double) elapsedTime / (double) pRes->Time;
 
              if(DEBUG) {
-               cout << "DEBUG: ellapsed / it " << elapsedTime 
-                << " of " << pRes->Time << " / " << iteration << endl;
+               std::cout << "DEBUG: ellapsed / it " << elapsedTime 
+                << " of " << pRes->Time << " / " << iteration << std::endl;
               
-               cout << "DEBUG: iteration / tuplefile " << iteration 
-                << " / " << tupleFileWritten << endl;
+               std::cout << "DEBUG: iteration / tuplefile " << iteration 
+                << " / " << tupleFileWritten << std::endl;
               
-               cout << "DEBUG: read in iteration " << readInIteration << endl;
+               std::cout << "DEBUG: read in iteration " << readInIteration
+                  << std::endl;
              }
            
            } else {
 
               if(DEBUG) {
-                 cout << p2 << endl;
+                 std::cout << p2 << std::endl;
               }
 
               pRes->Progress = p2.Progress;
@@ -231,15 +232,15 @@ public:
                      * yItHashJoin * pRes->Card;
 
           if(DEBUG) {
-             cout << "Progress is " << pRes->Progress << endl;
-             cout << "Time is " << pRes->Time << endl;
-             cout << "BProgress is " << pRes->BProgress << endl;
-             cout << "BTime is " << pRes->BTime << endl;
-             cout << "Card is: " << pRes->Card << endl;
-             cout << "Partitions is: " << partitions << endl;
-             cout << "Card is: " << pRes->Card << endl;
-             cout << "Returned / Progress" << returned 
-                 << " / " <<  pRes->Progress << endl;
+             std::cout << "Progress is " << pRes->Progress << std::endl;
+             std::cout << "Time is " << pRes->Time << std::endl;
+             std::cout << "BProgress is " << pRes->BProgress << std::endl;
+             std::cout << "BTime is " << pRes->BTime << std::endl;
+             std::cout << "Card is: " << pRes->Card << std::endl;
+             std::cout << "Partitions is: " << partitions << std::endl;
+             std::cout << "Card is: " << pRes->Card << std::endl;
+             std::cout << "Returned / Progress" << returned 
+                 << " / " <<  pRes->Progress << std::endl;
           }
              
           pRes->CopySizes(pli);
@@ -317,12 +318,12 @@ virtual bool getCosts(const size_t NoTuples1, const size_t sizeOfTuple1,
      std::ofstream file;
      file.open("/tmp/secondolog",  std::ios::out | std::ios::app);
      file << "Called with NoTuples1 " << NoTuples1 
-        << " sizeOfTuple1 " << sizeOfTuple1 << endl;
+        << " sizeOfTuple1 " << sizeOfTuple1 << std::endl;
      file << "Called with NoTuples2 " << NoTuples2 
-        << " sizeOfTuple2 " << sizeOfTuple2 << endl;
-     file << "Partitions is " << partitions << endl;
-     file << "Memory is " << maxmem << endl;
-     file << "Costs " << costs << endl << endl;
+        << " sizeOfTuple2 " << sizeOfTuple2 << std::endl;
+     file << "Partitions is " << partitions << std::endl;
+     file << "Memory is " << maxmem << std::endl;
+     file << "Costs " << costs << std::endl << std::endl;
      file.close();
   }
 
@@ -479,17 +480,18 @@ size_t getNoOfPartitions(size_t s1Card, size_t s1Size, size_t maxmem) const {
         if(DEBUG) {
            std::ofstream file;
            file.open("/tmp/secondolog",  std::ios::out | std::ios::app);
-           file << "s1Card " << s1Card << " s1Size " << s1Size << endl;
-           file << "Memory is " << maxmem << endl;
-           file << "Real buckets " << realBuckets << endl;
+           file << "s1Card " << s1Card << " s1Size " << s1Size << std::endl;
+           file << "Memory is " << maxmem << std::endl;
+           file << "Real buckets " << realBuckets << std::endl;
            file << "DEBUG: Size of datastucture is: " 
-              << memoryOfDatastruct << endl;
+              << memoryOfDatastruct << std::endl;
            
-           file << "DEBUG: Size per Bucket: " << sizePerBucket << endl;
-           file << "DEBUG: Tuples is memory are: " << tuplesInMemory << endl;
-           file << "DEBUG: total Tuples are: " << s1Card << endl;
-           file << "DEBUG: No of partitons is: " << noOfPartitions << endl;
-           file << endl << endl;
+           file << "DEBUG: Size per Bucket: " << sizePerBucket << std::endl;
+           file << "DEBUG: Tuples is memory are: " << tuplesInMemory
+              << std::endl;
+           file << "DEBUG: total Tuples are: " << s1Card << std::endl;
+           file << "DEBUG: No of partitons is: " << noOfPartitions << std::endl;
+           file << std::endl << std::endl;
            file.close();
         }
 
@@ -838,8 +840,8 @@ function. Allowed types are:
             double& timeAt16MB,
             double& a, double& b, double& c, double& d) const {
 
-       cout << __PRETTY_FUNCTION__ << endl
-            << "TODO : use of noAttributes and selectivity" << endl;
+       std::cout << __PRETTY_FUNCTION__ << std::endl
+            << "TODO : use of noAttributes and selectivity" << std::endl;
 
        functionType=1;
        a=0;b=0;c=0;d=0;

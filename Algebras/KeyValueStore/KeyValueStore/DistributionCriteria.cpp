@@ -46,7 +46,7 @@ void DistributionCriteria::evaluateCriteria(Distribution* dist,
                                             int availableServers) {
   ROUT << "\n\n\n" << DebugTime() << "Evaluating Restructure (Transferred "
        << dataOverall << " bytes / " << setprecision(10)
-       << dataOverall / (1024.0 * 1024.0) << " MB)" << endl;
+       << dataOverall / (1024.0 * 1024.0) << " MB)" << std::endl;
 
   dist->updateWeightVector();
 
@@ -141,7 +141,7 @@ void DistributionCriteria::checkTupleInsertPercentage(Distribution* dist) {
 void DistributionCriteria::checkTupleDistribution(Distribution* dist,
                                                   const double& average) {
   ROUT << "Checking if server capacity exceeds average by more than 30% ("
-       << setprecision(10) << average * 1.3 << " tuples)" << endl;
+       << setprecision(10) << average * 1.3 << " tuples)" << std::endl;
   for (unsigned int serverIdIdx = 0; serverIdIdx < dist->serverIdOrder.size();
        ++serverIdIdx) {
     int serverId = dist->serverIdOrder[serverIdIdx];
@@ -152,12 +152,12 @@ void DistributionCriteria::checkTupleDistribution(Distribution* dist,
       ROUT << " -> potential";
       restructurePotential[serverId] = true;
     }
-    ROUT << endl;
+    ROUT << std::endl;
   }
 }
 
 void DistributionCriteria::checkTupleCapacity(Distribution* dist) {
-  ROUT << "Checking if server capacity is exceeded" << endl;
+  ROUT << "Checking if server capacity is exceeded" << std::endl;
   for (unsigned int serverIdIdx = 0; serverIdIdx < dist->serverIdOrder.size();
        ++serverIdIdx) {
     int serverId = dist->serverIdOrder[serverIdIdx];
@@ -172,7 +172,7 @@ void DistributionCriteria::checkTupleCapacity(Distribution* dist) {
       ROUT << " -> potential";
       restructurePotential[serverId] = true;
     }
-    ROUT << endl;
+    ROUT << std::endl;
   }
 }
 
@@ -214,7 +214,7 @@ void DistributionCriteria::checkDataDistribution(Distribution* dist) {
 
 void DistributionCriteria::evaluate(Distribution* dist, const double& average,
                                     int availableServers) {
-  ROUT << "\nDeciding Actions" << endl;
+  ROUT << "\nDeciding Actions" << std::endl;
   for (unsigned int serverId = 0; serverId < restructurePotential.size();
        ++serverId) {
     if (restructurePotential[serverId] == true) {
@@ -237,11 +237,11 @@ void DistributionCriteria::evaluate(Distribution* dist, const double& average,
       if (idPos != dist->serverIdOrder.begin()) {
         leftNeighborId = *(idPos - 1);
         ROUT << "Neighbor before weight:" << dist->serverWeight[leftNeighborId]
-             << endl;
+             << std::endl;
         if (dist->serverWeight[leftNeighborId] < average) {
           before = true;
           diff += average - dist->serverWeight[leftNeighborId];
-          ROUT << "before diff:" << diff << endl;
+          ROUT << "before diff:" << diff << std::endl;
         }
       }
 
@@ -250,12 +250,12 @@ void DistributionCriteria::evaluate(Distribution* dist, const double& average,
       if (idPos + 1 != dist->serverIdOrder.end()) {
         rightNeighborId = *(idPos + 1);
         ROUT << "Neighbor after weight:" << dist->serverWeight[rightNeighborId]
-             << endl;
+             << std::endl;
         // before = mappingIdx+1;
         if (dist->serverWeight[rightNeighborId] < average) {
           after = true;
           diff += average - dist->serverWeight[rightNeighborId];
-          ROUT << "after diff:" << diff << endl;
+          ROUT << "after diff:" << diff << std::endl;
         }
       }
 
@@ -264,7 +264,7 @@ void DistributionCriteria::evaluate(Distribution* dist, const double& average,
            << " Neighbor capacity:" << diff << " in No. Tuples";
       if ((dist->serverWeight[serverId] - average) * 0.9 < diff &&
           (before || after)) {
-        ROUT << " -> local restructure" << endl;
+        ROUT << " -> local restructure" << std::endl;
         //=> local restructure
         int startId;
         int n = 1;
@@ -283,7 +283,7 @@ void DistributionCriteria::evaluate(Distribution* dist, const double& average,
         localRestructure.push_back(make_pair(startId, n));
       } else {
         //=> split
-        ROUT << " -> split" << endl;
+        ROUT << " -> split" << std::endl;
         // if(split.size()+dist->serverIdOrder.size() < availableServers) {
         // insert sorted by server weight
         if (split.size() == 0) {

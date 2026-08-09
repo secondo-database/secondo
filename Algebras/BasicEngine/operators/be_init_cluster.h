@@ -117,7 +117,7 @@ int init_be_workerSFVM(Word *args, Word &result, int message, Word &local,
     if (!createConnectionResult) {
       std::cerr << "Error: Connection error, please check the previous messages"
                 << " for error messages." << std::endl
-                << endl;
+                << std::endl;
       ((CcBool *)result.addr)->Set(true, false);
       return 0;
     }

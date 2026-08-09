@@ -36,14 +36,14 @@ class GVector {
     v = gsl_vector_alloc(size);
     gsl_vector_set_all(v, val);    
     refs = 1;
-  }	  
+  }       
 
   inline GVector(const GVector& rhs) : v(rhs.v) { refs++; }
 
 
   inline GVector& operator=(const GVector& rhs)
   { 
-     v = rhs.v;	  
+     v = rhs.v;   
      refs++; 
      return *this; 
   }
@@ -54,7 +54,7 @@ class GVector {
     if (refs == 0) {   
       gsl_vector_free(v);
     }       
-  }	  
+  }       
 
 
   inline GVector operator*(const GMatrix& m) const;
@@ -74,12 +74,12 @@ class GVector {
  
 
   inline void put(ostream& os, const string& sep) const
-  {	  
+  {       
   ios_base::fmtflags oldflags = os.flags();
   os << setprecision(2) << fixed;  
   size_t i = 0;
   for ( ;i < getDim()-1; i++) { 
-      os << (*this)[i] << sep; 	    
+      os << (*this)[i] << sep;      
   }
   os << (*this)[i];
   os.flags(oldflags);
@@ -90,17 +90,17 @@ class GVector {
   gsl_vector* v;
   size_t refs;
 
-};	
+};      
 
 
 class GMatrix {
 
-  public:	
+  public:       
   GMatrix(size_t rows, size_t cols, double val = 0.0)
-  {	  
+  {       
     m = gsl_matrix_alloc(rows, cols);
     gsl_matrix_set_all(m, val);
-  }	  
+  }       
 
   ~GMatrix() 
   {
@@ -123,13 +123,13 @@ class GMatrix {
     GVector r( v.getDim() );
 
     for(int i = 0; i < getRows(); i++) {
-      for(int j = 0; j < getCols(); j++) {	  	      
+      for(int j = 0; j < getCols(); j++) {                    
         r[i] += (*this)[i][j] * v[j];
       }  
     }
 
     return r;  
-  }	  
+  }       
 
   inline size_t getRows() const { return m->size1; }
   inline size_t getCols() const { return m->size2; }
@@ -138,53 +138,53 @@ class GMatrix {
   void setDiag(double val) 
   {
     for(int i = 0; i < min(getRows(), getCols()); i++) {
-      (*this)[i][i] = val;	      
+      (*this)[i][i] = val;            
     }  
-  }	  
+  }       
 
   void topRight_to_lowerLeft()
   {
     size_t k = min( getRows(), getCols() );
 
     for(int i = 0; i < k; i++) {
-      for(int j = i+1; j < k; j++) { 	    
-        (*this)[j][i] = (*this)[i][j];	      
+      for(int j = i+1; j < k; j++) {        
+        (*this)[j][i] = (*this)[i][j];        
       }
     }   
-  }	  
+  }       
 
   void set_topRight(double val = 0.0, const bool topRight = true)
   {
     size_t k = min( getRows(), getCols() );
 
     for(int i = 0; i < k; i++) {
-      for(int j = i+1; j < k; j++) { 	    
-	if (topRight) {      
+      for(int j = i+1; j < k; j++) {        
+        if (topRight) {      
           (*this)[i][j] = val;
         } else {
           (*this)[j][i] = val;
-        }		
+        }               
       }
     }   
-  }	  
+  }       
 
   void set_lowerLeft(double val = 0.0)
   {
-     set_topRight(val, false);	  
-  }	  
+     set_topRight(val, false);    
+  }       
 
   void doCholeskyDecomposition() {
 
-    // to do error handling !!!	  
+    // to do error handling !!!   
     gsl_linalg_cholesky_decomp(m);
-  }	  
+  }       
   
 
   private:
   
   gsl_matrix* m;
 
-};	
+};      
 
 
   inline GVector GVector::operator*(const GMatrix& m) const
@@ -195,13 +195,13 @@ class GMatrix {
     for(int i = 0; i < getDim(); i++) {
       for(int j = 0; j < m.getRows(); j++) {
         //cout << (*this)[j] << " * " << m[j][i] 
-	//<< " = "  << (*this)[j] * m[j][i] << endl;	    
+        //<< " = "  << (*this)[j] * m[j][i] << endl;        
         r[i] += (*this)[j] * m[j][i];
       }  
     }
 
     return r;  
-  }	
+  }     
 
 
 
@@ -210,22 +210,22 @@ ostream& operator<<(ostream& os, const GMatrix& m)
   ios_base::fmtflags oldflags = os.flags();
   os << setprecision(2) << fixed;  
   for (size_t i = 0; i < m.getRows(); i++) { 
-    for (size_t j = 0; j < m.getCols(); j++) {	    
-      os << m[i][j] << " "; 	    
+    for (size_t j = 0; j < m.getCols(); j++) {      
+      os << m[i][j] << " ";         
     }
-    os << endl;
+    os << std::endl;
   } 
   os.flags(oldflags);
   return os; 
-}	
+}       
 
 ostream& operator<<(ostream& os, const GVector& v)
 {
-  os << "( ";	
+  os << "( ";   
   v.put(os, ", ");
-  os << " )" << endl;
+  os << " )" << std::endl;
   return os; 
-}	
+}       
 
 
 

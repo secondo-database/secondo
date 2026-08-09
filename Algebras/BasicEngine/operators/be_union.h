@@ -50,7 +50,7 @@ int be_unionSFVM(Word *args, Word &result, int message, Word &local,
     if (be_control && be_control->isMaster()) {
       val = be_control->munion(tab->toText());
     } else {
-      cout << noWorker << endl;
+      std::cout << noWorker << std::endl;
     }
 
     ((CcBool *)result.addr)->Set(true, val);

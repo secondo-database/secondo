@@ -259,7 +259,8 @@ int MSegs::findNext(MSeg cur, int start, bool check) {
                 ret = nindex;
             } else {
                 // We had already found a successor, so this is bad.
-                DEBUG(2, " Found 2 successors for " << cur.ToString() << endl <<
+                DEBUG(2, " Found 2 successors for " << cur.ToString()
+                   << std::endl <<
                         msegs[ret].ToString() << " AND\n" <<
                         msegs[nindex].ToString() << "\n");
                 ret = -2;

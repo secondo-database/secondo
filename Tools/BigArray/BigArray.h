@@ -35,14 +35,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <string>
 #include <type_traits>   // the static_asserts below
 
-// Only for the benefit of headers that reach std::cout and std::endl through
-// this one -- CSProtocol.h, Operator.h, SecondoCatalog.h, SystemInfoRel.h and
-// SystemTables.h all write a bare cout or endl. Nothing here needs it.
-// Qualifying those five, and whatever surfaces behind them, would let it go.
-#include <iostream>
-using std::cout;
-using std::endl;
-
 #include "SecondoException.h"
 
 

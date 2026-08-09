@@ -113,7 +113,7 @@ Retrieves a tuple by id. If no corresponding tuple is found,
              return pos1;
           }
           if(!buffer->overflow){
-             cout << "case 2" << endl;
+             std::cout << "case 2" << std::endl;
              return 0;
           }
           //cout << "case 3" << endl;

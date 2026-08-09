@@ -60,7 +60,7 @@ static void createUUID(string &uuid) {
 
      // Does the proc file exists?
      if( access(filename, R_OK ) == -1 ) {
-       cerr << "Unable to get UUID from kernel" << endl;
+       std::cerr << "Unable to get UUID from kernel" << std::endl;
        exit(-1);
      }
    

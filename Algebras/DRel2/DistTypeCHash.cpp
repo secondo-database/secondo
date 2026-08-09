@@ -65,7 +65,7 @@ Implementation.
     DistTypeCHash::DistTypeCHash( distributionType _type, int _attr) :
         DistTypeBasic( _type ), attr( _attr )  {
         #ifdef DRELDEBUG
-        cout << "DistTypeCHash constructor" << endl;
+        std::cout << "DistTypeCHash constructor" << std::endl;
         #endif
     }
 
@@ -76,7 +76,7 @@ Implementation.
     DistTypeCHash::DistTypeCHash( const DistTypeCHash& _distType ) :
         DistTypeBasic( _distType ), attr( _distType.attr ) {
         #ifdef DRELDEBUG
-        cout << "DistTypeCHash constructor" << endl;
+        std::cout << "DistTypeCHash constructor" << std::endl;
         #endif
     }
 
@@ -87,7 +87,7 @@ Implementation.
     DistTypeCHash& DistTypeCHash::operator=( const DistTypeCHash& _distType ) {
 
         #ifdef DRELDEBUG
-        cout << "DistTypeCHash assignment operator" << endl;
+        std::cout << "DistTypeCHash assignment operator" << std::endl;
         #endif
 
         if( this == &_distType ) {
@@ -115,7 +115,7 @@ Compares the current DistType with another one.
     bool DistTypeCHash::isEqual( DistTypeBasic* _distType ) {
 
         #ifdef DRELDEBUG
-        cout << "DistTypeCHash::isEqual" << endl;
+        std::cout << "DistTypeCHash::isEqual" << std::endl;
         #endif
 
         if( typeid( *_distType ) != typeid( *this ) ) {
@@ -134,7 +134,7 @@ Returns the number of the attribute used to distribute by hash.
     int DistTypeCHash::getAttr( ) {
 
         #ifdef DRELDEBUG
-        cout << "DistTypeCHash::getAttr" << endl;
+        std::cout << "DistTypeCHash::getAttr" << std::endl;
         #endif
 
         return attr;
@@ -149,7 +149,7 @@ Make a copy of the current object.
     DistTypeBasic* DistTypeCHash::copy( ) {
 
         #ifdef DRELDEBUG
-        cout << "DistTypeCHash::copy" << endl;
+        std::cout << "DistTypeCHash::copy" << std::endl;
         #endif
 
         return new DistTypeCHash( *this );
@@ -164,7 +164,7 @@ Checks whether the type in nested list format fits to this disttype.
     bool DistTypeCHash::checkType( ListExpr list ) {
 
         #ifdef DRELDEBUG
-        cout << "DistTypeCHash::checkType" << endl;
+        std::cout << "DistTypeCHash::checkType" << std::endl;
         #endif
 
         if( !nl->HasLength( list, 3 ) ) {
@@ -188,9 +188,9 @@ Writes a DistType to the storage.
         const ListExpr typeInfo ) {
 
         #ifdef DRELDEBUG
-        cout << "DistTypeCHash::save" << endl;
-        cout << "typeInfo" << endl;
-        cout << nl->ToString( typeInfo ) << endl;
+        std::cout << "DistTypeCHash::save" << std::endl;
+        std::cout << "typeInfo" << std::endl;
+        std::cout << nl->ToString( typeInfo ) << std::endl;
         #endif
 
         if( !DistTypeBasic::save( 
@@ -210,7 +210,7 @@ Returns the object as a list.
     ListExpr DistTypeCHash::toListExpr( ListExpr typeInfo ) {
 
         #ifdef DRELDEBUG
-        cout << endl << "DistTypeCHash::toListExpr" << endl;
+        std::cout << std::endl << "DistTypeCHash::toListExpr" << std::endl;
         #endif
 
         return nl->TwoElemList(
@@ -225,7 +225,7 @@ Prints the dist type informations. Used for debugging.
 */
     void DistTypeCHash::print( ) {
         DistTypeBasic::print( );
-        cout << "attr: " << attr << endl;
+        std::cout << "attr: " << attr << std::endl;
     }
 
 /*
@@ -238,11 +238,11 @@ operations like a projection.
     bool DistTypeCHash::computeNewAttrPos( ListExpr attrPosList, int& attrPos ){
 
         #ifdef DRELDEBUG
-        cout << "DistTypeCHash::computeNewAttrPos" << endl;
-        cout << "attrPosList" << endl;
-        cout << nl->ToString( attrPosList ) << endl;
-        cout << "attrPos" << endl;
-        cout << attrPos << endl;
+        std::cout << "DistTypeCHash::computeNewAttrPos" << std::endl;
+        std::cout << "attrPosList" << std::endl;
+        std::cout << nl->ToString( attrPosList ) << std::endl;
+        std::cout << "attrPos" << std::endl;
+        std::cout << attrPos << std::endl;
         #endif
 
         assert( DRelHelpers::listOfIntAtoms( attrPosList ) );

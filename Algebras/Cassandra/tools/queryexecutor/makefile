@@ -15,6 +15,10 @@ ifndef $(BERKELEY_DB_LIB)
   BERKELEY_DB_LIB=db_cxx # special patch for Simone
 endif
 
+# Folded in from the hand-written compile rules these replaced, so the %.o
+# rule in makefile.env builds both objects and writes their .dep files.
+CCFLAGS += -I../../ -I$(BDBINCLUDE)
+
 .PHONY: all
 all: Config.ini Queryexecutor$(EXEEXT) 
 
@@ -46,14 +50,9 @@ Queryexecutor$(EXEEXT): queryexecutor.o heartbeat.o
 	rm -rf nltemp
 	mkdir nltemp
 
-heartbeat.o: heartbeat.cpp 
-	$(CPPC) -c -o heartbeat.o $(CCFLAGS) heartbeat.cpp -I../../ -I$(BDBINCLUDE) 
-
-queryexecutor.o: queryexecutor.cpp 
-	$(CPPC) -c -o queryexecutor.o $(CCFLAGS) queryexecutor.cpp -I../../ -I$(BDBINCLUDE) 
-
 
 .PHONY:clean
 clean:
 	rm -f Config.ini Queryexecutor$(EXEEXT) *.o
+	rm -f $(DEP_FILES)
 	rm -rf nltemp

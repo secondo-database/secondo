@@ -352,7 +352,7 @@ public:
         if (expectedCount != currentCount)
         {
             std::cout << "Got count " << currentCount
-                      << ", but expected " << expectedCount << endl;
+                      << ", but expected " << expectedCount << std::endl;
         }
     }
 

@@ -110,7 +110,7 @@ inline std::ostream& operator<<(std::ostream &strm,
                          const cassandra::CassandraToken &cassandraToken) {
   
   return strm << "CassandraToken[" << cassandraToken.getToken() 
-              << " / " << cassandraToken.getIp()  << "]" << endl;
+              << " / " << cassandraToken.getIp()  << "]" << std::endl;
 }
 
 } // Namespace

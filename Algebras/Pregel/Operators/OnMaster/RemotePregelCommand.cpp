@@ -145,9 +145,9 @@ namespace pregel {
   }
 
   if(failed>0){
-    cout << "command '" << query <<"' failed on " << failed 
-         << " workers " << endl;
-    cout << "the error on the first failed worker is " << err << endl;
+    std::cout << "command '" << query <<"' failed on " << failed 
+         << " workers " << std::endl;
+    std::cout << "the error on the first failed worker is " << err << std::endl;
     res->Set(true,false);
   } else {
     res->Set(true,true);

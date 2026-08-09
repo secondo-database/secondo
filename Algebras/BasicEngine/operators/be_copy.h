@@ -59,7 +59,7 @@ int be_copySFVM(Word *args, Word &result, int message, Word &local,
   }
 
   if (be_control == nullptr) {
-    std::cout << noMaster << endl;
+    std::cout << noMaster << std::endl;
     ((CcBool *)result.addr)->Set(true, false);
     return 0;
   }

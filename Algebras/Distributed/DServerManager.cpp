@@ -77,7 +77,7 @@ DServerManager::DServerManager(ListExpr serverlist_n,
                                int sizeofarray)
   : m_error(false)
 {
-  cout << "Connecting to Workers... " << endl;
+  std::cout << "Connecting to Workers... " << std::endl;
   //m_watch.start();
    array_size = sizeofarray;
    name = name_n;
@@ -174,7 +174,7 @@ DServerManager::DServerManager(ListExpr serverlist_n,
          {
            setErrorText(string("Could not create DServers!\nError:") + 
                         e.what());
-           cerr << e.what() << endl;
+           std::cerr << e.what() << std::endl;
            m_status = false;
            return;
          }

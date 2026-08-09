@@ -238,7 +238,7 @@ more than once, a "runtime\_error"[1] exception is thrown.
       if(!wait)
         throw runtime_error{err};
       cmsg.info() << err << " Waiting for " << (exclusive ? "exclusive" :
-          "sharable") << " ownership." << endl;
+          "sharable") << " ownership." << std::endl;
       cmsg.send();
       exclusive ? mutex->lock() : mutex->lock_sharable();
     }

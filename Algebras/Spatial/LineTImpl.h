@@ -1228,8 +1228,8 @@ double LineT<Array>::Distance( const Rectangle<2>& r,
   assert( r.IsDefined() );
   assert( !geoid || geoid->IsDefined() );
   if(geoid){
-    cout << __PRETTY_FUNCTION__ << ": Spherical geometry not implemented."
-         <<endl;
+    std::cout << __PRETTY_FUNCTION__ << ": Spherical geometry not implemented."
+         <<std::endl;
     assert(false); // TODO: Implement spherical geometry case.
   }
   if( IsEmpty() || !r.IsDefined() || (geoid && !geoid->IsDefined()) ){
@@ -1262,8 +1262,8 @@ bool LineT<Array>::Intersects( const Rectangle<2>& r,
   }
 
   if(geoid){
-    cout << __PRETTY_FUNCTION__ << ": Spherical geometry not implemented."
-         <<endl;
+    std::cout << __PRETTY_FUNCTION__ << ": Spherical geometry not implemented."
+         <<std::endl;
     assert(false); // TODO: Implement spherical geometry case.
   }
   HalfSegment hs;
@@ -1287,8 +1287,8 @@ double LineT<Array>::MaxDistance( const Rectangle<2>& r,
   assert( r.IsDefined() );
   assert( !geoid || geoid->IsDefined() );
   if(geoid){
-    cout << __PRETTY_FUNCTION__ << ": Spherical geometry not implemented."
-         <<endl;
+    std::cout << __PRETTY_FUNCTION__ << ": Spherical geometry not implemented."
+         <<std::endl;
     assert(false); // TODO: Implement spherical geometry case.
   }
   if( IsEmpty() || !r.IsDefined() || (geoid && !geoid-IsDefined()) ){
@@ -2064,7 +2064,7 @@ std::ostream& operator<<( std::ostream& os, const LineT<Array>& cl )
     for( int i = 0; i < cl.Size(); i++ )
     {
       cl.Get( i, hs );
-      os << " " << hs << endl;
+      os << " " << hs << std::endl;
     }
   }
   os << ">";
@@ -2207,7 +2207,7 @@ std::ostream& LineT<Array>::Print( std::ostream &os ) const
     for( int i = 0; i < Size(); i++ )
     {
       Get( i, hs );
-      os << " " << hs << endl;
+      os << " " << hs << std::endl;
     }
   }
   os << ">";

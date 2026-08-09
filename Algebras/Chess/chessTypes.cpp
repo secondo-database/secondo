@@ -756,16 +756,16 @@ ostream& Position::Print( ostream& os ) const
 
 ostream& operator <<( ostream& os, const Position& pos )
 {
-  os << "Move number : " << pos.moveNumber << endl;
+  os << "Move number : " << pos.moveNumber << std::endl;
   for ( int i = 7; i >= 0; i-- )
   {
     for ( int j = 0; j < 8; j++ )
     {
       os << ( DecodeAgent( pos.gamefield[ ( i * 8 ) + j ] ) ) << " ";
     }
-    os << endl;
+    os << std::endl;
   }
-  os << endl << endl;
+  os << std::endl << std::endl;
   return os;
 }
 
@@ -924,17 +924,17 @@ bool Position::TestField ( string agentStr, char file, int row )
 
 void Position::ShowBoard(ostream& os) {
 
-  os << endl;	 
-  for (int row=8; row > 0; row--) {	
-    os << row;	  
+  os << std::endl;       
+  for (int row=8; row > 0; row--) {     
+    os << row;    
     for (char file='a'; file <= 'h'; file++) {
       char agent = gamefield[ ( int ) EncodePosition( file, row ) ];
       os << ' ' << DecodeAgentShort(agent);
     }
-    os << endl;    
+    os << std::endl;    
   }
-  os << "  a b c d e f g h" << endl;  
-}	
+  os << "  a b c d e f g h" << std::endl;  
+}       
 
 
 void Position::Range( Position* result, char startfile, char startrow,
@@ -1487,8 +1487,8 @@ int Chessgame::AddMove( char startfile, char startrow,
   size_t pos = pgn.find( endposstr.str() );
   bool ok = (pos != string::npos);
   if (!ok) {
-    cout << "Could not find field <" << endposstr.str() << ">"
-         << " in move <" << pgn << ">" << endl;
+    std::cout << "Could not find field <" << endposstr.str() << ">"
+         << " in move <" << pgn << ">" << std::endl;
     assert(false);     
   } 
 
@@ -2266,7 +2266,7 @@ void MovingChessPiece::closeMPoint()
 
 void MovingChessPiece::coutNewInterval( UPoint* up )
 {
-  cout << "Interval: "
+  std::cout << "Interval: "
   << up->timeInterval.start.GetHour() << ":"
   << up->timeInterval.start.GetMinute() << ":"
   << up->timeInterval.start.GetSecond() << ":"
@@ -2274,12 +2274,12 @@ void MovingChessPiece::coutNewInterval( UPoint* up )
   << up->timeInterval.end.GetHour() << ":"
   << up->timeInterval.end.GetMinute() << ":"
   << up->timeInterval.end.GetSecond() << ":"
-  << up->timeInterval.end.GetMillisecond() << endl;
+  << up->timeInterval.end.GetMillisecond() << std::endl;
 }
 
 void MovingChessPiece::coutNewInterval( const UPoint* up )
 {
-  cout << "Interval: "
+  std::cout << "Interval: "
   << up->timeInterval.start.GetHour() << ":"
   << up->timeInterval.start.GetMinute() << ":"
   << up->timeInterval.start.GetSecond() << ":"
@@ -2287,7 +2287,7 @@ void MovingChessPiece::coutNewInterval( const UPoint* up )
   << up->timeInterval.end.GetHour() << ":"
   << up->timeInterval.end.GetMinute() << ":"
   << up->timeInterval.end.GetSecond() << ":"
-  << up->timeInterval.end.GetMillisecond() << " " << up->p1 << " " << endl;
+  << up->timeInterval.end.GetMillisecond() << " " << up->p1 << " " << std::endl;
 }
 /*
 3.6 Class MovingChessPieces
@@ -2469,8 +2469,8 @@ void MovingChessPieces::realizeMove( Move* mv, const MoveData* mvdata )
       // find unused mcp
           for ( j = 32;j < 48;j++ ) { 
             if ( *(mcp[j]->getKind())==AGENT_NAMES[UNDEF] ) break; } 
-      cout << "unused mcp: " << j 
-           << ", ptr " << (void*) mcp[j] << endl;
+      std::cout << "unused mcp: " << j 
+           << ", ptr " << (void*) mcp[j] << std::endl;
       delete mcp[j];
           mcp[j] = new MovingChessPiece( 
                         AGENT_NAMES[(int)mvdata->GetNewAgentID()],

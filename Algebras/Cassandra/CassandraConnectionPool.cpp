@@ -57,7 +57,7 @@ namespace cassandra {
   void CassandraConnectionPool::destroy() {
 
 #ifdef __DEBUG__
-    cout << "[ConnectionPool] Destory Pool called" << endl;
+    std::cout << "[ConnectionPool] Destory Pool called" << std::endl;
 #endif
     
     // Cleanup connections
@@ -74,7 +74,7 @@ namespace cassandra {
      string myHostname, string myKeyspace, bool mySingleNode) {
 
 #ifdef __DEBUG__
-    cout << "[ConnectionPool] Get Connection called" << endl;
+    std::cout << "[ConnectionPool] Get Connection called" << std::endl;
 #endif
     
     // Create connection object
@@ -84,14 +84,14 @@ namespace cassandra {
     for(size_t i = 0; i < connections.size(); ++i) {
       CassandraConnection* tryConnection = connections[i];
       if(*tryConnection == *connection) {
-        cout << "[ConnectionPool] Connection found, reusing" << endl;
+        std::cout << "[ConnectionPool] Connection found, reusing" << std::endl;
         delete connection;
         return tryConnection->getAdapter();
       }
     }
     
 #ifdef __DEBUG__    
-    cout << "[ConnectionPool] Create new Connection" << endl;
+    std::cout << "[ConnectionPool] Create new Connection" << std::endl;
 #endif
     
     CassandraAdapter* adapter = new CassandraAdapter(myHostname, myKeyspace);
