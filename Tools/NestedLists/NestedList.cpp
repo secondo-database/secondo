@@ -490,11 +490,11 @@ NestedList::initializeListMemory()
    DeleteListMemory(); //cleans also free sets
 
    nodeTable   = BigArray<NodeRecord>::newInstance(basename+"_nodes",
-                                                   nodeEntries,true);
+                                                   nodeEntries);
    stringTable = BigArray<StringRecord>::newInstance(basename+"_strings",
-                                                     stringEntries,true);
+                                                     stringEntries);
    textTable   = BigArray<TextRecord>::newInstance(basename+"_texts",
-                                                   textEntries,true);
+                                                   textEntries);
 
    typeError = SymbolAtom("typeerror");
    // Handed to every caller of TypeError(), so nothing may write to it again.

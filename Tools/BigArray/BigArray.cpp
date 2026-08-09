@@ -34,9 +34,9 @@ Neither ever moves or replaces a mapping already handed out.
 
 #include "SecondoConfig.h"   // decides SECONDO_WIN32
 
+#include <atomic>
 #include <cstdint>
 #include <cstring>
-#include <fstream>
 #include <string>
 
 #ifndef SECONDO_WIN32
@@ -52,13 +52,43 @@ Neither ever moves or replaces a mapping already handed out.
 #include "BigArray.h"
 
 
-bool MappedChunkFile::exists(const std::string& filename)
+/*
+1.1 Naming
+
+The name a caller passes is a *prefix*, not the name of the file. It has to be:
+the file is deleted the moment it exists and only the mapping reaches it
+afterwards, so the name is a handle nobody ever looks up -- while every
+~NestedList~ in a process asks for the same three
+("temp\_nested\_list\_nodes" and its two siblings). Creating the file under the
+caller's name directly is then a race between two threads that both do it: they
+share one inode, and each truncates what the other has already mapped.
+
+Process id and a counter make the prefix this instance's own; exclusive creation
+is what rules the collision out rather than making it unlikely, and retrying
+covers the case the suffix does not -- a leftover file from a dead process whose
+id has since come round again. Spelled out in both branches rather than using
+~mkstemp~, which has no Win32 counterpart.
+
+*/
+static std::string candidateName(const std::string& prefix)
 {
-  std::ifstream in(filename.c_str(), std::ios::in);
-  const bool there = in.good();
-  in.close();
-  return there;
+  static std::atomic<uint64_t> counter(0);
+#ifndef SECONDO_WIN32
+  const unsigned long pid = (unsigned long) ::getpid();
+#else
+  const unsigned long pid = (unsigned long) ::GetCurrentProcessId();
+#endif
+  return prefix + "." + std::to_string(pid) + "."
+       + std::to_string(counter.fetch_add(1, std::memory_order_relaxed));
 }
+
+/*
+How many names to try before giving up. Reaching the end means every one of them
+was taken by a file this process did not create, which is a broken directory
+rather than a collision.
+
+*/
+static const int MAX_NAME_ATTEMPTS = 32;
 
 
 #ifndef SECONDO_WIN32
@@ -75,14 +105,28 @@ gigabyte, from processes that had been dead for weeks.
 */
 
 MappedChunkFile::MappedChunkFile(const std::string& filename)
-  : fname(filename), fd(-1), handle(0)
+  : fname(), fd(-1), handle(0)
 {
-  fd = ::open(fname.c_str(), O_RDWR | O_CREAT | O_TRUNC, 0600);
-  if(fd < 0){
-    throw SecondoException("Could not open file " + fname + ": "
-                           + strerror(errno));
+  for(int attempt = 0; attempt < MAX_NAME_ATTEMPTS; attempt++){
+    const std::string candidate = candidateName(filename);
+    // O_EXCL, so a name another thread or process got to first is refused
+    // rather than shared. Without it two openers of one name end up on the
+    // same inode and O_TRUNC discards what the other has mapped.
+    const int f = ::open(candidate.c_str(), O_RDWR | O_CREAT | O_EXCL, 0600);
+    if(f >= 0){
+      fname = candidate;
+      fd = f;
+      ::unlink(fname.c_str());
+      return;
+    }
+    if(errno != EEXIST){
+      throw SecondoException("Could not open file " + candidate + ": "
+                             + strerror(errno));
+    }
   }
-  ::unlink(fname.c_str());
+  throw SecondoException("Could not find an unused name for " + filename
+                         + " in " + std::to_string(MAX_NAME_ATTEMPTS)
+                         + " attempts");
 }
 
 
@@ -149,20 +193,33 @@ static std::string lastError()
 
 
 MappedChunkFile::MappedChunkFile(const std::string& filename)
-  : fname(filename), fd(-1), handle(0)
+  : fname(), fd(-1), handle(0)
 {
-  HANDLE h = ::CreateFileA(fname.c_str(),
-                           GENERIC_READ | GENERIC_WRITE,
-                           FILE_SHARE_READ | FILE_SHARE_WRITE
-                             | FILE_SHARE_DELETE,
-                           0, CREATE_ALWAYS,
-                           FILE_ATTRIBUTE_TEMPORARY
-                             | FILE_FLAG_DELETE_ON_CLOSE, 0);
-  if(h == INVALID_HANDLE_VALUE){
-    throw SecondoException("Could not open file " + fname + ": "
-                           + lastError());
+  for(int attempt = 0; attempt < MAX_NAME_ATTEMPTS; attempt++){
+    const std::string candidate = candidateName(filename);
+    // CREATE_NEW is the counterpart of O_EXCL: it fails rather than opening
+    // a file somebody else is already mapping. See the naming note above.
+    HANDLE h = ::CreateFileA(candidate.c_str(),
+                             GENERIC_READ | GENERIC_WRITE,
+                             FILE_SHARE_READ | FILE_SHARE_WRITE
+                               | FILE_SHARE_DELETE,
+                             0, CREATE_NEW,
+                             FILE_ATTRIBUTE_TEMPORARY
+                               | FILE_FLAG_DELETE_ON_CLOSE, 0);
+    if(h != INVALID_HANDLE_VALUE){
+      fname = candidate;
+      handle = (void*) h;
+      return;
+    }
+    const DWORD err = ::GetLastError();
+    if(err != ERROR_FILE_EXISTS && err != ERROR_ALREADY_EXISTS){
+      throw SecondoException("Could not open file " + candidate + ": "
+                             + lastError());
+    }
   }
-  handle = (void*) h;
+  throw SecondoException("Could not find an unused name for " + filename
+                         + " in " + std::to_string(MAX_NAME_ATTEMPTS)
+                         + " attempts");
 }
 
 

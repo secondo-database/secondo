@@ -60,7 +60,11 @@ descriptor and ~handle~ the Win32 HANDLE, each unused on the other platform, so
 that this header stays free of <sys/mman.h> and of <windows.h> in particular.
 
 The file is unlinked the moment it is created, so it cannot outlive the process
-however that process ends -- a crash, a kill and a power cut included.
+however that process ends -- a crash, a kill and a power cut included. Which
+also means the name is never used to find the file again, so the one a caller
+gives is only a prefix: what gets created carries a suffix of its own, because
+callers do share names and two of them creating a file at once must not land on
+one inode. BigArray.cpp holds the details.
 
 */
 
@@ -78,7 +82,9 @@ platform needs arithmetic of its own. ~BigArray~ sizes its chunks by it.
     static constexpr size_t GRANULARITY = ((size_t) 1) << 16;
 
 /*
-Creates the file and unlinks it. Throws ~SecondoException~ if it cannot.
+Creates a file whose name begins with ~filename~ and unlinks it. Throws
+~SecondoException~ if it cannot. ~name~ reports what was actually created,
+which is the prefix plus a suffix that makes it this instance's own.
 
 */
     explicit MappedChunkFile(const std::string& filename);
@@ -101,12 +107,6 @@ what lets ~BigArray~ grow while another thread is reading.
 
 */
     void unmap(void* base, const size_t bytes);
-
-/*
-Whether a file of that name is there already. Used before overwriting one.
-
-*/
-    static bool exists(const std::string& filename);
 
     const std::string& name() const { return fname; }
 
@@ -234,11 +234,7 @@ elements to reach the limit.
 */
     static BigArray* newInstance(const std::string& filename,
                                  size_t initialEntries,
-                                 bool overwrite,
                                  size_t maxChunks = DEFAULT_MAX_CHUNKS){
-      if(!overwrite && MappedChunkFile::exists(filename)){
-        throw SecondoException("File already exists");
-      }
       return new BigArray<T>(filename, initialEntries, maxChunks);
    }
 

@@ -55,7 +55,7 @@ belongs in the commit message of whatever changes that branch.
 #include "SecondoConfig.h"   // decides SECONDO_WIN32
 
 #ifndef SECONDO_WIN32
-#include <sys/stat.h>
+#include <dirent.h>
 #endif
 
 #include "../Tools/BigArray/BigArray.h"
@@ -82,6 +82,29 @@ static TestRecord makeRecord(const uint64_t i) {
   memset(r.pad, (int) (i & 0xFF), sizeof(r.pad));
   return r;
 }
+
+#ifndef SECONDO_WIN32
+/*
+How many files in the working directory start with ~prefix~. The backing files
+are named after a prefix and not after it exactly, so "is the file gone" has to
+be asked of the prefix.
+
+*/
+static size_t filesMatching(const string& prefix) {
+  DIR* d = ::opendir(".");
+  if(!d){
+    return 0;
+  }
+  size_t n = 0;
+  while(const struct dirent* e = ::readdir(d)){
+    if(string(e->d_name).rfind(prefix, 0) == 0){   // starts with
+      n++;
+    }
+  }
+  ::closedir(d);
+  return n;
+}
+#endif
 
 static bool recordIsValid(const TestRecord& r, const uint64_t i) {
   if(r.id != i || r.check != ~i){
@@ -114,7 +137,7 @@ still be the same address -- and the entries in it must still read back.
 
     const uint64_t entries = 3000000;
     BigArray<TestRecord>* a =
-       BigArray<TestRecord>::newInstance("tbigarray_move", 1000, true);
+       BigArray<TestRecord>::newInstance("tbigarray_move", 1000);
 
     vector<const void*> seen;
     bool moved = false;
@@ -181,7 +204,7 @@ what tells an operator which of NodeMem, StringMem and TextMem to raise.
   void TestChunkTableLimit() {
 
     BigArray<TestRecord>* a =
-       BigArray<TestRecord>::newInstance("tbigarray_limit", 1, true, 2);
+       BigArray<TestRecord>::newInstance("tbigarray_limit", 1, 2);
 
     const size_t limit = 2 * a->ChunkElements();
     bool threw = false;
@@ -225,7 +248,7 @@ the Windows and Apple Silicon builds that nothing else covers.
 */
   template<class T>
   bool chunkOffsetsAligned(const string& what) {
-    BigArray<T>* a = BigArray<T>::newInstance("tbigarray_align", 1, true);
+    BigArray<T>* a = BigArray<T>::newInstance("tbigarray_align", 1);
     const size_t bytes = a->ChunkElements() * sizeof(T);
     const bool ok = (bytes % 65536) == 0;
     cout << "*** " << what << ": sizeof = " << sizeof(T)
@@ -252,7 +275,7 @@ than on stdout -- in a "-srv" process stdout is the monitor's console.
   void TestBounds() {
 
     BigArray<TestRecord>* a =
-       BigArray<TestRecord>::newInstance("tbigarray_bounds", 1, true);
+       BigArray<TestRecord>::newInstance("tbigarray_bounds", 1);
     a->append(makeRecord(42));
 
     TestRecord r;
@@ -292,18 +315,57 @@ TMP\_NESTED\_LIST\_ behind.
 #ifndef SECONDO_WIN32
     const string name = "tbigarray_unlinked";
     BigArray<TestRecord>* a =
-       BigArray<TestRecord>::newInstance(name, 1000, true);
+       BigArray<TestRecord>::newInstance(name, 1000);
     a->append(makeRecord(1));
 
-    struct stat st;
-    CHECK(::stat(name.c_str(), &st) != 0, true);
+    // The requested name is only a prefix, so checking it alone would pass
+    // even if the file it stands for were still there. Count what the prefix
+    // matches instead.
+    CHECK(filesMatching(name) == 0, true);
     CHECK(recordIsValid((*a)[1], 1), true);   // still usable without a name
 
     delete a;
-    CHECK(::stat(name.c_str(), &st) != 0, true);
+    CHECK(filesMatching(name) == 0, true);
 #else
     cout << "*** FILE_FLAG_DELETE_ON_CLOSE, not checked here" << endl;
 #endif
+  }
+
+/*
+5a Two arrays that ask for one name are still two arrays
+
+Every ~NestedList~ in a process asks for the same three file names, so this is
+the ordinary case and not a corner. It used to be a race: the file was created
+under the caller's name with ~O\_TRUNC~ and unlinked immediately afterwards, so
+two openers in the same instant shared one inode and each threw away what the
+other had mapped. What makes it a *test* rather than a race to reproduce is
+that sharing an inode is observable without any timing at all -- write through
+one array, read through the other, and see whether the write shows up.
+
+*/
+  void TestSameNameIsTwoFiles() {
+    const string name = "tbigarray_sharedname";
+    BigArray<TestRecord>* a = BigArray<TestRecord>::newInstance(name, 1000);
+    BigArray<TestRecord>* b = BigArray<TestRecord>::newInstance(name, 1000);
+
+    // Both start empty: b did not inherit a's slots, nor a b's. Compared
+    // here rather than passed as a number -- CheckResult takes bools, so a
+    // size_t argument would collapse to "nonzero" and assert nothing.
+    CHECK(a->EmptySlot() == 1, true);
+    CHECK(b->EmptySlot() == 1, true);
+
+    a->Put(1, makeRecord(11));
+    b->Put(1, makeRecord(22));
+
+    // One inode would make these the same record.
+    TestRecord ra, rb;
+    a->Get(1, ra);
+    b->Get(1, rb);
+    CHECK(recordIsValid(ra, 11), true);
+    CHECK(recordIsValid(rb, 22), true);
+
+    delete a;
+    delete b;
   }
 
 /*
@@ -318,7 +380,7 @@ every byte of a fresh slot is whatever was in the page.
   void TestEmptySlotIsZeroed() {
 
     BigArray<StringRecord>* a =
-       BigArray<StringRecord>::newInstance("tbigarray_empty", 1000, true);
+       BigArray<StringRecord>::newInstance("tbigarray_empty", 1000);
 
     // Dirty the storage first, so that zeros cannot come from a fresh page.
     StringRecord dirty;
@@ -363,7 +425,7 @@ across the boundaries.
     const uint64_t perThread = 200000;
 
     BigArray<TestRecord>* a =
-       BigArray<TestRecord>::newInstance("tbigarray_conc", 1, true);
+       BigArray<TestRecord>::newInstance("tbigarray_conc", 1);
 
     std::atomic<size_t> mismatches(0);
     std::vector<std::thread> pool;
@@ -430,6 +492,7 @@ across the boundaries.
     TestChunkAlignment();
     TestBounds();
     TestFileIsUnlinked();
+    TestSameNameIsTwoFiles();
     TestEmptySlotIsZeroed();
     TestConcurrentAppend();
     return true;
