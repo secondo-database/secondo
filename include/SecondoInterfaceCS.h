@@ -226,6 +226,30 @@ public:
    // level 2) is available (compiled in and enabled for that server).
    bool optimizerAvailable();
 
+   // Read the next result's payload into ~sink~, one element at a time,
+   // instead of building the whole answer as a list first. 0 puts the usual
+   // reading back, and the sink must be cleared before it is destroyed.
+   //
+   // Only a binary result of the shape (type value) can be read this way; the
+   // sink is left untouched for anything else and the answer arrives in
+   // ~resultList~ as always, so a caller has to handle both. See
+   // ~NestedList::ReadBinaryStreamed~ and ~CSProtocol::setResultSink~.
+   //
+   // For the one consumer that walks a large answer once and keeps only what
+   // it derives: without this the client's own nested list grows by the whole
+   // result -- some 48M nodes for a "query roads" -- which is the larger half
+   // of what such a query costs the client.
+   //
+   // Reading this way rolls the list back between elements, so it carries
+   // ~NestedList::mark~'s contract with it: this interface must have exclusive
+   // use of its list for the length of the command. That holds for one that
+   // made its own, which is the default; a caller that passed a list in shares
+   // it with whoever else holds it.
+   //
+   // It applies to the ordinary command only. `save database` and the restore
+   // paths read a response too, and theirs is a database dump.
+   void SetResultSink( NestedList::BinaryListSink* sink );
+
    // How this connection transfers nested lists, as agreed with the server it
    // is connected to (see csp::BINARY_TRANSFER_TAG). Not the same thing as the
    // Server:BinaryTransfer runtime flag, which is only what this side would
@@ -330,6 +354,11 @@ public:
      std::string readErrorBody(std::iostream& iosock) const;
 
   private:
+     // Where a streamed result goes; see SetResultSink. Held here rather than
+     // on the CSProtocol so that it can be put on for the ordinary command and
+     // for nothing else -- `save database` and the restore paths read a
+     // response too, and theirs is a database dump, not tuples.
+     NestedList::BinaryListSink* resultSink;
      int  maxAttempts; // maximum number of attemps when connecting
      int  timeout; // timeout in second per connection attemp 
      int  server_pid;

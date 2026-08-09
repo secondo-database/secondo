@@ -1084,8 +1084,11 @@ struct CSProtocol : public csp::FrameMessageSink {
  // introduced to remove.
  bool binaryTransferKnown;
  bool binaryTransfer;
+ // Where a streamed result goes, or 0 for the usual whole-list reading. See
+ // setResultSink.
+ NestedList::BinaryListSink* resultSink;
 
- 
+
  public:
  const std::string startFileData;
  const std::string endFileData;
@@ -1151,6 +1154,7 @@ struct CSProtocol : public csp::FrameMessageSink {
    peerVersion = 0;
    frameMsgHandler = 0;
    frameMsgSource = -1;
+   resultSink = 0;
    msg = MessageCenter::GetInstance();
 
    // The message handler will send Secondo runtime messages
@@ -1166,6 +1170,27 @@ struct CSProtocol : public csp::FrameMessageSink {
      msg->RemoveHandler(msgHandler);
      delete msgHandler;
   }
+
+ /*
+ Read the next result frame's payload into ~sink~ instead of into one list, so
+ that a consumer who walks it once never has it all at the same time. 0 puts
+ the usual whole-list reading back.
+
+ Only a *binary* result can be streamed, and only one of the shape
+ ~(type value)~ (see ~NestedList::ReadBinaryStreamed~). Everything else is
+ read whole with the sink left untouched, so a caller has to be ready for
+ both -- which is why the sink is asked afterwards whether it was used, rather
+ than told beforehand that it will be.
+
+ The sink is *not* cleared after a frame: it stays until it is replaced. A
+ caller that installs one owns clearing it, and must not let it outlive the
+ object it points at.
+
+ */
+ void setResultSink( NestedList::BinaryListSink* sink )
+ {
+   resultSink = sink;
+ }
 
  /*
  Adopt the transfer mode the server announced for this connection. Called by
@@ -1585,7 +1610,21 @@ ReadFrame( ListExpr& resultList,
       dwriter.write(debug, std::cout, caller, callerID, "binary list transfer");
       // A truncated encoding terminates rather than hangs: ReadBinaryRec's
       // default case returns false as soon as it reads past the end.
-      nl->ReadBinaryFrom( payload, resultList );
+      if ( resultSink != 0 ) {
+        // Whether it really streamed is the sink's to find out; an answer
+        // whose shape does not allow it comes back in resultList as usual.
+        //
+        // An M record met part way through the payload still reaches the
+        // handler from here, and its list is built in the same rolled-back
+        // region -- so it lives until the element being read is done with,
+        // rather than until the end of the frame. That is within what
+        // ~handleMsg~ has always promised its callers, which is the list for
+        // the duration of the call, but it is a shorter life than before.
+        bool streamed = false;
+        nl->ReadBinaryStreamed( payload, resultList, *resultSink, streamed );
+      } else {
+        nl->ReadBinaryFrom( payload, resultList );
+      }
     } else {
       dwriter.write(debug, std::cout, caller, callerID,
                     "textual list transfer");

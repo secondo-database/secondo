@@ -164,14 +164,43 @@ def from_tree(
 
     paged = limit is not None
     types = [c["type"] for c in columns]
-    rows: list[list[Any]] = []
-    for tup in tuples if paged else tuples[:MAX_ROWS]:
-        if not isinstance(tup, list):
-            continue
-        rows.append(
-            [_cell(types[i], tup[i]) if i < len(tup) else None for i in range(len(columns))]
-        )
+    rows = [
+        _row(columns, types, tup)
+        for tup in (tuples if paged else tuples[:MAX_ROWS])
+        if isinstance(tup, list)
+    ]
+    return _payload(
+        columns,
+        rows,
+        offset=offset if paged else 0,
+        limit=limit,
+        # Rows were dropped with no way to ask for them. A page never is: the
+        # client just asks for the next one.
+        truncated=(not paged) and len(tuples) > MAX_ROWS,
+        total=(total if total is not None else offset + len(rows)) if paged
+        else len(tuples),
+        # Whether `totalRows` is the real total or just what has been seen so far.
+        total_known=(total is not None) if paged else True,
+    )
 
+
+def _row(columns: list[dict], types: list[str], tup: list) -> list[Any]:
+    return [
+        _cell(types[i], tup[i]) if i < len(tup) else None
+        for i in range(len(columns))
+    ]
+
+
+def _payload(
+    columns: list[dict],
+    rows: list[list[Any]],
+    *,
+    offset: int,
+    limit: int | None,
+    truncated: bool,
+    total: int,
+    total_known: bool,
+) -> dict:
     tid_index = next(
         (i for i, c in enumerate(columns) if c["type"] == TID_TYPE), None
     )
@@ -179,21 +208,75 @@ def from_tree(
         "columns": columns,
         "rows": rows,
         "rowCount": len(rows),
-        # Rows were dropped with no way to ask for them. A page never is: the
-        # client just asks for the next one.
-        "truncated": (not paged) and len(tuples) > MAX_ROWS,
-        "totalRows": (total if total is not None else offset + len(rows)) if paged
-        else len(tuples),
-        # Whether `totalRows` is the real total or just what has been seen so far.
-        "totalKnown": (total is not None) if paged else True,
-        "offset": offset if paged else 0,
+        "truncated": truncated,
+        "totalRows": total,
+        "totalKnown": total_known,
+        "offset": offset,
         "limit": limit,
-        "pageable": paged,
+        "pageable": limit is not None,
         "tidIndex": tid_index,
         # Set by the editable load path (see app.updates); a table that just
         # came out of /api/query is read-only until it is loaded with TIDs.
         "relation": None,
     }
+
+
+class RelationRows:
+    """Collects a relation's rows, one tuple at a time.
+
+    The streaming counterpart of ``from_tree`` / ``first_page`` (see
+    ``app/convert.py``), and the reason the choice between them can still be
+    made after the answer has been read: this keeps the tuples that could
+    still be shown and counts the rest, and ``payload`` decides afterwards
+    which of the two shapes to build.
+
+    It keeps the *tuples*, not the formatted rows, and that is the point --
+    formatting is the expensive half, a row of ``Trains`` being an mpoint
+    written back out as text, and only the rows that are actually served get
+    it. The cap is the largest a page may ever be, so no answer can make this
+    hold more of the relation than ``from_tree`` already would.
+    """
+
+    __slots__ = ("columns", "types", "kept", "total")
+
+    def __init__(self, type_expr: Node) -> None:
+        self.columns = columns_of(type_expr)
+        self.types = [c["type"] for c in self.columns] if self.columns else []
+        self.kept: list[list] = []
+        self.total = 0
+
+    @property
+    def wanted(self) -> bool:
+        """Whether this is a flat relation, i.e. whether there is a grid to
+        build at all."""
+        return self.columns is not None
+
+    def feed(self, tup: Node) -> None:
+        self.total += 1
+        if len(self.kept) < MAX_ROWS and isinstance(tup, list):
+            self.kept.append(tup)
+
+    def payload(self, *, page: int | None = None) -> dict | None:
+        """The table payload for everything fed so far.
+
+        ``page`` is the page size when the answer is one page of a stored
+        relation the client can ask for more of, and None when it is a result
+        with no relation behind it -- the same two cases ``first_page`` and
+        ``from_tree`` cover, and with the same values.
+        """
+        if self.columns is None:
+            return None
+        kept = self.kept if page is None else self.kept[:page]
+        rows = [_row(self.columns, self.types, tup) for tup in kept]
+        return _payload(
+            self.columns,
+            rows,
+            offset=0,
+            limit=page,
+            truncated=page is None and self.total > MAX_ROWS,
+            total=self.total,
+            total_known=True,
+        )
 
 
 def looks_like_relation(nested_text: str) -> bool:

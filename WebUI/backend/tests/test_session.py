@@ -13,14 +13,17 @@ import types
 
 import pytest
 
+from nativefake import answer
+
 
 def _install_fake(monkeypatch, *, optimizer=True, probe_raises=False):
     import app.session as session_mod
 
     closed: list[str] = []
     directives: list[str] = []
-    # One entry per bridge call, with the two half-of-the-answer flags as they
-    # arrived, so the tests can assert nobody asks for a half it will not read.
+    # One entry per bridge call, with the flags that say which form of the
+    # answer was asked for, so the tests can assert nobody asks for one it
+    # will not read.
     calls: list[dict] = []
 
     class FakeConnection:
@@ -37,20 +40,21 @@ def _install_fake(monkeypatch, *, optimizer=True, probe_raises=False):
             return "ok"
 
         def secondo(self, command: str, want_tree: bool = True,
-                    want_text: bool = True) -> dict:
-            calls.append({"command": command,
-                          "want_tree": want_tree, "want_text": want_text})
+                    want_text: bool = True, sink=None) -> dict:
+            calls.append({"command": command, "want_tree": want_tree,
+                          "want_text": want_text, "sink": sink is not None})
             return {"text": "()" if want_text else "",
-                    "tree": [] if want_tree else None}
+                    **answer([], want_tree, sink)}
 
         def secondo_auto(self, command: str, optimizer_addressed: bool = False,
-                         want_tree: bool = True, want_text: bool = True):
-            calls.append({"command": command,
-                          "want_tree": want_tree, "want_text": want_text})
+                         want_tree: bool = True, want_text: bool = True,
+                         sink=None):
+            calls.append({"command": command, "want_tree": want_tree,
+                          "want_text": want_text, "sink": sink is not None})
             return {
                 "level": 1,
                 "text": "()" if want_text else "",
-                "tree": [] if want_tree else None,
+                **answer([], want_tree, sink),
                 "plan": None,
                 "costs": None,
                 "message": None,
@@ -148,7 +152,8 @@ def test_run_asks_for_no_tree(session_mod):
         return session_mod._calls
 
     assert asyncio.run(scenario()) == [
-        {"command": "list objects", "want_tree": False, "want_text": True}
+        {"command": "list objects", "want_tree": False, "want_text": True,
+         "sink": False}
     ]
 
 
@@ -163,7 +168,8 @@ def test_run_tree_asks_for_no_text(session_mod):
         return session_mod._calls
 
     assert asyncio.run(scenario()) == [
-        {"command": "list objects", "want_tree": True, "want_text": False}
+        {"command": "list objects", "want_tree": True, "want_text": False,
+         "sink": False}
     ]
 
 
@@ -181,7 +187,8 @@ def test_execute_can_ask_for_neither_half(session_mod):
         return session_mod._calls
 
     assert asyncio.run(scenario()) == [
-        {"command": "query ten", "want_tree": False, "want_text": False}
+        {"command": "query ten", "want_tree": False, "want_text": False,
+         "sink": False}
     ]
 
 
@@ -231,7 +238,7 @@ def test_close_waits_for_a_command_in_flight(session_mod):
             return False
 
         def secondo(self, command: str, want_tree: bool = True,
-                    want_text: bool = True) -> dict:
+                    want_text: bool = True, sink=None) -> dict:
             started.set()
             time.sleep(0.2)  # still on the socket
             order.append("command finished")
@@ -272,3 +279,115 @@ def test_close_removes_the_session_before_waiting(session_mod):
         return found
 
     assert asyncio.run(scenario()) is None
+
+
+def test_an_unstreamed_answer_is_read_before_the_next_command(session_mod):
+    """The Python half of the bridge's streaming contract.
+
+    An answer the reader could not stream comes back as a `tuples` iterator
+    walking the connection's nested list, and the next command on that
+    connection rolls that list back (`Connection::beginCommand`), which is why
+    the C++ refuses to keep reading one afterwards. Nothing here may hand such
+    an iterator past the session lock. This fake enforces the same rule the
+    C++ does, so a change that deferred the reading -- to the event loop, to
+    the caller -- fails here rather than in production on the second request
+    of a session.
+    """
+
+    class GenerationalConnection:
+        def __init__(self, *_a, **_k):
+            self.generation = 0
+
+        def optimizer_available(self) -> bool:
+            return False
+
+        def secondo(self, command: str, want_tree: bool = True,
+                    want_text: bool = True, sink=None) -> dict:
+            self.generation += 1
+            born = self.generation
+
+            def tuples():
+                for tup in ([1], [2], [3]):
+                    if self.generation != born:
+                        raise RuntimeError("this result has been released")
+                    yield tup
+
+            return {
+                "text": "()" if want_text else "",
+                "streamed": False,
+                "type": ["rel", ["tuple", [["No", "int"]]]],
+                "tuples": tuples() if sink is not None else None,
+                "tree": None if sink is not None else [],
+            }
+
+        def close(self) -> None:
+            pass
+
+    class Collecting:
+        def __init__(self):
+            self.seen = []
+
+        def read(self, type_expr, tuples, tree):
+            self.seen = list(tuples)
+
+    session_mod.secondo_native.Connection = GenerationalConnection
+    mgr = session_mod.SessionManager()
+    sink = Collecting()
+
+    async def scenario():
+        session = await mgr.create()
+        await session.execute("query ten", want_tree=False, sink=sink)
+        # Whatever a later command does to the connection, the answer is
+        # already in hand.
+        await session.run("list objects")
+
+    asyncio.run(scenario())
+    assert sink.seen == [[1], [2], [3]]
+
+
+def test_a_streamed_answer_needs_no_reading_afterwards(session_mod):
+    """When the reader could stream, the sink already has the answer and
+    `execute` must not go looking for one in the dict."""
+
+    class PushingConnection:
+        def __init__(self, *_a, **_k):
+            pass
+
+        def optimizer_available(self) -> bool:
+            return False
+
+        def secondo(self, command: str, want_tree: bool = True,
+                    want_text: bool = True, sink=None) -> dict:
+            if sink is not None:
+                sink.begin("rel")
+                sink.elem([7])
+            return {"text": "()", "streamed": sink is not None,
+                    "type": None, "tuples": None, "tree": None}
+
+        def close(self) -> None:
+            pass
+
+    class Collecting:
+        def __init__(self):
+            self.seen = []
+
+        def begin(self, type_expr):
+            self.type_expr = type_expr
+
+        def elem(self, tup):
+            self.seen.append(tup)
+
+        def read(self, *_a):  # must not be called
+            raise AssertionError("a streamed answer was read a second time")
+
+    session_mod.secondo_native.Connection = PushingConnection
+    mgr = session_mod.SessionManager()
+    sink = Collecting()
+
+    async def scenario():
+        session = await mgr.create()
+        result = await session.execute("query ten", want_tree=False, sink=sink)
+        assert result.tree is None
+        return sink.seen
+
+    assert asyncio.run(scenario()) == [[7]]

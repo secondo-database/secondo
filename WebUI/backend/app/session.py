@@ -21,6 +21,7 @@ import logging
 import re
 import secrets
 import time
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -40,6 +41,14 @@ LEVEL_OPT_DIRECTIVE = 3
 # changes), so it is told to refresh -- see `settings.auto_update_catalog`.
 CATALOG_CMD = re.compile(r"^\s*(let|create|delete|update|derive|kill)\b", re.IGNORECASE)
 
+# What a caller passes to `execute` to have the answer *read* instead of handed
+# back: an object with `begin(type)` / `elem(tuple)`, which the bridge pushes a
+# relation's tuples into as it decodes them, and `read(type, tuples, tree)` for
+# the answers it could not stream. `app.convert.Answer` is the implementation;
+# the type stays loose here so the session layer does not depend on the payload
+# layer.
+ResultSink = Any
+
 
 @dataclass
 class CommandResult:
@@ -53,6 +62,7 @@ class CommandResult:
     text: str
     # The same list as `text`, already as Python objects -- the bridge builds it
     # from the ListExpr it is holding anyway, so nothing re-parses the text.
+    # None when a sink read the answer instead: it is then in the sink.
     tree: Any = None
     level: int | None = None
     plan: str | None = None
@@ -131,8 +141,39 @@ class Session:
             finally:
                 self.touch()
 
+    def _invoke(
+        self,
+        fn: Callable[..., dict],
+        args: tuple,
+        sink: ResultSink | None,
+    ) -> dict:
+        """Run one native call and make sure the answer has been read.
+
+        With a sink the bridge usually reads it during the call, pushing each
+        tuple over as it comes off the socket; `streamed` says whether it
+        could. When it could not, the answer is here now and is read the same
+        way from what the bridge did hand back.
+
+        That has to happen here, in the worker thread and under the session
+        lock. A `tuples` iterator walks the connection's nested list, and the
+        next command on that connection rolls it back
+        (`Connection::beginCommand`) -- handing it out past this point would
+        hand out something the very next request could invalidate. Reading it
+        here also keeps the work off the event loop, where it would block every
+        other session for as long as it took.
+        """
+        raw = fn(*args, sink)
+        if sink is not None and not raw["streamed"]:
+            sink.read(raw["type"], raw["tuples"], raw["tree"])
+        return raw
+
     async def execute(
-        self, command: str, *, want_tree: bool = True, want_text: bool = True
+        self,
+        command: str,
+        *,
+        want_tree: bool = True,
+        want_text: bool = True,
+        sink: ResultSink | None = None,
     ) -> CommandResult:
         """Execute one command the user typed, in whichever language it is in.
 
@@ -145,6 +186,12 @@ class Session:
         `want_tree` and `want_text` gate the two halves of the answer
         independently: the render payloads are built from the tree, the console
         shows the text, and a command run for its effect wants neither.
+
+        `sink` asks for the answer to be *read* rather than handed back. The
+        bridge then hands a relation's tuples over one at a time as it decodes
+        them, so neither side ever holds the whole result; what the sink made
+        of them is the caller's to collect from the sink it passed in. See
+        `_invoke` for why it cannot happen any later.
         """
         addressed, rest = secondo_native.strip_optimizer_prefix(command)
         async with self.lock:
@@ -156,12 +203,18 @@ class Session:
                             "The optimizer is not available on this server."
                         )
                     raw = await asyncio.to_thread(
-                        self.conn.secondo, command, want_tree, want_text
+                        self._invoke,
+                        self.conn.secondo,
+                        (command, want_tree, want_text),
+                        sink,
                     )
                     return CommandResult(text=raw["text"], tree=raw["tree"])
 
                 raw = await asyncio.to_thread(
-                    self.conn.secondo_auto, rest, addressed, want_tree, want_text
+                    self._invoke,
+                    self.conn.secondo_auto,
+                    (rest, addressed, want_tree, want_text),
+                    sink,
                 )
                 level = raw["level"]
                 plan = raw["plan"]

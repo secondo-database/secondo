@@ -19,18 +19,23 @@ does NOT reimplement any part of the SECONDO wire protocol: connecting,
 binary nested-list decoding, framing and heartbeats all stay inside the
 trusted C++ code that the rest of the system uses.
 
-The only thing crossing the language boundary is the nested list rendered
-as *text* (~NestedList::ToString~). Turning that text into GeoJSON is done
-in Python, where it is easy to fixture-test.
+What crosses the language boundary is the answer's nested list, either
+rendered as text (~NestedList::ToString~) or built straight into Python
+objects, and for a relation one tuple at a time (~ResultTuples~). Turning
+that into GeoJSON is done in Python, where it is easy to fixture-test.
 
 */
 
 #include <pybind11/pybind11.h>
 
 #include <cctype>
+#include <cstdint>
+#include <memory>
 #include <mutex>
+#include <sstream>
 #include <string>
 #include <stdexcept>
+#include <utility>
 
 #include "SecondoInterface.h"
 #include "SecondoInterfaceCS.h"
@@ -223,6 +228,222 @@ static SecondoCommandError secondoError(int code, int pos,
 // The registered Python exception type, set up in PYBIND11_MODULE.
 static py::handle secondoErrorType;
 
+/*
+1.3 Handing a result out one tuple at a time
+
+Turning a whole relation into Python objects at once is what made a large
+answer expensive on this side: ~query roads~ is ~48M nodes, so ~treeOf~ over
+the top of it builds ~48M Python objects and every one of them stays alive
+until the last consumer is done with the tree. The tuples are read once each
+and independently of one another, so they never have to exist at the same
+time.
+
+~ResultTuples~ walks the spine and builds one element's objects per
+~\_\_next\_\_~. The payload builders in ~app/convert.py~ consume it in a single
+pass and drop each tuple before asking for the next, so they see the whole
+relation while only one tuple's worth of it is live.
+
+The GIL is deliberately *not* released between elements. Everything here
+either allocates Python objects -- which requires it -- or is a handful of
+nested-list node reads, and a release/acquire pair per tuple would cost more
+than the little it could overlap.
+
+*/
+
+// What a Connection shares with every iterator it has handed out. It outlives
+// both, so an iterator can ask whether what it points at is still there
+// instead of finding out by reading freed nodes.
+struct ListState
+{
+  // The connection's nested list, or 0 once the connection has been closed.
+  NestedList* nl = 0;
+  // Bumped whenever that list is rolled back, which is at the start of every
+  // command (see Connection::beginCommand). An iterator made before the
+  // rollback points into nodes it has handed back, so it refuses to go on
+  // rather than reading them.
+  //
+  // Deliberately not atomic: a connection is used by one thread at a time --
+  // the FastAPI layer holds a per-session lock across the command and the
+  // iteration that follows it -- so this orders two things that already
+  // cannot overlap. It catches a use-after-free in program order, not a race.
+  uint64_t generation = 0;
+};
+
+class ResultTuples
+{
+ public:
+  ResultTuples(std::shared_ptr<ListState> listState, ListExpr rest)
+    : state(std::move(listState)), rest(rest), generation(state->generation)
+  {}
+
+  py::object next()
+  {
+    NestedList* const nl = live();
+    if (nl->IsEmpty(rest)) {
+      throw py::stop_iteration();
+    }
+    py::object item = treeOf(nl, nl->First(rest));
+    rest = nl->Rest(rest);
+    return item;
+  }
+
+ private:
+  // The list these elements are in, if it is still the one they were taken
+  // from. Checked on every step: the cost is two loads against reading a node
+  // that another command has already reused.
+  NestedList* live() const
+  {
+    if (state->nl == 0) {
+      throw std::runtime_error("connection is closed");
+    }
+    if (state->generation != generation) {
+      throw std::runtime_error(
+          "this result has been released: its tuples have to be read before "
+          "the next command runs on the same connection");
+    }
+    return state->nl;
+  }
+
+  std::shared_ptr<ListState> state;
+  // Where the walk stands. The elements before it are gone as far as this
+  // object is concerned; the list itself is untouched.
+  ListExpr rest;
+  uint64_t generation;
+};
+
+/*
+1.4 Reading a relation straight into Python
+
+~ResultTuples~ keeps the answer from becoming one Python tree, but the client
+has still built the whole nested list by the time it hands it over: some 48M
+nodes for a "query roads", which is the larger half of what that query costs
+this process.
+
+~PyResultSink~ closes that half too. Installed on the connection for the
+duration of one command (~SecondoInterfaceCS::SetResultSink~), it is handed
+each tuple as the client decodes it off the socket, turns it into Python
+objects, and lets the kernel take the nodes straight back -- so the client's
+list holds one tuple rather than a relation.
+
+Two things have to happen here because there is no answer left to do them from
+afterwards.
+
+The first is the result *text*. It goes through the same writer the whole list
+would have gone through, ~NestedList::WriteStringTo~, with the punctuation that
+list would have had around it: an opening parenthesis, the type half, a space,
+a second opening parenthesis, the elements separated by single spaces, and two
+closing ones. So the bytes are the ones ~ToString~ produced before. Without it
+a streamed command could not also show its answer on the console, and that
+would rule streaming out for every view the WebUI actually uses.
+
+The second is a Python error, which is caught rather than let out: the client
+is part way through a result frame and has to drain it before the connection
+can be used for anything else, so the failure is remembered and raised once
+the read is over.
+
+The GIL is taken per tuple. That is some 212k acquire/release pairs for
+~roads~ -- tens of milliseconds -- and it buys the opposite of what holding it
+throughout would: the socket read and the nested-list work between tuples run
+with it released, so other sessions keep going.
+
+*/
+class PyResultSink : public NestedList::BinaryListSink
+{
+ public:
+  // Built with the GIL held, before the command releases it: looking the two
+  // methods up once is also what keeps the per-tuple cost to a call.
+  PyResultSink(NestedList* nl, const py::object& sink, const bool wantText)
+    : nl(nl), onBegin(sink.attr("begin")), onElem(sink.attr("elem")),
+      wantText(wantText)
+  {}
+
+  // Whether the reader used this at all. False for an answer whose shape it
+  // could not stream -- the caller's cue to fall back to the whole list.
+  bool used() const { return started; }
+
+  // What the Python handler raised, or empty. Checked once the read is over.
+  const std::string& failure() const { return error; }
+
+  // The answer as text, in the ~want_text~ sense: "" when it was not asked
+  // for. Only meaningful once the read has finished.
+  std::string text() const
+  {
+    return wantText ? (rendered.str() + "))") : std::string();
+  }
+
+  void begin(ListExpr typeExpr) override
+  {
+    started = true;
+    if (wantText) {
+      rendered << "(";
+      nl->WriteStringTo(typeExpr, rendered);
+      rendered << " (";
+    }
+    call(onBegin, typeExpr);
+  }
+
+  bool elem(ListExpr element) override
+  {
+    if (wantText) {
+      if (elems > 0) rendered << " ";
+      nl->WriteStringTo(element, rendered);
+    }
+    elems++;
+    return call(onElem, element);
+  }
+
+ private:
+  // Hand one list to Python. Answering false stops the reading, which is what
+  // an error has to do: going on would call a handler that has already failed
+  // once per remaining tuple.
+  bool call(const py::object& fn, ListExpr list)
+  {
+    if (!error.empty()) {
+      return false;
+    }
+    py::gil_scoped_acquire gil;
+    try {
+      fn(treeOf(nl, list));
+    } catch (py::error_already_set& e) {
+      error = e.what();
+      if (error.empty()) {
+        error = "the result handler failed";
+      }
+      // Cleared here rather than left set: the C++ below this point makes
+      // plenty of calls that would see a pending Python error and misread it
+      // as their own.
+      e.discard_as_unraisable("secondo_native result sink");
+      return false;
+    }
+    return true;
+  }
+
+  NestedList* nl;
+  py::object onBegin;
+  py::object onElem;
+  bool wantText;
+  bool started = false;
+  unsigned long elems = 0;
+  std::ostringstream rendered;
+  std::string error;
+};
+
+// Installs a sink on a connection for the length of one command and takes it
+// off again however the command ends -- leaving one behind would point the
+// next command's reader at a dead object.
+class SinkGuard
+{
+ public:
+  SinkGuard(SecondoInterfaceCS* si, NestedList::BinaryListSink* sink) : si(si)
+  {
+    si->SetResultSink(sink);
+  }
+  ~SinkGuard() { si->SetResultSink(0); }
+
+ private:
+  SecondoInterfaceCS* si;
+};
+
 // Connections are independent: opening, using and closing one runs alongside
 // whatever the others are doing.
 //
@@ -273,10 +494,10 @@ class Connection
         // holds one list for the whole process, and a second session would
         // leave it pointing at a list another session owns -- at a freed one
         // once that session closes.
-        nl = si->GetNestedList();
+        state->nl = si->GetNestedList();
         // Where this connection's list stood before it had run anything: every
-        // command rolls back to here (see resetListMemory).
-        connected = nl->mark();
+        // command rolls back to here (see beginCommand).
+        connected = state->nl->mark();
       } else {
         // Tearing the half-built interface down again, still with the GIL
         // released: it talks to the server and frees its nested list.
@@ -314,12 +535,18 @@ class Connection
   //
   // The text is "" rather than None when it was not built: it stays a str, so
   // no caller downstream needs a null check.
+  //
+  // `sink`, when it is not None, is an object with `begin` and `elem` that
+  // takes the answer as it arrives instead of after it is built -- see
+  // `PyResultSink` and `answer`.
   py::dict secondo(const std::string& command, const bool want_tree,
-                   const bool want_text)
+                   const bool want_text, const py::object& sink)
   {
     if (!si) {
       throw std::runtime_error("connection is closed");
     }
+    NestedList* const nl = state->nl;
+    std::unique_ptr<PyResultSink> into(sinkFor(nl, sink, want_text));
     SecErrInfo err;
     std::string out;
     ListExpr res = nl->TheEmptyList();
@@ -327,18 +554,20 @@ class Connection
       // The call blocks on network I/O; let other Python threads run, and
       // let commands on other connections run alongside this one.
       py::gil_scoped_release release;
-      resetListMemory();
+      beginCommand();
+      SinkGuard guard(si, into.get());
       si->Secondo(command, res, err);
       if (err.code == 0 && want_text) {
-        out = nl->ToString(res);
+        out = streamed(into) ? into->text() : nl->ToString(res);
       }
     }
+    check(into);
     if (err.code != 0) {
       throw secondoError(err.code, err.pos, err.msg, "");
     }
     py::dict result;
     result["text"] = latin1(out);
-    result["tree"] = want_tree ? treeOf(nl, res) : py::object(py::none());
+    answer(result, res, want_tree, into);
     return result;
   }
 
@@ -350,6 +579,8 @@ class Connection
     if (!si) {
       throw std::runtime_error("connection is closed");
     }
+    // No beginCommand: this is a capability probe, not a command, and it
+    // builds no list -- rolling back here would only invalidate iterators.
     py::gil_scoped_release release;
     return si->optimizerAvailable();
   }
@@ -378,21 +609,30 @@ class Connection
   py::dict secondo_auto(const std::string& command,
                         const bool optimizer_addressed,
                         const bool want_tree,
-                        const bool want_text)
+                        const bool want_text,
+                        const py::object& sink)
   {
     if (!si) {
       throw std::runtime_error("connection is closed");
     }
+    NestedList* const nl = state->nl;
+    std::unique_ptr<PyResultSink> into(sinkFor(nl, sink, want_text));
     AutoResult r;
     {
       // Both the call and the nested-list extraction are pure C++, so the GIL
-      // stays released for all of it.
+      // stays released for all of it -- except where the sink takes it back
+      // for one tuple at a time.
       py::gil_scoped_release release;
-      resetListMemory();
+      beginCommand();
+      SinkGuard guard(si, into.get());
       ListExpr res = nl->TheEmptyList();
       si->SecondoAuto(command, optimizer_addressed, r.level, res,
                       r.errCode, r.errPos, r.errMsg);
-      if (r.errCode == 0) {
+      if (r.errCode == 0 && streamed(into)) {
+        // The answer went to the sink; there is no list left to take apart,
+        // and the text is the one the sink rendered as it went.
+        r.text = into->text();
+      } else if (r.errCode == 0) {
         extract(res, r, want_text);
       } else if (r.level == CMD_LEVEL_SQL && nl->ListLength(res) >= 2) {
         // A plan that failed to execute still comes back with the answer; every
@@ -402,6 +642,7 @@ class Connection
         r.hasPlan = true;
       }
     }
+    check(into);
     if (r.errCode != 0) {
       throw secondoError(r.errCode, r.errPos, r.errMsg,
                          r.hasPlan ? r.plan : "");
@@ -410,7 +651,7 @@ class Connection
     py::dict out;
     out["level"] = r.level;
     out["text"] = latin1(r.text);
-    out["tree"] = want_tree ? treeOf(nl, r.result) : py::object(py::none());
+    answer(out, r.result, want_tree, into);
     out["plan"] = r.hasPlan ? py::object(latin1(r.plan))
                             : py::object(py::none());
     out["costs"] = r.hasCosts ? py::object(py::cast(r.costs))
@@ -431,7 +672,7 @@ class Connection
     std::string out;
     {
       py::gil_scoped_release release;
-      resetListMemory();
+      beginCommand();
       out = si->optimizerCommand(directive);
     }
     return latin1(out);
@@ -440,13 +681,16 @@ class Connection
   void close()
   {
     if (si) {
+      // Any iterator still out there stops here rather than reading a list
+      // that is about to be freed; set before the free, not after it.
+      state->nl = 0;
+      ++state->generation;
       // Terminate talks to the server and deleting the interface frees this
       // connection's nested list; both are this connection's own business.
       py::gil_scoped_release release;
       si->Terminate();
       delete si;
       si = nullptr;
-      nl = nullptr;
     }
   }
 
@@ -461,12 +705,18 @@ class Connection
   // resident memory.
   //
   // The start of the next command is where the previous answer is provably
-  // dead, and it is an invariant this file already relies on (see
-  // ~AutoResult::result~): every list handed out has been turned into Python
-  // objects or into a ~std::string~ before the call that produced it returned.
-  // Nothing retains a ~ListExpr~ across commands -- not this class, and not the
-  // interface, which keeps only locals. ~NList::setNLRef~ is deliberately never
+  // dead. Everything the call built has been turned into Python objects or
+  // into a ~std::string~ before it returned (see ~AutoResult::result~); this
+  // class keeps no ~ListExpr~ across commands and neither does the interface,
+  // which keeps only locals; and ~NList::setNLRef~ is deliberately never
   // called, so no list object outside this connection points here either.
+  //
+  // The one thing that does outlive the call is a ~ResultTuples~, which is
+  // still walking the answer. It is not made safe here but *stopped* here: the
+  // generation below is what it checks, and the FastAPI layer reads it to the
+  // end under the same session lock as the command that produced it, so
+  // reaching this point with one still live is a caller's bug and is reported
+  // as one rather than read past.
   //
   // Rolling back to ~connected~ rather than ~initializeListMemory~, which is
   // the other way to empty a list. Three reasons, in order of weight:
@@ -484,11 +734,84 @@ class Connection
   // shrinking back between commands. That is the accumulation gone, which is
   // what was wrong; the pages are backed by a deleted file, so the kernel can
   // take them back when it needs to.
-  void resetListMemory()
+  //
+  // The rollback is also the moment a ~ResultTuples~ from the previous command
+  // becomes invalid -- the nodes it is walking are exactly the ones being
+  // handed back -- so the generation is bumped here, in the same place, rather
+  // than anywhere it could drift out of step.
+  void beginCommand()
   {
-    if (nl) {
-      nl->release(connected);
+    ++state->generation;
+    if (state->nl != 0) {
+      state->nl->release(connected);
     }
+  }
+
+  // A sink for this command, or nothing when the caller did not pass one.
+  static PyResultSink* sinkFor(NestedList* nl, const py::object& sink,
+                               const bool want_text)
+  {
+    return sink.is_none() ? 0 : new PyResultSink(nl, sink, want_text);
+  }
+
+  static bool streamed(const std::unique_ptr<PyResultSink>& into)
+  {
+    return into && into->used();
+  }
+
+  // Raise what the Python handler raised, now that the read is over and the
+  // connection is back in a usable state. Raised in preference to whatever
+  // error the interrupted read reported, which would be the symptom.
+  static void check(const std::unique_ptr<PyResultSink>& into)
+  {
+    if (into && !into->failure().empty()) {
+      throw std::runtime_error(into->failure());
+    }
+  }
+
+  // Puts the answer into ~out~ in whichever of the three forms it took.
+  //
+  //   streamed   the sink already has it, tuple by tuple, and nothing was
+  //              built here at all
+  //   type+tuples  the answer is a list of the shape (type value) that was
+  //              read whole -- a textual transfer, or the optimizer's
+  //              (plan result costs), neither of which the reader streams --
+  //              so at least the *Python* tree is still built one tuple at a
+  //              time, on demand
+  //   tree       anything else, whole
+  //
+  // Which of the last two it is turns on the *shape* alone, never on the type
+  // name: a two-element list with a list on the right can be split, and every
+  // relation is one. Which type names are relations stays in Python, where
+  // the payload builders already know it (app/table.py); a caller that gets a
+  // split it cannot use just puts the halves back together, which for
+  // anything that is not a relation is a handful of nodes.
+  //
+  // With a tree asked for as well and a split possible, the split wins:
+  // building the tree too would build the very thing this avoids.
+  void answer(py::dict& out, ListExpr res, const bool want_tree,
+              const std::unique_ptr<PyResultSink>& into) const
+  {
+    NestedList* const nl = state->nl;
+    if (streamed(into)) {
+      out["streamed"] = true;
+      out["type"] = py::none();
+      out["tuples"] = py::none();
+      out["tree"] = py::none();
+      return;
+    }
+    const bool want_tuples = static_cast<bool>(into);
+    const bool split = want_tuples && nl->ListLength(res) == 2
+                       && !nl->IsAtom(nl->Second(res));
+    out["streamed"] = false;
+    out["type"] = split ? treeOf(nl, nl->First(res))
+                        : py::object(py::none());
+    out["tuples"] = split
+        ? py::cast(ResultTuples(state, nl->Second(res)))
+        : py::object(py::none());
+    out["tree"] = (want_tree || (want_tuples && !split))
+        ? treeOf(nl, res)
+        : py::object(py::none());
   }
 
   // Splits the answer into the pieces Python needs, according to the level the
@@ -500,6 +823,7 @@ class Connection
   // they are the answer for the levels that produce them.
   void extract(ListExpr res, AutoResult& r, const bool want_text) const
   {
+    NestedList* const nl = state->nl;
     const int len = nl->ListLength(res);
     if (r.level == CMD_LEVEL_SQL && len >= 2) {
       // The SQL answer is the list (plan result costs). Testing the length
@@ -542,13 +866,17 @@ class Connection
   // ToString would yield "<text>...</text--->" instead of the plan itself.
   std::string planOf(ListExpr planExpr) const
   {
+    NestedList* const nl = state->nl;
     return trimmed(nl->AtomType(planExpr) == TextType
                      ? nl->Text2String(planExpr)
                      : nl->ToString(planExpr));
   }
 
   SecondoInterfaceCS* si = nullptr;
-  NestedList* nl = nullptr;
+  // The connection's nested list, held indirectly so that a ResultTuples this
+  // connection handed out can tell whether it is still valid. Every method
+  // below takes it out into a local named ~nl~ and uses that.
+  std::shared_ptr<ListState> state = std::make_shared<ListState>();
   NestedList::Mark connected = {0, 0, 0};
 };
 
@@ -600,6 +928,12 @@ PYBIND11_MODULE(secondo_native, m)
         "return it as Python objects. Raises ValueError, carrying the parser's "
         "message, if SECONDO would not accept the text.");
 
+  // Handed out by secondo/secondo_auto, never built from Python: it only
+  // means anything alongside the connection whose result it is walking.
+  py::class_<ResultTuples>(m, "ResultTuples")
+      .def("__iter__", [](py::object self) { return self; })
+      .def("__next__", &ResultTuples::next);
+
   py::class_<Connection>(m, "Connection")
       .def(py::init<const std::string&, const std::string&,
                     const std::string&, const std::string&,
@@ -613,18 +947,23 @@ PYBIND11_MODULE(secondo_native, m)
       .def("secondo", &Connection::secondo, py::arg("command"),
            py::arg("want_tree") = true,
            py::arg("want_text") = true,
+           py::arg("sink") = py::none(),
            "Execute a SECONDO command; returns a dict with the result nested "
            "list as text (unless want_text is off, when it is \"\") and as "
-           "Python objects (unless want_tree is off, when it is None).")
+           "Python objects (unless want_tree is off, when it is None). Pass a "
+           "sink -- an object with begin(type) and elem(tuple) -- to be given "
+           "the answer as it is read instead; `streamed` says whether it was.")
       .def("optimizer_available", &Connection::optimizer_available,
            "Whether this server can run the SQL dialect (optimizer).")
       .def("secondo_auto", &Connection::secondo_auto, py::arg("command"),
            py::arg("optimizer_addressed") = false,
            py::arg("want_tree") = true,
            py::arg("want_text") = true,
+           py::arg("sink") = py::none(),
            "Execute a command the server classifies itself; returns a dict "
-           "with level/text/tree/plan/costs/message. want_tree and want_text "
-           "gate the two halves of the result independently.")
+           "with level/text/streamed/tree/type/tuples/plan/costs/message. "
+           "want_tree, want_text and sink gate the forms of the result "
+           "independently; see secondo for what sink does.")
       .def("optimizer_command", &Connection::optimizer_command,
            py::arg("directive"),
            "Run an optimizer control directive; return the text it printed.")

@@ -71,6 +71,28 @@ static const time_t GREETING_TIMEOUT = 30;
 
 DebugWriter dwriter;
 
+namespace {
+/*
+Puts the caller's sink on the protocol for one response and takes it off again
+however that response ends. It has to come off: the next thing read on this
+connection may be a database dump or a file transfer, and a sink expecting
+tuples would be handed one of those.
+
+*/
+class StreamedResult {
+ public:
+   StreamedResult( CSProtocol* csp, NestedList::BinaryListSink* sink )
+     : csp(csp)
+   {
+      csp->setResultSink( sink );
+   }
+   ~StreamedResult() { csp->setResultSink( 0 ); }
+ private:
+   CSProtocol* csp;
+};
+}
+
+
 SecondoInterfaceCS::SecondoInterfaceCS(bool isServer, /*= false*/
                                        NestedList* _nl, /*=0 */
                                        bool _verbose /*=true*/ ):
@@ -78,6 +100,7 @@ SecondoInterfaceCS::SecondoInterfaceCS(bool isServer, /*= false*/
  MessageHandler() {
     server = 0;
     csp=0;
+    resultSink = 0;
     externalNL = _nl!=0;
     // Fail fast when no server is listening.
     maxAttempts = 1;
@@ -1065,7 +1088,11 @@ For an explanation of the error codes refer to SecondoInterface.h
          resolvedCmdLevel = parseCommandLevelEcho( levelLine );
        }
 
-       // Receive result
+       // Receive result. This is the only response a caller's sink is put
+       // on: `save database` and the two restore paths above read a response
+       // too, and what comes back there is a database dump that is written
+       // straight to a file.
+       StreamedResult streamed( csp, resultSink );
        errorCode = csp->ReadResponse( resultList,
                                    errorCode, errorPos,
                                    errorMessage , this, id, 
@@ -1405,6 +1432,12 @@ std::string SecondoInterfaceCS::getHome(){
    string line;
    getline(iosock,line);
    return line;
+}
+
+void SecondoInterfaceCS::SetResultSink( NestedList::BinaryListSink* sink ) {
+   // Kept until the next ordinary command, which is the only response it is
+   // put on -- see the private member and StreamedResult below.
+   resultSink = sink;
 }
 
 bool SecondoInterfaceCS::usesBinaryTransfer() const {

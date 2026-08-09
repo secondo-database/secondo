@@ -1759,12 +1759,24 @@ NestedList::ReadBinarySubLists( ListExpr& LE, istream& in,
 */
 bool
 NestedList::ReadBinaryRec(ListExpr& result, istream& in, unsigned long& pos) {
+  nlbyte typeId = 255 & in.get();
+  pos++;
+  return ReadBinaryBody(typeId, result, in, pos);
+}
+
+
+/*
+6.4 ReadBinaryBody: everything of ~ReadBinaryRec~ except taking the type byte
+    off the stream, for a caller that has read it already and had to look at
+    it before deciding what to do (see ~ReadBinaryStreamed~).
+
+*/
+bool
+NestedList::ReadBinaryBody(nlbyte typeId, ListExpr& result, istream& in,
+                           unsigned long& pos) {
   static const bool debug = RTFlag::isActive("NL:BinaryListDebug");
   unsigned long len = 0;
   string str = "";
-
-  nlbyte typeId = 255 & in.get();
-  pos++;
 
   if( debug ) {
     cerr << "TypeId: " << (unsigned int) (255 & typeId) << endl;
@@ -1929,6 +1941,116 @@ NestedList::ReadBinaryRec(ListExpr& result, istream& in, unsigned long& pos) {
   }
 
 
+}
+
+
+/*
+6.4 ReadBinaryListLength: If ~typeId~ opens a list, take its element count off
+    the stream and say so. For anything else nothing is read, so the caller can
+    still hand the type byte to ~ReadBinaryBody~ and get the value it would
+    have got anyway. The three cases are the ones ~ReadBinaryBody~ handles
+    above and the counts are read the same way, the header being what tells a
+    reader how many elements follow -- the format has no list terminator.
+
+*/
+bool
+NestedList::ReadBinaryListLength(nlbyte typeId, istream& in,
+                                 unsigned long& length,
+                                 unsigned long& pos) const
+{
+  switch( typeId ) {
+    case BIN_SHORTLIST : length = 255 & in.get();
+                         pos += 1;
+                         return true;
+    case BIN_LIST      : length = 65535 & ReadShort(in);
+                         pos += 2;
+                         return true;
+    case BIN_LONGLIST  : length = 4294967295u & ReadInt(in);
+                         pos += 4;
+                         return true;
+    default            : return false;
+  }
+}
+
+
+/*
+6.4 ReadBinaryStreamed: read a binary encoded list, handing the elements of a
+    ~(type value)~ answer's value half over one at a time instead of building
+    all of it. See the header for what the sink may and may not do with an
+    element. The rollback is what makes this worth doing: without it the tables
+    still grow by the whole answer and the tuples merely arrive earlier.
+
+*/
+bool
+NestedList::ReadBinaryStreamed(istream& in, ListExpr& list,
+                               BinaryListSink& sink, bool& streamed)
+{
+  streamed = false;
+  list = TheEmptyList();
+
+  assert( in.good() );
+
+  char version[8] = {0,0,0,0,0,0,0,0};
+  in.read(version,7);
+
+  string vStr = string(version);
+  if ( vStr.substr(0,3) != "bnl" ) {
+    cerr << "Error: Input stream is not a binary encoded nested list." << endl;
+    return false;
+  }
+  // version number check ommitted, as in ReadBinaryFrom
+
+  unsigned long pos = 0;
+  nlbyte outerId = 255 & in.get();
+  pos++;
+  unsigned long outerLen = 0;
+  if ( !ReadBinaryListLength(outerId, in, outerLen, pos) ) {
+    // An atom, so there is no value half at all.
+    return ReadBinaryBody(outerId, list, in, pos);
+  }
+  if ( outerLen != 2 ) {
+    // Some other list -- the optimizer's (plan result costs) among them. The
+    // length is already off the stream, so carry on from the elements.
+    return ReadBinarySubLists(list, in, outerLen, pos);
+  }
+
+  ListExpr typeExpr = 0;
+  if ( !ReadBinaryRec(typeExpr, in, pos) ) {
+    return false;
+  }
+
+  nlbyte valueId = 255 & in.get();
+  pos++;
+  unsigned long count = 0;
+  if ( !ReadBinaryListLength(valueId, in, count, pos) ) {
+    // (type <atom>): a scalar answer, and nothing to stream. Put the pair back
+    // together rather than leaving the caller half an answer.
+    ListExpr value = 0;
+    if ( !ReadBinaryBody(valueId, value, in, pos) ) {
+      return false;
+    }
+    list = TwoElemList(typeExpr, value);
+    return true;
+  }
+
+  // Past here the sink owns the answer: the type half is handed over first and
+  // is not rolled back, then one element at a time is.
+  streamed = true;
+  sink.begin(typeExpr);
+  const Mark start = mark();
+  for ( unsigned long i = 0; i < count; i++ ) {
+    ListExpr element = 0;
+    if ( !ReadBinaryRec(element, in, pos) ) {
+      release(start);
+      return false;
+    }
+    const bool goOn = sink.elem(element);
+    release(start);
+    if ( !goOn ) {
+      return false;
+    }
+  }
+  return true;
 }
 
 

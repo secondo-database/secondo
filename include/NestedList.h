@@ -958,8 +958,63 @@ of the file will be lost. Returns "true"[4] if writing was successful,
                        ListExpr& list              );
   bool ReadBinaryFrom( std::istream& in, ListExpr& list );
 /*
-Like ~ReadFromFile~, but reads a nested list from string ~nlChars~ or 
+Like ~ReadFromFile~, but reads a nested list from string ~nlChars~ or
 istream ~in~.  Returns "true"[4] if reading was successful.
+
+*/
+
+/*
+1.3.11a ~BinaryListSink~ / ~ReadBinaryStreamed~
+
+The reading counterpart of ~WriteBinaryElem~, for the one shape that gets
+large: an answer of the form ~(type value)~ whose value half is a list of
+tuples. ~ReadBinaryFrom~ builds all of it before the caller sees anything, so
+the tables grow by the whole answer -- some 48M nodes for one "query roads" --
+even though a consumer that walks it once needs one tuple at a time.
+
+~ReadBinaryStreamed~ reads the type half, then hands the elements of the value
+half over one by one, rolling the storage back to a mark between them. What was
+a table the size of the answer becomes a few hundred slots reused.
+
+The same contract as ~mark~/~release~ applies, and the sink is the one who has
+to meet it: an element is valid only for the duration of the ~elem~ call that
+was given it, because the next one reuses its nodes. The type half is read
+before the mark and is not affected.
+
+*/
+  class BinaryListSink
+  {
+   public:
+    virtual ~BinaryListSink() {}
+/*
+The type half, handed over once and before any element. It outlives the
+reading, so a sink may keep it.
+
+*/
+    virtual void begin( ListExpr typeExpr ) = 0;
+/*
+One element of the value half. Valid only until this returns. Answering
+"false"[4] stops the reading, which leaves the stream part way through the
+encoding -- only worth doing where the caller can resynchronise (~CSProtocol~
+drains the frame to its terminator).
+
+*/
+    virtual bool elem( ListExpr element ) = 0;
+  };
+
+  bool ReadBinaryStreamed( std::istream& in, ListExpr& list,
+                           BinaryListSink& sink, bool& streamed );
+/*
+Reads one binary encoded list from ~in~.
+
+An answer of the shape ~(type value)~ with a list on the right goes to ~sink~
+and ~streamed~ becomes "true"[4]; ~list~ is then the empty list, there being
+nothing left to hand back. Anything else -- an atom, a list of some other
+length, ~(type <atom>)~ -- is read whole into ~list~ with ~streamed~
+"false"[4] and the sink untouched, so a caller must be ready for both. In
+particular the optimizer's ~(plan result costs)~ is *not* streamed: the pair
+worth streaming is nested inside it, and finding it would mean teaching this
+class which answers are SQL answers.
 
 */
   bool WriteToString( std::string& nlChars,
@@ -1576,7 +1631,12 @@ prototypes for functions used for the binary encoding/decoding of lists
 */
   bool  WriteBinaryRec( ListExpr list, std::ostream& os ) const;
   bool  ReadBinaryRec( ListExpr& result, std::istream& in, unsigned long& pos );
-  bool  ReadBinarySubLists( ListExpr& LE, std::istream& in, 
+  bool  ReadBinaryBody( nlbyte typeId, ListExpr& result,
+                        std::istream& in, unsigned long& pos );
+  bool  ReadBinaryListLength( nlbyte typeId, std::istream& in,
+                              unsigned long& length,
+                              unsigned long& pos ) const;
+  bool  ReadBinarySubLists( ListExpr& LE, std::istream& in,
                             unsigned long length,
                             unsigned long& pos );
   int32_t  ReadShort( std::istream& in ) const;

@@ -62,6 +62,13 @@ class _Bounds:
         return [self.minx, self.miny, self.maxx, self.maxy]
 
 
+def new_bounds() -> _Bounds:
+    """A fresh extent accumulator, for a caller that drives the feature
+    building itself (``app/convert.py``) instead of going through
+    ``from_tree``."""
+    return _Bounds()
+
+
 def _num(x: Any) -> float | None:
     if isinstance(x, bool):
         return None
@@ -242,24 +249,47 @@ def _scalar(v: Any) -> Any | None:
     return None
 
 
-def _relation_features(
-    type_expr: list, tuples: Node, bounds: _Bounds | None = None
-) -> list[dict]:
-    # type_expr = ['rel', ['tuple', [[name, atype], ...]]]
-    try:
-        attrs = type_expr[1][1]
-        names = [a[0] for a in attrs]
-        types = [a[1] for a in attrs]
-    except (IndexError, TypeError):
-        return []
-    spatial_idx = [i for i, t in enumerate(types) if t in SPATIAL_TYPES]
-    if not spatial_idx or not isinstance(tuples, list):
-        return []
+class RelationFeatures:
+    """Collects a relation's features, one tuple at a time.
 
-    features: list[dict] = []
-    for tup in tuples:
+    Split out of ``_relation_features`` so the tuples do not all have to be in
+    hand at once: the bridge can hand them over as it decodes them (see
+    ``app/convert.py``), and then only one tuple's Python objects are ever
+    live instead of the whole relation's.
+
+    Fed the same tuples in the same order it produces exactly what the whole-
+    list function produces -- it *is* that function's loop body.
+    """
+
+    __slots__ = ("names", "types", "spatial_idx", "bounds", "features")
+
+    def __init__(self, type_expr: Node, bounds: _Bounds | None = None) -> None:
+        # type_expr = ['rel', ['tuple', [[name, atype], ...]]]
+        try:
+            attrs = type_expr[1][1]  # type: ignore[index]
+            self.names = [a[0] for a in attrs]
+            self.types = [a[1] for a in attrs]
+        except (IndexError, TypeError):
+            self.names = []
+            self.types = []
+        self.spatial_idx = [
+            i for i, t in enumerate(self.types) if t in SPATIAL_TYPES
+        ]
+        self.bounds = bounds
+        self.features: list[dict] = []
+
+    @property
+    def wanted(self) -> bool:
+        """Whether feeding this anything can produce a feature at all. A
+        relation with no spatial attribute never will, and a streaming caller
+        uses this to skip the per-tuple work rather than do it 212,099 times
+        for an empty answer."""
+        return bool(self.spatial_idx)
+
+    def feed(self, tup: Node) -> None:
         if not isinstance(tup, list):
-            continue
+            return
+        names, types, spatial_idx = self.names, self.types, self.spatial_idx
         props = {
             names[i]: _scalar(tup[i])
             for i in range(min(len(names), len(tup)))
@@ -267,10 +297,37 @@ def _relation_features(
         }
         for i in spatial_idx:
             if i < len(tup):
-                geom = geometry_from(types[i], tup[i], bounds)
+                geom = geometry_from(types[i], tup[i], self.bounds)
                 if geom:
-                    features.append(_feature(geom, {**props, "_attr": names[i]}))
-    return features
+                    self.features.append(
+                        _feature(geom, {**props, "_attr": names[i]})
+                    )
+
+    def collection(self) -> dict | None:
+        """The FeatureCollection for everything fed so far, or None if nothing
+        spatial came out of it."""
+        return _collection(self.features, self.bounds)
+
+
+def _collection(features: list[dict], bounds: _Bounds | None) -> dict | None:
+    if not features:
+        return None
+    fc: dict = {"type": "FeatureCollection", "features": features}
+    bbox = bounds.as_list() if bounds is not None else None
+    if bbox:
+        fc["bbox"] = bbox
+    return fc
+
+
+def _relation_features(
+    type_expr: list, tuples: Node, bounds: _Bounds | None = None
+) -> list[dict]:
+    collector = RelationFeatures(type_expr, bounds)
+    if not collector.wanted or not isinstance(tuples, list):
+        return []
+    for tup in tuples:
+        collector.feed(tup)
+    return collector.features
 
 
 def from_tree(tree: Node) -> dict | None:
@@ -290,13 +347,7 @@ def from_tree(tree: Node) -> dict | None:
     elif isinstance(type_expr, list) and type_expr and type_expr[0] == "rel":
         features = _relation_features(type_expr, value, bounds)
 
-    if not features:
-        return None
-    fc: dict = {"type": "FeatureCollection", "features": features}
-    bbox = bounds.as_list()
-    if bbox:
-        fc["bbox"] = bbox
-    return fc
+    return _collection(features, bounds)
 
 
 def to_geojson(nested_text: str) -> dict | None:

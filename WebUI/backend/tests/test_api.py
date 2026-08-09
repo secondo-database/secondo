@@ -18,6 +18,7 @@ from fastapi.testclient import TestClient
 from app import table as table_mod
 from app.config import settings
 from app.nlparser import parse
+from nativefake import answer
 
 
 # A relation of points, the shape the GeoJSON conversion recognizes. Used as an
@@ -108,19 +109,20 @@ def _fake_native(optimizer: bool = True):
             return "ok"
 
         def secondo(self, command: str, want_tree: bool = True,
-                    want_text: bool = True) -> dict:
-            # The real bridge answers with the list both as text and as objects,
-            # building the tree from the ListExpr it holds. Parsing the fake's
+                    want_text: bool = True, sink=None) -> dict:
+            # The real bridge answers with the list as text and as objects,
+            # building both from the ListExpr it holds. Parsing the fake's
             # text here is the stand-in for that -- it is what the C++ walk
             # produces, and it keeps every canned answer below plain text.
             #
             # The flags are honoured rather than ignored so that a caller that
-            # asks for a half it does not need shows up as a failing assertion
-            # here instead of as silent work in production.
+            # asks for a form it does not need shows up as a failing assertion
+            # here instead of as silent work in production, and so that the
+            # streamed path is the one these tests actually take.
             text = self._secondo_text(command)
             return {
                 "text": text if want_text else "",
-                "tree": parse(text) if want_tree else None,
+                **answer(parse(text), want_tree, sink),
             }
 
         def _secondo_text(self, command: str) -> str:
@@ -168,7 +170,8 @@ def _fake_native(optimizer: bool = True):
 
         # The answers the server gives once it classifies the command itself.
         def secondo_auto(self, command: str, optimizer_addressed: bool = False,
-                         want_tree: bool = True, want_text: bool = True):
+                         want_tree: bool = True, want_text: bool = True,
+                         sink=None):
             assert optimizer, "secondo_auto must not be used without an optimizer"
             cmd = command.strip()
 
@@ -176,10 +179,13 @@ def _fake_native(optimizer: bool = True):
             # *result*, while the plan, the costs and a directive's message are
             # always extracted -- they are small, and they are the answer for
             # the levels that produce them.
+            # An SQL answer is (plan result costs), which the reader does not
+            # stream -- the pair worth streaming is nested inside it -- so this
+            # one always comes back through the split.
             def halves(text: str) -> dict:
                 return {
                     "text": text if want_text else "",
-                    "tree": parse(text) if want_tree else None,
+                    **answer(parse(text), want_tree, sink, can_stream=False),
                 }
 
             if cmd == "select * from kinos":
@@ -205,7 +211,7 @@ def _fake_native(optimizer: bool = True):
                     # A directive's text is the constant "()", not a rendering
                     # of a result, so extract() does not gate it on want_text.
                     "text": "()",
-                    "tree": [] if want_tree else None,
+                    **answer([], want_tree, sink, can_stream=False),
                     "plan": None,
                     "costs": None,
                     "message": "  subqueries: on\n  rewriteInference: off",
@@ -218,7 +224,7 @@ def _fake_native(optimizer: bool = True):
             return {
                 "level": 1,
                 # text and tree both, as the bridge sends them.
-                **self.secondo(cmd, want_tree, want_text),
+                **self.secondo(cmd, want_tree, want_text, sink),
                 "plan": None,
                 "costs": None,
                 "message": None,
@@ -380,7 +386,7 @@ def test_unexpected_error_still_returns_json(client, monkeypatch):
             return False
 
         def secondo(self, command, want_tree: bool = True,
-                    want_text: bool = True):
+                    want_text: bool = True, sink=None):
             raise ValueError("kaboom")
 
         def close(self):

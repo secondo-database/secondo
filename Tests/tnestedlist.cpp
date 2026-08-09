@@ -363,6 +363,139 @@ TestStreamedBinaryWrite(CTestFrame& t)
 
 /*
 
+Reading a ~(type value)~ answer without ever holding it.
+
+~ReadBinaryStreamed~ is the reading counterpart of the writer above, for the
+client side of the same relation: the type half once, then each tuple handed
+over and its storage taken straight back. Three things have to hold and each
+would fail silently on its own -- the elements have to be the ones that were
+written, the storage really has to be reused rather than merely handed over
+early, and an answer whose shape cannot be streamed has to come back whole
+instead of being lost.
+
+The last one is not a corner case. It is every scalar result, every empty
+answer and the optimizer's ~(plan result costs)~, so a reader that quietly
+dropped those would break far more than it sped up.
+
+*/
+
+// Keeps what it is given, and asserts as it goes that an element is only ever
+// live for the length of the call: it copies the text out rather than the
+// ListExpr, which is the only thing a sink may do.
+class CollectingSink : public NestedList::BinaryListSink
+{
+ public:
+   CollectingSink(NestedList& nl) : nl(nl), began(false) {}
+
+   void begin(ListExpr typeExpr) { began = true; type = nl.ToString(typeExpr); }
+   bool elem(ListExpr element) { elems.push_back(nl.ToString(element));
+                                 return true; }
+
+   NestedList& nl;
+   bool began;
+   std::string type;
+   std::vector<std::string> elems;
+};
+
+void
+TestStreamedBinaryRead(CTestFrame& t)
+{
+   NestedList nl;
+
+   t.TestCase("a (type value) answer is read one element at a time");
+
+   const int n = 300;   // past the 255 boundary, so the long header is used
+   ListExpr type = nl.TwoElemList(nl.SymbolAtom("rel"),
+                                  nl.SymbolAtom("tuple"));
+   ListExpr tuples = nl.TheEmptyList();
+   ListExpr last = tuples;
+   for (int k = 0; k < n; k++) {
+     ListExpr tup = nl.TwoElemList(nl.IntAtom(k), nl.StringAtom("row"));
+     if (nl.IsEmpty(tuples)) { tuples = nl.Cons(tup, nl.TheEmptyList());
+                               last = tuples; }
+     else                    { last = nl.Append(last, tup); }
+   }
+   stringstream encoded;
+   nl.WriteBinaryTo(nl.TwoElemList(type, tuples), encoded);
+
+   // Read it into a list that has nothing else in it, so the growth below is
+   // this answer's and nothing else's.
+   NestedList reader;
+   CollectingSink sink(reader);
+   const size_t before = reader.sizeOfNodeTable();
+   ListExpr rest = reader.TheEmptyList();
+   bool streamed = false;
+   const bool ok = reader.ReadBinaryStreamed(encoded, rest, sink, streamed);
+
+   t.CheckResult("the answer was read", ok, true);
+   t.CheckResult("and it was streamed", streamed, true);
+   t.CheckResult("nothing is left to hand back", reader.IsEmpty(rest), true);
+   t.CheckResult("the type half arrived", sink.type == "(rel tuple)", true);
+   t.CheckResult("every element arrived", sink.elems.size() == (size_t) n,
+                 true);
+   t.CheckResult("the first is the one that was written",
+                 sink.elems[0] == "(0 \"row\")", true);
+   t.CheckResult("and so is the last",
+                 sink.elems[n-1] == "(299 \"row\")", true);
+
+   // The point of the exercise: 300 tuples went through a table that only ever
+   // held one. Ten nodes is room for the type half plus one tuple and change;
+   // without the rollback this would have grown by some 1,800.
+   const size_t grew = reader.sizeOfNodeTable() - before;
+   t.CheckResult("the storage was reused, not appended to", grew < 20, true);
+   if (grew >= 20) {
+     cout << "*** node table grew by " << grew << " for " << n
+          << " elements" << endl;
+   }
+
+   // An answer that cannot be streamed comes back whole and leaves the sink
+   // alone. (int 42) is a scalar result; the empty list is what a command run
+   // for its effect answers with.
+   const char* unstreamable[] = { "(int 42)", "()", "(a b c)", "(sym)" };
+   for (unsigned int i = 0; i < 4; i++) {
+     NestedList plain;
+     ListExpr source = plain.TheEmptyList();
+     plain.ReadFromString(unstreamable[i], source);
+     stringstream bytes;
+     plain.WriteBinaryTo(source, bytes);
+
+     NestedList back;
+     CollectingSink untouched(back);
+     ListExpr whole = back.TheEmptyList();
+     bool wasStreamed = true;
+     const bool read = back.ReadBinaryStreamed(bytes, whole, untouched,
+                                               wasStreamed);
+     stringstream label;
+     label << unstreamable[i] << " comes back whole";
+     t.CheckResult(label.str(),
+                   read && !wasStreamed && !untouched.began
+                   && back.ToString(whole) == std::string(unstreamable[i]),
+                   true);
+   }
+
+   // A relation with no tuples in it is still an answer, and its type half
+   // still has to arrive -- the grid shows the columns of an empty result.
+   {
+     NestedList empty;
+     ListExpr source = empty.TheEmptyList();
+     empty.ReadFromString("((rel tuple) ())", source);
+     stringstream bytes;
+     empty.WriteBinaryTo(source, bytes);
+
+     NestedList back;
+     CollectingSink none(back);
+     ListExpr whole = back.TheEmptyList();
+     bool wasStreamed = false;
+     back.ReadBinaryStreamed(bytes, whole, none, wasStreamed);
+     t.CheckResult("an empty relation streams its type and no elements",
+                   wasStreamed && none.began && none.elems.empty()
+                   && none.type == "(rel tuple)", true);
+   }
+}
+
+
+/*
+
 ~mark~ / ~release~ hand list storage back.
 
 ~BigArray::append~ is the only allocator and nothing else lowers its size, so
@@ -1075,6 +1208,7 @@ TestRun_Persistent() {
    TestImmortalTypeError(*this);
 
    TestStreamedBinaryWrite(*this);
+   TestStreamedBinaryRead(*this);
    TestMarkRelease(*this);
    
    //cout << "Commit: " 

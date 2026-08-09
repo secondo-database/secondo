@@ -27,7 +27,7 @@ from . import table as table_mod
 from . import updates as updates_mod
 from .catalog import object_type_expr, parse_objects, parse_operators
 from .config import config_error, settings
-from .convert import convert
+from . import convert as convert_mod
 from .nlparser import Node
 from .nlwriter import InvalidValue
 from .session import Session, manager
@@ -202,17 +202,26 @@ async def query(
     secondo_sid: str | None = Cookie(default=None),
 ) -> QueryResponse:
     session = await _session_for(response, secondo_sid)
+    # Whichever language the command is in -- the server classifies it. A caller
+    # that wants no payloads gets nothing but the answer's effect: every form of
+    # it is a walk of the whole result, and `let x = <a long track> consume` has
+    # nobody to walk it for.
+    #
+    # The payloads are not built from a tree of the answer but read out of it as
+    # the client decodes it, one tuple at a time, so neither the client's nested
+    # list nor Python ever holds the whole relation. The sink is passed in rather
+    # than applied afterwards because the reading happens inside the bridge call
+    # -- see `app/convert.py:Answer`.
+    answer = (
+        None if req.view == "none"
+        else convert_mod.Answer(table_only=req.view == "table")
+    )
     try:
-        # Whichever language the command is in -- the server classifies it. A
-        # caller that wants no payloads gets neither half of the answer: each is
-        # a walk of the whole result, and `let x = <a long track> consume` has
-        # nobody to walk it for. They stay two arguments because they are
-        # independently useful -- the text is what the console shows, the tree
-        # is what the render payloads are built from.
         result = await session.execute(
             req.command,
-            want_tree=req.view != "none",
+            want_tree=False,
             want_text=req.view != "none",
+            sink=answer,
         )
     except RuntimeError as exc:  # SECONDO error / connection error
         # The server's own message is passed through unchanged. In particular
@@ -260,20 +269,14 @@ async def query(
     # Best-effort conversion; never let it break a successful query. For SQL the
     # result half is byte-identical to what the plan would produce on its own,
     # so this is the unchanged Milestone 2/3 pipeline.
+    #
+    # The answer was already read while the session lock was held; all that is
+    # left is to shape it, which is why the page size can still be decided
+    # here, after a `list objects` that the reading itself could not have
+    # survived.
     geojson = temporal = tabular = None
-    try:
-        if req.view == "none":
-            pass  # run for the effect; the answer is not going to be rendered
-        elif req.view == "table":
-            # Asked for rows and nothing else, so only the rows are derived.
-            tabular = (
-                table_mod.first_page(result.tree, limit=page) if page is not None
-                else table_mod.from_tree(result.tree)
-            )
-        else:
-            geojson, temporal, tabular = convert(result.tree, page=page)
-    except Exception:  # noqa: BLE001 - conversion must not fail the request
-        logger.exception("Result conversion failed for command: %s", req.command)
+    if answer is not None:
+        geojson, temporal, tabular = answer.payloads(page=page)
     if tabular is None:
         relation = None  # the command named something that is not rows at all
     elif page is not None:

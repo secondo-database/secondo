@@ -341,26 +341,51 @@ def _scalar(v: object) -> object | None:
     return v if isinstance(v, (int, float, bool, str)) else None
 
 
-def _relation_moving(
-    type_expr: list, tuples: Node
-) -> tuple[list[dict], list[dict], list[dict]]:
-    """Collect trips, moving regions and scalar plots from a relation."""
-    try:
-        attrs = type_expr[1][1]
-        names = [a[0] for a in attrs]
-        types = [a[1] for a in attrs]
-    except (IndexError, TypeError):
-        return [], [], []
-    moving_idx = [i for i, t in enumerate(types) if t in MOVING_TYPES]
-    if not moving_idx or not isinstance(tuples, list):
-        return [], [], []
+class RelationMoving:
+    """Collects a relation's trips, moving regions and plots, one tuple at a
+    time.
 
-    trips: list[dict] = []
-    regions: list[dict] = []
-    plots: list[dict] = []
-    for row, tup in enumerate(tuples):
+    Split out of ``_relation_moving`` for the same reason as
+    ``geojson.RelationFeatures``: so a caller that receives the tuples one by
+    one never has to hold them all (see ``app/convert.py``).
+    """
+
+    __slots__ = ("names", "types", "moving_idx", "trips", "regions", "plots",
+                 "_bare_labels", "_rows")
+
+    def __init__(self, type_expr: Node) -> None:
+        try:
+            attrs = type_expr[1][1]  # type: ignore[index]
+            self.names = [a[0] for a in attrs]
+            self.types = [a[1] for a in attrs]
+        except (IndexError, TypeError):
+            self.names = []
+            self.types = []
+        self.moving_idx = [
+            i for i, t in enumerate(self.types) if t in MOVING_TYPES
+        ]
+        self.trips: list[dict] = []
+        self.regions: list[dict] = []
+        self.plots: list[dict] = []
+        # A plot's label carries a row number only when there is more than one
+        # row, and a streaming caller does not know that until the end. The
+        # numbered label is written as it goes and the bare one kept beside it,
+        # so the one-row case can still drop the number (see `finish`).
+        self._bare_labels: list[str] = []
+        self._rows = 0
+
+    @property
+    def wanted(self) -> bool:
+        """Whether this relation has a moving attribute at all; see
+        ``geojson.RelationFeatures.wanted``."""
+        return bool(self.moving_idx)
+
+    def feed(self, tup: Node) -> None:
+        row = self._rows
+        self._rows += 1
         if not isinstance(tup, list):
-            continue
+            return
+        names, types, moving_idx = self.names, self.types, self.moving_idx
         props = {
             names[i]: _scalar(tup[i])
             for i in range(min(len(names), len(tup)))
@@ -371,18 +396,58 @@ def _relation_moving(
                 continue
             attr_props = {**props, "_attr": names[i]}
             if types[i] in MOVING_POINT_TYPES:
-                trips.extend(mpoint_to_trips(tup[i], attr_props))
+                self.trips.extend(mpoint_to_trips(tup[i], attr_props))
             elif types[i] in MOVING_REGION_TYPES:
                 region = mregion_to_moving(tup[i], attr_props)
                 if region:
-                    regions.append(region)
+                    self.regions.append(region)
             elif types[i] in PLOT_TYPES:
                 # Label plots so several rows stay distinguishable.
-                label = names[i] if len(tuples) == 1 else f"{names[i]} #{row + 1}"
-                plot = scalar_to_plot(types[i], tup[i], label)
+                plot = scalar_to_plot(
+                    types[i], tup[i], f"{names[i]} #{row + 1}"
+                )
                 if plot:
-                    plots.append(plot)
-    return trips, regions, plots
+                    self.plots.append(plot)
+                    self._bare_labels.append(names[i])
+
+    def finish(self) -> tuple[list[dict], list[dict], list[dict]]:
+        if self._rows == 1:
+            for plot, label in zip(self.plots, self._bare_labels):
+                plot["label"] = label
+        return self.trips, self.regions, self.plots
+
+    def payload(self) -> dict | None:
+        """The temporal payload for everything fed so far, or None if nothing
+        temporal came out of it."""
+        return _payload(*self.finish())
+
+
+def _relation_moving(
+    type_expr: list, tuples: Node
+) -> tuple[list[dict], list[dict], list[dict]]:
+    """Collect trips, moving regions and scalar plots from a relation."""
+    collector = RelationMoving(type_expr)
+    if not collector.wanted or not isinstance(tuples, list):
+        return [], [], []
+    for tup in tuples:
+        collector.feed(tup)
+    return collector.finish()
+
+
+def _payload(
+    trips: list[dict], regions: list[dict], plots: list[dict]
+) -> dict | None:
+    if not trips and not regions and not plots:
+        return None
+    time_domain = _merge(_time_domain(trips), _region_time_domain(regions), bbox=False)
+    time_domain = _merge(time_domain, _plot_time_domain(plots), bbox=False)
+    return {
+        "trips": trips,
+        "regions": regions,
+        "plots": plots,
+        "timeDomain": time_domain,
+        "bbox": _merge(_bbox(trips), _region_bbox(regions), bbox=True),
+    }
 
 
 def from_tree(tree: Node) -> dict | None:
@@ -411,14 +476,4 @@ def from_tree(tree: Node) -> dict | None:
     else:
         return None
 
-    if not trips and not regions and not plots:
-        return None
-    time_domain = _merge(_time_domain(trips), _region_time_domain(regions), bbox=False)
-    time_domain = _merge(time_domain, _plot_time_domain(plots), bbox=False)
-    return {
-        "trips": trips,
-        "regions": regions,
-        "plots": plots,
-        "timeDomain": time_domain,
-        "bbox": _merge(_bbox(trips), _region_bbox(regions), bbox=True),
-    }
+    return _payload(trips, regions, plots)
