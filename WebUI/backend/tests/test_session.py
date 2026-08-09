@@ -40,17 +40,20 @@ def _install_fake(monkeypatch, *, optimizer=True, probe_raises=False):
             return "ok"
 
         def secondo(self, command: str, want_tree: bool = True,
-                    want_text: bool = True, sink=None) -> dict:
+                    want_text: bool = True, sink=None,
+                    discard: bool = False) -> dict:
             calls.append({"command": command, "want_tree": want_tree,
-                          "want_text": want_text, "sink": sink is not None})
+                          "want_text": want_text, "sink": sink is not None,
+                          "discard": discard})
             return {"text": "()" if want_text else "",
                     **answer([], want_tree, sink)}
 
         def secondo_auto(self, command: str, optimizer_addressed: bool = False,
                          want_tree: bool = True, want_text: bool = True,
-                         sink=None):
+                         sink=None, discard: bool = False):
             calls.append({"command": command, "want_tree": want_tree,
-                          "want_text": want_text, "sink": sink is not None})
+                          "want_text": want_text, "sink": sink is not None,
+                          "discard": discard})
             return {
                 "level": 1,
                 "text": "()" if want_text else "",
@@ -153,7 +156,7 @@ def test_run_asks_for_no_tree(session_mod):
 
     assert asyncio.run(scenario()) == [
         {"command": "list objects", "want_tree": False, "want_text": True,
-         "sink": False}
+         "sink": False, "discard": False}
     ]
 
 
@@ -169,7 +172,7 @@ def test_run_tree_asks_for_no_text(session_mod):
 
     assert asyncio.run(scenario()) == [
         {"command": "list objects", "want_tree": True, "want_text": False,
-         "sink": False}
+         "sink": False, "discard": False}
     ]
 
 
@@ -188,7 +191,7 @@ def test_execute_can_ask_for_neither_half(session_mod):
 
     assert asyncio.run(scenario()) == [
         {"command": "query ten", "want_tree": False, "want_text": False,
-         "sink": False}
+         "sink": False, "discard": False}
     ]
 
 
@@ -238,7 +241,8 @@ def test_close_waits_for_a_command_in_flight(session_mod):
             return False
 
         def secondo(self, command: str, want_tree: bool = True,
-                    want_text: bool = True, sink=None) -> dict:
+                    want_text: bool = True, sink=None,
+                    discard: bool = False) -> dict:
             started.set()
             time.sleep(0.2)  # still on the socket
             order.append("command finished")
@@ -302,7 +306,8 @@ def test_an_unstreamed_answer_is_read_before_the_next_command(session_mod):
             return False
 
         def secondo(self, command: str, want_tree: bool = True,
-                    want_text: bool = True, sink=None) -> dict:
+                    want_text: bool = True, sink=None,
+                    discard: bool = False) -> dict:
             self.generation += 1
             born = self.generation
 
@@ -357,7 +362,8 @@ def test_a_streamed_answer_needs_no_reading_afterwards(session_mod):
             return False
 
         def secondo(self, command: str, want_tree: bool = True,
-                    want_text: bool = True, sink=None) -> dict:
+                    want_text: bool = True, sink=None,
+                    discard: bool = False) -> dict:
             if sink is not None:
                 sink.begin("rel")
                 sink.elem([7])
@@ -391,3 +397,25 @@ def test_a_streamed_answer_needs_no_reading_afterwards(session_mod):
         return sink.seen
 
     assert asyncio.run(scenario()) == [[7]]
+
+
+def test_a_view_none_command_asks_for_the_answer_to_be_discarded(session_mod):
+    """A command run for its effect still has its answer read -- just not kept.
+
+    Not reading it is not an option: the client builds the whole answer as a
+    list on the way in, which for `let x = <a track> consume` is the largest
+    thing the bridge does for a result nobody will look at.
+    """
+    mgr = session_mod.SessionManager()
+
+    async def scenario():
+        session = await mgr.create()
+        await session.execute(
+            "let x = 3", want_tree=False, want_text=False, discard=True
+        )
+        return session_mod._calls
+
+    assert asyncio.run(scenario()) == [
+        {"command": "let x = 3", "want_tree": False, "want_text": False,
+         "sink": False, "discard": True}
+    ]

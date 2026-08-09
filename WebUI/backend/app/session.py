@@ -146,6 +146,7 @@ class Session:
         fn: Callable[..., dict],
         args: tuple,
         sink: ResultSink | None,
+        discard: bool = False,
     ) -> dict:
         """Run one native call and make sure the answer has been read.
 
@@ -162,7 +163,7 @@ class Session:
         here also keeps the work off the event loop, where it would block every
         other session for as long as it took.
         """
-        raw = fn(*args, sink)
+        raw = fn(*args, sink, discard)
         if sink is not None and not raw["streamed"]:
             sink.read(raw["type"], raw["tuples"], raw["tree"])
         return raw
@@ -174,6 +175,7 @@ class Session:
         want_tree: bool = True,
         want_text: bool = True,
         sink: ResultSink | None = None,
+        discard: bool = False,
     ) -> CommandResult:
         """Execute one command the user typed, in whichever language it is in.
 
@@ -192,6 +194,11 @@ class Session:
         them, so neither side ever holds the whole result; what the sink made
         of them is the caller's to collect from the sink it passed in. See
         `_invoke` for why it cannot happen any later.
+
+        `discard` is the same thing for a command run purely for its effect:
+        the answer is read the same way and nothing is kept, so the client's
+        list does not grow to it either. Asking for any form of the answer
+        overrides it.
         """
         addressed, rest = secondo_native.strip_optimizer_prefix(command)
         async with self.lock:
@@ -207,6 +214,7 @@ class Session:
                         self.conn.secondo,
                         (command, want_tree, want_text),
                         sink,
+                        discard,
                     )
                     return CommandResult(text=raw["text"], tree=raw["tree"])
 
@@ -215,6 +223,7 @@ class Session:
                     self.conn.secondo_auto,
                     (rest, addressed, want_tree, want_text),
                     sink,
+                    discard,
                 )
                 level = raw["level"]
                 plan = raw["plan"]

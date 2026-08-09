@@ -84,6 +84,9 @@ def _fake_native(optimizer: bool = True):
     # assert on the exact SECONDO commands the bridge generates.
     fake.commands = []
     fake.directives = []
+    # One entry per bridge call: whether it asked for the answer to be read
+    # and thrown away as it came (see `view:"none"`).
+    fake.discards = []
 
     # A deliberately crude copy of the kernel's rule -- acceptable only because
     # this is a fake; the real code calls stripOptimizerPrefix in C++.
@@ -109,7 +112,9 @@ def _fake_native(optimizer: bool = True):
             return "ok"
 
         def secondo(self, command: str, want_tree: bool = True,
-                    want_text: bool = True, sink=None) -> dict:
+                    want_text: bool = True, sink=None,
+                    discard: bool = False) -> dict:
+            fake.discards.append(discard)
             # The real bridge answers with the list as text and as objects,
             # building both from the ListExpr it holds. Parsing the fake's
             # text here is the stand-in for that -- it is what the C++ walk
@@ -171,7 +176,7 @@ def _fake_native(optimizer: bool = True):
         # The answers the server gives once it classifies the command itself.
         def secondo_auto(self, command: str, optimizer_addressed: bool = False,
                          want_tree: bool = True, want_text: bool = True,
-                         sink=None):
+                         sink=None, discard: bool = False):
             assert optimizer, "secondo_auto must not be used without an optimizer"
             cmd = command.strip()
 
@@ -224,7 +229,7 @@ def _fake_native(optimizer: bool = True):
             return {
                 "level": 1,
                 # text and tree both, as the bridge sends them.
-                **self.secondo(cmd, want_tree, want_text, sink),
+                **self.secondo(cmd, want_tree, want_text, sink, discard),
                 "plan": None,
                 "costs": None,
                 "message": None,
@@ -266,6 +271,22 @@ def plain_client(monkeypatch):
 
     monkeypatch.setattr(session_mod, "secondo_native", fake)
     return TestClient(app)
+
+
+def test_view_none_reads_the_answer_and_keeps_nothing(client):
+    """`view:"none"` asks the bridge to discard as it reads, and every other
+    view does not -- they want the answer."""
+    client.post("/api/query", json={"command": "open database berlintest"})
+    client.fake.discards.clear()
+    client.post("/api/query", json={"command": "query ten", "view": "none"})
+    assert client.fake.discards == [True]
+
+    for view in ("auto", "table"):
+        client.fake.discards.clear()
+        client.post("/api/query", json={"command": "query ten", "view": view})
+        # `auto` follows up with a `list objects` to decide the page size, so
+        # what matters is that no call on this path discards.
+        assert client.fake.discards and not any(client.fake.discards), view
 
 
 def test_health(client):
@@ -386,7 +407,8 @@ def test_unexpected_error_still_returns_json(client, monkeypatch):
             return False
 
         def secondo(self, command, want_tree: bool = True,
-                    want_text: bool = True, sink=None):
+                    want_text: bool = True, sink=None,
+                    discard: bool = False):
             raise ValueError("kaboom")
 
         def close(self):

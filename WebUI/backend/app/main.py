@@ -212,6 +212,12 @@ async def query(
     # list nor Python ever holds the whole relation. The sink is passed in rather
     # than applied afterwards because the reading happens inside the bridge call
     # -- see `app/convert.py:Answer`.
+    #
+    # `view:"none"` reads it the same way and keeps none of it. That is not the
+    # same as not reading it: the client used to build the whole answer as a
+    # list before discarding it, which for the GPX import's `let x = <a track>
+    # consume` is the largest thing the bridge does for a command whose result
+    # nobody will ever see.
     answer = (
         None if req.view == "none"
         else convert_mod.Answer(table_only=req.view == "table")
@@ -222,6 +228,7 @@ async def query(
             want_tree=False,
             want_text=req.view != "none",
             sink=answer,
+            discard=req.view == "none",
         )
     except RuntimeError as exc:  # SECONDO error / connection error
         # The server's own message is passed through unchanged. In particular

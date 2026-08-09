@@ -428,6 +428,16 @@ class PyResultSink : public NestedList::BinaryListSink
   std::string error;
 };
 
+// Reads an answer and keeps nothing at all, for a command run purely for its
+// effect: the GPX import's "let x = <a track> consume" answers with the whole
+// object it just created, and nobody is going to look at it.
+class DiscardSink : public NestedList::BinaryListSink
+{
+ public:
+  void begin(ListExpr) {}
+  bool elem(ListExpr) { return true; }
+};
+
 // Installs a sink on a connection for the length of one command and takes it
 // off again however the command ends -- leaving one behind would point the
 // next command's reader at a dead object.
@@ -538,15 +548,18 @@ class Connection
   //
   // `sink`, when it is not None, is an object with `begin` and `elem` that
   // takes the answer as it arrives instead of after it is built -- see
-  // `PyResultSink` and `answer`.
+  // `PyResultSink` and `answer`. `discard` is the same thing for a caller who
+  // wants none of it -- see `discarding`.
   py::dict secondo(const std::string& command, const bool want_tree,
-                   const bool want_text, const py::object& sink)
+                   const bool want_text, const py::object& sink,
+                   const bool discard)
   {
     if (!si) {
       throw std::runtime_error("connection is closed");
     }
     NestedList* const nl = state->nl;
     std::unique_ptr<PyResultSink> into(sinkFor(nl, sink, want_text));
+    DiscardSink drop;
     SecErrInfo err;
     std::string out;
     ListExpr res = nl->TheEmptyList();
@@ -555,7 +568,8 @@ class Connection
       // let commands on other connections run alongside this one.
       py::gil_scoped_release release;
       beginCommand();
-      SinkGuard guard(si, into.get());
+      SinkGuard guard(si, into ? (NestedList::BinaryListSink*) into.get()
+                     : discarding(discard, want_tree, want_text) ? &drop : 0);
       si->Secondo(command, res, err);
       if (err.code == 0 && want_text) {
         out = streamed(into) ? into->text() : nl->ToString(res);
@@ -610,13 +624,15 @@ class Connection
                         const bool optimizer_addressed,
                         const bool want_tree,
                         const bool want_text,
-                        const py::object& sink)
+                        const py::object& sink,
+                        const bool discard)
   {
     if (!si) {
       throw std::runtime_error("connection is closed");
     }
     NestedList* const nl = state->nl;
     std::unique_ptr<PyResultSink> into(sinkFor(nl, sink, want_text));
+    DiscardSink drop;
     AutoResult r;
     {
       // Both the call and the nested-list extraction are pure C++, so the GIL
@@ -624,7 +640,8 @@ class Connection
       // for one tuple at a time.
       py::gil_scoped_release release;
       beginCommand();
-      SinkGuard guard(si, into.get());
+      SinkGuard guard(si, into ? (NestedList::BinaryListSink*) into.get()
+                     : discarding(discard, want_tree, want_text) ? &drop : 0);
       ListExpr res = nl->TheEmptyList();
       si->SecondoAuto(command, optimizer_addressed, r.level, res,
                       r.errCode, r.errPos, r.errMsg);
@@ -752,6 +769,16 @@ class Connection
                                const bool want_text)
   {
     return sink.is_none() ? 0 : new PyResultSink(nl, sink, want_text);
+  }
+
+  // Whether to throw the answer away as it is read. Asking for any form of it
+  // wins, so that `discard` cannot quietly empty a result someone wanted: it
+  // says "nobody is going to look at this", and a caller who asked for the
+  // text or the tree plainly is.
+  static bool discarding(const bool discard, const bool want_tree,
+                         const bool want_text)
+  {
+    return discard && !want_tree && !want_text;
   }
 
   static bool streamed(const std::unique_ptr<PyResultSink>& into)
@@ -948,11 +975,14 @@ PYBIND11_MODULE(secondo_native, m)
            py::arg("want_tree") = true,
            py::arg("want_text") = true,
            py::arg("sink") = py::none(),
+           py::arg("discard") = false,
            "Execute a SECONDO command; returns a dict with the result nested "
            "list as text (unless want_text is off, when it is \"\") and as "
            "Python objects (unless want_tree is off, when it is None). Pass a "
            "sink -- an object with begin(type) and elem(tuple) -- to be given "
-           "the answer as it is read instead; `streamed` says whether it was.")
+           "the answer as it is read instead; `streamed` says whether it was. "
+           "discard reads it and keeps nothing, for a command run for its "
+           "effect; it is ignored if any form of the answer was asked for.")
       .def("optimizer_available", &Connection::optimizer_available,
            "Whether this server can run the SQL dialect (optimizer).")
       .def("secondo_auto", &Connection::secondo_auto, py::arg("command"),
@@ -960,10 +990,11 @@ PYBIND11_MODULE(secondo_native, m)
            py::arg("want_tree") = true,
            py::arg("want_text") = true,
            py::arg("sink") = py::none(),
+           py::arg("discard") = false,
            "Execute a command the server classifies itself; returns a dict "
            "with level/text/streamed/tree/type/tuples/plan/costs/message. "
-           "want_tree, want_text and sink gate the forms of the result "
-           "independently; see secondo for what sink does.")
+           "want_tree, want_text, sink and discard gate the forms of the "
+           "result independently; see secondo for what they do.")
       .def("optimizer_command", &Connection::optimizer_command,
            py::arg("directive"),
            "Run an optimizer control directive; return the text it printed.")
