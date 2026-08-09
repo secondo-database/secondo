@@ -61,131 +61,44 @@ commands at this instance.
 
 #include "DSecondoMonitorComm.h"
 #include "SocketIO.h"
+#include "SecondoInterfaceCS.h"
 
 bool
 DSecondoMonitorCommunication::openConnection()
 {
-  if (m_server != NULL)
+  if (m_interface != NULL)
     return false;
 
-  m_server = Socket::Connect( getHostName(), getPortNr(), 
-                              Socket::SockGlobalDomain,
-                              5, // # of trys
-                              1); // time in sec between trys
+  m_nl = new NestedList();
+  m_interface = new SecondoInterfaceCS(true, m_nl, true);
+  m_interface->setMaxAttempts(5);
+  m_interface->setTimeout(1);
 
-  if(m_server == 0 || !m_server->IsOk())
-    {      
-      string errMsg = "Cannot connect to SECONDO Monitor on " + 
-        getPortNr() + "@" + getHostName();
-
-      if (m_server != 0)
-        {
-          errMsg += " : " + m_server -> GetErrorText();
-        }
-      setErrorText(errMsg);
+  string errMsg = "";
+  if (!m_interface->Initialize("", "", getHostName(), getPortNr(),
+                               string(""), string(""), errMsg, true))
+    {
+      setErrorText("Cannot connect to SECONDO Monitor on " +
+                   getPortNr() + "@" + getHostName() + " : " + errMsg);
+      delete m_interface;
+      m_interface = NULL;
+      delete m_nl;
+      m_nl = NULL;
       return false;
     }
-  
-  setStream(m_server->GetSocketStream());
-
-  string line;
-  if (!receiveIOS(line))
-    {
-      setErrorText("Cannot access SECONDO Monitor on " + getPortNr() +
-                   "@" + getHostName()); 
-      return false;
-    }
-
-  if (line != "<SecondoOk/>")
-    {
-      setErrorText("Cannot access SECONDO Monitor on " + getPortNr() +
-                   "@" + getHostName() + 
-                   "\n Expected '<SecondoOk/> but got '" +
-                   line + "'"); 
-      return false;
-    }
-
-  // send '<Connect>'
-  if (!sendIOS("<Connect>", false)) // no ack
-    {
-      setErrorText("Cannot access SECONDO Monitor on " + getPortNr() +
-                   "@" + getHostName() + "\nFailed to send '<Connect>'"); 
-      return false;
-    }
-  
-  // send 'user'
-  if (!sendIOS("", false)) // no ack
-    {
-      setErrorText("Cannot access SECONDO Monitor on " + getPortNr() +
-                   "@" + getHostName() + "\nFailed to send 'user'"); 
-      return false;
-    }
-
-  // send 'password'
-  if (!sendIOS("", false)) // no ack
-    {
-      setErrorText("Cannot access SECONDO Monitor on " + getPortNr() +
-                   "@" + getHostName() + "\nFailed to send 'password'"); 
-      return false;
-    }
-  
-  // send '</Connect>'
-  if (!sendIOS("</Connect>", false)) // no ack
-    {
-      setErrorText("Cannot access SECONDO Monitor on " + getPortNr() +
-        "@" + getHostName() + "\nFailed to send '</Connect>''"); 
-      return false;
-    }
-
-  // expecting answer '<SecondoIntro>'
-  if (!receiveIOS(line))
-    {
-      setErrorText("Lost connection to SECONDO Monitor on " + getPortNr() +
-                   "@" + getHostName()); 
-      return false;
-    }
-
-  if (line != "<SecondoIntro>")
-    {
-      setErrorText("Cannot access SECONDO Monitor on " + getPortNr() +
-                   "@" + getHostName() + 
-                   "\n Expected '<SecondoIntro> but got '" +
-                   line + "'"); 
-      return false;
-    }
-      
-  do
-    {
-       // reading answer
-      if (!receiveIOS(line))
-        {
-          setErrorText("Lost connection to SECONDO Monitor on " + getPortNr() +
-                   "@" + getHostName()); 
-          return false;
-        }
-              
-    }  while(line != "</SecondoIntro>");
-    
-  
-  if (!(m_server -> IsOk()))
-    { 
-      setErrorText("Cannot Connect to Worker");
-      return false;
-    } // if (!(m_server -> IsOk()))
 
   return true;
-
 }
 
 void
 DSecondoMonitorCommunication::closeConnection()
 {
-  if (m_server != NULL)
+  if (m_interface != NULL)
     {
-      if (m_server -> IsOk())
-        sendIOS("<Disconnect/>", false);
-      m_server -> Close();
-      delete m_server;
+      m_interface->Terminate();
+      delete m_interface;
+      m_interface = NULL;
+      delete m_nl;
+      m_nl = NULL;
     }
-  m_server = NULL;
 }

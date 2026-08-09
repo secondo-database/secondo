@@ -461,6 +461,28 @@ NestedList::setMem( Cardinal nodeMem, Cardinal strMem, Cardinal textMem)
 }
 
 
+NestedList::Mark
+NestedList::mark() const
+{
+   Mark m;
+   m.nodes   = nodeTable->NoEntries();
+   m.strings = stringTable->NoEntries();
+   m.texts   = textTable->NoEntries();
+   return m;
+}
+
+void
+NestedList::release( const Mark& m )
+{
+   // Read once: this sits in a per-tuple loop, and the flag cannot change
+   // after the runtime flags are initialised.
+   static const bool poison = RTFlag::isActive("NL:CheckRelease");
+
+   nodeTable->Truncate(m.nodes, poison);
+   stringTable->Truncate(m.strings, poison);
+   textTable->Truncate(m.texts, poison);
+}
+
 void
 NestedList::initializeListMemory()
 {

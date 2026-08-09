@@ -335,6 +335,7 @@ Connect client with the node in nodes-vector with the index nodeNo.
         iosock << "<Connect>" << endl
                << user <<  endl
                << pswd << endl
+               << CSProtocol::versionLine() << endl
                << "</Connect>" << endl;
         getline( iosock, line );
 
@@ -344,40 +345,41 @@ Connect client with the node in nodes-vector with the index nodeNo.
             // decision, announced here; take its word for it rather than this
             // side's configuration. A node that does not say is refused: the
             // two sides would then disagree about the wire format, and that
-            // does not fail cleanly, it deadlocks.
-            bool transferNegotiated = false;
+            // does not fail cleanly, it deadlocks. The same block carries the
+            // node's protocol version, which must match this build exactly --
+            // the result framing differs between versions.
             do
             {
               getline( iosock, line );
               if ( line != "</SecondoIntro>" )
               {
-                if ( nodes[nodeNo].csp->applyIntroLine(line) )
-                {
-                  transferNegotiated = true;
-                }
-                else
+                if ( !nodes[nodeNo].csp->applyIntroLine(line) )
                 {
                   cout << line << endl;
                 }
               }
             }
             while (line != "</SecondoIntro>");
-            if ( transferNegotiated )
-            {
-              nodes[nodeNo].initialized = true;
-            }
-            else
+            if ( !nodes[nodeNo].csp->transferModeKnown() )
             {
               cout << "Secondo server on " << nodes[nodeNo].hostname
                    << " does not announce how it transfers nested lists;"
                    << " refusing to guess." << endl;
             }
+            else if ( !nodes[nodeNo].csp->versionAgreed() )
+            {
+              cout << nodes[nodeNo].csp->versionMismatchMessage(
+                        "The Secondo server on " + nodes[nodeNo].hostname )
+                   << endl;
+            }
+            else
+            {
+              nodes[nodeNo].initialized = true;
+            }
           }
           else if ( line == "<SecondoError>" )
           {
-            getline( iosock, line );
-            cout << "Server-Error: " << line << endl;
-            getline( iosock, line );
+            cout << "Server-Error: " << readErrorBody( iosock ) << endl;
           }
           else
           {
@@ -905,45 +907,45 @@ SecondoInterfaceREPLAY::Initialize(const string& user,
           iosock << "<Connect>" << endl
                  << user <<  endl
                  << pswd  << endl
+                 << CSProtocol::versionLine() << endl
                  << "</Connect>" << endl;
           getline( iosock, line );
           if ( line == "<SecondoIntro>" )
           {
-            // As above: the server states how it transfers lists and this
-            // side adopts it, rather than both going by their own
+            // As above: the server states how it transfers lists and which
+            // protocol version it speaks, and this side adopts the one and
+            // insists on the other, rather than both going by their own
             // configuration and deadlocking when they differ.
-            bool transferNegotiated = false;
             do
             {
               getline( iosock, line );
               if ( line != "</SecondoIntro>" )
               {
-                if ( csp->applyIntroLine(line) )
-                {
-                  transferNegotiated = true;
-                }
-                else
+                if ( !csp->applyIntroLine(line) )
                 {
                   cout << line << endl;
                 }
               }
             }
             while (line != "</SecondoIntro>");
-            if ( transferNegotiated )
-            {
-              initialized = true;
-            }
-            else
+            if ( !csp->transferModeKnown() )
             {
               cout << "Secondo server does not announce how it transfers"
                    << " nested lists; refusing to guess." << endl;
             }
+            else if ( !csp->versionAgreed() )
+            {
+              cout << csp->versionMismatchMessage( "The Secondo server" )
+                   << endl;
+            }
+            else
+            {
+              initialized = true;
+            }
           }
           else if ( line == "<SecondoError>" )
           {
-            getline( iosock, line );
-            cout << "Server-Error: " << line << endl;
-            getline( iosock, line );
+            cout << "Server-Error: " << readErrorBody( iosock ) << endl;
           }
           else
           {
@@ -952,9 +954,7 @@ SecondoInterfaceREPLAY::Initialize(const string& user,
         }
         else if ( line == "<SecondoError>" )
         {
-          getline( iosock, line );
-          cout << "Server-Error: " << line << endl;
-          getline( iosock, line );
+          cout << "Server-Error: " << readErrorBody( iosock ) << endl;
         }
         else
         {

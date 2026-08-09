@@ -57,6 +57,9 @@ NSQLCLIENTS=${SECONDO_CS_TEST_SQL_CLIENTS:-10}
 home=$(mktemp -d "${TMPDIR:-/tmp}/TestClientServer.XXXXXX")
 export SECONDO_PARAM_SecondoHome="$home"
 monPid=""
+# The second monitor, started with the fault injection flag for phase 3c. Kept
+# out here so cleanup can reach it however the test ends.
+truncMonPid=""
 rc=0
 
 # Run from the temporary home. The TTY binaries drop cwd-relative files
@@ -70,30 +73,35 @@ cd "$home" || exit 1
 # bounded and escalates to SIGKILL: this test exists partly because shutdown is
 # unreliable, so the teardown must not assume it works. A bare "wait" would hang
 # the whole CI job (timeout 12000s) whenever the monitor fails to exit.
-cleanup() {
-  local pid grace
-  [ -n "$monPid" ] || { rm -rf "$home"; return; }
+stop_monitor() {
+  local target=$1 pid grace kids
+  [ -n "$target" ] || return 0
 
   # Snapshot the tree before signalling; once the monitor is gone we can no
   # longer walk to its children.
-  local kids
-  kids=$(descendants "$monPid")
+  kids=$(descendants "$target")
 
   # Ask the monitor to shut down first and let it stop its own children, which
   # is the intended path. Only ever target PIDs we started -- a broad
   # "pkill -f Secondo" would kill a developer's unrelated session.
-  kill -TERM "$monPid" 2>/dev/null
+  kill -TERM "$target" 2>/dev/null
   for ((grace = 0; grace < 15; grace++)); do
-    kill -0 "$monPid" 2>/dev/null || break
+    kill -0 "$target" 2>/dev/null || break
     sleep 1
   done
 
   # Escalate to anything still standing, monitor included.
-  kill -KILL "$monPid" 2>/dev/null
+  kill -KILL "$target" 2>/dev/null
   for pid in $kids; do kill -KILL "$pid" 2>/dev/null; done
 
   # Reap only our monitor; a bare "wait" could block on an unrelated job.
-  wait "$monPid" 2>/dev/null
+  wait "$target" 2>/dev/null
+  return 0
+}
+
+cleanup() {
+  stop_monitor "$monPid"
+  stop_monitor "$truncMonPid"
   rm -rf "$home"
 }
 # EXIT alone is not enough: bash does not run an EXIT trap when it is killed by
@@ -339,6 +347,125 @@ else
   else
     echo "OK (java): $(grep -c "^ok   :" "$home/java.log") assertions held," \
          "$(sed -n 's/^     : //p' "$home/java.log")"
+  fi
+fi
+
+#
+# Phase 3c: an error detected *after* the result started going out.
+#
+# This is the one case the <SecondoResult> framing exists for: the server has
+# already written part of a result -- including a length prefix promising N
+# tuples -- when it discovers it cannot finish. Before the framing there was no
+# way to say so, and the server closed the connection. Now it closes the frame
+# with an abort terminator instead, and the client discards the partial payload,
+# reports the reason and carries on.
+#
+# No natural query provokes it: a query either fails before its result exists or
+# it succeeds. So the server for this phase is started with the fault injection
+# flag Test:TruncateStreamedResult (see Relation::OutStreamed), which stops every
+# streamed relation after a few tuples and reports failure.
+#
+# Its own monitor, port and SecondoHome. The flag is per process, so it cannot
+# share the monitor above -- every result there would truncate. A separate home
+# rather than a second monitor over the same database: two monitors on different
+# ports get different registrar sockets (SmiProfile::GetUniqueSocketName keys on
+# the port) and so would not arbitrate access to a shared one at all.
+#
+# The negative control is phase 3b: the same client, the same two commands,
+# against the unflagged monitor, where they succeed. Without it a truncation
+# assertion could pass on a server that was broken for some entirely different
+# reason.
+#
+truncPort=$((SEC_PORT + 1))
+truncHome="$home/trunc"
+
+# SECONDO_PARAM_RTFlags replaces the config's RTFlags outright rather than
+# adding to it, so the flags already in force have to be carried over -- losing
+# Server:BinaryTransfer here would make the sink decline, nothing would stream,
+# and the test would pass by never exercising the path at all. When the variable
+# is unset the config is still the source, so read the active RTFlags lines out
+# of it.
+truncFlags="${SECONDO_PARAM_RTFlags-}"
+if [ -z "$truncFlags" ]; then
+  truncFlags=$(sed -n 's/^[[:space:]]*RTFlags[[:space:]]*+\{0,1\}=[[:space:]]*//p' \
+                   "$SECONDO_CONFIG" 2>/dev/null | paste -sd, - )
+fi
+truncFlags="${truncFlags:+$truncFlags,}Test:TruncateStreamedResult"
+
+# And binary transfer has to be on, whatever the rest of the configuration says.
+# Only a streamed result can be truncated, and the sink declines in textual mode
+# -- so without this the phase quietly degrades to "skipped" and the gate for the
+# whole abort path becomes vacuous. That is exactly what happens under
+# CM-Scripts/run-tests.sh, which is how CI reaches this file: it sets
+# SECONDO_PARAM_RTFlags to a list that does not include Server:BinaryTransfer.
+# Forcing it here hides nothing; textual transfer is covered by phase 3b and by
+# Tests/csloadtest --expect-text.
+case ",$truncFlags," in
+  *,Server:BinaryTransfer,*) ;;
+  *) truncFlags="$truncFlags,Server:BinaryTransfer" ;;
+esac
+
+echo "*** ClientServer test: truncated result (tools.CSTest) ***"
+if ! command -v java >/dev/null 2>&1; then
+  echo "SKIP (truncation): no java runtime on PATH"
+elif [ ! -f "$javaJar" ] || [ ! -f "$javaGui/tools/CSTest.class" ]; then
+  echo "SKIP (truncation): Javagui was not compiled"
+else
+  mkdir -p "$truncHome"
+  SECONDO_PARAM_SecondoHome="$truncHome" SecondoTTYBDB \
+      >"$home/truncdb.log" 2>&1 <<SQL
+create database $DBNAME;
+open database $DBNAME;
+let ten = intstream(1,10) transformstream consume;
+close database;
+q;
+SQL
+  if grep -qiE "cmd failed|command failed|Error in Secondo" "$home/truncdb.log"; then
+    echo "FAIL (truncation): database setup failed:"; cat "$home/truncdb.log"
+    rc=1
+  else
+    pushd "$buildDir/bin" >/dev/null
+    SECONDO_PARAM_SecondoHome="$truncHome" \
+    SECONDO_PARAM_RTFlags="$truncFlags" \
+      SecondoMonitor -s -p "$truncPort" >"$home/truncmon.log" 2>&1 &
+    truncMonPid=$!
+    popd >/dev/null
+
+    if ! wait_port "$truncPort" 30; then
+      echo "FAIL (truncation): monitor did not come up on port $truncPort:"
+      cat "$home/truncmon.log"
+      rc=1
+    else
+      java -Djava.awt.headless=true \
+           -cp "$javaGui:$javaJar" \
+           tools.CSTest 127.0.0.1 "$truncPort" "$DBNAME" --expect-truncation \
+           >"$home/javatrunc.log" 2>&1
+      truncRc=$?
+      if [ "$truncRc" -ne 0 ]; then
+        echo "FAIL (truncation): tools.CSTest exited with $truncRc"
+        grep -n "^FAIL" "$home/javatrunc.log" | head -10
+        tail -30 "$home/javatrunc.log"
+        rc=1
+      elif ! grep -q "^successful$" "$home/javatrunc.log"; then
+        echo "FAIL (truncation): tools.CSTest did not run to completion"
+        tail -30 "$home/javatrunc.log"
+        rc=1
+      elif ! grep -q "truncation: reported as error 90" "$home/javatrunc.log"; then
+        # Exit 0 is not enough here. CSTest skips the truncation assertions on a
+        # textual connection -- nothing streams there, so there is nothing to
+        # truncate -- and a skip still exits 0. That is how this phase silently
+        # became a no-op once already, when the flags carried over above lost
+        # Server:BinaryTransfer. Name the assertion, so only the real thing passes.
+        echo "FAIL (truncation): the truncation assertions did not run"
+        tail -30 "$home/javatrunc.log"
+        rc=1
+      else
+        echo "OK (truncation): $(grep -c "^ok   :" "$home/javatrunc.log")" \
+             "assertions held"
+      fi
+    fi
+    stop_monitor "$truncMonPid"
+    truncMonPid=""
   fi
 fi
 

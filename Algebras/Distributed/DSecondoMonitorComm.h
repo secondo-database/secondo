@@ -75,7 +75,6 @@ be written to stdout
 
 #include "DServerCmdWorkerComm.h"
 
-class Socket;
 
 /*
 2 Class ~DSecondoMonitorCommunication~
@@ -103,7 +102,8 @@ class DSecondoMonitorCommunication
 
   DSecondoMonitorCommunication()
     : DServerCmdWorkerCommunication()
-    , m_server(NULL) {}
+    , m_interface(NULL)
+    , m_nl(NULL) {}
 
 /*
 2.2 Constructor
@@ -120,7 +120,8 @@ public:
     : DServerCmdWorkerCommunication()
     , m_hostName(inHostName)
     , m_portNr(inPortNumber)
-    , m_server(NULL) {}
+    , m_interface(NULL)
+    , m_nl(NULL) {}
 
 /*
 2.3 Destructor
@@ -181,13 +182,26 @@ private:
   void closeConnection() ;
 
 /*
+This class talks to a SECONDO instance of its own rather than to a worker, so
+it supplies the connection the inherited command path runs on.
+
+*/
+  virtual SecondoInterfaceCS* commInterface() { return m_interface; }
+  virtual NestedList* commNestedList() { return m_nl; }
+
+/*
 2.10.2 Private Members
 
 */
 
   string m_hostName;
   string m_portNr;
-  Socket* m_server;
+  // An ordinary client of the client/server protocol, with a NestedList of its
+  // own. What was here spelled the handshake out by hand and skipped the whole
+  // <SecondoIntro> block, so it learned neither the transfer mode nor the
+  // protocol version and could not connect to a current server.
+  SecondoInterfaceCS* m_interface;
+  NestedList* m_nl;
   
   string m_errorMsg;
 

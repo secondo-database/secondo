@@ -62,10 +62,10 @@ ostream& operator<<(ostream& os, const NList& n) {
 namespace csp {
 
 void
-sendList(iostream& iosock, NestedList* nl, ListExpr list)
+sendList(ostream& iosock, NestedList* nl, ListExpr list, bool binary)
 {
-  if ( !RTFlag::isActive("Server:BinaryTransfer") ) {
- 
+  if ( !binary ) {
+
     //*** Send List as TEXT-Format ***// 
     
     StopWatch* sendTime = 0;

@@ -563,6 +563,40 @@ ListExpr Relation::Out( ListExpr typeInfo, GenericRelationIterator* rit )
   return l;
 }
 
+/*
+Fault injection for the client/server result framing.
+
+No natural query fails reliably *while* its result is being written -- a query
+either fails before there is a result or it succeeds -- so the one case the
+frame's abort terminator exists for cannot otherwise be tested. With
+~Test:TruncateStreamedResult~ active, ~OutStreamed~ writes a few tuples, sends a
+message, and reports failure -- exactly the shape of a real mid-result failure:
+the length prefix has already promised more elements than followed.
+
+The message is part of the injection, not an aside. It is the only way to reach
+the frame's ~M~ record, the other thing this framing added: a message raised
+*while* a result is being written. Nothing that happens naturally does that --
+the operators that send messages (~count2~ and friends) return atoms, and atoms
+do not stream -- so without this the record would ship untested. What it stands
+in for is an attribute's ~Out~ calling ~cmsg.send()~ mid-tuple.
+
+Read once into a ~static const~, so when the flag is off this costs one already
+loaded bool in the loop guard. Set it through the runtime flags of the server's
+configuration, or with "SECONDO\_PARAM\_RTFlags" in the environment the monitor
+is started from -- forked servers inherit it, and ~SmiProfile::GetParameter~
+lets the variable overrule the file. Note that the variable replaces the whole
+~RTFlags~ line, so anything else the configuration set there
+(~Server:BinaryTransfer~ in particular) has to be repeated in it.
+
+*/
+static const int TRUNCATE_STREAMED_AFTER = 5;
+
+static bool truncateStreamedResult()
+{
+  static const bool active = RTFlag::isActive("Test:TruncateStreamedResult");
+  return active;
+}
+
 bool Relation::OutStreamed( ListExpr typeInfo, GenericRelationIterator* rit,
                             int noTuples, std::ostream& os )
 {
@@ -576,19 +610,51 @@ bool Relation::OutStreamed( ListExpr typeInfo, GenericRelationIterator* rit,
 
   int written = 0;
   Tuple* t = 0;
-  while ( ok && (t = rit->GetNextTuple()) != 0 )
+  // os.good() as well as ok: a dead socket makes every write a no-op that
+  // reports success, so without it a broken connection still costs a full scan
+  // of the relation before anyone notices.
+  const bool truncate = truncateStreamedResult();
+
+  // The mark is taken here, after tupleTypeInfo: that list has to survive every
+  // release, and anything built before the mark does.
+  const NestedList::Mark mark = nl->mark();
+
+  while ( ok && os.good() && (t = rit->GetNextTuple()) != 0 )
   {
     ListExpr tlist = t->Out(tupleTypeInfo);
     t->DeleteIfAllowed();
     ok = nl->WriteBinaryElem(tlist, os);
+    // The tuple's list is dead the moment it has been written -- it is a
+    // serialisation buffer, not a result -- so give its nodes straight back.
+    // Without this the table keeps every one of them: `append` is the only
+    // allocator and nothing else shrinks it, so `query roads` grew `nl` by ~48M
+    // nodes to hold, at any instant, one tuple's ~227. Reusing the same slots
+    // is also what keeps the working set inside the cache.
+    //
+    // Sound here because the server thread has this NestedList to itself for
+    // the whole scan and nothing outside it refers to a tuple's nodes: `tlist`
+    // is local, and the answer has already gone to the socket. See
+    // NestedList::release for the contract.
+    nl->release(mark);
     written++;
+    if ( truncate && written >= TRUNCATE_STREAMED_AFTER )
+    {
+      // Sent from inside the write, which is the point: the server has to
+      // interrupt the payload for it and resume afterwards.
+      cmsg.info() << "Test:TruncateStreamedResult: stopping after "
+                  << written << " of " << noTuples << " tuples." << endl;
+      cmsg.send();
+      break;
+    }
   }
   delete rit;
 
   // The count is already on the wire. A mismatch means the reader will look
   // for tuples that are not coming, or stop before the ones that are, so it is
-  // reported rather than tolerated -- there is nothing left to repair.
-  return ok && written == noTuples;
+  // reported rather than tolerated -- there is nothing left to repair here.
+  // The caller turns a false into an abort terminator on the frame, which is
+  // what lets the client throw the partial encoding away instead of parsing it.
+  return ok && os.good() && written == noTuples;
 }
 
  std::ostream& Relation::Print(std::ostream& os) const

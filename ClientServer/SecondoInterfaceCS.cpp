@@ -142,6 +142,33 @@ SecondoInterfaceCS::unexpectedResponse( iostream& iosock,
 }
 
 
+/*
+Read the body of a ~<SecondoError>~ block, whose start tag has been consumed.
+
+To the end tag rather than one line: the block has always been allowed to carry
+several, and the message a client most needs to see -- the protocol version
+refusal, which is two lines -- is one of them. Taking a single line lost the
+rest of the text *and* left it in the stream, where it would be read as the next
+response.
+
+*/
+string
+SecondoInterfaceCS::readErrorBody( iostream& iosock ) const
+{
+  string body = "";
+  string line = "";
+  while ( getline( iosock, line ) && line != "</SecondoError>" )
+  {
+    if ( !body.empty() )
+    {
+      body += "\n";
+    }
+    body += line;
+  }
+  return body;
+}
+
+
 bool
 SecondoInterfaceCS::Initialize( const string& user, const string& pswd,
                               const string& host, const string& port,
@@ -160,6 +187,10 @@ SecondoInterfaceCS::Initialize( const string& user, const string& pswd,
   server_pid = -1;
   // Whether the server told us how it transfers lists (see the intro loop).
   bool transferNegotiated = false;
+  // Whether it named a protocol version there. Tracked apart from the transfer
+  // mode so the refusal below can say which of the two is missing -- they fail
+  // for different reasons and want different advice.
+  bool versionNegotiated = false;
 
   if ( !initialized )
   {
@@ -279,9 +310,14 @@ SecondoInterfaceCS::Initialize( const string& user, const string& pswd,
           getline( iosock, line );
           if ( line == "<SecondoOk/>" )
           {
+            // The version goes out here, not only checked when it comes back
+            // in the intro: the server has to know before it writes anything,
+            // because a mismatched client cannot be served at all and this is
+            // the last point at which saying so still reaches it.
             iosock << "<Connect>" << endl
                    << user <<  endl
                    << pswd  << endl
+                   << CSProtocol::versionLine() << endl
                    << "</Connect>" << endl;
             getline( iosock, line );
             if ( line == "<SecondoIntro>" )
@@ -291,28 +327,34 @@ SecondoInterfaceCS::Initialize( const string& user, const string& pswd,
                 getline( iosock, line );
                 if ( line != "</SecondoIntro>" )
                 {
-                  // The server states how it transfers lists; take its word
-                  // for it rather than this side's configuration, which is
-                  // what the two used to disagree about. Consumed rather than
-                  // printed: it is protocol, not a greeting. The mode is kept
-                  // on the protocol object, so a process holding connections
-                  // to two servers that disagree keeps both of them right.
+                  // The server states its protocol version and how it
+                  // transfers lists; take its word for the latter rather than
+                  // this side's configuration, which is what the two used to
+                  // disagree about. Both are consumed rather than printed:
+                  // they are protocol, not a greeting. The mode is kept on the
+                  // protocol object, so a process holding connections to two
+                  // servers that disagree keeps both of them right.
+                  const bool hadMode = csp->transferModeKnown();
                   if ( csp->applyIntroLine(line) )
                   {
-                    // Only remarked upon when the server actually overrules
-                    // what this client was configured for, so the usual case
-                    // -- the two already agree -- stays silent.
-                    const bool binary = csp->usesBinaryTransfer();
-                    if ( !RTFlag::empty() &&
-                         RTFlag::isActive("Server:BinaryTransfer") != binary )
+                    versionNegotiated = csp->versionKnown();
+                    if ( csp->transferModeKnown() && !hadMode )
                     {
-                      cerr << "Note: the Secondo server at "
-                           << serverDescription() << " transfers lists "
-                           << (binary ? "in binary form" : "as text")
-                           << ", overriding this client's configuration."
-                           << endl;
+                      // Only remarked upon when the server actually overrules
+                      // what this client was configured for, so the usual case
+                      // -- the two already agree -- stays silent.
+                      const bool binary = csp->usesBinaryTransfer();
+                      if ( !RTFlag::empty() &&
+                           RTFlag::isActive("Server:BinaryTransfer") != binary )
+                      {
+                        cerr << "Note: the Secondo server at "
+                             << serverDescription() << " transfers lists "
+                             << (binary ? "in binary form" : "as text")
+                             << ", overriding this client's configuration."
+                             << endl;
+                      }
+                      transferNegotiated = true;
                     }
-                    transferNegotiated = true;
                   }
                   else if(verbose){
                     cout << line << endl;
@@ -334,11 +376,11 @@ SecondoInterfaceCS::Initialize( const string& user, const string& pswd,
             }
             else if ( line == "<SecondoError>" )
             {
-              getline( iosock, line );
+              // The protocol version refusal arrives here, so the whole body
+              // is read: it is the diagnostic, and it is more than one line.
               errorMsg += "The Secondo server at " + serverDescription() +
-                          " rejected the connection: " + line + "\n" +
-                          "Please check the user name and the password.\n";
-              getline( iosock, line );
+                          " rejected the connection:\n" +
+                          readErrorBody( iosock ) + "\n";
             }
             else
             {
@@ -348,10 +390,9 @@ SecondoInterfaceCS::Initialize( const string& user, const string& pswd,
             }
           }
           else if ( line == "<SecondoError>" ) {
-            getline( iosock, line );
             errorMsg += "The Secondo server at " + serverDescription() +
-                        " reported an error: " + line + "\n";
-            getline( iosock, line );
+                        " reported an error:\n" +
+                        readErrorBody( iosock ) + "\n";
           } else {
             errorMsg += unexpectedResponse( iosock, line,
                                             "<SecondoOk/> or <SecondoError>" );
@@ -379,6 +420,35 @@ SecondoInterfaceCS::Initialize( const string& user, const string& pswd,
                       "It predates this protocol: client and server would not "
                       "agree on Server:BinaryTransfer and the first command "
                       "would block forever. Upgrade the server.\n";
+          initialized = false;
+        }
+
+        // Checked apart from the transfer mode, and after it, so the
+        // diagnostic names whichever of the two actually failed: they go wrong
+        // for different reasons and the advice differs. A server that speaks
+        // another version of the protocol frames its results differently, so
+        // the first command would not merely be misread, it would leave this
+        // client unable to find the start of any later answer. In practice
+        // this branch is reached only against a server old enough not to check
+        // the version this client sent in <Connect> -- a current one refuses
+        // there, and its refusal comes back through the <SecondoError> branch
+        // above.
+        if ( initialized && versionNegotiated && !csp->versionAgreed() )
+        {
+          errorMsg += csp->versionMismatchMessage(
+                        "The Secondo server at " + serverDescription() ) + "\n";
+          initialized = false;
+        }
+        else if ( initialized && !versionNegotiated )
+        {
+          errorMsg += "The Secondo server at " + serverDescription() +
+                      " did not announce a client/server protocol version "
+                      "(ProtocolVersion in <SecondoIntro>).\n"
+                      "It predates protocol version " +
+                      stringutils::int2str(csp::PROTOCOL_VERSION) +
+                      ", whose result framing this client requires. "
+                      "Rebuild and restart both ends from the same source "
+                      "revision.\n";
           initialized = false;
         }
 
@@ -1253,7 +1323,7 @@ int SecondoInterfaceCS::requestFile(const string& serverFilename,
      return ERR_IN_SECONDO_PROTOCOL;
    }
 
-   // the answer may be SecondoError or SecondoResponse
+   // the answer may be SecondoError or a <SecondoResult> frame
    bool ok = csp->ReceiveFile(localFilename);
    if(ok){
        return 0;
@@ -1342,6 +1412,14 @@ bool SecondoInterfaceCS::usesBinaryTransfer() const {
    // what this server announced, which may differ from what this client was
    // configured for.
    return csp != 0 && csp->usesBinaryTransfer();
+}
+
+int SecondoInterfaceCS::serverProtocolVersion() const {
+   return csp != 0 ? csp->peerProtocolVersion() : 0;
+}
+
+std::string SecondoInterfaceCS::getServerAddress() const {
+   return server != 0 ? server->GetSocketAddress() : std::string("");
 }
 
 bool SecondoInterfaceCS::optimizerAvailable(){

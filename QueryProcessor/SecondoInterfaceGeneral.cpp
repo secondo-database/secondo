@@ -242,6 +242,9 @@ after the error number have the following meaning:
  errors[ERR_FILE_NOT_EXISTS]
   = "File does not exist.";
 
+ errors[ERR_RESULT_TRUNCATED]
+  = "The server aborted while writing the result; it is incomplete.";
+
  errors[ERR_UNKNOWN_RETURN_CODE]
   = "A function call returned with an unknown message. ";
 

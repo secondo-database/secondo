@@ -181,12 +181,17 @@ unchanged.
 The order matters and is the whole design. ~BeginStreamedResult~ is called only
 once the command has already succeeded -- after ~Construct~ and ~EvalP~ have
 returned -- so everything that can fail before there is a result to write still
-reports through the ordinary error fields. What it cannot cover is a failure
-*during* the write: by then the sink has committed a prologue that says
-"success" and, in the binary encoding, a length that promises exactly so many
-elements. ~EndStreamedResult(false)~ says that happened, and the only honest
-thing left is to break the connection. Reporting such a failure properly needs
-a framing whose status comes *after* the data.
+reports through the ordinary error fields.
+
+A failure *during* the write is the sink's own problem, because by then the
+binary encoding has committed a length that promises exactly so many elements
+and cannot retract it. ~EndStreamedResult(false)~ says that happened; what the
+sink can do about it is up to the sink. The server's one (~ServerResultSink~ in
+SecondoServer.cpp) closes its result frame with an abort terminator, which tells
+the client to discard the partial bytes and carries the reason -- so the command
+fails cleanly and the connection survives. That is what the status-after-payload
+framing of client/server protocol version 2 exists for; version 1 could only
+drop the connection.
 
 */
 class ResultSink

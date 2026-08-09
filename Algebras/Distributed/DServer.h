@@ -73,10 +73,10 @@ RelationWriter and DServerCreator
 #include "StandardTypes.h"
 
 /*
-1.3 Forward Declarations
+1.3 Includes (continued) and Forward Declarations
 
 */
-class Socket;
+#include "SecondoInterfaceCS.h"
 
 /*
 2 Class ~DServer~
@@ -92,8 +92,9 @@ class DServer
   * may not be used! (internal usage only)
 
 */
-  DServer() 
-  : m_server(NULL)
+  DServer()
+  : m_interface(NULL)
+  , m_interfaceNl(NULL)
   , m_error(false) {}
 
 public:
@@ -224,14 +225,31 @@ also sets internal error flag to true
 /*
 2.10 Getter Methods
 
-2.10.1 Method ~Socket[ast] getServer~
+2.10.1 Method ~SecondoInterfaceCS[ast] getServer~
 
 returns a pointer to the TCP/IP connection of the worker
 
-  * returns Socket[ast] - the socket connection
+  * returns SecondoInterfaceCS[ast] - the connection to the worker
 
 */
-  Socket *getServer() { return m_server; }
+  SecondoInterfaceCS *getServer() { return m_interface; }
+
+/*
+The worker's IP address as the connected socket reports it. Used to build the
+master's own HostIP; kept as an accessor because the socket now lives inside
+the interface.
+
+*/
+  std::string getServerAddress() const;
+
+/*
+2.10.3 Method ~NestedList[ast] getServerNl~
+
+  * returns the list instance the worker's interface builds its results in.
+    Per connection, not the global one -- see ~m\_interfaceNl~.
+
+*/
+  NestedList *getServerNl() { return m_interfaceNl; }
 
 /*
 2.10.2 Method ~int getNumChilds const~
@@ -354,7 +372,20 @@ private:
   ListExpr m_type;  // darray type in nested list format
   string m_typeStr; // darray type in nested list format 
     
-  Socket* m_server; // stored TCP/IP connection to the worker
+  // The connection to the worker, as a client of the ordinary client/server
+  // protocol rather than a socket this class writes tags onto by hand. That
+  // hand-rolled copy predated the protocol's negotiated transfer mode and
+  // version and could no longer connect to a current server at all; more to
+  // the point, it read results by scanning text for the substring "ERROR" and
+  // by deleting the literal "bnl" out of lines, because it could not parse a
+  // binary list.
+  //
+  // Its own NestedList, not the global one: workers run in threads (see
+  // DServerCmdWorkerCommunicationThreaded), and sharing the global list across
+  // them is exactly the hazard Tests/csloadtest exists to catch. This is how
+  // Algebras/Distributed2 does it -- see ConnectionInfo.
+  SecondoInterfaceCS* m_interface;
+  NestedList*         m_interfaceNl;
                     
   // multiplying worker instances
   vector<DServer*> m_childs;

@@ -142,6 +142,15 @@ const SI_Error ERR_INVALID_FILE_NAME = 87;
 const SI_Error ERR_FILE_EXISTS = 88;
 const SI_Error ERR_FILE_NOT_EXISTS = 89;
 
+/*
+The server had already started writing a result onto the wire when it detected
+an error, so the bytes sent so far are an incomplete encoding. The client
+discards them and reports this code, unless the abort carried an error code of
+its own -- see the ~A~ record in the client/server protocol (CSProtocol.h).
+
+*/
+const SI_Error ERR_RESULT_TRUNCATED = 90;
+
 const SI_Error ERR_SYSTEM_ERROR = 100;
 const SI_Error ERR_SYSTEM_DIED = 101;
 

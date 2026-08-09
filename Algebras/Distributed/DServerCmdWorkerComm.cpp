@@ -53,6 +53,7 @@ Implementation of the class ~DServerCmdWorkerCommunication~
 #include "DServer.h"
 #include "DServerCmdWorkerComm.h"
 #include "SocketIO.h"
+#include "SecondoInterfaceCS.h"
 
 /*
   
@@ -68,7 +69,7 @@ bool
 DServerCmdWorkerCommunication::checkWorkerAvailable() const
 {
   if ( m_worker -> getServer() == 0 ||
-       !(m_worker -> getServer() -> IsOk()))
+       !(m_worker -> getServer() -> isInitialized()))
     {
       return false;
     }
@@ -104,8 +105,8 @@ DServerCmdWorkerCommunication::startWorkerStreamCommunication()
       return false;
     }
 
-  if (!setStream(m_worker -> getServer() -> GetSocketStream()))
-    { 
+  if (!m_worker -> getServer() -> isInitialized())
+    {
       setCmdErrorText("Could not initiate communication to worker!");
       return false;
     }
@@ -143,7 +144,7 @@ DServerCmdWorkerCommunication::closeWorkerStreamCommunication()
        << m_worker -> getServerPort() << endl;
 #endif
 
-  m_worker -> getServer() -> Close();
+  m_worker -> getServer() -> Terminate();
 
   return true;
 }
@@ -181,8 +182,9 @@ DServerCmdWorkerCommunication::
   if (useThreads)
       {
         DServerCmdWorkerCommunicationThreaded* commThread =
-          new DServerCmdWorkerCommunicationThreaded(this, 
-                                                    inCmd, 
+          new DServerCmdWorkerCommunicationThreaded(this,
+                                                    m_worker,
+                                                    inCmd,
                                                     inFlag);
         assert (m_exec == NULL);
         m_exec = new ZThread::ThreadedExecutor();
@@ -192,10 +194,7 @@ DServerCmdWorkerCommunication::
     {
       assert (m_exec == NULL);
 
-      ret = sendSecondoCmd(inFlag, inCmd);
-      if (!ret)
-        setCmdErrorText("Unable to send the following Secondo Command:\n" + 
-                        inCmd);
+      ret = runSecondoCmd(inCmd, inFlag);
     }
   
   return ret;
@@ -208,17 +207,49 @@ DServerCmdWorkerCommunication::
 void
 DServerCmdWorkerCommunicationThreaded::run()
 {
-  restoreStream(m_caller -> rentStream());
   setStreamOpen();
-                  
-  bool ret = 
-    sendSecondoCmd(m_flag, m_cmd);
 
-  if (ret)
-    ret = waitForSecondoResult(m_cmd);
+  const bool ret = runSecondoCmd(m_cmd, m_flag);
 
   if (!ret || hasCmdError())
     m_caller -> setCmdErrorText(getCmdErrorText());
 
   m_caller -> setCmdResult(getCmdResult());
+}
+
+/*
+3.4 Method ~bool runSecondoCmd~
+
+*/
+bool
+DServerCmdWorkerCommunication::runSecondoCmd(const string& inCmd, int inFlag)
+{
+  SecondoInterfaceCS* si = commInterface();
+  NestedList* wnl = commNestedList();
+  if (si == 0 || wnl == 0)
+    {
+      setCmdErrorText("No connection assigned yet!");
+      return false;
+    }
+
+  ListExpr resultList = wnl -> TheEmptyList();
+  int errorCode = 0;
+  int errorPos = 0;
+  string errorMessage = "";
+
+  si -> Secondo(inCmd, resultList, inFlag, true, false,
+                resultList, errorCode, errorPos, errorMessage);
+
+  if (errorCode != 0)
+    {
+      string outErr = "SECONDO command: '" + inCmd + "'\n" + errorMessage;
+      setCmdResult(errorMessage);
+      setCmdErrorText(outErr);
+      return false;
+    }
+
+  // Callers only ever show this or search it for a name, so the printed list
+  // is what they want; nothing downstream parses it back.
+  setCmdResult(wnl -> ToString(resultList));
+  return true;
 }

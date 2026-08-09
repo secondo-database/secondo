@@ -4830,263 +4830,71 @@ the specified host, listening at the specified port
 It also checks, if the database distributed is available.
 
 */
-static bool 
-sendCommandToWorker(Socket *inServer,
-                    const string inCmd,
-                    const string inExpectedResponse,
-                    string &outMsg)
-{
-  if(inServer == 0 || !inServer->IsOk())
-    {      
-      outMsg = "Cannot connect to worker";
-      if (inServer != 0)
-        {
-          outMsg += ":" + inServer -> GetErrorText();
-        }
+/*
+Checking a worker is just being an ordinary client of it: connect, run the two
+commands, look at the error codes.
 
-      return false;
-    }
+What stood here was a third hand-written copy of the client/server protocol --
+the ~<SecondoOk/>~/~<Connect>~/~<SecondoIntro>~ exchange written out inline, the
+intro block read and thrown away, and success decided by searching the reply for
+the substrings "ERROR", "Error" and "error". Skipping the intro meant it never
+learned the transfer mode or the protocol version, so it could no longer connect
+to a current server at all; and searching the text meant a query whose *result*
+happened to contain the word "error" was reported as a failure.
 
-  iostream &iosock = inServer -> GetSocketStream();
-
-  // check db distributed available
-  if (!iosock.good())
-    {
-      outMsg = "(5) Communication is blocked! Restart Worker";
-      return false;
-    }
-
-  // cout << "OUT:" << "<Secondo>" << endl << "1" << endl 
-  //       << inCmd << endl 
-  //      << "</Secondo>" << endl;
-
-  iosock << "<Secondo>" << endl << "1" << endl 
-         << inCmd << endl 
-         << "</Secondo>" << endl;
-
-   if (!iosock.good())
-    {
-      outMsg = "(6) Communication is blocked! Restart Worker";
-      return false;
-    }
-
-   string line;
-  getline( iosock, line );
-  //cout << "GOT:" << line << endl;
-
-  bool foundResult = inExpectedResponse.empty()? true : false;
-  bool gotError = false;
-  stringstream allLines;
-  if(line=="<SecondoResponse>")
-    {
-      do
-        {
-          if (!iosock.good())
-            {
-              outMsg = 
-                "(7) Communication is blocked! Restart Worker";
-              return false;
-            }
-
-          getline( iosock, line );
-          if (line.find("</SecondoResponse>") == string::npos)
-            allLines << line << endl;
-
-
-          if(line.find("ERROR") != string::npos ||
-             line.find("Error") != string::npos ||
-             line.find("error") != string::npos)
-            { 
-              //cout << "  -> GOT ERROR!";
-              gotError = true;
-            }
-          else if (line.find(inExpectedResponse) != string::npos)
-            {
-              //cout << "  -> GOT IT!";
-              foundResult = true;
-            }
-                        
-        }
-      while(line.find("</SecondoResponse>") == string::npos);
-    }
-  else 
-    outMsg = "Unexpected response from worker";
-  
-  if (gotError)
-    {
-      outMsg = allLines.str();
-      //cerr << "GOT ERROR:" << outMsg;
-      foundResult = false;
-    }
-  return foundResult;
-}
-
-static bool 
-openConnection(Socket *inServer,
-               string &outMsg)
-{ 
-  string line;
-  if(inServer == 0 || !inServer->IsOk())
-    {      
-      outMsg = "Cannot connect to worker";
-      if (inServer != 0)
-        {
-          outMsg += ":" + inServer -> GetErrorText();
-        }
-
-      return false;
-    }
-
-  iostream &ioSock = inServer->GetSocketStream();
-      
-  if (!inServer -> IsOk())
-    {
-      outMsg = "Cannot access worker socket"; 
-      return false;
-    }
-  do
-    {
-      if (!ioSock.good())
-        {
-          outMsg = "(1):";
-          switch (ioSock.rdstate())
-           {
-             default:
-             outMsg += " nospecified";
-             break;
-           }
-          outMsg += " Communication is blocked! Restart Worker:";
-          return false;
-        }
-      
-      getline( ioSock, line );
-      
-    } while (line.empty());
-      
-  bool startupOK = true;
-
-  if(line=="<SecondoOk/>")
-    {
-      if (!ioSock.good())
-        {
-          outMsg = "(2) Communication is blocked! Restart Worker";
-          return false;
-        }
-      ioSock << "<Connect>" << endl << endl 
-             << endl << "</Connect>" << endl;
-      if (!ioSock.good())
-        {
-          outMsg = "(3) Communication is blocked! Restart Worker";
-          return false;
-        }
-      getline( ioSock, line );
-          
-      if( line == "<SecondoIntro>")
-        {
-          do
-            {
-              if (!ioSock.good())
-                {
-                  outMsg =
-                    "(4) Communication is blocked! Restart Worker";
-                  return false;
-                }
-              getline( ioSock, line);
-              
-            }  while(line != "</SecondoIntro>");
-            
-              
-        }
-      else 
-        startupOK = false;
-          
-    }
-  else 
-    startupOK = false;
-   
-  if (!startupOK)
-    {
-      outMsg = "Unexpected response from worker";
-      return false;
-    }
-
-  if (!(inServer -> IsOk()))
-    { 
-      outMsg = "Cannot Connect to Worker";
-      return false;
-    } // if (!(inServer -> IsOk()))
-
-  return startupOK;
-}
-
-static void closeConnection(Socket *ioServer)
-{
-  iostream &ioSock = ioServer -> GetSocketStream();
-  ioSock << "<Disconnect/>" << endl;
-  ioServer->Close();
-  
-}
-
+*/
 static bool
-checkWorkerRunning(const string &host, int port,  
+checkWorkerRunning(const string &host, int port,
                    const string &cmd, string &msg)
 {
   cout << "checking worker on " << host << ":" << port << endl;
-  // check worker running
-  string line;
 
-  Socket* server = Socket::Connect( host, int2Str(port), 
-                                    Socket::SockGlobalDomain,
-                                    5,
-                                    1);
+  // Its own NestedList: checkworkers runs one worker per tuple of a stream and
+  // Distributed drives workers from threads elsewhere, so a connection never
+  // borrows the global list. See DServer::m_interfaceNl.
+  NestedList* wnl = new NestedList();
+  SecondoInterfaceCS* si = new SecondoInterfaceCS(true, wnl, true);
+  si->setMaxAttempts(5);
+  si->setTimeout(1);
 
-  if (server == 0)
+  string errMsg = "";
+  if (!si->Initialize("", "", host, int2Str(port),
+                      string(""), string(""), errMsg, true))
     {
-      msg = "Unable to open connection to Worker!";
+      msg = "Unable to open connection to Worker: " + errMsg;
+      delete si;
+      delete wnl;
       return false;
     }
-  if (!openConnection(server, msg))
+
+  bool ok = true;
+  ListExpr resultList = wnl->TheEmptyList();
+  int errorCode = 0, errorPos = 0;
+  string errorMessage = "";
+
+  si->Secondo("open database distributed", resultList, 1, true, false,
+              resultList, errorCode, errorPos, errorMessage);
+  if (errorCode != 0)
     {
-      if (server != 0)
+      msg = errorMessage;
+      ok = false;
+    }
+
+  if (ok)
+    {
+      si->Secondo(cmd, resultList, 1, true, false,
+                  resultList, errorCode, errorPos, errorMessage);
+      if (errorCode != 0)
         {
-          server->Close();
-          delete server;
+          msg = "Database \"distributed\" in use";
+          ok = false;
         }
-      return false;
     }
 
-  if (!sendCommandToWorker(server, 
-                           "open database distributed",
-                           "", 
-                           msg)) 
-    {
-      if (server != 0)
-        {
-          server->Close();
-          delete server;
-        }
-      return false;
-    }
-
-  if (!sendCommandToWorker(server, 
-                           cmd,
-                           "", 
-                           msg)) 
-    {
-      if (server != 0)
-        {
-          server->Close();
-          delete server;
-        } 
-      msg = 
-        "Database \"distributed\" in use";
-      return false;
-    }
-
-  closeConnection(server);
-  delete server;
-  server=0;
-  return true;
+  si->Terminate();
+  delete si;
+  delete wnl;
+  return ok;
 }
 
 static ListExpr

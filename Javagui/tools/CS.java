@@ -50,10 +50,21 @@ private OutputStream out2;  // output stream to the Secondo-Client
 // How the server announces its list transfer mode in <SecondoIntro>; see
 // include/CSProtocol.h, where the protocol is documented.
 private static final String BINARY_TRANSFER_TAG = "BinaryTransfer=";
+// ... and its protocol version; see the same file.
+private static final String PROTOCOL_VERSION_TAG = "ProtocolVersion=";
 // The real server's answer, relayed to the client in this wrapper's own intro.
 // Text transfer is assumed until the server says otherwise, which is what a
 // server that never sends the line would have meant anyway.
 private String binaryTransfer = BINARY_TRANSFER_TAG + "NO";
+
+// The protocol version, relayed the same way. Both ends check it and refuse a
+// mismatch, so a wrapper that dropped the line would make every connection
+// through it fail. Relayed rather than answered from sj.lang.SecondoInterface's
+// own constant, so that this tool stays usable to watch two ends that disagree
+// -- it is a debugging proxy, and refusing them itself would hide exactly what
+// one would start it to see.
+private String protocolVersion =
+      PROTOCOL_VERSION_TAG + sj.lang.SecondoInterface.PROTOCOL_VERSION;
 
 
 private static Vector set;  // set of free SecondoServer connections
@@ -134,8 +145,17 @@ public boolean connectWithServer(Socket server) throws IOException{
 
     System.out.println("Send authorization");
     
+    // Three lines of body, not one: the server reads the user and the
+    // password as separate lines and then everything up to </Connect> as
+    // Key=Value data. Sending "((user)(passwd))" on a single line made the
+    // server take </Connect> for the password and eat the next line the client
+    // sent. It went unnoticed only because authorisation is usually switched
+    // off.
     sendString("<Connect>\n",out1);
-    sendString("((user)(passwd))\n",out1);
+    sendString("user\n",out1);
+    sendString("passwd\n",out1);
+    sendString(PROTOCOL_VERSION_TAG
+               + sj.lang.SecondoInterface.PROTOCOL_VERSION + "\n",out1);
     sendString("</Connect>\n",out1);
     out1.flush();
 
@@ -164,6 +184,9 @@ public boolean connectWithServer(Socket server) throws IOException{
        // connection made through this tool.
        if(line.startsWith(BINARY_TRANSFER_TAG)){
           binaryTransfer = line;
+       }
+       if(line.startsWith(PROTOCOL_VERSION_TAG)){
+          protocolVersion = line;
        }
     } while(!line.equals("</SecondoIntro>"));
     System.out.println("SecondoIntro finished");
@@ -205,7 +228,9 @@ public boolean connectClient(Socket client)throws IOException{
 
     sendString("<SecondoIntro>\n",out2);
     sendString("You are connected with a SecondoServerWrapper\n",out2);
-    // Whatever the real server said; without it the client refuses to connect.
+    // Whatever the real server said; without either line the client refuses to
+    // connect.
+    sendString(protocolVersion + "\n",out2);
     sendString(binaryTransfer + "\n",out2);
     sendString("</SecondoIntro>\n",out2);
     out2.flush();

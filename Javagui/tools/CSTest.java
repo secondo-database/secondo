@@ -51,9 +51,11 @@ import sj.lang.MessageListener;
   Options:
     --expect-binary       require the connection to transfer lists in binary
     --expect-text         require the connection to transfer lists as text
-    --expect-truncation   run the truncation assertions; only meaningful
-                          against a server started with the fault injection
-                          flag, see checkTruncation() below
+    --expect-truncation   run the truncation assertions *instead of* the
+                          ordinary ones; only meaningful against a server
+                          started with the fault injection flag, which
+                          truncates every streamed result -- see
+                          checkTruncation() below
 
   Exit status: 0 all assertions held, 1 the test could not be run at all
   (usage, or no connection), 2 an assertion failed. Every assertion runs even
@@ -194,13 +196,20 @@ public class CSTest{
             "handshake: list transfer mode is "
             + (expectBinary ? "binary" : "textual") + " as required");
     }
-    // TODO (protocol version 2): once the client sends ProtocolVersion= in
-    // <Connect> and requires it back in <SecondoIntro>, assert the negotiated
-    // version here as well. The version is checked in both directions and a
-    // mismatch is a hard refusal, so a Java constant that drifts from
-    // include/CSProtocol.h makes this test fail to connect at all -- which is
-    // why this test, rather than a grep over the two files, is the drift
-    // protection for that constant.
+    // The protocol version is checked in both directions -- the client sends
+    // it in <Connect>, the server sends it in <SecondoIntro> -- and a mismatch
+    // is a hard refusal on either side. So the real drift protection for
+    // SecondoInterface.PROTOCOL_VERSION against csp::PROTOCOL_VERSION in
+    // include/CSProtocol.h is not this assertion but the fact that connect()
+    // above would have failed outright; a grep over the two files could only
+    // compare the literals, not the frame readers behind them. What this pins
+    // down is that a version really was negotiated and is the one this build
+    // speaks, so the handshake cannot silently become a no-op.
+    check(si.getServerProtocolVersion()
+            == sj.lang.SecondoInterface.PROTOCOL_VERSION,
+          "handshake: protocol version "
+          + sj.lang.SecondoInterface.PROTOCOL_VERSION + ", got "
+          + si.getServerProtocolVersion());
   }
 
   /*
@@ -309,13 +318,39 @@ public class CSTest{
    connection when it noticed a failure it could no longer report.
   */
   private static void checkTruncation(){
-    Answer a = send("query ten feed consume");
+    if(!si.usesBinaryLists()){
+      // Only a streamed result can be truncated, and the sink that streams
+      // declines in textual mode -- there is no incremental textual writer --
+      // so the fault has nothing to hook into. Not a failure of anything.
+      System.out.println("     : truncation checks skipped (textual transfer)");
+      return;
+    }
+    // The fault injection also sends a message from inside the write, which is
+    // the only way to reach the frame's M record -- a message raised while the
+    // result is already going out. Nothing natural produces one, so this is the
+    // only coverage that record gets.
+    final int[] messages = new int[1];
+    MessageListener listener = new MessageListener(){
+      public void processMessage(ListExpr message){
+        messages[0]++;
+      }
+    };
+    si.addMessageListener(listener);
+    Answer a;
+    try{
+      a = send("query ten feed consume");
+    } finally {
+      si.removeMessageListener(listener);
+    }
     // ERR_RESULT_TRUNCATED, mirrored in include/ErrorCodes.h and
     // sj/lang/ServerErrorCodes.java.
     check(a.errorCode.value == 90,
           "truncation: reported as error 90, got " + a.errorCode.value);
     check(a.errorMessage.toString().trim().length() > 0,
           "truncation: message is not empty");
+    check(messages[0] > 0,
+          "truncation: the message sent mid-result arrived (" + messages[0]
+          + " message(s))");
     Answer b = send("query ten feed count");
     check(b.errorCode.value == 0
           && b.result.listLength() == 2
@@ -391,13 +426,20 @@ public class CSTest{
       }
 
       checkHandshake();
-      checkSmallResult();
-      checkLargeResult();
-      checkErrorReported();
-      checkConnectionSurvivesError();
-      checkMessageInterleaving();
       if(expectTruncation){
+        // The fault injection flag is per server, not per query: *every*
+        // streamed relation result on this connection stops after a few
+        // tuples. So the ordinary assertions cannot run here -- they would all
+        // fail, and for the wrong reason. A run against a flagged server tests
+        // the abort path and nothing else; the run against the unflagged
+        // server is the same test's negative control.
         checkTruncation();
+      } else {
+        checkSmallResult();
+        checkLargeResult();
+        checkErrorReported();
+        checkConnectionSurvivesError();
+        checkMessageInterleaving();
       }
 
       sendRequired("close database");

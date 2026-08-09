@@ -233,6 +233,21 @@ public:
    // connections to two servers that answer differently.
    bool usesBinaryTransfer() const;
 
+   // The client/server protocol version the connected server announced, or 0
+   // when there is no connection. Always csp::PROTOCOL_VERSION on a connection
+   // that came up, since a mismatch is refused during the handshake -- it is
+   // here for diagnostics and for tests that assert the handshake happened.
+   int serverProtocolVersion() const;
+
+   // Whether a connection is up. Same flag SecondoInterface keeps; exposed
+   // because a caller holding an interface has no other way to ask.
+   bool isInitialized() const { return initialized; }
+
+   // The connected server's IP address as the socket reports it
+   // ("xxx.xxx.xxx.xxx"), empty when there is no connection.
+   // Algebras/Distributed derives the master's own address from it.
+   std::string getServerAddress() const;
+
    // Sends a command without saying which language it is written in: the
    // server classifies it (see SQLLanguage.h) and reports in resolvedLevel
    // what it decided, which tells the caller how to read the answer --
@@ -308,6 +323,12 @@ public:
      Socket*     server;     // used in C/S version only
      CSProtocol* csp;
 
+     // reads a <SecondoError> body to its end tag; the start tag is already
+     // consumed. Several lines are legal and one of them matters -- see the
+     // implementation. Protected because SecondoInterfaceREPLAY does its own
+     // handshake and needs the same reader.
+     std::string readErrorBody(std::iostream& iosock) const;
+
   private:
      int  maxAttempts; // maximum number of attemps when connecting
      int  timeout; // timeout in second per connection attemp 
@@ -348,6 +369,7 @@ public:
      std::string unexpectedResponse(std::iostream& iosock,
                                     const std::string& received,
                                     const std::string& expected) const;
+
 
      // Counter for initialize calls, used to give each connection's trace
      // files a name of their own. Shared by every connection in the process,

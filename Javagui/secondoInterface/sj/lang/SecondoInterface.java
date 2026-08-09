@@ -41,6 +41,8 @@ import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -112,6 +114,26 @@ not accessible by the user code.
   // same constant in include/CSProtocol.h (csp::BINARY_TRANSFER_TAG), where
   // the protocol is documented.
   private static final String BINARY_TRANSFER_TAG = "BinaryTransfer=";
+
+  // The client/server protocol this build speaks, sent as a datum of the
+  // <Connect> block and expected back as a line of <SecondoIntro>. The C++ side
+  // has the same two constants in include/CSProtocol.h
+  // (csp::PROTOCOL_VERSION_TAG, csp::PROTOCOL_VERSION), where the protocol is
+  // documented; the two must agree.
+  //
+  // Nothing enforces that at build time on purpose. Because a mismatch is a
+  // hard refusal and not a degraded mode, a drifted constant here makes
+  // tools.CSTest fail to connect at all, and that test runs in
+  // ClientServer/TestClientServer. A grep over the two files could only compare
+  // the literals; the test compares the frame readers behind them.
+  private static final String PROTOCOL_VERSION_TAG = "ProtocolVersion=";
+  public static final int PROTOCOL_VERSION = 2;
+
+  // The version the connected server announced, 0 if it announced none. Always
+  // PROTOCOL_VERSION on a connection that came up, since a mismatch is refused
+  // during the handshake; kept for diagnostics and for tests asserting that the
+  // handshake happened at all.
+  private int serverProtocolVersion = 0;
 
   // Flag indicating if a connection with a Secondo server exists.
   protected boolean initialized;
@@ -200,9 +222,15 @@ not accessible by the user code.
            return false;
         }
             if ( line.equals( "<SecondoOk/>" ) ) {
-              outSocketStream.write( "<Connect>\n" 
+              // The version goes out here, not only checked when it comes
+              // back in the intro: the server has to know before it writes
+              // anything, because a client speaking another version cannot be
+              // served at all and this is the last point at which saying so
+              // still reaches it.
+              outSocketStream.write( "<Connect>\n"
                                     + user +"\n"
                                     + pswd +"\n"
+                                    + PROTOCOL_VERSION_TAG + PROTOCOL_VERSION +"\n"
                                     + "</Connect>\n" );
               outSocketStream.flush();
               line = inSocketStream.readLine();
@@ -214,6 +242,7 @@ not accessible by the user code.
               }
               if ( line.equals( "<SecondoIntro>" ) ) {
                 boolean transferNegotiated = false;
+                boolean versionNegotiated = false;
                 do {
                   line = inSocketStream.readLine();
                   if(line==null){
@@ -233,6 +262,17 @@ not accessible by the user code.
                         binaryLists = line.substring(
                                         BINARY_TRANSFER_TAG.length() ).equals( "YES" );
                         transferNegotiated = true;
+                     } else if ( line.startsWith( PROTOCOL_VERSION_TAG ) ) {
+                        // Also protocol, also consumed. Checked below rather
+                        // than here so the two failures stay apart: they go
+                        // wrong for different reasons and want different advice.
+                        try {
+                          serverProtocolVersion = Integer.parseInt(
+                             line.substring( PROTOCOL_VERSION_TAG.length() ).trim() );
+                        } catch ( NumberFormatException e ) {
+                          serverProtocolVersion = -1;
+                        }
+                        versionNegotiated = true;
                      } else {
                         Reporter.writeInfo( line );
                      }
@@ -245,6 +285,27 @@ not accessible by the user code.
                    Reporter.writeError( "The Secondo server did not announce how it "
                      + "transfers lists (BinaryTransfer in <SecondoIntro>). "
                      + "It predates this protocol version; please upgrade it." );
+                   initialized = false;
+                } else if ( !versionNegotiated ) {
+                   Reporter.writeError( "The Secondo server did not announce a "
+                     + "client/server protocol version (ProtocolVersion in "
+                     + "<SecondoIntro>). It predates protocol version "
+                     + PROTOCOL_VERSION + ", whose result framing this client "
+                     + "requires. Rebuild and restart both ends from the same "
+                     + "source revision." );
+                   initialized = false;
+                } else if ( serverProtocolVersion != PROTOCOL_VERSION ) {
+                   // A mismatch does not cost one answer, it costs the framing:
+                   // this client would be unable to find the start of any later
+                   // response. In practice a current server refuses first, from
+                   // the version it read out of <Connect>, and that refusal
+                   // arrives as <SecondoError> below.
+                   Reporter.writeError( "The Secondo server speaks client/server "
+                     + "protocol version " + serverProtocolVersion + "; this client "
+                     + "speaks version " + PROTOCOL_VERSION + ". There is no "
+                     + "compatibility mode: the result framing differs and the "
+                     + "first command would desynchronise the connection. Rebuild "
+                     + "and restart both ends from the same source revision." );
                    initialized = false;
                 } else {
                    initialized = true;
@@ -420,34 +481,138 @@ not accessible by the user code.
      if( line.equals("<SecondoError>" )) {
         errorCode.value = 80;
         errorMessage.setLength( 0 );
-          line = inSocketStream.readLine();
-        if(line !=null) {
-             errorMessage.append( line );
-             line = inSocketStream.readLine();
-           } else{
-             Reporter.writeError( "SecondoInterface: Network Error in method secondo reading SecondoError." );
-             errorCode.value = 81;
-             return;
-         }
-         return; // end of handling the <SecondoError> Message
+        // To the end tag rather than one line: the block has always been
+        // allowed to carry several, and reading one left the rest in the
+        // stream to be misread as the next response. The message that most
+        // needs to arrive whole -- the protocol version refusal -- is two.
+        while( (line = inSocketStream.readLine()) != null
+               && !line.equals("</SecondoError>") ) {
+           if( errorMessage.length() > 0 ) {
+              errorMessage.append("\n");
+           }
+           errorMessage.append( line );
+        }
+        if( line == null ) {
+           Reporter.writeError( "SecondoInterface: Network Error in method secondo reading SecondoError." );
+           errorCode.value = 81;
+        }
+        return; // end of handling the <SecondoError> Message
       }
 
-     if(!line.equals("<SecondoResponse>")){ 
+     if(!line.equals("<SecondoResult>")){
         // protocol error
         errorCode.value=81;
         return;
-     } 
-     // read the answerlist
-     ListExpr answerList = receiveList("</SecondoResponse>",errorCode);
-     if(answerList==null){
-         return;
-     }   
-     errorCode.value = answerList.first().intValue();
-     errorPos.value  = answerList.second().intValue();
-     errorMessage.setLength( 0 );
-     errorMessage.append( answerList.third().textValue() );
-     resultList.setValueTo( answerList.fourth() );
+     }
+     receiveFrame(resultList, errorCode, errorPos, errorMessage);
 }
+
+
+/** reads one <SecondoResult> frame, its start tag already consumed.
+  *
+  * The status arrives after the payload -- that is what the frame is for, and
+  * it is what lets the server report an error it only noticed once the result
+  * was already going out. Two consequences show up here: an 'A' terminator
+  * means the bytes are a partial encoding and whatever was parsed from them is
+  * thrown away, and either way the records are drained to the terminator, so
+  * the connection is left positioned at the next response instead of having to
+  * be closed.
+  *
+  * See sj.lang.ChunkedInputStream and include/CSProtocol.h.
+  **/
+  private void receiveFrame(ListExpr resultList,
+                            IntByReference errorCode,
+                            IntByReference errorPos,
+                            StringBuffer errorMessage) throws IOException{
+
+     long t1 = System.currentTimeMillis();
+     ChunkedInputStream frame = new ChunkedInputStream(inSocketStream,
+        new ChunkedInputStream.MessageSink() {
+           public void frameMessage(byte[] body) {
+              ListExpr m = parseFrameMessage(body);
+              if(m != null){
+                 informListener(m);
+              }
+           }
+        });
+
+     ListExpr answerList = null;
+     if(binaryLists){
+        answerList = ListExpr.readBinaryFrom(frame);
+     } else {
+        ByteArrayOutputStream text = new ByteArrayOutputStream();
+        byte[] buf = new byte[8192];
+        int r;
+        while( (r = frame.read(buf)) > 0 ){
+           text.write(buf, 0, r);
+        }
+        ListExpr parsed = new ListExpr();
+        answerList = parsed.readFromString(text.toString()) == 0 ? parsed : null;
+     }
+
+     frame.drainToTerminator();
+     if(Environment.MEASURE_TIME){
+        Reporter.writeInfo("receive and building a nested list : "
+                           + (System.currentTimeMillis()-t1) + " milliseconds");
+     }
+
+     if(!frame.ok()){
+        // The framing itself was lost; nothing after this point on the socket
+        // can be trusted to be a response.
+        Reporter.writeError("SecondoInterface: malformed <SecondoResult> frame");
+        errorCode.value = 80;
+        return;
+     }
+
+     errorCode.value = frame.errorCode();
+     errorPos.value = frame.errorPos();
+     errorMessage.setLength( 0 );
+     errorMessage.append( frame.message() );
+
+     if(frame.kind() == 'A'){
+        // The server stopped writing part way through: the bytes read are an
+        // incomplete encoding and must not be handed on as a result.
+        resultList.setValueTo(ListExpr.theEmptyList());
+        if(errorCode.value == 0){
+           errorCode.value = ServerErrorCodes.ERR_RESULT_TRUNCATED;
+        }
+        return;
+     }
+
+     if(answerList == null){
+        resultList.setValueTo(ListExpr.theEmptyList());
+        if(errorCode.value == 0){
+           // A clean terminator over a payload that would not parse is a
+           // protocol error, not a successful command.
+           Reporter.writeError("SecondoInterface: result could not be parsed");
+           errorCode.value = 80;
+        }
+        return;
+     }
+     resultList.setValueTo(answerList);
+}
+
+
+/** parses the body of an M record into a list, in this connection's
+  * transfer mode. Returns null if it will not parse -- a message is
+  * informational, so a bad one is dropped rather than failing the command.
+  **/
+  private ListExpr parseFrameMessage(byte[] body){
+     if(binaryLists){
+        return ListExpr.readBinaryFrom(new ByteArrayInputStream(body));
+     }
+     ListExpr m = new ListExpr();
+     return m.readFromString(new String(body)) == 0 ? m : null;
+  }
+
+
+/** the client/server protocol version the connected server announced, 0 if
+  * none. Always PROTOCOL_VERSION on a connection that came up: a mismatch is
+  * refused during the handshake.
+  **/
+  public int getServerProtocolVersion(){
+     return serverProtocolVersion;
+  }
 
 
 
@@ -1210,7 +1375,7 @@ public int requestFile(String serverFilename,
         return ServerErrorCodes.ERR_IN_SECONDO_PROTOCOL;
       }
 
-      // the answer may be SecondoError or SecondoResponse
+      // the answer may be SecondoError or a <SecondoResult> frame
       boolean  ok = receiveFile(localFilename);
 
       if(ok){

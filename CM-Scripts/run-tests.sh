@@ -178,6 +178,12 @@ if [ "${SECONDO_SKIP_CS_TESTS:-}" == "true" ]; then
 else
   echo "*** Executing client/server tests ***"
   runTest ${buildDir}/ClientServer "TestClientServer" "time ./TestClientServer" $timeOutMax
+  # TestClientServer asserts the values that come back. This one reads the
+  # bytes: it walks the <SecondoResult> record framing in a server trace, which
+  # is the only check that a chunk header agreeing with a chunk reader does not
+  # simply mean both are wrong in the same way.
+  runTest ${buildDir}/ClientServer "CheckResultFraming" \
+          "./CheckResultFraming" $timeOutMax
 fi
 
 #

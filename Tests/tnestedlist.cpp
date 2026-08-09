@@ -363,6 +363,62 @@ TestStreamedBinaryWrite(CTestFrame& t)
 
 /*
 
+~mark~ / ~release~ hand list storage back.
+
+~BigArray::append~ is the only allocator and nothing else lowers its size, so
+without this a producer that builds and drops a value in a loop -- which is what
+~Relation::OutStreamed~ does per tuple -- grows the tables by everything it has
+ever built. This checks the three things that has to mean: the storage really is
+reused, what was built before the mark is untouched, and the values that come
+back after a release are the ones just written and not the ones the slots used
+to hold.
+
+*/
+void
+TestMarkRelease(CTestFrame& t)
+{
+   NestedList nl;
+
+   t.TestCase("mark/release returns list storage to the allocator");
+
+   // Built before the mark, so it has to survive every release below.
+   ListExpr keep = nl.TwoElemList(nl.SymbolAtom("keep"), nl.IntAtom(42));
+
+   const NestedList::Mark m = nl.mark();
+   const size_t before = nl.sizeOfNodeTable();
+
+   for (int round = 0; round < 100; round++) {
+     ListExpr scratch = nl.TheEmptyList();
+     ListExpr last = scratch;
+     for (int k = 0; k < 20; k++) {
+       ListExpr elem = nl.TwoElemList(nl.IntAtom(round * 100 + k),
+                                      nl.StringAtom("scratch"));
+       if (nl.IsEmpty(scratch)) { scratch = nl.Cons(elem, nl.TheEmptyList());
+                                  last = scratch; }
+       else                     { last = nl.Append(last, elem); }
+     }
+     // The round's value is correct while it is alive ...
+     if (round == 99) {
+       t.CheckResult("the last round built what it meant to",
+                     nl.ListLength(scratch) == 20, true);
+       t.CheckResult("and its first element is this round's",
+                     nl.IntValue(nl.First(nl.First(scratch))) == 9900, true);
+     }
+     nl.release(m);   // ... and dead immediately after
+   }
+
+   // 100 rounds x 20 elements x ~5 nodes reused the same slots instead of
+   // appending ~10,000. Without release this is the assertion that fails.
+   t.CheckResult("the node table did not grow across 100 rounds",
+                 nl.sizeOfNodeTable() == before, true);
+
+   t.CheckResult("what was built before the mark still reads back",
+                 nl.ToString(keep) == "(keep 42)", true);
+}
+
+
+/*
+
 The cached ~typeerror~ node survives being handed around.
 
 Every type mapping in the system returns `nl->TypeError()`, which is one node
@@ -1019,6 +1075,7 @@ TestRun_Persistent() {
    TestImmortalTypeError(*this);
 
    TestStreamedBinaryWrite(*this);
+   TestMarkRelease(*this);
    
    //cout << "Commit: " 
    //<< SmiEnvironment::CommitTransaction() << endl;

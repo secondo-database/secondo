@@ -274,6 +274,9 @@ class Connection
         // leave it pointing at a list another session owns -- at a freed one
         // once that session closes.
         nl = si->GetNestedList();
+        // Where this connection's list stood before it had run anything: every
+        // command rolls back to here (see resetListMemory).
+        connected = nl->mark();
       } else {
         // Tearing the half-built interface down again, still with the GIL
         // released: it talks to the server and frees its nested list.
@@ -324,6 +327,7 @@ class Connection
       // The call blocks on network I/O; let other Python threads run, and
       // let commands on other connections run alongside this one.
       py::gil_scoped_release release;
+      resetListMemory();
       si->Secondo(command, res, err);
       if (err.code == 0 && want_text) {
         out = nl->ToString(res);
@@ -384,6 +388,7 @@ class Connection
       // Both the call and the nested-list extraction are pure C++, so the GIL
       // stays released for all of it.
       py::gil_scoped_release release;
+      resetListMemory();
       ListExpr res = nl->TheEmptyList();
       si->SecondoAuto(command, optimizer_addressed, r.level, res,
                       r.errCode, r.errPos, r.errMsg);
@@ -426,6 +431,7 @@ class Connection
     std::string out;
     {
       py::gil_scoped_release release;
+      resetListMemory();
       out = si->optimizerCommand(directive);
     }
     return latin1(out);
@@ -445,6 +451,46 @@ class Connection
   }
 
  private:
+  // Throws away what the previous command on this connection produced, at the
+  // point where the next one starts.
+  //
+  // ~SecondoInterfaceCS~ never resets the client's nested list, so without this
+  // a connection that lives as long as a browser session keeps every result it
+  // has ever decoded: three identical ~query roads~ on one connection took the
+  // node tables from 40 to 77 chunks and the process from 576 MB to 1.6 GB of
+  // resident memory.
+  //
+  // The start of the next command is where the previous answer is provably
+  // dead, and it is an invariant this file already relies on (see
+  // ~AutoResult::result~): every list handed out has been turned into Python
+  // objects or into a ~std::string~ before the call that produced it returned.
+  // Nothing retains a ~ListExpr~ across commands -- not this class, and not the
+  // interface, which keeps only locals. ~NList::setNLRef~ is deliberately never
+  // called, so no list object outside this connection points here either.
+  //
+  // Rolling back to ~connected~ rather than ~initializeListMemory~, which is
+  // the other way to empty a list. Three reasons, in order of weight:
+  //
+  //   * ~initializeListMemory~ deletes the three tables and creates them
+  //     again, and their backing files are created under a name every
+  //     ~NestedList~ in the process shares. Doing that once per connection is
+  //     already a race; doing it once per command would run it constantly.
+  //   * Whatever the connect built stays: the rollback stops at the mark, so
+  //     it cannot invalidate a list that is older than this command.
+  //   * It reuses the mapped chunks instead of unmapping and mapping them
+  //     again, which is the point -- the slots are meant to be used over.
+  //
+  // The tables stay as large as the largest single result, rather than
+  // shrinking back between commands. That is the accumulation gone, which is
+  // what was wrong; the pages are backed by a deleted file, so the kernel can
+  // take them back when it needs to.
+  void resetListMemory()
+  {
+    if (nl) {
+      nl->release(connected);
+    }
+  }
+
   // Splits the answer into the pieces Python needs, according to the level the
   // server resolved the command to.
   //
@@ -503,6 +549,7 @@ class Connection
 
   SecondoInterfaceCS* si = nullptr;
   NestedList* nl = nullptr;
+  NestedList::Mark connected = {0, 0, 0};
 };
 
 PYBIND11_MODULE(secondo_native, m)

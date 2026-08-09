@@ -124,7 +124,8 @@ DServer::DServer(const string& inHostName, int inPortNumber,
   : m_host(inHostName)
   , m_port(inPortNumber)
   , m_name(inName)
-  , m_server(NULL)
+  , m_interface(NULL)
+  , m_interfaceNl(NULL)
   , m_error(false)
 {
    m_type = inType;
@@ -141,130 +142,69 @@ connects to a SECONDO instance at a worker host
 */
 bool
 DServer::connectToWorker()
-{        
-  //StopWatch watch;
+{
+  // One ordinary client of the client/server protocol, exactly as
+  // Algebras/Distributed2 does it (see ConnectionInfo). What used to be here
+  // was a second, partial implementation of the same protocol: it wrote the
+  // <Connect> and <Secondo> tags by hand, ignored the <SecondoIntro> block
+  // entirely -- so it never learned the transfer mode or the protocol version
+  // and cannot connect to a current server at all -- and decided whether a
+  // command had succeeded by looking for the substring "ERROR" in the reply.
+  //
+  // The interface brings its own NestedList because workers are driven from
+  // several threads; see the member declaration.
+  m_interfaceNl = new NestedList();
+  m_interface = new SecondoInterfaceCS(true, m_interfaceNl, true);
+  m_interface->setMaxAttempts(10);
+  m_interface->setTimeout(1);
 
-  string line;
-  m_server = Socket::Connect( getServerHostName(), getServerPortStr(), 
-                              Socket::SockGlobalDomain,
-                              10,
-                              1);
-      
-  if(getServer()!=0 && getServer()->IsOk())
+  string errMsg = "";
+  if (!m_interface->Initialize("", "", getServerHostName(),
+                               getServerPortStr(),
+                               string(""), string(""), errMsg, true))
     {
-      iostream& iosock = getServer()->GetSocketStream();
-      
-      if (!getServer() -> IsOk())
-      {
-        string err = "Faild to establish socket for host ";
-        err += getServerHostName()+ ":";
-        err +=  getServerPort();
-        err += "!";
-        setErrorText(err);
-      }
-      
-      do
-      {
-        getline( iosock, line );
-              
-      } while (line.empty());
-      
-      if (!getServer() -> IsOk())
-      {
-        string err = "Faild to establish socket for connection to host ";
-        err += getServerHostName() + ":";
-        err += getServerPort() + "!";
-        setErrorText(err);
-      }
-      
-      if(line=="<SecondoOk/>")
-      {
-        iosock << "<Connect>" << endl
-               << endl // user
-               << endl // password 
-               << "</Connect>" << endl;
-
-
-        getline( iosock, line );
-
-        if( line == "<SecondoIntro>")
-          { 
-            do
-            {
-              getline( iosock, line);
-                                
-            }  while(line != "</SecondoIntro>");
-
-              
-          }
-        else 
-          setErrorText("Unexpected response from worker (No <SecondoIntro/>)");
-      }
-      else 
-        setErrorText("Unexpected response from worker (No <SecondoOk/>)");
-    }
-  else 
-    setErrorText("Connection to the worker couldn't be established!");
-  
-  if (getServer() == 0)
-    {
-      // should never happen
-      // Socket::Connect always returns a pointer!
-      assert(0);
+      setErrorText("Connection to the worker couldn't be established: " +
+                   errMsg);
+      delete m_interface;
+      m_interface = 0;
+      delete m_interfaceNl;
+      m_interfaceNl = 0;
       return false;
     }
-      
-  if (!(getServer() -> IsOk()))
-    { 
-      cout << "Cannot Connect to Server:" 
-           << getServerHostName() << ":" << getServerPortStr() << endl;
-      cout << getServer() -> GetErrorText() << endl;
 
-      delete m_server;
-      m_server = 0;
-
+  ListExpr resultList = m_interfaceNl->TheEmptyList();
+  int errorCode = 0, errorPos = 0;
+  string errorMessage = "";
+  m_interface->Secondo("open database distributed", resultList, 1,
+                       true, false, resultList,
+                       errorCode, errorPos, errorMessage);
+  if (errorCode != 0)
+    {
+      // The outcome is the error code the server reported, not a substring
+      // search over the reply text -- which is what made this code report
+      // success for any answer that happened not to contain "ERROR".
+      setErrorText(string("Opening of database \"distributed\" ") +
+                   "on worker failed: " + errorMessage);
       return false;
-    } // if (!(server -> IsOk()))
+    }
 
-   iostream& iosock = getServer()->GetSocketStream();
-   
-   iosock << "<Secondo>" << endl << "1" << endl 
-            << "open database distributed" << endl 
-            << "</Secondo>" << endl;
-   
-   getline( iosock, line );
+  HostIP = getServerAddress();
+  HostIP_ = "h" + stringutils::replaceAll(HostIP,".","_");
 
-   if(line=="<SecondoResponse>")
-   {
-      do
-      {
-         getline( iosock, line );
-   
-         //cout << "   " << line << endl;
-         /*if (line[line.size() - 1] == '\r')
-            line.resize(line.size() - 1);*/
-         if(line.find("ERROR") != string::npos)
-         {
-           setErrorText(string("Opening of database \"distributed\" ") +
-                        "on worker failed!");
-           return false;
-         }
-                        
-      }
-      while(line.find("</SecondoResponse>") == string::npos);
-   }
-   else 
-     setErrorText("Unexpected response from worker (No <SecondoResponse>)");
-        
-
-   HostIP = getServer()->GetSocketAddress();
-   HostIP_ = "h" + stringutils::replaceAll(HostIP,".","_");
-   
-   //cout << "Connection to Worker on " << host << " established." << endl;
-   //cout << "ConnectTime:"  
-   // << m_host <<":" << port << watch.diffTimes() << endl;
-   return true;
+  //cout << "Connection to Worker on " << host << " established." << endl;
+  return true;
 }
+
+/*
+2.3.1 Method ~string getServerAddress~
+
+*/
+std::string
+DServer::getServerAddress() const
+{
+  return m_interface != 0 ? m_interface->getServerAddress() : std::string("");
+}
+
 /*
 2.4 Method ~void Terminate~
 
@@ -275,21 +215,15 @@ stops the SECONDO instance on the worker
 void DServer::Terminate()
 {
   //cout << "TERMINATE" << endl;
-  if(getServer() != 0)
+  if (m_interface != 0)
     {
-      if (!(getServer()->IsOk()))
-        {
-          cout << "Error: Cannot close connection to " << m_host << "!" << endl;
-          cout << getServer() -> GetErrorText() << endl;
-        }
-      else
-        {
-          iostream& iosock = getServer()->GetSocketStream();
-          iosock << "<Disconnect/>" << endl;
-          getServer()->Close();
-        }
-      delete m_server;
-      m_server=0;
+      // Terminate sends <Disconnect/> and closes the socket, which is what the
+      // hand-written teardown here used to do by itself.
+      m_interface->Terminate();
+      delete m_interface;
+      m_interface = 0;
+      delete m_interfaceNl;
+      m_interfaceNl = 0;
     }
   else
     {
@@ -398,18 +332,18 @@ performs a check on the worker
 bool
 DServer::checkServer(bool writeError) const
 {
-  if (m_server == 0)
+  if (m_interface == 0)
     {
       if (writeError)
-        cerr << "ERROR: Not connected to worker on " 
+        cerr << "ERROR: Not connected to worker on "
              << getServerHostName() << ":" << getServerPortStr() << endl;
       return false;
     }
 
-  if(!(m_server->IsOk()))
+  if (!m_interface->isInitialized())
     {
       if (writeError)
-        cerr << "ERROR: Could not establish connection to worker on " 
+        cerr << "ERROR: Could not establish connection to worker on "
              << getServerHostName() << ":" << getServerPortStr() << endl;
       return false;
     }

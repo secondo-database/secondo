@@ -88,7 +88,9 @@ The following public fields are defined in the ServerErrorCodes class.
     public static final int ERR_IN_FILETRANSFER = 86;;
     public static final int ERR_INVALID_FILE_NAME = 87;
     public static final int ERR_FILE_EXISTS = 88;
-   
+    // mirrors ERR_RESULT_TRUNCATED in include/ErrorCodes.h
+    public static final int ERR_RESULT_TRUNCATED = 90;
+
     public static final int NETWORK_ERROR_CODE = 98;
     public static final int INTERNAL_ERROR_CODE = 99;
 
@@ -170,6 +172,8 @@ None private fields are defined in the ServerErrorCodes class.
       errors[73]="Error at a position within value list for type constructor. ";
       errors[87]="Invalid filename";
       errors[88]="File exists";
+      errors[90]="The server aborted while writing the result; "
+                 +"it is incomplete.";
       // This two error codes were defined in addition to the error codes
       // returned by the Secondo Server.
       errors[98]="Network error in SecondoInterface. ";

@@ -30,6 +30,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include <atomic>
 #include <cstddef>
+#include <cstring>     // memset, for Truncate's poison mode
 #include <mutex>
 #include <string>
 #include <type_traits>   // the static_asserts below
@@ -268,6 +269,39 @@ Returns the number of elements within the array.
 
     bool IsValid(const size_t index) const{
       return (index > 0) && (index <= size.load(std::memory_order_relaxed));
+    }
+
+/*
+~Truncate~
+
+Gives back every slot above ~n~, so the next ~append~ reuses them. Chunks stay
+mapped -- the invariant this class is built around is that a chunk never moves
+once published, and reuse rather than unmapping is the point.
+
+This is the *only* way anything is ever reclaimed here: ~append~ is the sole
+allocator and it only grows. Truncation is therefore sound exactly when the
+caller knows nothing outside the surviving region refers to the slots above
+~n~, which no general caller can know -- see ~NestedList::release~, which is
+the one intended user and carries that contract.
+
+~poison~ overwrites the released slots first, so a stale reference to one is a
+recognisable value rather than the data that happened to be there. Off by
+default: it costs a full pass over the released region.
+
+*/
+    void Truncate(const size_t n, const bool poison = false){
+      const size_t old = size.load(std::memory_order_relaxed);
+      if(n >= old){
+        return;                       // nothing to give back
+      }
+      if(poison){
+        T dead;
+        std::memset((void*) &dead, 0xFF, sizeof(T));
+        for(size_t i = n; i < old; i++){
+          at(i) = dead;
+        }
+      }
+      size.store(n, std::memory_order_relaxed);
     }
 
 

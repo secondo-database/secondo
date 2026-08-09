@@ -277,120 +277,20 @@ was submitted in a separate thread.
 
 
 /*
-2.11 Receiving
-
-2.11.1 Method ~bool receiveLineFromWorker~
-
-receives one line of data from the worker
-
-  * string[&] outLine - message received
-
-  * returns true - success
-
-*/
-  bool receiveLineFromWorker(string &outLine)
-  {
-    return receiveIOS(outLine);
-  }
-
-/*
 2.12 Protected Section
 
 */
 protected:
 
 /*
-2.12.1 Methode ~waitForSecondoResult~
-retrieves the result from the SECONDO instance
-
-  * const string[&] inCmd - the command string for error reporting
-
-  * bool debugOut - flag to write debug output
-
-*/
-  bool waitForSecondoResult(const string& inCmd,
-                            bool debugOut = false)
-  {
-    bool ret = true;
-    string outErr = "";
-    string line;
-    while (line.find("</SecondoResponse>") == string::npos &&
-           receiveLineFromWorker(line))
-      {
-        // we don't need the special chars!
-        string trimmed;
-        for (unsigned long c = 0; c < line.length(); ++c)
-          {
-            const char chr = line[c];
-            if ((int) chr > 31)
-              trimmed += chr;
-          }
-        size_t pos = trimmed.find("bnl");
-        if (pos != string::npos)
-          trimmed.erase(pos,3);
-          
-        line = trimmed;
-        //std::stringstream trimmer;
-        //trimmer << line; line.clear(); trimmer >> line;
-
-        if (debugOut)
-          cout << "SECONDO RESULT:" << line << endl;
-
-        if (ret && 
-            (line.find("error") != string::npos ||
-             line.find("Error") != string::npos||
-             line.find("ERROR") != string::npos) )
-          {
-            ret = false;
-          }
- 
-        size_t pos1 = trimmed.find("</SecondoResponse>");
-        if (pos1 != string::npos)
-          trimmed.erase(pos1,18);
-        size_t pos2 = trimmed.find("<SecondoResponse>");
-        if (pos2 != string::npos)
-          trimmed.erase(pos2,17);
-
-        string::size_type pos3 = trimmed.find_last_not_of(' ');
-        if(pos3 != string::npos) {
-          trimmed.erase(pos3 + 1);
-          pos3 = trimmed.find_first_not_of(' ');
-          if(pos3 != string::npos) trimmed.erase(0, pos3);
-        }
-        else trimmed.erase(trimmed.begin(), trimmed.end());
-
-        if (!trimmed.empty())
-          outErr += trimmed + "\n";
-        
-      }
-    if (ret && outErr.empty())
-      outErr = "Success";
-
-    setCmdResult(outErr);
-
-    if (!ret)
-      {
-        outErr = "SECONDO command: '" + inCmd + "'\n" + outErr;
-        setCmdErrorText(outErr);
-#ifdef DS_CMD_WORKER_COMM
-        cout << "--------------------" << endl
-             << "GOT ERROR MSG:" << endl << outErr << endl 
-             << "--------------------" << endl;
-#endif
-      }
-
-    return ret;
-  }
-
-/*
-2.12.2 Method ~void setStreamOpen~
+2.12.1 Method ~void setStreamOpen~
 sets internal flag, that stream is open
 
 */
   void setStreamOpen() { m_workerIoStrOpen = true; }
 
 /*
-2.12.3 Method ~void setStreamClose~
+2.12.2 Method ~void setStreamClose~
 sets internal flag, that stream is closed
 
 */
@@ -425,13 +325,12 @@ SECONDO result in no-thread case
                               int inFlag,
                               bool useThreads)
   {
-   bool ret_val =
-     sendSecondoCmdToWorkerThreaded(inCmd, inFlag, useThreads);
-
-   if (ret_val && !useThreads)
-     ret_val = waitForSecondoResult(inCmd);
-
-   return ret_val;
+   // No separate wait step any more. The command goes through
+   // SecondoInterfaceCS, which reads the whole answer and reports the outcome
+   // as an error code; waitForSecondoResult used to be the wait, and it decided
+   // success by searching the reply text for "ERROR" and stripped the literal
+   // "bnl" out of every line because it could not parse a binary list.
+   return sendSecondoCmdToWorkerThreaded(inCmd, inFlag, useThreads);
   }
 
 /*
@@ -450,6 +349,42 @@ sends the command to
   bool sendSecondoCmdToWorkerThreaded(const string& inCmd,
                                       int Flag,
                                       bool useThreads);
+
+/*
+Method ~bool runSecondoCmd~
+runs one command on the worker through its ~SecondoInterfaceCS~ and records
+the outcome.
+
+Where the protocol used to be spelled out by hand -- write the ~<Secondo>~
+block, then read lines until ~</SecondoResponse>~ and call it a failure if any
+of them contained "ERROR" -- there is now one call. The interface reports an
+error code, so "did it work" no longer depends on what the answer happens to
+spell, and the answer is a list rather than text that had to have the literal
+"bnl" cut out of it because this code could not read a binary list.
+
+  * const string[&] inCmd - command string
+
+  * int inFlag - 0:nested list format, 1:regular SOS format
+
+  * returns: true - success; false - error
+
+*/
+protected:
+  bool runSecondoCmd(const string& inCmd, int inFlag);
+
+/*
+Which connection ~runSecondoCmd~ runs on. Virtual because
+~DSecondoMonitorCommunication~ reuses the command path over a connection of its
+own rather than a worker's.
+
+*/
+  virtual SecondoInterfaceCS* commInterface()
+  { return m_worker != NULL ? m_worker -> getServer() : 0; }
+
+  virtual NestedList* commNestedList()
+  { return m_worker != NULL ? m_worker -> getServerNl() : 0; }
+
+private:
 
 /*
 
@@ -508,11 +443,19 @@ class DServerCmdWorkerCommunicationThreaded
 */
 public:
   DServerCmdWorkerCommunicationThreaded(DServerCmdWorkerCommunication *inComm,
+                                        DServer *inWorker,
                                         const string& inCmd, int inFlag)
     : DServerCmdWorkerCommunication()
     , m_caller(inComm)
     , m_cmd (inCmd)
-    , m_flag (inFlag) {}
+    , m_flag (inFlag)
+  {
+    // The connection is the worker's interface, so the thread is handed the
+    // worker rather than the caller's raw iostream. Only one command runs on a
+    // worker at a time -- the caller joins through waitForSecondoResultThreaded
+    // before issuing the next -- so the two share it safely.
+    setCommWorker(inWorker);
+  }
 
 /*
 3.2 Destructor

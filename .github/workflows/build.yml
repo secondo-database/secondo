@@ -121,6 +121,9 @@ jobs:
         # make does not build.
         run: make -C apis/api_cpp/cs
 
+      - name: Build the embedded SECONDO library
+        run: make -C apis/api_cpp/direct
+
       # -----------------------------------------------------------------------
       # tnestedlist above drives one thread, and csloadtest's `parse` mode gives
       # every thread a NestedList of its own -- so nothing was covering several

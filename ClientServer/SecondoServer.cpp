@@ -107,6 +107,7 @@ void initTransferFolders(){
 
 
 class SecondoServer;
+class ServerResultSink;
 typedef void (SecondoServer::*ExecCommand)();
 
 class SecondoServer : public Application
@@ -198,9 +199,10 @@ class SecondoServer : public Application
   string            dbDir;
   string            port;
   bool              quit;
-  // Set for the one command whose result the sink took over, so WriteResponse
-  // knows there is nothing left to write but the closing tag.
-  bool              streamedResponse = false;
+  // The sink offered to the command being executed, or 0 outside CallSecondo.
+  // WriteResponse asks it whether the result has already gone out, in which
+  // case only the frame's terminator is left to write.
+  ServerResultSink* activeSink = 0;
   string            registrar;
   string            user;
   string            pswd;
@@ -211,76 +213,123 @@ class SecondoServer : public Application
 
 
 /*
-The server's ~ResultSink~: writes everything ~WriteResponse~ would have written
-*ahead* of the result, then lets the type write the result itself.
+The server's ~ResultSink~: opens the result frame, then lets the type write the
+result into it.
 
-The bytes are the ones ~WriteResponse~ produces -- the same four-element list in
-the same order, only opened by hand because its fourth element is never going to
-exist as a list. That is the whole correctness argument: a client cannot tell a
-streamed answer from a built one, so the existing checksum keeps working as the
-gate.
+What it writes is the payload the non-streamed path writes -- the encoding of
+the result list, nothing else -- only opened by hand, because the value is never
+going to exist as a list. That is the correctness argument: a client cannot tell
+a streamed answer from a built one.
 
-Two things it deliberately does not do. It declines in textual transfer mode,
-because the textual writer is a pretty-printer over a finished list and there is
-no incremental form of it -- declining leaves the ordinary path to run, which is
-exactly right. And it writes ~errorCode~ 0 before the answer, which is a promise
-it cannot keep in general: ~constructErrMsg~ runs *after* the result is written
-and can still raise ~ERR\_SYSTEM\_ERROR~ from an SMI error, and ~FinishCommand~
-can still fail its commit. Those become a dropped connection instead of an error
-message. See the wire-protocol stage for the framing that fixes it.
+It declines in textual transfer mode. The textual writer is a pretty-printer
+over a finished list with no incremental form; declining leaves the ordinary
+path to run, which is exactly right.
+
+What it no longer does is promise an outcome. Under protocol version 1 the
+status was the first three elements of the transmitted list, so engaging the
+sink meant writing ~errorCode~ 0 before the command had finished -- and
+~constructErrMsg~ runs *after* the result is written and can still raise
+~ERR\_SYSTEM\_ERROR~ from an SMI error, and ~FinishCommand~ can still fail its
+commit. Those had to become a dropped connection. Now the status is the frame's
+terminator, written by ~WriteResponse~ once it knows, and an abort is an ~A~
+record the client can read and recover from.
 
 */
 class ServerResultSink : public ResultSink
 {
  public:
-  ServerResultSink( iostream& sock, NestedList* list, CSProtocol* protocol )
-    : iosock( sock ), nl( list ), csp( protocol ),
-      engaged( false ), whole( true ) {}
+  ServerResultSink( iostream& sock, CSProtocol* protocol )
+    : iosock( sock ), csp( protocol ), chunks( 0 ), chunkStream( 0 ),
+      engaged( false ), whole( true ), socketOk( true ) {}
+
+  ~ServerResultSink() { Release(); }
 
   ostream* BeginStreamedResult( NestedList* typeList, ListExpr resultType )
   {
-    if ( !RTFlag::isActive("Server:BinaryTransfer") ) {
+    if ( !csp->usesBinaryTransfer() ) {
       return 0;
     }
 
-    // From here on the socket carries one binary list and nothing else. A
-    // <Message> block interleaved into it would be read as list data and
-    // desynchronise the client for the rest of the connection. WriteResponse
-    // suppresses them at exactly the same point, for exactly this reason; the
-    // difference is only that "the response starts here" is now earlier.
-    csp->IgnoreMsg( true );
+    iosock << "<SecondoResult>" << endl;
 
-    iosock << "<SecondoResponse>" << endl;
+    // Everything from here to the terminator goes through the chunker, so the
+    // producer writes to an ordinary ostream and the framing happens under it.
+    chunks = new csp::ChunkedOutBuf( iosock );
+    chunkStream = new ostream( chunks );
 
-    // (errorCode errorPos message result), as WriteResponse builds it.
-    NestedList::WriteBinaryHeader( iosock );
-    NestedList::WriteBinaryListOpen( 4, iosock );
-    nl->WriteBinaryElem( nl->IntAtom( 0 ), iosock );
-    nl->WriteBinaryElem( nl->IntAtom( 0 ), iosock );
-    ListExpr msg = nl->TextAtom();
-    nl->AppendText( msg, "" );
-    nl->WriteBinaryElem( msg, iosock );
+    // A message raised while the result is being written cannot be a <Message>
+    // block -- it would land in the middle of the payload. Version 1 suppressed
+    // messages outright for the whole command for that reason; now they become
+    // M records in the frame, which is what the record is for.
+    csp->RedirectMessages( chunks );
+
+    NestedList::WriteBinaryHeader( *chunkStream );
 
     // The result is (type value); the value is the caller's to write. The type
     // is written with the list it belongs to -- see BeginStreamedResult.
-    NestedList::WriteBinaryListOpen( 2, iosock );
-    typeList->WriteBinaryElem( resultType, iosock );
+    NestedList::WriteBinaryListOpen( 2, *chunkStream );
+    typeList->WriteBinaryElem( resultType, *chunkStream );
 
     engaged = true;
-    return &iosock;
+    return chunkStream;
   }
 
-  void EndStreamedResult( bool sentWhole ) { whole = sentWhole; }
+  void EndStreamedResult( bool sentWhole )
+  {
+    whole = sentWhole;
+    if ( chunkStream ) {
+      chunkStream->flush();
+    }
+    csp->RedirectMessages( 0 );
+    socketOk = iosock.good();
+  }
+
+/*
+Close the frame. Separate from ~EndStreamedResult~ because the status is not
+known yet when the value has been written: ~constructErrMsg~ and ~FinishCommand~
+still run after it. ~kind~ is 'E' when the payload is complete and 'A' when it
+is not, and on an abort the real error code is reported rather than replaced --
+that is the hole this framing exists to close.
+
+*/
+  void WriteTerminator( int errorCode, int errorPos, const string& message )
+  {
+    if ( !chunks ) {
+      return;
+    }
+    if ( whole ) {
+      chunks->writeTerminator( 'E', errorCode, errorPos, message );
+    } else {
+      const int code = (errorCode != 0) ? errorCode : ERR_RESULT_TRUNCATED;
+      const string text = message.empty()
+            ? string("The result was truncated: the server stopped writing it "
+                     "before the whole value had been sent.")
+            : message;
+      chunks->writeTerminator( 'A', code, errorPos, text );
+    }
+    Release();
+    iosock << "</SecondoResult>" << endl;
+    iosock.flush();
+  }
 
   bool Engaged() const { return engaged; }
   bool SentWhole() const { return whole; }
+  bool SocketOk() const { return socketOk; }
 
  private:
-  iostream&   iosock;
-  NestedList* nl;    // the server's own list: only the status atoms below
-  CSProtocol* csp;
-  bool        engaged;
-  bool        whole;
+  void Release()
+  {
+    if ( chunkStream ) { delete chunkStream; chunkStream = 0; }
+    if ( chunks ) { csp->RedirectMessages( 0 ); delete chunks; chunks = 0; }
+  }
+
+  iostream&            iosock;
+  CSProtocol*          csp;
+  csp::ChunkedOutBuf*  chunks;
+  ostream*             chunkStream;
+  bool                 engaged;
+  bool                 whole;
+  bool                 socketOk;
 };
 
 
@@ -290,28 +339,17 @@ SecondoServer::WriteResponse( const int errorCode, const int errorPos,
 {
   iostream& iosock = client->GetSocketStream();
 
-  // Already sent, all but the closing tag: the sink engaged during the command
-  // and the result went out as it was produced.
-  if ( streamedResponse )
+  // The sink engaged during the command, so the payload is already on the wire
+  // and all that is left is the terminator that says how it ended.
+  if ( activeSink != 0 && activeSink->Engaged() )
   {
-    iosock << "</SecondoResponse>" << endl;
-    iosock.flush();
+    activeSink->WriteTerminator( errorCode, errorPos, errorMessage );
     return;
   }
 
-  ListExpr msg = nl->TextAtom();
-  nl->AppendText( msg, errorMessage );
-
-  ListExpr list = nl->FourElemList(
-                    nl->IntAtom( errorCode ),
-                    nl->IntAtom( errorPos ),
-                    msg,
-                    resultList );
-
   csp->IgnoreMsg(true);
-  iosock << "<SecondoResponse>" << endl;
-  csp::sendList(iosock,nl, list);
-  iosock << "</SecondoResponse>" << endl;
+  csp::sendResultFrame( iosock, nl, resultList, csp->usesBinaryTransfer(),
+                        errorCode, errorPos, errorMessage );
   iosock.flush();
 }
 
@@ -397,24 +435,28 @@ SecondoServer::CallSecondo()
   // Offer the interface somewhere to put the result. Whether it takes the
   // offer depends on the type -- only `rel` streams today -- and on binary
   // transfer being in force; either way the answer is the same bytes.
-  ServerResultSink sink( iosock, nl, csp );
+  ServerResultSink sink( iosock, csp );
+  activeSink = &sink;
   si->SetResultSink( &sink );
   si->Secondo( cmdText, commandLE, type, true, false,
                resultList, errorCode, errorPos, errorMessage );
   si->SetResultSink( 0 );
-  streamedResponse = sink.Engaged();
 
   NList::setNLRef(nl);
   WriteResponse( errorCode, errorPos, errorMessage, resultList );
-  streamedResponse = false;
+  activeSink = 0;
 
-  // A result that went out incomplete has left a list on the wire promising
-  // more elements than followed, and the encoding cannot say so. The client
-  // would block waiting for tuples that are not coming, so the connection goes
-  // instead -- a truncated read it can recognise beats a hang it cannot.
+  // An incomplete result is now reportable: WriteResponse closed the frame
+  // with an A terminator, the client discards the partial payload and reads
+  // the reason, and the next command on this connection is answered normally.
+  // Only a socket that actually failed ends the connection.
   if ( sink.Engaged() && !sink.SentWhole() )
   {
-    cerr << "Streamed result was incomplete; closing the connection." << endl;
+    cerr << "Streamed result was incomplete; reported to the client." << endl;
+  }
+  if ( sink.Engaged() && !sink.SocketOk() )
+  {
+    cerr << "Socket failed while writing the result; closing." << endl;
     quit = true;
   }
 }
@@ -1499,7 +1541,22 @@ SecondoServer::Connect()
   debug_server(pswd);
   //cout << "user = " << user << endl;
   //cout << "passwd = " << pswd << endl;
-  getline( iosock, line ); //eat up </USER> ?
+
+  // Everything after the credentials is Key=Value data, read to the end tag.
+  // This used to be a single getline eating "</Connect>", so a client that
+  // predates the protocol version leaves nothing behind here -- its end tag
+  // lands in the first iteration and the loop stops, with no version recorded.
+  // That is what the refusal below keys on.
+  while ( getline( iosock, line ) && line != "</Connect>" )
+  {
+    debug_server(line);
+    if ( !csp->applyConnectLine( line ) )
+    {
+      // An unknown datum is not an error: the block is delimited, so a future
+      // client may add one without this server losing the framing.
+      cerr << "Ignoring unknown <Connect> datum \"" << line << "\"." << endl;
+    }
+  }
   debug_server(line);
 }
 
@@ -1691,6 +1748,23 @@ int SecondoServer::Execute() {
     if( si->Initialize( user, pswd, "", port, parmFile, dbDir,errorMsg, true ))
     {
        cout << "initialization successful" << endl;
+
+       // Before anything else is written: a client that speaks a different
+       // protocol version cannot be served at all. The result framing changed
+       // in version 2, so the mismatch would not cost one answer, it would
+       // desynchronise the connection from the first command onwards. Refusing
+       // here is the only point where the diagnostic still reaches the client.
+       if ( !quit && !csp->versionAgreed() )
+       {
+         const string reason = csp->versionMismatchMessage( "The client" );
+         cerr << reason << endl;
+         iosock << "<SecondoError>" << endl
+                << reason << endl
+                << "</SecondoError>" << endl;
+         iosock.flush();
+         quit = true;
+       }
+
        // Announce how this server transfers lists. Client and server each used
        // to take Server:BinaryTransfer from their own configuration, with
        // nothing on the wire to agree on it, so a client whose config said
@@ -1698,12 +1772,21 @@ int SecondoServer::Execute() {
        // binary (or the reverse). The client adopts what it reads here and
        // requires it; one that predates the line ignores it, as it ignores
        // every other intro line.
-       iosock << "<SecondoIntro>" << endl
-              << "You are connected with a Secondo server." << endl
-              << csp::BINARY_TRANSFER_TAG
-              << (RTFlag::isActive("Server:BinaryTransfer") ? "YES" : "NO")
-              << endl
-              << "</SecondoIntro>" << endl;
+       //
+       // The version line is here for the *client's* check. It cannot fail an
+       // old client fast -- unrecognised intro lines are merely printed --
+       // which is why the server's own check reads the version out of
+       // <Connect> above instead.
+       if ( !quit )
+       {
+         iosock << "<SecondoIntro>" << endl
+                << "You are connected with a Secondo server." << endl
+                << CSProtocol::versionLine() << endl
+                << csp::BINARY_TRANSFER_TAG
+                << (RTFlag::isActive("Server:BinaryTransfer") ? "YES" : "NO")
+                << endl
+                << "</SecondoIntro>" << endl;
+       }
        //Messenger messenger( registrar );
        //string answer;
        //ostringstream os;
@@ -1719,7 +1802,7 @@ int SecondoServer::Execute() {
       NList::setNLRef(nl);
 
 
-      do {
+      while (!iosock.fail() && !quit) {
       try {
         if ( !WaitForRequest() )
         {
@@ -1757,10 +1840,10 @@ int SecondoServer::Execute() {
         if ( !client->IsOk() ) {
            cerr << "Socket Error: " << client->GetErrorText() << endl;  
          }
-       quit = true; 
+       quit = true;
       }
 
-      } while (!iosock.fail() && !quit);
+      }
 
       if(iosock.fail()){
          cerr << "connection broken, terminate" << endl;

@@ -1311,6 +1311,45 @@ and creates new arrays for storing new lists.
 
   void initializeListMemory( ); 
 
+/*
+1.3.12a ~mark~ / ~release~
+
+Roll the list storage back to where it was, giving every node, string and text
+allocated since the mark back to the allocator.
+
+This exists for one shape of caller: a producer that builds a value, consumes
+it immediately, and will never look at it again -- ~Relation::OutStreamed~
+writing one tuple to a socket is the case it was written for. Without it such a
+producer still grows the tables by everything it has ever built, because
+~BigArray::append~ is the only allocator and nothing else ever shrinks them:
+one "query roads" appends some 48M nodes of which at most a few hundred are
+live at any instant.
+
+**The contract, which the caller has to meet and this class cannot check.**
+Rollback is a stack discipline over sizes that are shared by *every list in the
+instance*, so it is sound only where
+
+  * the caller has exclusive use of this ~NestedList~ for the whole
+    mark/release span -- another thread appending to an unrelated list in the
+    same instance would have its nodes rolled away; and
+  * nothing outside the released region refers into it. Anything that must
+    survive has to be built before the mark, or copied out before the release.
+
+~NL:CheckRelease~ turns on poisoning of the released slots, which turns a stale
+reference from "reads whatever came next" into a recognisable value. It is
+meant for test runs, not production: it costs a pass over everything released.
+
+*/
+  struct Mark {
+    size_t nodes;
+    size_t strings;
+    size_t texts;
+  };
+
+  Mark mark() const;
+  void release( const Mark& m );
+
+
 
 /*
 

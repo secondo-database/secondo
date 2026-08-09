@@ -1,0 +1,226 @@
+#!/bin/bash
+#
+# Wire-level check of the <SecondoResult> framing (client/server protocol v2).
+#
+# TestClientServer and tools.CSTest assert that the right *values* come back.
+# Neither of them looks at the bytes, so a framing bug that both ends make the
+# same mistake about -- an off-by-one in a chunk header, say -- would pass them
+# both. This reads what the server actually wrote.
+#
+# It captures the server's outgoing byte stream with Environment/TraceServerOut,
+# then walks the records the way a reader does: one tag byte, decimal fields, a
+# newline, then exactly as many body bytes as the header announced. That walk is
+# the assertion. If any header lies about its length the walk lands mid-record
+# and the next tag byte is not one of D/M/E/A.
+#
+# What it then checks about the payload -- the concatenation of the D bodies:
+#
+#   * it carries the "bnl" signature, so the first D body starts where the
+#     payload starts and not one byte off;
+#   * the client that read the frame reconstructed the expected values, which is
+#     what says the reassembled byte sequence was the right one.
+#
+# What it deliberately does *not* do is diff the streamed payload against the
+# same query on the non-streamed path. On a binary server every relation
+# streams, so no such variant of the same query exists; the closest available
+# statement is the one above -- well-formed framing plus a payload the reader
+# turns back into the right list.
+#
+# Usage:  ./CheckResultFraming            (needs SECONDO_BUILD_DIR)
+# Exit:   0 all checks held, 1 could not run, 2 a check failed
+
+set -u
+
+buildDir=${SECONDO_BUILD_DIR:-}
+if [ -z "$buildDir" ]; then
+  echo "Error: SECONDO_BUILD_DIR is not set."
+  exit 1
+fi
+
+export SECONDO_CONFIG=${SECONDO_CONFIG:-$buildDir/bin/SecondoConfig.ini}
+export PATH="$buildDir/bin:$PATH"
+
+PORT=${SECONDO_FRAMING_TEST_PORT:-12244}
+DBNAME=framingtest
+
+home=$(mktemp -d "${TMPDIR:-/tmp}/CheckResultFraming.XXXXXX")
+export SECONDO_PARAM_SecondoHome="$home"
+export SECONDO_PARAM_TraceServerOut="$home/out"
+monPid=""
+rc=0
+
+cleanup() {
+  if [ -n "$monPid" ]; then
+    kill -TERM "$monPid" 2>/dev/null
+    for _ in $(seq 1 10); do kill -0 "$monPid" 2>/dev/null || break; sleep 1; done
+    kill -KILL "$monPid" 2>/dev/null
+    wait "$monPid" 2>/dev/null
+  fi
+  rm -rf "$home"
+}
+trap 'cleanup; exit 143' INT TERM
+trap cleanup EXIT
+
+cd "$home" || exit 1
+
+# Binary transfer is the whole point: in textual mode the sink declines and no
+# result is streamed at all. Carry the config's other flags over, because the
+# variable replaces the RTFlags line rather than adding to it.
+flags=$(sed -n 's/^[[:space:]]*RTFlags[[:space:]]*+\{0,1\}=[[:space:]]*//p' \
+            "$SECONDO_CONFIG" 2>/dev/null | paste -sd, -)
+case ",$flags," in
+  *,Server:BinaryTransfer,*) ;;
+  *) flags="${flags:+$flags,}Server:BinaryTransfer" ;;
+esac
+export SECONDO_PARAM_RTFlags="$flags"
+
+SecondoTTYBDB >"$home/db.log" 2>&1 <<SQL
+create database $DBNAME;
+open database $DBNAME;
+let ten = intstream(1,10) transformstream consume;
+close database;
+q;
+SQL
+if grep -qiE "cmd failed|command failed|Error in Secondo" "$home/db.log"; then
+  echo "FAIL: database setup failed:"; cat "$home/db.log"; exit 1
+fi
+
+pushd "$buildDir/bin" >/dev/null
+SecondoMonitor -s -p "$PORT" >"$home/monitor.log" 2>&1 &
+monPid=$!
+popd >/dev/null
+for _ in $(seq 1 30); do
+  (exec 3<>"/dev/tcp/127.0.0.1/$PORT") 2>/dev/null && { exec 3>&- 3<&-; break; }
+  sleep 1
+done
+
+# Two queries: one big enough to need several chunks -- which is the framing
+# this exists to check -- and one small enough that every value can be asserted
+# by hand below.
+cat >"$home/q.sec" <<SQL
+open database $DBNAME;
+query intstream(1,30000) transformstream consume;
+query ten feed consume;
+SQL
+SecondoCS -h 127.0.0.1 -p "$PORT" -i "$home/q.sec" >"$home/client.log" 2>&1
+clientRc=$?
+if [ "$clientRc" -ne 0 ]; then
+  echo "FAIL: the client could not run the query (exit $clientRc):"
+  tail -20 "$home/client.log"
+  echo "--- monitor:"; tail -30 "$home/monitor.log"
+  echo "--- home contents:"; ls "$home"
+  exit 1
+fi
+
+# One trace file per process that took a connection, and the listener takes one
+# too -- so pick the largest rather than the first, which is the listener's
+# fourteen-byte greeting.
+trace=$(ls -S "$home"/out_*.log 2>/dev/null | head -1)
+if [ -z "$trace" ]; then
+  echo "FAIL: no server trace was written (TraceServerOut)"
+  exit 1
+fi
+
+python3 - "$trace" <<'PY'
+import sys
+
+data = open(sys.argv[1], 'rb').read()
+fail = []
+
+def check(ok, what):
+    print(("ok   : " if ok else "FAIL : ") + what)
+    if not ok:
+        fail.append(what)
+
+OPEN = b"<SecondoResult>\n"
+CLOSE = b"</SecondoResult>\n"
+
+def walk(pos):
+    """Read one frame starting just after its open tag.
+
+    Returns (payload, records, kind, status, end) or None if the framing broke.
+    This is the assertion: every step is driven by a length the server wrote,
+    so a header that lies about its body lands the next read mid-record and the
+    tag byte there is not one of D/M/E/A.
+    """
+    payload = bytearray()
+    records = 0
+    while True:
+        nl = data.find(b"\n", pos)
+        if nl < 0:
+            check(False, "a record header ran off the end of the trace")
+            return None
+        header = data[pos:nl].split()
+        pos = nl + 1
+        if not header or header[0] not in (b"D", b"M", b"E", b"A"):
+            check(False, "record %d has tag %r -- the framing is lost"
+                         % (records, header[0] if header else b""))
+            return None
+        records += 1
+        if header[0] in (b"D", b"M"):
+            n = int(header[1])
+            if header[0] == b"D":
+                payload += data[pos:pos + n]
+            pos += n
+            continue
+        kind = header[0].decode()
+        status = (int(header[1]), int(header[2]))
+        pos += int(header[3])
+        return payload, records, kind, status, pos
+
+frames = []
+pos = 0
+while True:
+    start = data.find(OPEN, pos)
+    if start < 0:
+        break
+    got = walk(start + len(OPEN))
+    if got is None:
+        break
+    payload, records, kind, status, end = got
+    frames.append((payload, records, kind, status))
+    check(data[end:end + len(CLOSE)] == CLOSE,
+          "frame %d: </SecondoResult> follows the terminator" % len(frames))
+    pos = end
+
+check(len(frames) >= 3, "the trace holds %d frames" % len(frames))
+
+for i, (payload, records, kind, status) in enumerate(frames):
+    check(kind == "E",
+          "frame %d: terminator is E (a complete payload), got %s" % (i, kind))
+    check(status == (0, 0),
+          "frame %d: terminator reports success, got %r" % (i, status))
+    check(payload[:3] == b"bnl",
+          "frame %d: the D bodies concatenate to a binary list" % i)
+
+# The 30000 tuple result is ~150 KB, so it cannot fit in one 65536 byte chunk.
+# Without this the whole check could pass on a server that never chunked at all,
+# which is the one thing the framing had to get right.
+biggest = max((records for _, records, _, _ in frames), default=0)
+check(biggest > 3,
+      "at least one result was split over several chunks (%d records)" % biggest)
+sys.stdout.write("     : largest payload %d bytes\n"
+                 % max((len(p) for p, _, _, _ in frames), default=0))
+
+sys.exit(2 if fail else 0)
+PY
+pyRc=$?
+[ "$pyRc" -ne 0 ] && rc=2
+
+# The other half: the client on the far end of that frame produced the right
+# values. Well-formed framing over a payload that reassembled wrongly would pass
+# the walk above and fail here.
+for want in 1 2 3 4 5 6 7 8 9 10; do
+  if ! grep -qE "^Elem : $want\$" "$home/client.log"; then
+    echo "FAIL : the client did not receive tuple $want"
+    rc=2
+  fi
+done
+[ "$rc" -eq 0 ] && echo "ok   : the client reconstructed all ten tuples"
+
+if [ "$rc" -eq 0 ]; then
+  echo "OK: the result framing is well formed and the payload is a complete list"
+else
+  echo "FAILED: see the checks above"
+fi
+exit $rc

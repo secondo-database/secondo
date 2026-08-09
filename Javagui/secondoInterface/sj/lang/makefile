@@ -25,14 +25,22 @@ CLASSPATH:=../..:../../lib/java_cup_v10k.jar:../../lib/JLex_v1.2.6.jar
 ifeq ($(NL_PERSISTENT),true)
 PERSISTENT_FLAG:=-DPERSISTENT
 else
-PERSISTENT_FLAS:=
+PERSISTENT_FLAG:=
 endif
 
 
 
 all: DBArray.class Java_ListExpr langClasses
 
-ListExpr.java:
+# ListExpr.both is a prerequisite, and has to be: without it make treats the
+# generated file as up to date the moment it exists, so every later edit to
+# ListExpr.both is silently ignored and the class keeps the behaviour it was
+# generated with. That is not hypothetical -- it swallowed the BIN_OPENLIST
+# reader until tools.CSTest failed on a binary result.
+#
+# The recipe still diffs before copying, so a regeneration that produces the
+# same text does not touch the file and nothing downstream recompiles.
+ListExpr.java: ListExpr.both
 	@echo "/* " > ListExpr.tmp
 	@echo "This file is created automatically. Please don't edit it. " >> ListExpr.tmp
 	@echo "If changes are requiered at the ListExpr class, make them in the" >> ListExpr.tmp
