@@ -40,7 +40,7 @@ April 2007, M. Spiekermann. Some code moved from LogMsg.h into this file
 
 
 #ifdef THREAD_SAFE
-#include <boost/thread.hpp>
+#include <mutex>
 #endif
 
 
@@ -272,7 +272,7 @@ bool
 ProgMesHandler::handleMsg(NestedList* nl, ListExpr list, int source)
 {
   #ifdef THREAD_SAFE
-  boost::lock_guard<boost::mutex> guard(mtx);
+  std::lock_guard<std::mutex> guard(mtx);
   #endif
 
   if(source>=0){

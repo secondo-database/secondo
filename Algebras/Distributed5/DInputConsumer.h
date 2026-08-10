@@ -46,7 +46,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include <boost/bind/bind.hpp>
 #include <boost/ref.hpp>
-#include <boost/thread.hpp>
 
 namespace distributed5
 {

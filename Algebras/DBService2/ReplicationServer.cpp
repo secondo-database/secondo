@@ -26,6 +26,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 #include <ctime>
+#include <mutex>
 #include <chrono>
 #include <iostream>
 #include <sstream>
@@ -53,7 +54,7 @@ namespace fs = boost::filesystem;
 using namespace std;
 using namespace distributed2;
 
-extern boost::recursive_mutex nlparsemtx;
+extern std::recursive_mutex nlparsemtx;
 
 namespace DBService {
 
@@ -306,7 +307,7 @@ void ReplicationServer::applyFunctionAndCreateNewFile(
 
     LOG_F(INFO, "%s", "Acquiring lock for nlparsemtx...");
     // Lock access to the nested list.
-    boost::unique_lock<boost::recursive_mutex> nlLock(nlparsemtx);
+    std::unique_lock<std::recursive_mutex> nlLock(nlparsemtx);
     LOG_F(INFO, "%s", "Successfully acquired lock for nlparsemtx...");
 
     // TODO Is this the global nexted list to be locked?
@@ -439,7 +440,7 @@ void ReplicationServer::applyFunctionAndCreateNewFile(
     bool ok = false;
 
     // LOG_F(INFO, "%s", "Acquiring lock for queryProcessorGuard...");
-    // boost::lock_guard<boost::recursive_mutex> queryProcessorGuard(
+    // std::lock_guard<std::recursive_mutex> queryProcessorGuard(
     //     // Dereference the shared_ptr to the mutex
     //     *LockKeeper::getInstance()->getQueryProcessorMutex()
     // );

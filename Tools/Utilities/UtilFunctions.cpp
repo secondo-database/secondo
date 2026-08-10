@@ -50,7 +50,7 @@ July 2004 M. Spiekermann, Implementation of showActiveFlags.
 #include "CharTransform.h"
 
 #ifdef THREAD_SAFE
-#include <boost/thread.hpp>
+#include <mutex>
 #endif
 
 
@@ -117,7 +117,7 @@ StopWatch::start() {
 
 
 #ifdef THREAD_SAFE
-boost::lock_guard<boost::mutex> guard(mtx);
+std::lock_guard<std::mutex> guard(mtx);
 #endif
 
 #ifndef SECONDO_WIN32
@@ -136,7 +136,7 @@ double
 StopWatch::diffSecondsReal() {
 
 #ifdef THREAD_SAFE
-boost::lock_guard<boost::mutex> guard(mtx);;
+std::lock_guard<std::mutex> guard(mtx);;
 #endif
 double result = 0;
 
@@ -159,7 +159,7 @@ double
 StopWatch::diffSecondsCPU() {
 
 #ifdef THREAD_SAFE
-boost::lock_guard<boost::mutex> guard(mtx);;
+std::lock_guard<std::mutex> guard(mtx);;
 #endif
 
 #ifdef SECONDO_WIN32

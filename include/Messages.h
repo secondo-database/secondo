@@ -38,9 +38,7 @@ Feb. 2007, M. Spiekermann: Class Listener and MessageHandler introduced
 #include "StopWatch.h"
 
 #ifdef THREAD_SAFE
-#include <boost/thread/mutex.hpp>
-#include <boost/thread/recursive_mutex.hpp>
-#include <boost/thread/lock_guard.hpp>
+#include <mutex>
 #endif
 
 
@@ -64,7 +62,7 @@ class MessageHandler {
 
 protected:
 #ifdef THREAD_SAFE
-boost::mutex mtx;
+std::mutex mtx;
 #endif
 
   
@@ -91,7 +89,7 @@ class SimpleHandler : public MessageHandler {
   virtual bool handleMsg(NestedList* nl, ListExpr list, 
                          int source __attribute__((unused))){
      #ifdef THREAD_SAFE
-     boost::lock_guard<boost::mutex> guard(mtx);
+     std::lock_guard<std::mutex> guard(mtx);
      #endif
 
      if(!nl->HasMinLength(list,2)){
@@ -160,7 +158,7 @@ class MessageCenter {
  MessageCenter() {} 
  static MessageCenter* msg;
  #ifdef THREAD_SAFE
- static boost::mutex mtx;
+ static std::mutex mtx;
  #endif
 
  
@@ -168,7 +166,7 @@ class MessageCenter {
  
   static MessageCenter* GetInstance() { 
     #ifdef THREAD_SAFE
-    boost::lock_guard<boost::mutex> guard(mtx); 
+    std::lock_guard<std::mutex> guard(mtx); 
     #endif
     if (!msg){
        msg = new MessageCenter();
@@ -186,7 +184,7 @@ class MessageCenter {
   void CallHandler(NestedList* nl, ListExpr message, int source) 
   {
     #ifdef THREAD_SAFE
-    boost::lock_guard<boost::mutex> guard(mtx); 
+    std::lock_guard<std::mutex> guard(mtx); 
     #endif
      
      HandlerList::const_iterator it = msgHandler.begin();
@@ -199,7 +197,7 @@ class MessageCenter {
   void Flush() 
   {
     #ifdef THREAD_SAFE
-    boost::lock_guard<boost::mutex> guard(mtx); 
+    std::lock_guard<std::mutex> guard(mtx); 
     #endif
      HandlerList::const_iterator it = msgHandler.begin();
      for(; it != msgHandler.end(); it++) {
@@ -215,14 +213,14 @@ class MessageCenter {
   
   void AddHandler(MessageHandler* handler) {
     #ifdef THREAD_SAFE
-    boost::lock_guard<boost::mutex> guard(mtx);
+    std::lock_guard<std::mutex> guard(mtx);
     #endif
      msgHandler.push_back(handler);
   }
 
   void RemoveHandler(MessageHandler* handler){
     #ifdef THREAD_SAFE
-    boost::lock_guard<boost::mutex> guard(mtx);
+    std::lock_guard<std::mutex> guard(mtx);
     #endif
      msgHandler.remove(handler);
   }

@@ -46,6 +46,7 @@ This code also compiles with version 4.1.25 of Berkeley-DB.
 
 
 #include <string.h>
+#include <mutex>
 #include <string>
 #include <algorithm>
 #include <cctype>
@@ -69,10 +70,6 @@ This code also compiles with version 4.1.25 of Berkeley-DB.
 #include "WinUnix.h"
 
 
-#ifdef THREAD_SAFE
-#include <boost/thread/mutex.hpp>
-#include <boost/thread/lock_guard.hpp>
-#endif
 
 using namespace std;
 
@@ -1431,8 +1428,8 @@ SmiFileIterator::Next( SmiRecord& record )
   ctr++;
 
   #ifdef THREAD_SAFE
-  static boost::mutex mtx;
-  boost::lock_guard<boost::mutex> guard(mtx);
+  static std::mutex mtx;
+  std::lock_guard<std::mutex> guard(mtx);
   #endif 
 
   static char keyData[SMI_MAX_KEYLEN];

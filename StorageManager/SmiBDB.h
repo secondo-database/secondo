@@ -146,9 +146,7 @@ All other implementation classes provide only data members.
 #include <db_cxx.h>
 
 #ifdef THREAD_SAFE
-#include <boost/thread/mutex.hpp>
-#include <boost/thread/recursive_mutex.hpp>
-#include <boost/thread/lock_guard.hpp>
+#include <mutex>
 #endif
 
 
@@ -479,7 +477,7 @@ A "catastrophic recovery" is not available in  this case.
                              SmiCatalogEntry& entry );
 
   #ifdef THREAD_SAFE
-  static  boost::recursive_mutex env_impl_mtx;
+  static  std::recursive_mutex env_impl_mtx;
   #endif
 
 

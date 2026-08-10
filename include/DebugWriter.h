@@ -30,9 +30,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <iostream>
 #include <string>
 #ifdef THREAD_SAFE
-#include <boost/thread/mutex.hpp>
-#include <boost/thread/recursive_mutex.hpp>
-#include <boost/thread/lock_guard.hpp>
+#include <mutex>
 #endif
 
 
@@ -44,7 +42,7 @@ class DebugWriter{
         void* caller, int callerID, const std::string& message){
      if(!enable) { return; }
      #ifdef THREAD_SAFE
-     boost::lock_guard<boost::mutex> guard(mtx);
+     std::lock_guard<std::mutex> guard(mtx);
      #endif
      out << callerID << "::" << caller << ":: " << message << std::endl;
      out.flush(); 
@@ -54,7 +52,7 @@ class DebugWriter{
         void* caller, int callerID, const std::string& message, bool state){
      if(!enable) { return; }
      #ifdef THREAD_SAFE
-     boost::lock_guard<boost::mutex> guard(mtx);
+     std::lock_guard<std::mutex> guard(mtx);
      #endif
      out << callerID << "::" << caller << ":: " << message 
          << " -> " << state << std::endl;
@@ -65,7 +63,7 @@ class DebugWriter{
   private:
   
   #ifdef THREAD_SAFE
-     boost::mutex mtx;
+     std::mutex mtx;
   #endif
 
 };

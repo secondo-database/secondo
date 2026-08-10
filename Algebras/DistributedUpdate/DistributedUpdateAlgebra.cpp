@@ -28,6 +28,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 
 #include "NestedList.h"
+#include <boost/lexical_cast.hpp>
 #include "ListUtils.h"
 #include "QueryProcessor.h"
 #include "StandardTypes.h"

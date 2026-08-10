@@ -32,7 +32,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "DArrayElement.h"
 #include "ArrayTypes.h"
 #include <string>
-#include <boost/thread/recursive_mutex.hpp>
+#include <mutex>
 #include "NestedList.h"
 #include "Algebras/Relation-C++/RelationAlgebra.h"
 #include "SecondoSMI.h"
@@ -365,7 +365,7 @@ the given index.
    
 
     size_t getSize() const {
-       boost::lock_guard<boost::recursive_mutex> guard(mapmtx);
+       std::lock_guard<std::recursive_mutex> guard(mapmtx);
        return map.size();
     }
 
@@ -542,7 +542,7 @@ for connecting with the worker.
 
   protected:
     std::vector<uint32_t> map;  // map from index to worker
-    mutable boost::recursive_mutex mapmtx;
+    mutable std::recursive_mutex mapmtx;
 
 
 /*

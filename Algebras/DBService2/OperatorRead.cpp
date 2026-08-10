@@ -42,12 +42,13 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "boost/filesystem.hpp"
 
 #include <loguru.hpp>
+#include <mutex>
 
 namespace fs = boost::filesystem;
 
 using namespace std;
 
-extern boost::recursive_mutex nlparsemtx;
+extern std::recursive_mutex nlparsemtx;
 
 namespace DBService {
 
@@ -57,7 +58,7 @@ ListExpr OperatorRead::mapType(ListExpr nestedList)
     print(nestedList, std::cout);
 
     LOG_F(INFO, "%s", "Acquiring lock for nlparsemtx...");
-    boost::unique_lock<boost::recursive_mutex> nlLock(nlparsemtx);
+    std::unique_lock<std::recursive_mutex> nlLock(nlparsemtx);
     LOG_F(INFO, "%s", "Successfully acquired lock for nlparsemtx...");
 
     if(!nl->HasLength(nestedList, 1))

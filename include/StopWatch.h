@@ -48,9 +48,7 @@ An instance could be used as a clock to measure time differences.
 
 
 #ifdef THREAD_SAFE
-#include <boost/thread/mutex.hpp>
-#include <boost/thread/recursive_mutex.hpp>
-#include <boost/thread/lock_guard.hpp>
+#include <mutex>
 #endif
 
 
@@ -101,7 +99,7 @@ class StopWatch {
 #endif
 
 #ifdef THREAD_SAFE
-boost::mutex mtx;
+std::mutex mtx;
 #endif
 
 

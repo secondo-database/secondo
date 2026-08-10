@@ -50,6 +50,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Algebras/DBService2/DerivativeTest.cpp"
 
 #include <loguru.hpp>
+#include <mutex>
 
 /*
 
@@ -64,7 +65,7 @@ TODO Refactor tests and reduce their assumptions/dependencies about prior
 
 #include "Algebras/DBService2/ReplicaPlacementStrategyTest.cpp"
 
-extern boost::recursive_mutex nlparsemtx;
+extern std::recursive_mutex nlparsemtx;
 
 namespace DBService
 {
@@ -75,7 +76,7 @@ namespace DBService
     print(nestedList, std::cout);
 
     LOG_F(INFO, "%s", "Acquiring lock for nlparsemtx...");
-    boost::lock_guard<boost::recursive_mutex> guard(nlparsemtx);
+    std::lock_guard<std::recursive_mutex> guard(nlparsemtx);
     LOG_F(INFO, "%s", "Successfully acquired lock for nlparsemtx...");
 
     if (!nl->HasLength(nestedList, 0))

@@ -38,6 +38,7 @@ command instead of hard coded application name SecondoTTYBDB
 */
 
 #include <cstdio>
+#include <mutex>
 #include <iostream>
 #include <sstream>
 #include <signal.h>
@@ -73,7 +74,7 @@ command instead of hard coded application name SecondoTTYBDB
 #include "Messages.h"
 MessageCenter* MessageCenter::msg = 0;
 #ifdef THREAD_SAFE
- boost::mutex MessageCenter::mtx; 
+ std::mutex MessageCenter::mtx; 
 #endif
 
  using namespace std;

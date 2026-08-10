@@ -16,7 +16,6 @@
 #include "../../TESManager.h"
 #include <boost/bind/bind.hpp>
 #include <boost/ref.hpp>
-#include <boost/thread.hpp>
 //#include "Algebras/Distributed2/Distributed2Algebra.h"
 #include "Algebras/Distributed3/Distributed3Algebra.h"
 

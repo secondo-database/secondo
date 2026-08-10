@@ -55,7 +55,6 @@ and the operator specification.
 
 #include <boost/bind/bind.hpp>
 #include <boost/ref.hpp>
-#include <boost/thread.hpp>
 
 namespace pregel {
  ListExpr SetupPregel::typeMapping(ListExpr args) {

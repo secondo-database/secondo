@@ -177,9 +177,7 @@ parameter.
 #include <stdint.h>
 
 #ifdef THREAD_SAFE
-#include <boost/thread/mutex.hpp>
-#include <boost/thread/recursive_mutex.hpp>
-#include <boost/thread/lock_guard.hpp>
+#include <mutex>
 #endif
 
 
@@ -556,16 +554,16 @@ Creates an iterator for this ~CTable~, pointing beyond the last valid slot.
 private:
 
   #ifdef THREAD_SAFE
-   boost::recursive_mutex mtx;
+   std::recursive_mutex mtx;
   #endif
   #ifdef THREAD_SAFE
-   static boost::recursive_mutex smtx;
+   static std::recursive_mutex smtx;
   #endif
 
 
   inline bool OutOfRange(Cardinal const n) { // check if a valid slot is used
      #ifdef THREAD_SAFE
-     boost::lock_guard<boost::recursive_mutex> guard(mtx);
+     std::lock_guard<std::recursive_mutex> guard(mtx);
      #endif
    
     if ( !(n > 0 && n <= elemCount) ) {
@@ -579,7 +577,7 @@ private:
   
   void CalcSlotSize() { // Calculate the slot size
      #ifdef THREAD_SAFE
-     boost::lock_guard<boost::recursive_mutex> guard(mtx);
+     std::lock_guard<std::recursive_mutex> guard(mtx);
      #endif
     
     T* ptrT = 0;
@@ -646,7 +644,7 @@ template<typename T>
 Cardinal
 CTable<T>::Size() { 
      #ifdef THREAD_SAFE
-     boost::lock_guard<boost::recursive_mutex> guard(mtx);
+     std::lock_guard<std::recursive_mutex> guard(mtx);
      #endif
 
      return elemCount;
@@ -664,7 +662,7 @@ template<typename T>
 Cardinal
 CTable<T>::NoEntries() { 
      #ifdef THREAD_SAFE
-     boost::lock_guard<boost::recursive_mutex> guard(mtx);
+     std::lock_guard<std::recursive_mutex> guard(mtx);
      #endif
      return highestValid;
 
@@ -676,7 +674,7 @@ template<typename T>
 std::string
 CTable<T>::MemoryModel() {
      #ifdef THREAD_SAFE
-     boost::lock_guard<boost::recursive_mutex> guard(mtx);
+     std::lock_guard<std::recursive_mutex> guard(mtx);
      #endif
 
   if ( !isPersistent) {
@@ -693,7 +691,7 @@ const std::string
 CTable<T>::StateToStr() {
 
  #ifdef THREAD_SAFE
- boost::lock_guard<boost::recursive_mutex> guard(mtx);
+ std::lock_guard<std::recursive_mutex> guard(mtx);
  #endif
   std::stringstream st;
   st << "( elemCount=" << elemCount 
@@ -716,7 +714,7 @@ template<typename T>
 typename CTable<T>::Iterator
 CTable<T>::Begin() {
  #ifdef THREAD_SAFE
- boost::lock_guard<boost::recursive_mutex> guard(mtx);
+ std::lock_guard<std::recursive_mutex> guard(mtx);
  #endif
 
   return typename CTable<T>::Iterator( this );
@@ -733,7 +731,7 @@ template<typename T>
 typename CTable<T>::Iterator
 CTable<T>::End() {
  #ifdef THREAD_SAFE
- boost::lock_guard<boost::recursive_mutex> guard(mtx);
+ std::lock_guard<std::recursive_mutex> guard(mtx);
  #endif
 
   return typename CTable<T>::Iterator( this, false );

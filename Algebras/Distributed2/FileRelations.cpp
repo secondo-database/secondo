@@ -32,7 +32,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 
-#include <boost/thread.hpp>
+#include <mutex>
 #include <boost/date_time.hpp>
 #include "FileRelations.h"
 #include "DFSType.h"
@@ -42,7 +42,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "FileSystem.h"
 
 
-boost::recursive_mutex nlparsemtx;
+std::recursive_mutex nlparsemtx;
 
 
 BinRelWriter::BinRelWriter(const std::string& _filename,
@@ -328,7 +328,7 @@ void ffeed5Info::readHeader(TupleType* tt){
   std::string list(buffer,length);
   delete[] buffer;
   {
-     boost::lock_guard<boost::recursive_mutex> guard(nlparsemtx);
+     std::lock_guard<std::recursive_mutex> guard(nlparsemtx);
      ok = nl->ReadFromString(list,fileTypeList); 
      ListExpr tupleType = nl->Second(fileTypeList);
      if(tt){

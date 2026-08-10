@@ -36,10 +36,11 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Algebras/DBService2/ReplicationUtils.hpp"
 
 #include <loguru.hpp>
+#include <mutex>
 
 using namespace std;
 
-extern boost::recursive_mutex nlparsemtx;
+extern std::recursive_mutex nlparsemtx;
 
 namespace DBService
 {
@@ -48,7 +49,7 @@ ListExpr OperatorDDeleteDB::mapType(ListExpr nestedList)
 {
 
    LOG_F(INFO, "%s", "Acquiring lock for nlparsemtx...");
-   boost::lock_guard<boost::recursive_mutex> guard(nlparsemtx);
+   std::lock_guard<std::recursive_mutex> guard(nlparsemtx);
    LOG_F(INFO, "%s", "Successfully acquired lock for nlparsemtx...");
 
    if(nl->IsEmpty(nestedList)){

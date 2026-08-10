@@ -53,6 +53,7 @@ now be more compatible.
 
 
 #include <string>
+#include <mutex>
 #include <string.h>
 #include <algorithm>
 #include <cctype>
@@ -137,8 +138,8 @@ string         SmiEnvironment::registrar;
 
 
 #ifdef THREAD_SAFE
-boost::recursive_mutex SmiEnvironment::Implementation::env_impl_mtx;
-boost::recursive_mutex SmiEnvironment::env_mtx;
+std::recursive_mutex SmiEnvironment::Implementation::env_impl_mtx;
+std::recursive_mutex SmiEnvironment::env_mtx;
 #endif
 
 #ifdef SM_FILE_ID
@@ -194,7 +195,7 @@ DbHandleIndex
 SmiEnvironment::Implementation::AllocateDbHandle()
 {
   #ifdef THREAD_SAFE
-     boost::lock_guard<boost::recursive_mutex> guard(env_impl_mtx);
+     std::lock_guard<std::recursive_mutex> guard(env_impl_mtx);
   #endif
 
   // Read trace flag here, because class instance is initialized
@@ -361,7 +362,7 @@ to the highest used number plus 1.
 */
 bool SmiEnvironment::Implementation::CorrectFileId(const bool lockrequired){
   #ifdef THREAD_SAFE
-     boost::lock_guard<boost::recursive_mutex> guard(env_impl_mtx);
+     std::lock_guard<std::recursive_mutex> guard(env_impl_mtx);
   #endif
   if ( !dbOpened ) {
     SetError( E_SMI_DB_NOTOPEN );
@@ -411,7 +412,7 @@ bool SmiEnvironment::Implementation::SetFileId(SmiFileId id,
                                                bool lockrequired){
 
   #ifdef THREAD_SAFE
-     boost::lock_guard<boost::recursive_mutex> guard(env_impl_mtx);
+     std::lock_guard<std::recursive_mutex> guard(env_impl_mtx);
   #endif
   if ( !dbOpened ) {
     SetError( E_SMI_DB_NOTOPEN );
@@ -540,7 +541,7 @@ SmiEnvironment::Implementation::GetFileId( const bool isTemporary )
 {
 
   #ifdef THREAD_SAFE
-     boost::lock_guard<boost::recursive_mutex> guard(env_impl_mtx);
+     std::lock_guard<std::recursive_mutex> guard(env_impl_mtx);
   #endif
 
   SmiFileId newFileId = 0;
@@ -693,7 +694,7 @@ SmiEnvironment::Implementation::LookUpCatalog( Dbt& key,
                                                SmiCatalogEntry& entry )
 {
   #ifdef THREAD_SAFE
-     boost::lock_guard<boost::recursive_mutex> guard(env_impl_mtx);
+     std::lock_guard<std::recursive_mutex> guard(env_impl_mtx);
   #endif
   TRACE_ENTER
   if ( !dbOpened )
@@ -794,7 +795,7 @@ SmiEnvironment::Implementation::InsertIntoCatalog(
                                    const SmiCatalogEntry& entry, DbTxn* tid )
 {
   #ifdef THREAD_SAFE
-     boost::lock_guard<boost::recursive_mutex> guard(env_impl_mtx);
+     std::lock_guard<std::recursive_mutex> guard(env_impl_mtx);
   #endif
   if ( !dbOpened )
   {
@@ -843,7 +844,7 @@ SmiEnvironment::
 Implementation::DeleteFromCatalog( const SmiCatalogEntry& entry, DbTxn* tid )
 {
   #ifdef THREAD_SAFE
-     boost::lock_guard<boost::recursive_mutex> guard(env_impl_mtx);
+     std::lock_guard<std::recursive_mutex> guard(env_impl_mtx);
   #endif
   if ( !dbOpened )
   {
@@ -877,7 +878,7 @@ bool
 SmiEnvironment::Implementation::UpdateCatalog( bool onCommit )
 {
   #ifdef THREAD_SAFE
-     boost::lock_guard<boost::recursive_mutex> guard(env_impl_mtx);
+     std::lock_guard<std::recursive_mutex> guard(env_impl_mtx);
   #endif
   if ( !dbOpened )
   {
@@ -971,7 +972,7 @@ SmiEnvironment::Implementation::EraseFiles( bool onCommit,
                                             const bool dontReportError )
 {
   #ifdef THREAD_SAFE
-     boost::lock_guard<boost::recursive_mutex> guard(env_impl_mtx);
+     std::lock_guard<std::recursive_mutex> guard(env_impl_mtx);
   #endif
   if ( !dbOpened )
   {
@@ -1160,7 +1161,7 @@ bool
 SmiEnvironment::Implementation::InsertDatabase( const string& dbname )
 {
   #ifdef THREAD_SAFE
-     boost::lock_guard<boost::recursive_mutex> guard(env_impl_mtx);
+     std::lock_guard<std::recursive_mutex> guard(env_impl_mtx);
   #endif
   const int MAX = 1024;
   bool  ok = false;
@@ -1203,7 +1204,7 @@ bool
 SmiEnvironment::Implementation::DeleteDatabase( const string& dbname )
 {
   #ifdef THREAD_SAFE
-     boost::lock_guard<boost::recursive_mutex> guard(env_impl_mtx);
+     std::lock_guard<std::recursive_mutex> guard(env_impl_mtx);
   #endif
   const int MAX = 1024;
   bool   ok = false;
@@ -1350,7 +1351,7 @@ int
 SmiEnvironment::CreateTmpEnvironment(ostream& errStream)
 {
   #ifdef THREAD_SAFE
-     boost::lock_guard<boost::recursive_mutex> guard(env_mtx);
+     std::lock_guard<std::recursive_mutex> guard(env_mtx);
   #endif
     int rc = 0;
 
@@ -1396,7 +1397,7 @@ int
 SmiEnvironment::DeleteTmpEnvironment()
 {
   #ifdef THREAD_SAFE
-     boost::lock_guard<boost::recursive_mutex> guard(env_mtx);
+     std::lock_guard<std::recursive_mutex> guard(env_mtx);
   #endif
  // --- Remove the temporary environment
 
@@ -1445,7 +1446,7 @@ bool SmiEnvironment::StartUp(const RunMode mode, const string& parmFile,
                              ostream& errStream,
                              const string& port) {
   #ifdef THREAD_SAFE
-     boost::lock_guard<boost::recursive_mutex> guard(env_mtx);
+     std::lock_guard<std::recursive_mutex> guard(env_mtx);
   #endif
   if (smiStarted) {
     return true;
@@ -1678,7 +1679,7 @@ bool
 SmiEnvironment::ShutDown( ostream* trace /* = 0 */ )
 {
   #ifdef THREAD_SAFE
-     boost::lock_guard<boost::recursive_mutex> guard(env_mtx);
+     std::lock_guard<std::recursive_mutex> guard(env_mtx);
   #endif
 
   if ( !smiStarted )
@@ -1743,7 +1744,7 @@ bool
 SmiEnvironment::CreateDatabase( const string& dbname )
 {
   #ifdef THREAD_SAFE
-     boost::lock_guard<boost::recursive_mutex> guard(env_mtx);
+     std::lock_guard<std::recursive_mutex> guard(env_mtx);
   #endif
   bool ok = false;
 
@@ -1959,7 +1960,7 @@ bool
 SmiEnvironment::EraseDatabase( const string& dbname )
 {
   #ifdef THREAD_SAFE
-     boost::lock_guard<boost::recursive_mutex> guard(env_mtx);
+     std::lock_guard<std::recursive_mutex> guard(env_mtx);
   #endif
   bool ok = true;
   if ( !dbOpened )
@@ -2177,7 +2178,7 @@ bool
 SmiEnvironment::InitializeDatabase(const bool isNewDatabase)
 {
   #ifdef THREAD_SAFE
-     boost::lock_guard<boost::recursive_mutex> guard(env_mtx);
+     std::lock_guard<std::recursive_mutex> guard(env_mtx);
   #endif
   TRACE_ENTER
 

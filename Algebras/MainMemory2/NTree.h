@@ -27,6 +27,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include <limits>
 #include <random>
+#include <unordered_map>
 #include "../FText/FTextAlgebra.h"
 #include "Mem.h"
 #include "MainMemoryExt.h"

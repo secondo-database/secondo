@@ -30,6 +30,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #define WORKERSTATUS_H
 
 #include "WorkerStatus.h"
+#include <unordered_map>
 #include "ProgressListener.h"
 #include <chrono>
 

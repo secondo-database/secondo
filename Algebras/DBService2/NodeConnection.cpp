@@ -33,11 +33,12 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "NestedList.h"
 
 #include <loguru.hpp>
+#include <mutex>
 
 using namespace std;
 
 extern NestedList* nl;
-extern boost::recursive_mutex nlparsemtx;
+extern std::recursive_mutex nlparsemtx;
 
 namespace DBService {
 
@@ -213,7 +214,7 @@ namespace DBService {
     LOG_F(INFO, "%s", "Acquiring lock for nlparsemtx...");
     // Lock access to the nested list.
     // UNTRUE: This lock causes a deadlock!!!! 
-    boost::lock_guard<boost::recursive_mutex> guard(nlparsemtx);
+    std::lock_guard<std::recursive_mutex> guard(nlparsemtx);
     LOG_F(INFO, "%s", "Successfully acquired lock for nlparsemtx...");
 
     ListExpr resultAsNestedList;

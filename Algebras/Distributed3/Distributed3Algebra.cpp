@@ -68,6 +68,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 
 #include <boost/bind/bind.hpp>
+#include <mutex>
 #include <boost/ref.hpp>
 #include <boost/thread.hpp>
 #include <boost/log/trivial.hpp>
@@ -875,7 +876,7 @@ class dpdInfo{
         if(!dmap1funString.empty()){
            ListExpr sfunl;
            // activate in Distributed2Algebra
-           //{ boost::lock_guard<boost::recursive_mutex> guard(nlparsemtx); 
+           //{ std::lock_guard<std::recursive_mutex> guard(nlparsemtx); 
              bool ok = nl->ReadFromString(dmap1funString, sfunl);
              if(!ok){
                cerr << "error in parsing list: " << dmap1funString << endl;

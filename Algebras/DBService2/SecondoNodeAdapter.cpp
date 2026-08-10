@@ -26,12 +26,13 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 #include "Algebras/DBService2/SecondoNodeAdapter.hpp"
+#include <mutex>
 
 using namespace std;
 
 extern NestedList* nl;
 
-// extern boost::recursive_mutex nlparsemtx;
+// extern std::recursive_mutex nlparsemtx;
 
 namespace DBService
 {
@@ -67,7 +68,7 @@ namespace DBService
 
     // The lock must be acquired in the invoking function, 
     //    e.g. SecondoRecordAdapter.
-    //boost::lock_guard<boost::recursive_mutex> guard(nlparsemtx);
+    //std::lock_guard<std::recursive_mutex> guard(nlparsemtx);
 
     // Example of a record as nested list: 
     //   ('localhost' 1245 '' '/home/doesnt_exist/secondo' 9941 9942 1) 

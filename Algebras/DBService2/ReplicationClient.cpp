@@ -26,6 +26,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 #include <chrono>
+#include <mutex>
 
 #include "SocketIO.h"
 #include "StringUtils.h"
@@ -47,7 +48,7 @@ namespace fs = boost::filesystem;
 using namespace std;
 using namespace distributed2;
 
-extern boost::recursive_mutex nlparsemtx;
+extern std::recursive_mutex nlparsemtx;
 
 namespace DBService {
 
@@ -175,7 +176,7 @@ int ReplicationClient::receiveReplica()
             LOG_F(INFO, "%s", "File received. Now creating relation...");
 
             LOG_F(INFO, "%s", "Acquiring the nlparsemtx...");
-            boost::unique_lock<boost::recursive_mutex> nlLock(nlparsemtx);
+            std::unique_lock<std::recursive_mutex> nlLock(nlparsemtx);
             LOG_F(INFO, "%s", "Successfully acquired the nlparsemtx.");
             
             ListExpr command = nl->TwoElemList(
@@ -212,7 +213,7 @@ int ReplicationClient::receiveReplica()
         //     return 1;
         // }
         
-        // boost::lock_guard<boost::recursive_mutex> queryProcessorGuard(
+        // std::lock_guard<std::recursive_mutex> queryProcessorGuard(
         //     // Dereference the shared_ptr to the mutex
         //     *LockKeeper::getInstance()->getQueryProcessorMutex()
         // );

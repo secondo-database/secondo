@@ -15,9 +15,7 @@ of this class.
 #include "SecondoSMI.h"
 
 #ifdef THREAD_SAFE
-#include <boost/thread/mutex.hpp>
-#include <boost/thread/recursive_mutex.hpp>
-#include <boost/thread/lock_guard.hpp>
+#include <mutex>
 #endif
 
 
@@ -400,9 +398,9 @@ global instances (flob cashes) must be synchronized.
 
 */
 #ifdef THREAD_SAFE
-  boost::recursive_mutex ncmtx;
-  boost::recursive_mutex pcmtx;
-  boost::recursive_mutex omtx;  // access to other variables
+  std::recursive_mutex ncmtx;
+  std::recursive_mutex pcmtx;
+  std::recursive_mutex omtx;  // access to other variables
 #endif
 
 

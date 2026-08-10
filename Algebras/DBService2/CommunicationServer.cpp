@@ -50,6 +50,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "boost/filesystem.hpp"
 
 #include <loguru.hpp>
+#include <mutex>
 
 #include <algorithm>
 #include <random>
@@ -60,7 +61,7 @@ using namespace std;
 
 namespace fs = boost::filesystem;
 
-extern boost::recursive_mutex nlparsemtx;
+extern std::recursive_mutex nlparsemtx;
 
 namespace DBService {
 
@@ -837,7 +838,7 @@ bool CommunicationServer::handleRelTypeRequest(
 
     LOG_F(INFO, "%s", "Acquiring lock for nlparsemtx...");
     // Restrict access to the nested list
-    boost::lock_guard<boost::recursive_mutex> guard(nlparsemtx);
+    std::lock_guard<std::recursive_mutex> guard(nlparsemtx);
     LOG_F(INFO, "%s", "Successfully acquired lock for nlparsemtx...");
     
     SecondoCatalog* ctlg = SecondoSystem::GetCatalog();
@@ -897,7 +898,7 @@ bool CommunicationServer::handleDerivedTypeRequest(
     LOG_F(INFO, "ObjectName: %s", objectName.c_str());
 
     LOG_F(INFO, "%s", "Acquiring lock for nlparsemtx...");
-    boost::lock_guard<boost::recursive_mutex> guard(nlparsemtx);
+    std::lock_guard<std::recursive_mutex> guard(nlparsemtx);
     LOG_F(INFO, "%s", "Successfully acquired lock for nlparsemtx...");
 
     SecondoCatalog* ctlg = SecondoSystem::GetCatalog();

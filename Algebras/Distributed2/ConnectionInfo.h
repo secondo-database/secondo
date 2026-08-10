@@ -30,6 +30,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #define ALGEBRAS_DISTRIBUTED2_CONNECTIONINFO_H_
 
 #include <boost/thread.hpp>
+#include <mutex>
 
 #include "SecondoInterfaceCS.h"
 #include "NestedList.h"
@@ -346,7 +347,7 @@ private:
     boost::mutex norefmtx;
 
 
-    typedef boost::recursive_mutex mutex_type;
+    typedef std::recursive_mutex mutex_type;
     typedef boost::lock_guard<mutex_type> guard_type;
 
     mutex_type simtx; // mutex for synchronizing 

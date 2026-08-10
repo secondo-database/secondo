@@ -260,9 +260,7 @@ The class ~SmiKey~ provides the following methods:
 #include "CacheInfo.h"
 
 #ifdef THREAD_SAFE
-#include <boost/thread/mutex.hpp>
-#include <boost/thread/recursive_mutex.hpp>
-#include <boost/thread/lock_guard.hpp>
+#include <mutex>
 #endif
 
 
@@ -1166,7 +1164,7 @@ Translate an SMI error code into a message!
  private:
 
   #ifdef THREAD_SAFE
-  static boost::recursive_mutex env_mtx;
+  static std::recursive_mutex env_mtx;
   #endif
 
   #ifdef SM_FILE_ID

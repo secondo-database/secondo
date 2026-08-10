@@ -46,6 +46,7 @@ TestRunnerCS
 */
 
 #include <stdexcept>
+#include <mutex>
 
 #include "License.h"
 #include "TTYParameter.h"
@@ -72,7 +73,7 @@ public:
   virtual bool handleMsg(NestedList *nl, ListExpr list,
                          int source __attribute__((unused))) {
 #ifdef THREAD_SAFE
-    boost::lock_guard<boost::mutex> guard(mtx);
+    std::lock_guard<std::mutex> guard(mtx);
 #endif
 
     if (!nl->HasMinLength(list, 2)) {

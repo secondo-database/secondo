@@ -30,6 +30,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 
 #include "Algebras/Distributed2/ErrorWriter.h"
+#include <boost/thread/mutex.hpp>
 #include "Algebras/Distributed2/DArray.h"
 
 #define DPROGRESS

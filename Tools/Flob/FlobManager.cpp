@@ -11,6 +11,7 @@ of that class.
 
 #include "SecondoSMI.h"
 #include <stdlib.h>
+#include <mutex>
 #include <utility>
 #include "Flob.h"
 #include "assert.h"
@@ -24,9 +25,6 @@ of that class.
 #include "WinUnix.h"
 
 
-#ifdef THREAD_SAFE
-#include <boost/thread.hpp>
-#endif
 
 #undef __TRACE_ENTER__
 #undef __TRACE_LEAVE__
@@ -185,7 +183,7 @@ SmiRecordFile* FlobManager::getFile(const SmiFileId &fileId, const char mode) {
    }
    SmiRecordFile* file(0);
 #ifdef THREAD_SAFE
-   boost::lock_guard<boost::recursive_mutex> guard(omtx);
+   std::lock_guard<std::recursive_mutex> guard(omtx);
 #endif
 
    std::pair<SmiFileId, bool> finder(fileId, isTemp);
@@ -228,7 +226,7 @@ bool FlobManager::dropFile(const SmiFileId &id, const char mode) {
    }
 
 #ifdef THREAD_SAFE
-   boost::lock_guard<boost::recursive_mutex> guard(omtx);
+   std::lock_guard<std::recursive_mutex> guard(omtx);
 #endif
 
    std::pair<SmiFileId, bool> finder(id, isTemp);
@@ -255,7 +253,7 @@ bool FlobManager::dropFile(const SmiFileId &id, const char mode) {
 bool FlobManager::dropFiles() {
    __TRACE_ENTER__
 #ifdef THREAD_SAFE
-   boost::lock_guard<boost::recursive_mutex> guard(omtx);
+   std::lock_guard<std::recursive_mutex> guard(omtx);
 #endif
 
    std::map<std::pair<SmiFileId, bool>, SmiRecordFile*>::iterator it =
@@ -278,7 +276,7 @@ bool FlobManager::dropFiles() {
 void FlobManager::clearCaches() {
    __TRACE_ENTER__
 #ifdef THREAD_SAFE
-   {boost::lock_guard<boost::recursive_mutex> guard(ncmtx);
+   {std::lock_guard<std::recursive_mutex> guard(ncmtx);
 #endif
 
    if (nativeFlobCache) {
@@ -286,7 +284,7 @@ void FlobManager::clearCaches() {
    }
 #ifdef THREAD_SAFE
    }
-    {boost::lock_guard<boost::recursive_mutex> guard(pcmtx);
+    {std::lock_guard<std::recursive_mutex> guard(pcmtx);
 #endif
    if (persistentFlobCache) {
       persistentFlobCache->clear();
@@ -370,14 +368,14 @@ bool FlobManager::resize(Flob &flob, const SmiSize &newSize,
       // the allocated memory for the slot may be too small now
       std::cerr << "Warning: Resize a persistent Flob" << std::endl;
 #ifdef THREAD_SAFE
-      boost::lock_guard<boost::recursive_mutex> guard(pcmtx);
+      std::lock_guard<std::recursive_mutex> guard(pcmtx);
 #endif
       persistentFlobCache->killLastSlot(flob);
    }
 
    if (isTemp && (fileId == nativeFlobs) && !ignoreCache) {
 #ifdef THREAD_SAFE
-      boost::lock_guard<boost::recursive_mutex> guard(ncmtx);
+      std::lock_guard<std::recursive_mutex> guard(ncmtx);
 #endif
 
       bool res = nativeFlobCache->resize(flob, newSize);
@@ -392,7 +390,7 @@ bool FlobManager::resize(Flob &flob, const SmiSize &newSize,
 
    bool ok;
 #ifdef THREAD_SAFE
-   {boost::lock_guard<boost::recursive_mutex> guard(omtx);
+   {std::lock_guard<std::recursive_mutex> guard(omtx);
 #endif
 
    ok = file->SelectRecord(recordId, record, SmiFile::Update);
@@ -409,7 +407,7 @@ bool FlobManager::resize(Flob &flob, const SmiSize &newSize,
       return false;
    }
 #ifdef THREAD_SAFE
-   {boost::lock_guard<boost::recursive_mutex> guard(omtx);
+   {std::lock_guard<std::recursive_mutex> guard(omtx);
 #endif
 
    if (record.Size() != newSize) {
@@ -473,14 +471,14 @@ bool FlobManager::getData(
       if (!ignoreCache) {
          if (fileId != nativeFlobs || !isTemp) {
 #ifdef THREAD_SAFE
-            boost::lock_guard<boost::recursive_mutex> guard(pcmtx);
+            std::lock_guard<std::recursive_mutex> guard(pcmtx);
 #endif
             bool res = persistentFlobCache->getData(flob, dest, offset, size);
             __TRACE_LEAVE__
             return res;
          } else {
 #ifdef THREAD_SAFE
-            boost::lock_guard<boost::recursive_mutex> guard(ncmtx);
+            std::lock_guard<std::recursive_mutex> guard(ncmtx);
 #endif
             bool res = nativeFlobCache->getData(flob, dest, offset, size);
             __TRACE_LEAVE__
@@ -499,7 +497,7 @@ bool FlobManager::getData(
       SmiSize actRead;
       bool ok;
 #ifdef THREAD_SAFE
-      {boost::lock_guard<boost::recursive_mutex> guard(omtx);
+      {std::lock_guard<std::recursive_mutex> guard(omtx);
 #endif
 
       ok = file->Read(recordId, dest, size, recOffset, actRead);
@@ -532,7 +530,7 @@ bool FlobManager::getData(
       SmiSize actRead;
 
 #ifdef THREAD_SAFE
-      {boost::lock_guard<boost::recursive_mutex> guard(omtx);
+      {std::lock_guard<std::recursive_mutex> guard(omtx);
 #endif
 
 
@@ -612,13 +610,13 @@ bool FlobManager::destroy(Flob &victim) {
        */
 
 #ifdef THREAD_SAFE
-      {boost::lock_guard<boost::recursive_mutex> guard(ncmtx);
+      {std::lock_guard<std::recursive_mutex> guard(ncmtx);
 #endif
 
       nativeFlobCache->erase(victim); // delete from cache
 #ifdef THREAD_SAFE
       }
-         {boost::lock_guard<boost::recursive_mutex> guard(omtx);
+         {std::lock_guard<std::recursive_mutex> guard(omtx);
 #endif
 
 
@@ -648,7 +646,7 @@ bool FlobManager::destroy(Flob &victim) {
    bool ok;
    SmiRecord record;
 #ifdef THREAD_SAFE
-   {boost::lock_guard<boost::recursive_mutex> guard(omtx);
+   {std::lock_guard<std::recursive_mutex> guard(omtx);
 #endif
 
 
@@ -669,8 +667,8 @@ bool FlobManager::destroy(Flob &victim) {
    if (id.fileId == nativeFlobs && isTemp) {
       // each native flob is exlusive owner of an record
 #ifdef THREAD_SAFE
-      {boost::lock_guard<boost::recursive_mutex> guard1(ncmtx);
-      boost::lock_guard<boost::recursive_mutex> guard2(omtx);
+      {std::lock_guard<std::recursive_mutex> guard1(ncmtx);
+      std::lock_guard<std::recursive_mutex> guard2(omtx);
 #endif
       nativeFlobCache->erase(victim);
       file->DeleteRecord(recordId);
@@ -695,7 +693,7 @@ bool FlobManager::destroy(Flob &victim) {
 
       } else { // truncate record
 #ifdef THREAD_SAFE
-         {boost::lock_guard<boost::recursive_mutex> guard(omtx);
+         {std::lock_guard<std::recursive_mutex> guard(omtx);
 #endif
          record.Truncate(offset);
          record.Finish();
@@ -714,7 +712,7 @@ bool FlobManager::destroy(Flob &victim) {
       } else {
          // record stores only the flob
 #ifdef THREAD_SAFE
-         {boost::lock_guard<boost::recursive_mutex> guard(omtx);
+         {std::lock_guard<std::recursive_mutex> guard(omtx);
 #endif
          file->DeleteRecord(recordId);
 #ifdef THREAD_SAFE
@@ -799,7 +797,7 @@ bool FlobManager::saveTo(const Flob &src,   // Flob to save
    SmiSize written;
    bool ok;
 #ifdef THREAD_SAFE
-   {boost::lock_guard<boost::recursive_mutex> guard(omtx);
+   {std::lock_guard<std::recursive_mutex> guard(omtx);
 #endif
 
    ok = file->Write(recordId, buffer, src.size, offset, written);
@@ -862,7 +860,7 @@ bool FlobManager::saveTo(
    SmiRecord rec;
    char mode;
 #ifdef THREAD_SAFE
-   {boost::lock_guard<boost::recursive_mutex> guard(omtx);
+   {std::lock_guard<std::recursive_mutex> guard(omtx);
 #endif
 
    if (!file->AppendRecord(recId, rec)) {
@@ -890,7 +888,7 @@ bool FlobManager::saveTo(
    getData(src, buffer, 0, src.size);
 
 #ifdef THREAD_SAFE
-   {boost::lock_guard<boost::recursive_mutex> guard(omtx);
+   {std::lock_guard<std::recursive_mutex> guard(omtx);
 #endif
 
 
@@ -950,7 +948,7 @@ bool FlobManager::putData(Flob &dest,         // destination flob
       if (fileId != nativeFlobs || !isTemp) {
          std::cerr << "Warning: Manipulate a persistent Flob" << std::endl;
 #ifdef THREAD_SAFE
-         boost::lock_guard<boost::recursive_mutex> guard(pcmtx);
+         std::lock_guard<std::recursive_mutex> guard(pcmtx);
 #endif
          bool res = persistentFlobCache->putData(dest, buffer,
                                             targetoffset, length);
@@ -959,7 +957,7 @@ bool FlobManager::putData(Flob &dest,         // destination flob
 
       } else {
 #ifdef THREAD_SAFE
-         boost::lock_guard<boost::recursive_mutex> guard(ncmtx);
+         std::lock_guard<std::recursive_mutex> guard(ncmtx);
 #endif
 
 
@@ -976,7 +974,7 @@ bool FlobManager::putData(Flob &dest,         // destination flob
    SmiSize written;
    bool ok;
 #ifdef THREAD_SAFE
-   {boost::lock_guard<boost::recursive_mutex> guard(omtx);
+   {std::lock_guard<std::recursive_mutex> guard(omtx);
 #endif
    ok = file->Write(recordId, buffer, length,
                     offset + targetoffset, written);
@@ -1011,7 +1009,7 @@ bool FlobManager::putData(const FlobId &id,         // destination flob
    bool ok;
    SmiSize written;
 #ifdef THREAD_SAFE
-   {boost::lock_guard<boost::recursive_mutex> guard(omtx);
+   {std::lock_guard<std::recursive_mutex> guard(omtx);
 #endif
    SmiRecordFile* file = getFile(fileId, id.mode);
 
@@ -1040,7 +1038,7 @@ bool FlobManager::setExFile(Flob &flob, const std::string &flobFile,
 
 
 #ifdef THREAD_SAFE
-   {boost::lock_guard<boost::recursive_mutex> guard(omtx);
+   {std::lock_guard<std::recursive_mutex> guard(omtx);
 #endif
 
 
@@ -1078,7 +1076,7 @@ bool FlobManager::SwitchToMode1(Flob &flob, const std::string &flobFile,
    char flobBlock[size];
 
 #ifdef THREAD_SAFE
-   {boost::lock_guard<boost::recursive_mutex> guard(omtx);
+   {std::lock_guard<std::recursive_mutex> guard(omtx);
 #endif
 
 
@@ -1151,7 +1149,7 @@ bool FlobManager::create(const SmiSize size, Flob &result) {  // result flob
    }
 
 #ifdef THREAD_SAFE
-   {boost::lock_guard<boost::recursive_mutex> guard(omtx);
+   {std::lock_guard<std::recursive_mutex> guard(omtx);
 #endif
 
 
@@ -1192,7 +1190,7 @@ bool FlobManager::create(const SmiSize size, Flob &result) {  // result flob
 #endif
 
 #ifdef THREAD_SAFE
-   {boost::lock_guard<boost::recursive_mutex> guard(ncmtx);
+   {std::lock_guard<std::recursive_mutex> guard(ncmtx);
 #endif
 
    if (!nativeFlobCache->create(result)) {
@@ -1233,7 +1231,7 @@ bool FlobManager::create(const SmiFileId &fileId,        // target file
    assert(fileId != nativeFlobs || !isTemp);
    SmiRecord record;
 #ifdef THREAD_SAFE
-   {boost::lock_guard<boost::recursive_mutex> guard(omtx);
+   {std::lock_guard<std::recursive_mutex> guard(omtx);
 #endif
 
    SmiRecordFile* file = getFile(fileId, mode);
@@ -1307,7 +1305,7 @@ void FlobManager::killNativeFlobs() {
    __TRACE_ENTER__
    bool ok;
 #ifdef THREAD_SAFE
-   {boost::lock_guard<boost::recursive_mutex> guard(ncmtx);
+   {std::lock_guard<std::recursive_mutex> guard(ncmtx);
 #endif
 
    if (nativeFlobCache) {
@@ -1317,7 +1315,7 @@ void FlobManager::killNativeFlobs() {
    ok = nativeFlobFile->ReCreate();
 #ifdef THREAD_SAFE
    }
-   {boost::lock_guard<boost::recursive_mutex> guard(omtx);
+   {std::lock_guard<std::recursive_mutex> guard(omtx);
 #endif
 
    DestroyedFlobs->makeEmpty();
@@ -1344,7 +1342,7 @@ FlobManager::FlobManager() : openFiles() {
    // not fixed size, dummy, temporarly
 
 #ifdef THREAD_SAFE
-   {boost::lock_guard<boost::recursive_mutex> guard(ncmtx);
+   {std::lock_guard<std::recursive_mutex> guard(ncmtx);
 #endif
 
 
@@ -1365,7 +1363,7 @@ FlobManager::FlobManager() : openFiles() {
                                          NATIVE_CACHE_AVGSIZE);
 #ifdef THREAD_SAFE
    }
-   {boost::lock_guard<boost::recursive_mutex> guard(pcmtx);
+   {std::lock_guard<std::recursive_mutex> guard(pcmtx);
 #endif
 
 
@@ -1375,7 +1373,7 @@ FlobManager::FlobManager() : openFiles() {
 
 #ifdef THREAD_SAFE
    }
-   {boost::lock_guard<boost::recursive_mutex> guard(omtx);
+   {std::lock_guard<std::recursive_mutex> guard(omtx);
 #endif
 
 

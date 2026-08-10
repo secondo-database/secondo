@@ -27,6 +27,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 #include "ConnectionInfo.h"
+#include <mutex>
 #include "Algebras/Relation-C++/RelationAlgebra.h"
 #include "Timeout.h"
 #include "Dist2Helper.h"
@@ -35,7 +36,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "FileAttribute.h"
 
 
-extern boost::recursive_mutex nlparsemtx;
+extern std::recursive_mutex nlparsemtx;
 boost::mutex createRelMut;
 boost::mutex copylistmutex;
 
@@ -567,7 +568,7 @@ void ConnectionInfo::simpleCommandFromList(const std::string& command1,
 
     ListExpr cmd = mynl->TheEmptyList();
     {
-        boost::lock_guard<boost::recursive_mutex> guard(nlparsemtx);
+        std::lock_guard<std::recursive_mutex> guard(nlparsemtx);
         if (!mynl->ReadFromString(command, cmd))
         {
             error = 3;

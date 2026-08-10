@@ -31,9 +31,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 // #include <loguru.hpp>
 
 #include <iostream>
+#include <mutex>
 #include <sstream>
 
-extern boost::recursive_mutex nlparsemtx;
+extern std::recursive_mutex nlparsemtx;
 
 namespace DBService
 {
@@ -95,7 +96,7 @@ void print(ListExpr nestedList, std::ostream& out)
     {
         // No locking: to avoid deadlocks. 
         // -> the lock must be in the invoking function
-        //boost::lock_guard<boost::recursive_mutex> guard(nlparsemtx);
+        //std::lock_guard<std::recursive_mutex> guard(nlparsemtx);
         
         out << "length: " << nl->ListLength(nestedList) << endl;
         out << nl->ToString(nestedList).c_str() << endl;

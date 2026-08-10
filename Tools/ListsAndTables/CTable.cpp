@@ -31,6 +31,7 @@ Jan - May 2003 M. Spiekermann, Code was splitted into the two files CTable.cpp a
 
 
 #include <assert.h>
+#include <mutex>
 #include <sstream>
 #include <iostream>
 
@@ -85,7 +86,7 @@ CTable<T>::TotalMemory( Cardinal &mem,
                         Cardinal &slotAccess  ) 
 { 
  #ifdef THREAD_SAFE
- boost::lock_guard<boost::recursive_mutex> guard(mtx);
+ std::lock_guard<std::recursive_mutex> guard(mtx);
  #endif
   mem = (Cardinal)(slotSize * elemCount);
   pageChanges = 0;
@@ -104,7 +105,7 @@ template<typename T>
 void
 CTable<T>::UpdateSlotCounters(Cardinal const n) {
  #ifdef THREAD_SAFE
- boost::lock_guard<boost::recursive_mutex> guard(mtx);
+ std::lock_guard<std::recursive_mutex> guard(mtx);
  #endif
 
   if ( n == leastFree ) { // find the next free slot
@@ -151,7 +152,7 @@ const T&
 CTable<T>::operator[]( Cardinal n ) const {
 
  #ifdef THREAD_SAFE
- boost::lock_guard<boost::recursive_mutex> guard(mtx);
+ std::lock_guard<std::recursive_mutex> guard(mtx);
  #endif
   assert( n > 0 && n <= elemCount );
   return table[n-1];
@@ -189,7 +190,7 @@ bool
 CTable<T>::IsValid( Cardinal const index ) {
 
  #ifdef THREAD_SAFE
- boost::lock_guard<boost::recursive_mutex> guard(mtx);
+ std::lock_guard<std::recursive_mutex> guard(mtx);
  #endif
   assert( index > 0 && index <= elemCount );
   return valid[index-1];
@@ -203,7 +204,7 @@ const Cardinal
 CTable<T>::EmptySlot()
 {
  #ifdef THREAD_SAFE
- boost::lock_guard<boost::recursive_mutex> guard(mtx);
+ std::lock_guard<std::recursive_mutex> guard(mtx);
  #endif
   //static Cardinal last = 0;
   if ( leastFree > elemCount )
@@ -246,7 +247,7 @@ void
 CTable<T>::Remove( Cardinal const index )
 {
  #ifdef THREAD_SAFE
- boost::lock_guard<boost::recursive_mutex> guard(mtx);
+ std::lock_guard<std::recursive_mutex> guard(mtx);
  #endif
   assert( index > 0 && index <= elemCount );
 

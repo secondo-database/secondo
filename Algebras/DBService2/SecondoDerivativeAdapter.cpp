@@ -26,6 +26,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 #include "Algebras/DBService2/SecondoRecordAdapter.hpp"
+#include <mutex>
 #include "Algebras/DBService2/SecondoDerivativeAdapter.hpp"
 
 #include "NestedList.h"
@@ -35,7 +36,7 @@ using namespace std;
 extern NestedList* nl;
 
 
-// extern boost::recursive_mutex nlparsemtx;
+// extern std::recursive_mutex nlparsemtx;
 
 namespace DBService {
   
@@ -53,7 +54,7 @@ namespace DBService {
     int id;
 
 // The lock must be acquired in the invoking method
-//    boost::lock_guard<boost::recursive_mutex> guard(nlparsemtx);
+//    std::lock_guard<std::recursive_mutex> guard(nlparsemtx);
 
     derivativeName      = nl->StringValue(nl->Nth(
         offset + 1, recordAsNestedList));

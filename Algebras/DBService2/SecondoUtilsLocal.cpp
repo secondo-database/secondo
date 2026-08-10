@@ -26,6 +26,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 #include <algorithm>
+#include <mutex>
 #include <sstream>
 
 #include <boost/thread/mutex.hpp>
@@ -47,7 +48,7 @@ using namespace std;
 using namespace distributed2;
 
 extern CMsg cmsg;
-extern boost::recursive_mutex nlparsemtx;
+extern std::recursive_mutex nlparsemtx;
 
 namespace DBService {
 
@@ -139,7 +140,7 @@ bool SecondoUtilsLocal::executeQuery2(const string& queryAsString)
     print("Actually executing query now ...", std::cout);
 
     // LOG_F(INFO, "%s", "Acquiring lock for executeQuery2...");
-    // boost::lock_guard<boost::recursive_mutex> queryProcessorGuard(
+    // std::lock_guard<std::recursive_mutex> queryProcessorGuard(
     //     // Dereference the shared_ptr to the mutex
     //     *LockKeeper::getInstance()->getQueryProcessorMutex()
     // );
@@ -206,7 +207,7 @@ bool SecondoUtilsLocal::executeQuery(const string& queryAsString,
     string typeString(""), errorString("");
 
     // LOG_F(INFO, "%s", "Acquiring lock for executeQuery...");
-    // boost::lock_guard<boost::recursive_mutex> queryProcessorGuard(
+    // std::lock_guard<std::recursive_mutex> queryProcessorGuard(
     //     // Dereference the shared_ptr to the mutex
     //     *LockKeeper::getInstance()->getQueryProcessorMutex()
     // );
@@ -330,12 +331,12 @@ SecondoUtilsLocal::createRelation(const string& queryAsString,
     bool isFunction = false;
 
     boost::lock_guard<boost::mutex> lock(utilsMutex);
-    boost::lock_guard<boost::recursive_mutex> guard(nlparsemtx);
+    std::lock_guard<std::recursive_mutex> guard(nlparsemtx);
     
     NestedList* nli = SecondoSystem::GetNestedList();
 
     // LOG_F(INFO, "%s", "Acquiring lock for createRelation...");
-    // boost::lock_guard<boost::recursive_mutex> queryProcessorGuard(
+    // std::lock_guard<std::recursive_mutex> queryProcessorGuard(
     //     // Dereference the shared_ptr to the mutex
     //     *LockKeeper::getInstance()->getQueryProcessorMutex()
     // );
@@ -447,10 +448,10 @@ bool SecondoUtilsLocal::executeQueryCommand(const string& queryAsString,
     boost::lock_guard<boost::mutex> lock(utilsMutex);
 
     LOG_F(INFO, "%s", "Acquiring lock for nlparsemtx...");
-    boost::lock_guard<boost::recursive_mutex> guard(nlparsemtx);
+    std::lock_guard<std::recursive_mutex> guard(nlparsemtx);
     LOG_F(INFO, "%s", "Successfully acquired lock for nlparsemtx...");
         
-    // boost::lock_guard<boost::recursive_mutex> queryProcessorGuard(
+    // std::lock_guard<std::recursive_mutex> queryProcessorGuard(
     //     // Dereference the shared_ptr to the mutex
     //     *LockKeeper::getInstance()->getQueryProcessorMutex()
     // );

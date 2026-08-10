@@ -46,6 +46,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Bash.h"
 
 #include <boost/bind/bind.hpp>
+#include <mutex>
 #include <boost/ref.hpp>
 
 #include "Tools/DFS/dfs/remotedfs.h"
@@ -54,7 +55,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "DFSTools.h"
 #include "BalancedCollect.h"
 
-extern boost::recursive_mutex nlparsemtx;
+extern std::recursive_mutex nlparsemtx;
 
 using namespace std;
 
@@ -210,12 +211,12 @@ public:
   }
 
   ~PProgressView() {
-    boost::lock_guard<boost::recursive_mutex> guard(mtx);
+    std::lock_guard<std::recursive_mutex> guard(mtx);
     killInfos();
   }
 
   bool handleMsg(NestedList *nl, ListExpr list, int source) {
-    boost::lock_guard<boost::recursive_mutex> guard(mtx);
+    std::lock_guard<std::recursive_mutex> guard(mtx);
     if (!enabled)
       return false;
     if (source <= 0)
@@ -249,7 +250,7 @@ public:
   }
 
   void init(int _noServers) {
-    boost::lock_guard<boost::recursive_mutex> guard(mtx);
+    std::lock_guard<std::recursive_mutex> guard(mtx);
     if (!enabled)
       return;
     killInfos();
@@ -264,13 +265,13 @@ public:
   }
 
   void finish() {
-    boost::lock_guard<boost::recursive_mutex> guard(mtx);
+    std::lock_guard<std::recursive_mutex> guard(mtx);
     Bash::cursorDown(noServers);
     cout << "\n\n";
   }
 
   void enable(bool on) {
-    boost::lock_guard<boost::recursive_mutex> guard(mtx);
+    std::lock_guard<std::recursive_mutex> guard(mtx);
     enabled = on;
   }
 
@@ -278,10 +279,10 @@ private:
   bool enabled;
   int noServers;
   PProgressInfo **infos;
-  boost::recursive_mutex mtx;
+  std::recursive_mutex mtx;
 
   void killInfos() {
-    boost::lock_guard<boost::recursive_mutex> guard(mtx);
+    std::lock_guard<std::recursive_mutex> guard(mtx);
     if (infos) {
       for (int i = 0; i < noServers; i++) {
         if (infos[i]) {
@@ -1030,7 +1031,7 @@ ListExpr replaceSymbols(ListExpr list,
     if (it == replacements.end()) {
       return list;
     } else {
-      boost::lock_guard<boost::recursive_mutex> lock(nlparsemtx);
+      std::lock_guard<std::recursive_mutex> lock(nlparsemtx);
       ListExpr res;
       nl->ReadFromString(it->second, res);
       return res;
@@ -1085,7 +1086,7 @@ template <typename T>
 ListExpr fun2cmd(const string &fundef, const vector<T> &funargs) {
   ListExpr funlist;
   {
-    boost::lock_guard<boost::recursive_mutex> guard(nlparsemtx);
+    std::lock_guard<std::recursive_mutex> guard(nlparsemtx);
     if (!nl->ReadFromString(fundef, funlist)) {
       cerr << "Function is not a nested list" << endl;
       return nl->TheEmptyList();
@@ -1770,7 +1771,7 @@ ListExpr rqueryTM(ListExpr args) {
   string typeList = nl->Text2String(nl->Second(reslist));
   ListExpr resType;
   {
-    boost::lock_guard<boost::recursive_mutex> guard(nlparsemtx);
+    std::lock_guard<std::recursive_mutex> guard(nlparsemtx);
     if (!nl->ReadFromString(typeList, resType)) {
       return listutils::typeError("getTypeNL returns no "
                                   "valid list expression");
@@ -3851,7 +3852,7 @@ bool getQueryType(const string &query1, int serverNo, ListExpr &result,
   string typeList = nl->Text2String(nl->Second(reslist));
   ListExpr resType;
   {
-    boost::lock_guard<boost::recursive_mutex> guard(nlparsemtx);
+    std::lock_guard<std::recursive_mutex> guard(nlparsemtx);
     if (!nl->ReadFromString(typeList, resType)) {
       errMsg = "getTypeNL returns no valid list expression";
       return false;
@@ -5698,7 +5699,7 @@ ListExpr ffeed5TM(ListExpr args) {
   delete[] buffer;
   ListExpr relType;
   {
-    boost::lock_guard<boost::recursive_mutex> guard(nlparsemtx);
+    std::lock_guard<std::recursive_mutex> guard(nlparsemtx);
     if (!nl->ReadFromString(typeS, relType)) {
       in.close();
       return listutils::typeError("problem in determining rel type");
@@ -6202,7 +6203,7 @@ int createDArrayVMT(Word *args, Word &result, int message, Word &local,
           string typeDescr = nl->Text2String(nl->Second(tuple));
           ListExpr typelist;
           {
-            boost::lock_guard<boost::recursive_mutex> guard(nlparsemtx);
+            std::lock_guard<std::recursive_mutex> guard(nlparsemtx);
             if (nl->ReadFromString(typeDescr, typelist)) {
               if (nl->Equal(typelist, expType)) {
                 bool ok;
@@ -14801,7 +14802,7 @@ public:
   }
 
   void deleteFinishedTransfers() {
-    boost::lock_guard<boost::recursive_mutex> guard(mtx);
+    std::lock_guard<std::recursive_mutex> guard(mtx);
     set<transferator *>::iterator it;
     for (it = finishedTransfers.begin(); it != finishedTransfers.end(); it++) {
       delete *it;
@@ -14819,7 +14820,7 @@ private:
   vector<Socket *> connections; // active connections
   set<transferator *> activeTransfers;
   set<transferator *> finishedTransfers;
-  boost::recursive_mutex mtx; // synchronize access to transfer sets
+  std::recursive_mutex mtx; // synchronize access to transfer sets
 
   staticFileTransferator(int port, int maxTransfers) {
     listener = Socket::CreateGlobal("localhost", stringutils::int2str(port));
@@ -14841,7 +14842,7 @@ private:
   }
 
   void addTransfer(Socket *socket) {
-    boost::lock_guard<boost::recursive_mutex> guard(mtx);
+    std::lock_guard<std::recursive_mutex> guard(mtx);
     connections.push_back(socket);
     activeTransfers.insert(
         new transferator(socket, connections.size() - 1, this));
@@ -14849,7 +14850,7 @@ private:
 
   void finish(transferator *t, bool success) {
     if (running) {
-      boost::lock_guard<boost::recursive_mutex> guard(mtx);
+      std::lock_guard<std::recursive_mutex> guard(mtx);
       activeTransfers.erase(t);
       deleteFinishedTransfers();
       finishedTransfers.insert(t);
@@ -15824,7 +15825,7 @@ private:
     if (!sfun.empty()) {
       ListExpr sfunl;
       {
-        boost::lock_guard<boost::recursive_mutex> guard(nlparsemtx);
+        std::lock_guard<std::recursive_mutex> guard(nlparsemtx);
         bool ok = nl->ReadFromString(sfun, sfunl);
         if (!ok) {
           cerr << "error in parsing list: " << sfun << endl;
@@ -15837,7 +15838,7 @@ private:
     ListExpr dfunl;
 
     {
-      boost::lock_guard<boost::recursive_mutex> guard(nlparsemtx);
+      std::lock_guard<std::recursive_mutex> guard(nlparsemtx);
       bool ok = nl->ReadFromString(dfun, dfunl);
       if (!ok) {
         cerr << "problem in parsing function" << endl;
