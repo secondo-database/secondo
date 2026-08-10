@@ -37,8 +37,6 @@ ifeq ($(BASH),"")
   $(error bash not found. If you are using mingw -windows platform-, enter the following code: cd /bin\; ln sh.exe bash.exe\; cd ~ )
 endif
 
-
-
 # check if java compiler is working
 include ./Javagui/makefile.inc
 compileJava := "$(shell $(JAVAC) -help > /dev/null 2>&1; if [ $$? != 0 ]; then echo "false"; else echo "true"; fi)"
@@ -48,17 +46,6 @@ define javac-msg
   @echo "Warning: The command \"$(JAVAC) -help\" returned an error!"
   @echo "         Please check your Java 2 SDK configuration an run again."
 endef
-
-# check if J2SDK_ROOT is present
-j2sdkIsPresent := "$(shell if [ "$$J2SDK_ROOT" != "" ] && [ -e "$$J2SDK_ROOT" ]; then echo "true"; else echo "false"; fi)"
-
-define j2sdk-msg
-  @echo ""
-  @echo "Warning: The variable J2SDK_ROOT is not set or points to an non existing directory."
-  @echo "         Please check the settings in file ~/.secondo.$(platform).rc and run again."
-endef
-
-
 
 
 # Configuration files which will be created as a copy of example files
@@ -78,8 +65,8 @@ ALL_TARGETS = makedirs \
 	$(OPTIMIZER_SERVER) \
 	java2 \
 	tests \
-    examples \
-	update-config  \
+	update-config \
+	examples \
 	API
 
 # The top-level build phases (makedirs -> buildlibs -> buildAlgebras ->
@@ -88,7 +75,7 @@ ALL_TARGETS = makedirs \
 .NOTPARALLEL:
 
 .PHONY: all
-all: jnicheck $(ALL_TARGETS)
+all: $(ALL_TARGETS)
 
 .PHONY: TTY 
 TTY: kernel buildapps examples
@@ -123,32 +110,12 @@ examples: kernel buildapps
 	$(MAKE) -C Algebras examples
 	$(BINDIR)/CheckExamples$(EXEEXT) bin/tmp/*.examples
 
-.PHONY: jnicheck
-jnicheck:
-ifeq ($(USE_JNI),"true")
-ifeq ($(j2sdkIsPresent),"false")
-	@echo ; echo  "JNI based algebras can not be compiled!" 
-	$(j2sdk-msg)
-	@exit 1
-endif 
-endif
-
-
 .PHONY: API
 API: makedirs buildlibs buildAlgebras buildapps
 	$(MAKE) -C apis
 
-
-.PHONY: show-vars
-show-vars:
-	@echo "USE_JNI = <$(USE_JNI)>"
-	@echo "compileJava = <$(compileJava)>"
-	@echo "j2sdkIsPresent = <$(j2sdkIsPresent)>"
-	@echo "JAVAC = <$(JAVAC)>"
-
 .PHONY: javagui
 javagui: java2
-
 
 .PHONY: makedirs
 makedirs:
@@ -162,8 +129,6 @@ makedirs:
 	$(MAKE)	-C ParallelTransform
 	$(MAKE) -C UserInterfaces
 
-
-
 .PHONY: libs
 libs: makedirs buildlibs
 
@@ -171,12 +136,10 @@ libs: makedirs buildlibs
 buildAlgebras: buildlibs
 	$(MAKE) -C Algebras buildlibs
 
-
 .PHONY: buildlibs
 buildlibs: makedirs
 	@echo ; echo  " *** Creating library files *** "; echo
 	$(MAKE) -f ./makefile.libs
-
 
 .PHONY: java
 java: java2 update-config
@@ -245,7 +208,6 @@ realclean: clean
 	$(MAKE) -C Algebras realclean
 	$(MAKE) -C Optimizer realclean
 	rm -f $(CONFIG_FILES) makefile.algebras 
-	rm -f Documents/.Secondo-News.txt 
 	rm -rf bin/tmp
 	rm -rf Optimizer/tmp
 
@@ -272,28 +234,7 @@ include ./makefile.cm
 ######################################################
 
 .PHONY: update-config 
-update-config: config showjni Documents/.Secondo-News.txt
-
-.PHONY: showjni
-showjni:
-	@echo  $(JNITEXT)
-
-.PHONY: config
-config: $(CONFIG_FILES) 
-	@chmod u+x bin/rmlogs
-
-# Alert for new information in Secondo-News
-Documents/.Secondo-News.txt : Documents/Secondo-News.txt
-	@touch $@
-	@echo 
-	@echo  " *** New information in the file $< *** "
-	@echo
-	@sepLineNr=$$(grep -ine "=====" $< | sed -ne '2s/:.*//gp'); \
-         sepLineNr=$$(($$sepLineNr - 2)); \
-	head -n $$sepLineNr $< | sed -ne "10,$$sepLineNr p"
-	@echo 
-	@echo  " *** file truncated *** "
-	@echo
+update-config: $(CONFIG_FILES)
 
 bin/SecondoConfig.ini: bin/SecondoConfig.example
 	$(cp-config-file)
