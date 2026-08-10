@@ -42,6 +42,13 @@ define checkjavac
         fi
 endef
 
+# The Java part of the tree is built serially: javac compiles the file it is
+# given AND everything that file depends on, so two javac processes running at
+# the same time can write the same .class file. Within one directory that is a
+# real risk -- e.g. viewer/ compiles its own sources while recursing into the
+# viewer subdirectories, and those pull in the same classes.
+.NOTPARALLEL:
+
 # SECONDOPATH should be a shell-variable
 ifndef SECONDO_BUILD_DIR
 $(error Variable SECONDO_BUILD_DIR is not defined. This variable must hold the directory of Secondo)

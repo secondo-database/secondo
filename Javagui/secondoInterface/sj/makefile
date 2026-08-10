@@ -20,10 +20,14 @@
 #
 
 
+# Serial for the same reason as the rest of Javagui (see makefile.inc); this
+# makefile is one of the few there that does not include it.
+.NOTPARALLEL:
+
 all: sj_lang
 
 sj_lang:
-	$(MAKE) -j 1 -C lang all
+	$(MAKE) -C lang all
 
 
 #////////////////// clean
