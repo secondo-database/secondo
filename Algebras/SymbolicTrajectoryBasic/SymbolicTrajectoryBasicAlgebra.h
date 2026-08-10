@@ -156,7 +156,7 @@ struct BasicDistanceFuns {
 };
 
 struct RecodeFun {
-  #ifdef RECODE
+  #ifdef HAS_RECODE
   static bool recode(const std::string &src, const std::string &from,
                      const std::string &to, std::string &result);
   #endif
@@ -282,7 +282,7 @@ class Labels : public Attribute {
                     const std::set<std::string>& values2);
   void Minus(const std::set<std::string>& values1, 
              const std::set<std::string>& values2);
-  #ifdef RECODE
+  #ifdef HAS_RECODE
   bool Recode(const std::string& from, const std::string& to, Labels& result);
   #endif
   friend std::ostream& operator<<(std::ostream& os, const Labels& lbs);
@@ -664,7 +664,7 @@ class MBasic : public Attribute {
   void Concat(const MBasic<B>& src1, const MBasic<B>& src2);
   void Compress(MBasic<B>& result) const;
   void GetPart(const int from, const int to, MBasic<B>& result);
-  #ifdef RECODE
+  #ifdef HAS_RECODE
   void Recode(const std::string& from, const std::string& to,MBasic<B>& result);
   #endif
   NewPair<int, int> LongestCommonSubsequence(const MBasic<B>& mb);
@@ -777,7 +777,7 @@ class MBasics : public Attribute {
   void Fill(MBasics<B>& result, datetime::DateTime& duration) const;
   void Concat(const MBasics<B>& src1, const MBasics<B>& src2);
   void Compress(MBasics<B>& result) const;
-  #ifdef RECODE
+  #ifdef HAS_RECODE
   void Recode(const std::string& from,const std::string& to,MBasics<B>& result);
   #endif
   std::ostream& Print(std::ostream& os) const;
@@ -2297,7 +2297,7 @@ void MBasic<B>::GetPart(const int from, const int to, MBasic<B>& result) {
   }
 }
 
-#ifdef RECODE
+#ifdef HAS_RECODE
 /*
 \subsection{Function ~Recode~}
 
@@ -3789,7 +3789,7 @@ void MBasics<B>::Compress(MBasics<B>& result) const {
   }
 }
 
-#ifdef RECODE
+#ifdef HAS_RECODE
 /*
 \subsection{Function ~Recode~}
 

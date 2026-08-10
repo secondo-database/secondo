@@ -35,7 +35,7 @@ has been split from the SymbolicTrajectoryAlgebra in April 2020.
 
 */
 #include "SymbolicTrajectoryBasicAlgebra.h"
-#ifdef RECODE
+#ifdef HAS_RECODE
 #include <recode.h>
 #endif
 
@@ -136,7 +136,7 @@ double BasicDistanceFuns::distance(set<pair<string, unsigned int> >& values1,
 \subsection{Function ~recode~}
 
 */
-#ifdef RECODE
+#ifdef HAS_RECODE
 bool RecodeFun::recode(const string &src, const string &from, const string &to,
                       string &result) {
   string rs = trim(from)+".."+trim(to);
@@ -707,7 +707,7 @@ void Labels::Minus(const set<string>& values1, const set<string>& values2) {
   Append(difference);
 }
 
-#ifdef RECODE
+#ifdef HAS_RECODE
 /*
 \subsection{Function ~Recode~}
 
@@ -2976,7 +2976,7 @@ struct minusInfo : OperatorInfo {
   }
 };
 
-#ifdef RECODE
+#ifdef HAS_RECODE
 /*
 \section{Operator ~recode~}
 
@@ -4842,7 +4842,7 @@ class SymbolicTrajectoryBasicAlgebra : public Algebra {
     minusVM<Places, Place>, minusVM<Places, Places>, 0};
   AddOperator(minusInfo(), minusVMs, minusSelect, minusTM);
   
-  #ifdef RECODE
+  #ifdef HAS_RECODE
   ValueMapping recodeVMs[] = {recodeVM<MLabel>, recodeVM<MLabels>, 0};
   AddOperator(recodeInfo(), recodeVMs, recodeSelect, recodeTM);
   #endif

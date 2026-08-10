@@ -72,7 +72,7 @@ October 2008, Christian D[ue]ntgen added operators ~sendtextUDP~ and
 
 #include <queue>
 
-#ifdef RECODE
+#ifdef HAS_RECODE
 #include <recode.h>
 #endif
 
@@ -8137,7 +8137,7 @@ Operator str2int
  str2intTM        //type mapping
 );
 
-#ifdef RECODE
+#ifdef HAS_RECODE
 
 /*
 4.12 Operator ~recode~
@@ -14096,7 +14096,7 @@ Operator endlOp(
       AddOperator(&findLastNotOfOp);
       AddOperator(&endlOp);
 
-#ifdef RECODE
+#ifdef HAS_RECODE
       AddOperator(&recode);
 #endif
 
