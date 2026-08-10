@@ -38,7 +38,6 @@ allows a pretty folding of words with a specified text length.
 #include <vector>
 #include <string>
 #include <iostream>
-#include <iomanip>
 #include <sstream>
 #include <cassert>
 

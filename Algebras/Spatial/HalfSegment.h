@@ -19,6 +19,7 @@ than the right one.
 
 #include <math.h>
 #include <cmath>
+#include <iomanip>
 #include "AlmostEqual.h"
 #include "Coord.h"
 #include "Point.h"

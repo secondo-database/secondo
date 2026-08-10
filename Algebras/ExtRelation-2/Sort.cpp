@@ -29,6 +29,7 @@ June 2009, Sven Jungnickel. Initial version
 */
 
 #include <algorithm>
+#include <iomanip>
 #include "stdlib.h"
 
 #include "LogMsg.h"

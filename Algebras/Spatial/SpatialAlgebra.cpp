@@ -53,6 +53,8 @@ For more detailed information see SpatialAlgebra.h.
 
 
 
+#include <iomanip>
+
 #include "Label.h"
 #include "../../Tools/Flob/Flob.h"
 #include "../../Tools/Flob/DbArray.h"
