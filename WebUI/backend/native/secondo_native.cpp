@@ -45,15 +45,29 @@ that into GeoJSON is done in Python, where it is easy to fixture-test.
 
 namespace py = pybind11;
 
-// SECONDO stores strings in Latin-1 (ISO-8859-1), so any text coming back from
-// the server may contain bytes (e.g. 0xfc for 'u"'/umlaut) that are invalid
-// UTF-8. pybind11's default std::string -> str conversion assumes UTF-8 and
-// would raise UnicodeDecodeError on such results (Kinos, WFlaechen, ...).
-// Decoding Latin-1 explicitly is lossless for any byte and yields correct
-// Unicode. Only for text the *server* produced -- a string that came in from
-// Python is already UTF-8 and must not be run through this.
-static py::str latin1(const std::string& s)
+// SECONDO has no encoding: a string is bytes, and which encoding they are in is
+// whatever put them there. berlintest is Latin-1 (Kinos, WFlaechen and friends
+// carry 0xfc for u-umlaut), while anything imported from a modern shapefile is
+// UTF-8 -- `dbimport` copies DBF character fields verbatim and never reads the
+// codepage byte in the header, so a Geofabrik extract lands in the database
+// exactly as UTF-8. Both live in the same server, sometimes in the same query.
+//
+// So the encoding has to be recognised rather than assumed. UTF-8 first,
+// because it is checkable: multi-byte sequences are strictly structured, and
+// real Latin-1 text almost never satisfies them by accident (German text puts
+// 0xfc, 0xe4, 0xdf next to ASCII letters, and none of those are valid UTF-8
+// lead-byte pairs). Latin-1 second, as the fallback that cannot fail -- every
+// byte sequence is valid Latin-1, which is what makes it the right last resort
+// and the wrong first guess.
+//
+// Only for text the *server* produced. A string that came in from Python is
+// already UTF-8; see ~utf8~ below.
+static py::str fromServer(const std::string& s)
 {
+  if (PyObject* u = PyUnicode_DecodeUTF8(s.data(), s.size(), nullptr)) {
+    return py::reinterpret_steal<py::str>(u);
+  }
+  PyErr_Clear();
   return py::reinterpret_steal<py::str>(
       PyUnicode_DecodeLatin1(s.data(), s.size(), "replace"));
 }
@@ -117,15 +131,16 @@ The GIL must be held: this allocates Python objects.
 */
 typedef py::str (*Decoder)(const std::string&);
 
-// What the server produced is Latin-1; what Python handed in (parse_nl) is
-// already UTF-8 and must not be run through the Latin-1 decoder, or an umlaut
-// comes back as two characters.
+// What Python handed in (parse_nl) is known to be UTF-8 already, so it is
+// decoded as such rather than being sniffed: ~fromServer~ guesses because it
+// has to, and guessing where the answer is known can only ever be worse.
 static py::str utf8(const std::string& s)
 {
   return py::str(s);
 }
 
-static py::object treeOf(NestedList* nl, ListExpr list, Decoder decode = latin1)
+static py::object treeOf(NestedList* nl, ListExpr list, 
+  Decoder decode = fromServer)
 {
   if (nl->IsEmpty(list)) {
     return py::list();
@@ -580,7 +595,7 @@ class Connection
       throw secondoError(err.code, err.pos, err.msg, "");
     }
     py::dict result;
-    result["text"] = latin1(out);
+    result["text"] = fromServer(out);
     answer(result, res, want_tree, into);
     return result;
   }
@@ -667,13 +682,13 @@ class Connection
 
     py::dict out;
     out["level"] = r.level;
-    out["text"] = latin1(r.text);
+    out["text"] = fromServer(r.text);
     answer(out, r.result, want_tree, into);
-    out["plan"] = r.hasPlan ? py::object(latin1(r.plan))
+    out["plan"] = r.hasPlan ? py::object(fromServer(r.plan))
                             : py::object(py::none());
     out["costs"] = r.hasCosts ? py::object(py::cast(r.costs))
                               : py::object(py::none());
-    out["message"] = r.hasMessage ? py::object(latin1(r.message))
+    out["message"] = r.hasMessage ? py::object(fromServer(r.message))
                                   : py::object(py::none());
     return out;
   }
@@ -692,7 +707,7 @@ class Connection
       beginCommand();
       out = si->optimizerCommand(directive);
     }
-    return latin1(out);
+    return fromServer(out);
   }
 
   void close()
@@ -926,7 +941,7 @@ PYBIND11_MODULE(secondo_native, m)
         err.attr("code") = e.code;
         err.attr("pos") = e.pos;
         err.attr("plan") = e.plan.empty() ? py::object(py::none())
-                                          : py::object(latin1(e.plan));
+                                          : py::object(fromServer(e.plan));
         PyErr_SetObject(secondoErrorType.ptr(), err.ptr());
       }
     }
@@ -948,6 +963,16 @@ PYBIND11_MODULE(secondo_native, m)
       },
       py::arg("command"),
       "Strip a leading \"optimizer \" keyword; returns (had_prefix, rest).");
+
+  // Exposed so the encoding guess can be tested without a server: the two
+  // databases that disagree about it (a Latin-1 berlintest, a UTF-8 shapefile
+  // import) cannot both be fixtures, and the rule is worth pinning on its own.
+  m.def(
+      "decode_server_text",
+      [](const py::bytes& raw) { return fromServer(std::string(raw)); },
+      py::arg("raw"),
+      "Decode bytes as the bridge decodes text coming back from SECONDO: "
+      "UTF-8 if they are valid UTF-8, Latin-1 otherwise.");
 
   // Needs no connection: it is the kernel's own parser, not a server call.
   m.def("parse_nl", &parseNL, py::arg("text"),
