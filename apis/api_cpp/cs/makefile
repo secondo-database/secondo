@@ -9,7 +9,10 @@ LAT=$(BD)/Tools/ListsAndTables
 Interface1=$(INCL)/SecondoInterface.h
 Interface2=$(INCL)/Application.h
 
-HEADERS1=$$($(CPPC) -MM -Wno-deprecated  -I$(INCL) -I$(LAT) $(Interface1) $(DEFAULTCCFLAGS)  | sed "s/.*://"  | sed -e 's/\\//g' | sort | uniq | tr -d "\n"    )
+# -x c++-header says what these inputs are: .h files handed to a C++ compiler.
+# Without it clang warns ("treating 'c-header' input as 'c++-header' when in
+# C++ mode"), which is what the blanket -Wno-deprecated here used to hide.
+HEADERS1=$$($(CPPC) -MM -I$(INCL) -I$(LAT) -x c++-header $(Interface1) $(DEFAULTCCFLAGS)  | sed "s/.*://"  | sed -e 's/\\//g' | sort | uniq | tr -d "\n"    )
 DEPS1=$(HEADERS1)
 
 
@@ -17,7 +20,7 @@ ifeq ($(platform),win32)
 USEWIN:=-D SECONDO_WIN32
 endif
 
-HEADERS2=$$($(CPPC) -MM -Wno-deprecated -D CTABLE_PERSISTENT $(USEWIN) -I$(INCL) -I$(LAT) $(Interface1) $(DEFAULTCCFLAGS) | sed "s/.*://"  | sed -e 's/\\//g' | sort | uniq | tr -d "\n"    )
+HEADERS2=$$($(CPPC) -MM -D CTABLE_PERSISTENT $(USEWIN) -I$(INCL) -I$(LAT) -x c++-header $(Interface1) $(DEFAULTCCFLAGS) | sed "s/.*://"  | sed -e 's/\\//g' | sort | uniq | tr -d "\n"    )
 DEPS2=$(HEADERS2)
 
 
