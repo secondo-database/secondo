@@ -61,6 +61,10 @@ export function Catalog({
   const [filter, setFilter] = useState("");
   const [loadingObjects, setLoadingObjects] = useState(false);
   const [pendingDb, setPendingDb] = useState<string | null>(null);
+  // A refresh the user asked for, as opposed to one a command triggered. Only
+  // this one spins the button, so a background refresh doesn't make the icon
+  // twitch on every `let`.
+  const [reloading, setReloading] = useState(false);
   // The file is over the drop zone itself, as opposed to somewhere else.
   const [over, setOver] = useState(false);
   // Why the last file was refused, shown in the zone rather than as an alert.
@@ -119,6 +123,19 @@ export function Catalog({
   // the highlight and the guard below, so they cannot drift apart again.
   const isOpen = (name: string) => open?.toLowerCase() === name.toLowerCase();
 
+  // The lists only reload when this UI is what changed them, so anything done
+  // elsewhere -- another browser tab, the Java GUI, a script on the server --
+  // leaves this one showing a database as it was. This is the way back in
+  // without reloading the page.
+  async function reload() {
+    setReloading(true);
+    try {
+      await refresh();
+    } finally {
+      setReloading(false);
+    }
+  }
+
   async function openDb(name: string) {
     if (pendingDb) return; // ignore rapid repeat clicks while one is in flight
     setPendingDb(name);
@@ -153,11 +170,22 @@ export function Catalog({
     <div className="catalog">
       <div className="cat-section">
         databases
-        {onCollapse && (
-          <button className="cat-collapse" onClick={onCollapse} title="Hide catalog">
-            ◂
+        <span className="cat-actions">
+          <button
+            className={"cat-refresh" + (reloading ? " spinning" : "")}
+            onClick={() => void reload()}
+            disabled={reloading || pendingDb !== null}
+            title="Reload the database and object lists"
+            aria-label="Refresh the catalog"
+          >
+            ⟳
           </button>
-        )}
+          {onCollapse && (
+            <button className="cat-collapse" onClick={onCollapse} title="Hide catalog">
+              ◂
+            </button>
+          )}
+        </span>
       </div>
       <div className="cat-dbs">
         {databases.length === 0 && (

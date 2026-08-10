@@ -114,6 +114,10 @@ body {
     border-top-color: var(--accent);
   }
 
+  .cat-refresh.spinning {
+    animation: none;
+  }
+
   .split,
   .cat-drop {
     transition: none;
@@ -165,6 +169,7 @@ body {
    their quiet ghost styling -- only the target grows, to 24px square. */
 .rail-btn,
 .cat-collapse,
+.cat-refresh,
 .lp-mini,
 .plots-toggle,
 .rt-close,
@@ -194,9 +199,18 @@ body {
   background: var(--surface);
 }
 
-.cat-collapse {
+/* Refresh and collapse ride at the right end of the section header. They sit in
+   one box rather than carrying `margin-left: auto` each -- two auto margins
+   would split the free space and drift apart. */
+.cat-actions {
   margin-left: auto;
-  margin-right: -0.25rem; /* the target grows inwards, the glyph stays put */
+  margin-right: -0.25rem; /* the targets grow inwards, the glyphs stay put */
+  display: flex;
+  align-items: center;
+}
+
+.cat-collapse,
+.cat-refresh {
   background: none;
   border: none;
   border-radius: 4px;
@@ -206,9 +220,24 @@ body {
   padding: 0;
 }
 
-.cat-collapse:hover {
+.cat-collapse:hover,
+.cat-refresh:hover:not(:disabled) {
   color: var(--text);
   background: var(--surface);
+}
+
+.cat-refresh {
+  font-size: 1.05rem; /* the glyph is a lighter weight than the arrow */
+  line-height: 1;
+}
+
+.cat-refresh:disabled {
+  cursor: default;
+  color: var(--accent);
+}
+
+.cat-refresh.spinning {
+  animation: spin 0.7s linear infinite;
 }
 
 .split {
