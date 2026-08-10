@@ -737,6 +737,25 @@ query linerel feed extend[P: atposition(fromline(.L), atpoint(fromline(.L), [con
 #yields ((rel (tuple ((P point)))) ((undefined) ((0.3333333333333333 0.5)) ((0.3333333333333333 0.5)) (undefined) (undefined) (undefined) (undefined)))
 query linerel feed extend[P: atposition(fromline(.L), atpoint(fromline(.L), [const point value (0.3333333333333333 0.5)], FALSE), FALSE)] project[P] consume;
 
+# Point::HashValue must spread nearby geographic coordinates over the hash
+# table. The former implementation (size_t)(5*x + y) mapped a whole city
+# sized area onto one or two values, which degraded every hash join on
+# points into a nested loop.
+#testcase point_hashvalue_geo_spread
+#yields (int 9)
+query [const rel(tuple([P: point])) value
+(
+  ((10.06  53.58 )) ((10.061 53.58 )) ((10.062 53.58 ))
+  ((10.06  53.581)) ((10.061 53.581)) ((10.062 53.581))
+  ((10.06  53.582)) ((10.061 53.582)) ((10.062 53.582))
+)] feed extend[H: hashvalue(.P, 999997)] project[H] sortby[H asc] rdup count;
+
+# ... while staying consistent with Point::Compare, which itHashJoin uses to
+# resolve a bucket: the self join must still find every point.
+#testcase point_ithashjoin_selfjoin
+#yields (int 26)
+query pointrel feed pointrel feed {b} itHashJoin[P, P_b] count;
+
 #teardown
 close database;
 #delete database spatialtest;

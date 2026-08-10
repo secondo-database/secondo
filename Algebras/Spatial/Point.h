@@ -747,7 +747,22 @@ definition as an attribute.
     {
       if( !IsDefined() )
         return 0;
-      return (size_t)(5*x + y);
+      // Grid hash: Teschner et al., Optimized Spatial Hashing for Collision
+      // Detection of Deformable Objects, VMV 2003, pp. 47-54, with the
+      // constants published there (19349663 is composite, though the paper
+      // calls it prime; the finalizer below makes that immaterial).
+      const double gridSize = 0.00001;
+      const uint64_t gx = (uint64_t)(int64_t)(x / gridSize);
+      const uint64_t gy = (uint64_t)(int64_t)(y / gridSize);
+      uint64_t h = (gx * 73856093ULL) ^ (gy * 19349663ULL);
+
+      // Finalizer: David Stafford's Mix13 (2011), an improvement on the
+      // MurmurHash3 64 bit finalizer. Used as mix64variant13 in Steele, Lea,
+      // Flood, Fast Splittable Pseudorandom Number Generators, OOPSLA 2014.
+      // Keeps the result uniform for non-prime bucket counts as well.
+      h = (h ^ (h >> 30)) * 0xBF58476D1CE4E5B9ULL;
+      h = (h ^ (h >> 27)) * 0x94D049BB133111EBULL;
+      return (size_t)(h ^ (h >> 31));
     }
 
     inline void CopyFrom( const Attribute* right )
