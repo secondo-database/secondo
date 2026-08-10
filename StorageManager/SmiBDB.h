@@ -146,7 +146,9 @@ All other implementation classes provide only data members.
 #include <db_cxx.h>
 
 #ifdef THREAD_SAFE
-#include <boost/thread.hpp>
+#include <boost/thread/mutex.hpp>
+#include <boost/thread/recursive_mutex.hpp>
+#include <boost/thread/lock_guard.hpp>
 #endif
 
 
