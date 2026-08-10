@@ -35,10 +35,6 @@
 
 include ../../makefile.env
 
-CCFLAGS += -DYY_FLEX_MAJOR_VERSION=$(shell ../../bin/getversion.sh major flex -V)
-CCFLAGS += -DYY_FLEX_MINOR_VERSION=$(shell ../../bin/getversion.sh minor flex -V)
-CCFLAGS += -DYY_FLEX_SUBMINOR_VERSION=$(shell ../../bin/getversion.sh subminor flex -V)
-
 ifdef WINE
 # wine has problem to execute the Specparser
 # as work around it will be compiled with the

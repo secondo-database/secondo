@@ -86,28 +86,6 @@ own position instead of this one's.
   int getCol() const { return col; }
   const std::string& getCurrentLine() const { return currentLine; }
 
-  void DeleteCurrentBuffer(){
-#if YY_FLEX_MAJOR_VERSION >1 && \
-    YY_FLEX_MINOR_VERSION > 4 && \
-    YY_FLEX_SUBMINOR_VERSION > 32	  
-    yy_delete_buffer(YY_CURRENT_BUFFER);
-#endif    
-  } 
-
-  void DeleteAllBuffers(){
-#if YY_FLEX_MAJOR_VERSION >1 && \
-    YY_FLEX_MINOR_VERSION > 4 && \
-    YY_FLEX_SUBMINOR_VERSION > 32	  
-     while(YY_CURRENT_BUFFER){
-        yy_delete_buffer(YY_CURRENT_BUFFER);
-     }
-     if(yy_buffer_stack){
-       free(yy_buffer_stack);
-       yy_buffer_stack=0;
-     }
-#endif     
-  }
-
 
  private:
   // no Scanner copy-initialization

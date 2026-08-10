@@ -41,12 +41,12 @@ During implementation of ~xxerror~ this was confusing.
 #include "NestedText.h"
 #include "LogMsg.h"
 
-using namespace std;
-
 #ifndef yyFlexLexer
 #define yyFlexLexer xxFlexLexer
 #include <FlexLexer.h>
 #endif
+
+using namespace std;
 
 string SecParser::error;
 
@@ -58,34 +58,13 @@ extern CMsg cmsg;
 
 static xxFlexLexer* lexPtr;
 
-#ifndef YY_CURRENT_BUFFER
-#define YY_CURRENT_BUFFER ( (yy_buffer_stack) \
-                          ? (yy_buffer_stack)[(yy_buffer_stack_top)] \
-                          : NULL)
-#endif
-
 class Text2ListScan : public xxFlexLexer {
 
 public:
   Text2ListScan( istream* is ) : xxFlexLexer( is ) {};
-  ~Text2ListScan(){ deleteAllBuffers(); }
 
   int getLine() { return yylineno; }
   void SetDebug( const int value ) { yy_flex_debug = value; }
-
-void deleteAllBuffers(){
-#if YY_FLEX_MAJOR_VERSION >1 && \
-    YY_FLEX_MINOR_VERSION > 4 && \
-    YY_FLEX_SUBMINOR_VERSION > 32
-   while(YY_CURRENT_BUFFER){
-     yy_delete_buffer(YY_CURRENT_BUFFER);
-   }
-   if(yy_buffer_stack){
-      free(yy_buffer_stack);
-      yy_buffer_stack=0;
-   }
-#endif
-}
 
 };
 

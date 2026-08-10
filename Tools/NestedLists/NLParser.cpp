@@ -77,7 +77,6 @@ NLParser::parse()
   int rc = yyparse( &ctx );
   list = ctx.result;
 
-  scanner.DeleteAllBuffers();
   return rc;
 }
 
