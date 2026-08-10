@@ -15,10 +15,10 @@ BDBINCLUDE ?= $(BERKELEY_DB_DIR)/include
 BDB_LIB_DIR ?= $(BERKELEY_DB_DIR)/lib
 BERKELEY_DB_LIB ?= db_cxx
 
-PYINCLUDES = $(shell python -m pybind11 --includes)
-EXTSUFFIX  = $(shell python -c "import sysconfig;print(sysconfig.get_config_var('EXT_SUFFIX'))")
+PYINCLUDES := $(shell python -m pybind11 --includes)
+EXTSUFFIX  := $(shell python -c "import sysconfig;print(sysconfig.get_config_var('EXT_SUFFIX'))")
 
-MODULE = secondo_native$(EXTSUFFIX)
+MODULE := secondo_native$(EXTSUFFIX)
 
 INCLUDES = $(PYINCLUDES) -I$(CS_DIR)/include -I$(BDBINCLUDE)
 LIBS     = -L$(CS_DIR)/lib -lsecondo -L$(BDB_LIB_DIR) -l$(BERKELEY_DB_LIB) \
