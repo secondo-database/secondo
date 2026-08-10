@@ -69,8 +69,12 @@ endif
 
 
 # compilation options for the PROLOG shell
+#
+# libm is not listed here although the Prolog library needs it: every link that
+# uses PLLDFLAGS also pulls in LD_LINK_LIBS(_ALG), and DEFAULTLIB supplies -lm
+# there on all platforms.
 ifeq ($(platform),win32)
-PLLDFLAGS := $(STDPLLDFLAGS) -lm
+PLLDFLAGS := $(STDPLLDFLAGS)
 endif
 
 platform2 := $(subst 64,,$(platform))
@@ -80,7 +84,7 @@ ifeq ($(platform2),linux)
   else
     LD_GMP := -l$(GMP_LIB)
   endif
-  PLLDFLAGS := $(STDPLLDFLAGS) -lreadline -lncurses -lm -L$(AUXLIBS) $(LD_GMP)
+  PLLDFLAGS := $(STDPLLDFLAGS) -lreadline -lncurses -L$(AUXLIBS) $(LD_GMP)
 endif
 
 ifndef LIBREADLINE
@@ -93,7 +97,7 @@ MAC_READLINE := -L$(SECONDO_READLINE_DIR)/lib -lreadline
 else
 MAC_READLINE := -lreadline
 endif
-PLLDFLAGS :=   $(STDPLLDFLAGS) $(MAC_READLINE)  -lncurses -lm
+PLLDFLAGS := $(STDPLLDFLAGS) $(MAC_READLINE) -lncurses
 endif
 
 PLLDFLAGS += -loptparser

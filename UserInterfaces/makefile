@@ -178,7 +178,7 @@ $(APP_LIB): $(COMMON_OBJECTS) $(BDB_OBJECTS)
 
 # SecondoBDB, the stand alone application.
 $(BINDIR)/Secondo$(SMIUP)$(EXEEXT):  $(APP_LIB) $(ALG_LIST) $(FLOB) $(PL_OBJECTS) $(TTY_OBJECTS)
-	$(LD) $(EXEFLAGS) $(LDFLAGS) $(LDJNIFLAGS) $(PROFILERFLAGS) $(LIBXML2) -o $@ $(filter %.o, $^) -lappCommon -lsdbutils $(LD_LINK_LIBS_ALG) $(RL_LD_FLAG) $(PLLDFLAGS) $(COMMON_LD_FLAGS)
+	$(LD) $(EXEFLAGS) $(LDFLAGS) $(LDJNIFLAGS) $(PROFILERFLAGS) $(LIBXML2) -o $@ $(filter %.o, $^) -lappCommon $(LD_LINK_LIBS_ALG) $(RL_LD_FLAG) $(PLLDFLAGS) $(COMMON_LD_FLAGS)
 
 # The TTY-Clients, they use special implementations of SecondoInterface and don't
 # need the algebra libs.
@@ -194,9 +194,9 @@ $(BINDIR)/Secondo$(SMIUP)$(EXEEXT):  $(APP_LIB) $(ALG_LIST) $(FLOB) $(PL_OBJECTS
 # its only user, and inside an archive it would be searched before the library
 # group that pulls the parser in, so the symbol would go unresolved.
 $(BINDIR)/CheckExamples$(EXEEXT): CheckExamples.$(OBJEXT) cmsg.$(OBJEXT) $(FLOB)
-	$(LD) $(EXEFLAGS) $(LDFLAGS) -o $@ $(filter %.o, $^) -lsdbutils $(LD_LINK_LIBS) $(COMMON_LD_FLAGS)
+	$(LD) $(EXEFLAGS) $(LDFLAGS) -o $@ $(filter %.o, $^) $(LD_LINK_LIBS) $(COMMON_LD_FLAGS)
 
 $(BINDIR)/SecondoCS$(EXEEXT): $(SECLIBFILES) $(FLOB)
 $(BINDIR)/SecondoCS$(EXEEXT): $(CS_OBJECTS) $(APP_LIB) $(FLOB)
-	$(LD) $(EXEFLAGS) $(LDFLAGS) $(PROFILERFLAGS) -o $@ $(filter %.o, $^) -lappCommon -lsdbutils $(OPTLIB_LIBS)   $(LD_LINK_LIBS) $(RL_LD_FLAG) -lreadline -lncurses $(COMMON_LD_FLAGS)
+	$(LD) $(EXEFLAGS) $(LDFLAGS) $(PROFILERFLAGS) -o $@ $(filter %.o, $^) -lappCommon $(OPTLIB_LIBS) $(LD_LINK_LIBS) $(RL_LD_FLAG) -lreadline -lncurses $(COMMON_LD_FLAGS)
 
