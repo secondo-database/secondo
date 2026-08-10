@@ -19,19 +19,13 @@ endif
 all: Config.ini app$(EXEEXT)
 
 
-LDFLAGS+=-L../../apis/api_cpp/cs/lib -lsecondo -ly -lstdc++ 
+LDFLAGS+=-L../../apis/api_cpp/cs/lib -lsecondo -ly
 ifeq ($(SECONDO_PLATFORM),win32)
 LDFLAGS+=-lwsock32 -lws2_32
 endif
 
-#ifneq ($(SECONDO_PLATFORM),mac_osx)
 LDFLAGS+=-L$(BDB_LIB_DIR) -l$(BERKELEY_DB_LIB)
-#else
-#  LDFLAGS+= -l$(BERKELEY_DB_LIB)
-#endif
 
-
-LDFLAGS += -lpthread
 
 Config.ini: $(SECONDO_BUILD_DIR)/bin/SecondoConfig.ini
 	cp $(SECONDO_BUILD_DIR)/bin/SecondoConfig.ini ./Config.ini 
