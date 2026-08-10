@@ -25,7 +25,12 @@ MOVING_POINT_TYPES = {"mpoint"}
 MOVING_REGION_TYPES = {"mregion"}
 # Scalar-valued moving types: plotted as a value/time series rather than drawn.
 PLOT_TYPES = {"mreal", "mint", "mbool"}
-MOVING_TYPES = MOVING_POINT_TYPES | MOVING_REGION_TYPES | PLOT_TYPES
+# Symbolic trajectories: a text value over time. They draw nothing of their own
+# -- they are written next to the moving point of the same tuple.
+LABEL_TYPES = {"mlabel", "mstring"}
+MOVING_TYPES = (
+    MOVING_POINT_TYPES | MOVING_REGION_TYPES | PLOT_TYPES | LABEL_TYPES
+)
 
 # Instants SECONDO uses for unbounded intervals.
 _UNBOUNDED = {"begin of time", "end of time"}
@@ -45,6 +50,21 @@ def _num(x: object) -> float | None:
     if isinstance(x, (int, float)):
         return float(x)
     return None
+
+
+def _label_text(v: object) -> str | None:
+    """The text of one mlabel/mstring unit, or None when there is none.
+
+    Trailing whitespace goes, for the reason `geojson._scalar` gives: it is
+    fixed-width padding out of the source data -- a shapefile import gives every
+    ``roads`` tuple a 28-character ``Fclass``, so the label for a footway is
+    ``"footway"`` followed by 21 spaces -- and it was never visible on the map.
+    Left in, it also makes the value compare unequal to the obvious
+    ``tolabel("footway")``, which is a confusing thing to hand someone.
+    """
+    if not isinstance(v, str):
+        return None
+    return v.rstrip() or None
 
 
 def parse_instant(s: str) -> float | None:
@@ -264,12 +284,67 @@ def scalar_to_plot(type_name: str, value: Node, label: str) -> dict | None:
     }
 
 
-def _plot_time_domain(plots: list[dict]) -> list[float] | None:
-    if not plots:
+def mlabel_to_series(
+    type_name: str, value: Node, attr: str, row: int = 0
+) -> dict | None:
+    """Turn an ``mlabel`` / ``mstring`` into a time-indexed text series.
+
+        (mlabel ( unit* ))
+        unit = ( interval "footway" )
+
+    The interval is the one every moving type uses, so this shares
+    ``_plot_units`` with the scalar plots. What differs is the value: text
+    cannot be plotted, so instead of a series of samples this emits the
+    intervals themselves as ``[t0, t1, text]`` and the frontend writes the text
+    next to the moving point that shares its ``row``.
+
+    Piecewise *constant*, unlike an mpoint: there is nothing to interpolate
+    between two labels, and a gap between two units means the label is simply
+    not defined there rather than that it slid from one value to the next.
+    """
+    if isinstance(value, str) and value in _UNDEF:
+        return None
+    units = _plot_units(value)
+    if not units:
+        return None
+
+    out: list[list] = []
+    for t0, t1, uval in units:
+        text = _label_text(uval)
+        if text is None:
+            continue
+        # SECONDO splits a symbolic trajectory where its *source* changes -- a
+        # network edge, for a map-matched track -- not where the label does, so
+        # one road type spans long runs of units. Merging the runs is the
+        # difference between a handful of intervals and a few thousand, and the
+        # frontend rescans them on every animation frame. Only contiguous runs:
+        # a real gap has to survive, or the label would appear to persist
+        # across a stretch where it was never defined.
+        if out and out[-1][2] == text and t0 - out[-1][1] <= _GAP_EPS:
+            out[-1][1] = t1
+            continue
+        out.append([t0, t1, text])
+
+    if not out:
+        return None
+    return {
+        "attr": attr,
+        "type": type_name,
+        "row": row,
+        "units": out,
+        # The end of the last interval, not its start: a label covers a span,
+        # where a plot's series is a list of instants.
+        "timeDomain": [out[0][0], out[-1][1]],
+    }
+
+
+def _series_time_domain(items: list[dict]) -> list[float] | None:
+    """Union of the ``timeDomain`` of every plot or label series."""
+    if not items:
         return None
     return [
-        min(p["timeDomain"][0] for p in plots),
-        max(p["timeDomain"][1] for p in plots),
+        min(p["timeDomain"][0] for p in items),
+        max(p["timeDomain"][1] for p in items),
     ]
 
 
@@ -342,8 +417,8 @@ def _scalar(v: object) -> object | None:
 
 
 class RelationMoving:
-    """Collects a relation's trips, moving regions and plots, one tuple at a
-    time.
+    """Collects a relation's trips, moving regions, plots and symbolic label
+    series, one tuple at a time.
 
     Split out of ``_relation_moving`` for the same reason as
     ``geojson.RelationFeatures``: so a caller that receives the tuples one by
@@ -351,7 +426,7 @@ class RelationMoving:
     """
 
     __slots__ = ("names", "types", "moving_idx", "trips", "regions", "plots",
-                 "_bare_labels", "_rows")
+                 "labels", "_bare_labels", "_rows")
 
     def __init__(self, type_expr: Node) -> None:
         try:
@@ -367,6 +442,11 @@ class RelationMoving:
         self.trips: list[dict] = []
         self.regions: list[dict] = []
         self.plots: list[dict] = []
+        # In relation-schema order within a row, and in tuple order across
+        # rows, because `moving_idx` is ascending and `feed` walks it in order.
+        # The frontend stacks a row's labels in this order, so it is a contract
+        # rather than an accident.
+        self.labels: list[dict] = []
         # A plot's label carries a row number only when there is more than one
         # row, and a streaming caller does not know that until the end. The
         # numbered label is written as it goes and the bare one kept beside it,
@@ -394,7 +474,10 @@ class RelationMoving:
         for i in moving_idx:
             if i >= len(tup):
                 continue
-            attr_props = {**props, "_attr": names[i]}
+            # `_row` is what ties a trip back to the symbolic labels of the
+            # same tuple: they are converted independently into separate lists
+            # and there is otherwise nothing shared between them.
+            attr_props = {**props, "_attr": names[i], "_row": row}
             if types[i] in MOVING_POINT_TYPES:
                 self.trips.extend(mpoint_to_trips(tup[i], attr_props))
             elif types[i] in MOVING_REGION_TYPES:
@@ -409,12 +492,19 @@ class RelationMoving:
                 if plot:
                     self.plots.append(plot)
                     self._bare_labels.append(names[i])
+            elif types[i] in LABEL_TYPES:
+                # `row`, not `len(self.labels)`: a row whose label is undefined
+                # produces no series, and the rows after it have to keep their
+                # own numbers or they would be drawn on the wrong trip.
+                series = mlabel_to_series(types[i], tup[i], names[i], row)
+                if series:
+                    self.labels.append(series)
 
-    def finish(self) -> tuple[list[dict], list[dict], list[dict]]:
+    def finish(self) -> tuple[list[dict], list[dict], list[dict], list[dict]]:
         if self._rows == 1:
             for plot, label in zip(self.plots, self._bare_labels):
                 plot["label"] = label
-        return self.trips, self.regions, self.plots
+        return self.trips, self.regions, self.plots, self.labels
 
     def payload(self) -> dict | None:
         """The temporal payload for everything fed so far, or None if nothing
@@ -424,35 +514,46 @@ class RelationMoving:
 
 def _relation_moving(
     type_expr: list, tuples: Node
-) -> tuple[list[dict], list[dict], list[dict]]:
-    """Collect trips, moving regions and scalar plots from a relation."""
+) -> tuple[list[dict], list[dict], list[dict], list[dict]]:
+    """Collect trips, moving regions, scalar plots and label series."""
     collector = RelationMoving(type_expr)
     if not collector.wanted or not isinstance(tuples, list):
-        return [], [], []
+        return [], [], [], []
     for tup in tuples:
         collector.feed(tup)
     return collector.finish()
 
 
 def _payload(
-    trips: list[dict], regions: list[dict], plots: list[dict]
+    trips: list[dict],
+    regions: list[dict],
+    plots: list[dict],
+    labels: list[dict],
 ) -> dict | None:
+    # Labels alone are deliberately not a payload. They are only ever drawn
+    # beside a moving point, so a result holding nothing else would make a
+    # layer that renders nothing while still widening the animation domain
+    # every other layer shares -- rescaling their timeline to show nothing.
     if not trips and not regions and not plots:
         return None
     time_domain = _merge(_time_domain(trips), _region_time_domain(regions), bbox=False)
-    time_domain = _merge(time_domain, _plot_time_domain(plots), bbox=False)
+    time_domain = _merge(time_domain, _series_time_domain(plots), bbox=False)
+    time_domain = _merge(time_domain, _series_time_domain(labels), bbox=False)
     return {
         "trips": trips,
         "regions": regions,
         "plots": plots,
+        "labels": labels,
         "timeDomain": time_domain,
+        # A label has no geometry, so it contributes no bbox.
         "bbox": _merge(_bbox(trips), _region_bbox(regions), bbox=True),
     }
 
 
 def from_tree(tree: Node) -> dict | None:
     """Turn a parsed ``(type value)`` (or relation) tree into a temporal payload
-    ``{trips, regions, timeDomain, bbox}``, or ``None`` if nothing temporal."""
+    ``{trips, regions, plots, labels, timeDomain, bbox}``, or ``None`` if
+    nothing temporal came out of it."""
     if not isinstance(tree, list) or len(tree) < 2:
         return None
     type_expr, value = tree[0], tree[1]
@@ -460,6 +561,7 @@ def from_tree(tree: Node) -> dict | None:
     trips: list[dict] = []
     regions: list[dict] = []
     plots: list[dict] = []
+    labels: list[dict] = []
 
     if isinstance(type_expr, str) and type_expr in MOVING_POINT_TYPES:
         trips = mpoint_to_trips(value)
@@ -471,9 +573,17 @@ def from_tree(tree: Node) -> dict | None:
         plot = scalar_to_plot(type_expr, value, type_expr)
         if plot:
             plots = [plot]
+    elif isinstance(type_expr, str) and type_expr in LABEL_TYPES:
+        # A standalone object has no attribute name, so the type stands in --
+        # the same choice `scalar_to_plot` makes. `_payload` then drops it for
+        # want of anything to draw it against; the branch is here so the shape
+        # is understood rather than falling through to "not temporal".
+        series = mlabel_to_series(type_expr, value, type_expr)
+        if series:
+            labels = [series]
     elif isinstance(type_expr, list) and type_expr and type_expr[0] == "rel":
-        trips, regions, plots = _relation_moving(type_expr, value)
+        trips, regions, plots, labels = _relation_moving(type_expr, value)
     else:
         return None
 
-    return _payload(trips, regions, plots)
+    return _payload(trips, regions, plots, labels)

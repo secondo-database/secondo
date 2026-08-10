@@ -1349,6 +1349,55 @@ body.dragging {
   gap: 0.4rem;
 }
 
+/* Symbolic trajectories: a checkbox per mlabel/mstring the result carries, plus
+   whether each line names its attribute. A block of its own rather than more
+   rows of the two-column grid -- the names come from the data, so there is no
+   left-hand caption they line up under, and grouping them says that ticking
+   one of these is a different kind of act from choosing the one label. */
+.lp-symbolic {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  margin: 0.15rem 0;
+  padding: 0.35rem 0.45rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+}
+
+/* Written as it is meant to read -- "MLabel" is a type name, so no
+   text-transform here. */
+.lp-symbolic-head {
+  color: var(--muted);
+  font-size: 0.7rem;
+  font-weight: 600;
+  margin-bottom: 0.1rem;
+}
+
+/* The prefix row is a label and a dropdown, not a tickbox: keep the control
+   off the right edge rather than hard against the attribute names above it. */
+.lp-symbolic .lp-check select {
+  margin-left: auto;
+}
+
+/* Bigger than the lone `fill regions` box and with the whole row clickable:
+   there can be several of these and they are toggled while watching the map,
+   not while looking at the panel. */
+.lp-symbolic .lp-check {
+  padding: 0.15rem 0.1rem;
+  cursor: pointer;
+  color: var(--text);
+}
+
+.lp-symbolic input[type="checkbox"] {
+  width: 1rem;
+  height: 1rem;
+  flex: none;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
 /* The bottom-left stack: the selected feature's attributes and the value plots.
    They used to be positioned independently, 0.2rem apart, so the plots covered
    the very attributes a click had just asked for. One column instead, growing

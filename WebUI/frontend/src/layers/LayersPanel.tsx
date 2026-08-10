@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { isDrawable, type Layer, type LayerStyle, type RGB, type TemporalMode } from "./useLayers";
 import { downloadGeoJSON } from "./exportGeoJSON";
-import { labelCandidates } from "./labels";
+import { labelCandidates, symbolicAttributes } from "./labels";
 import { IconPicker } from "./IconPicker";
 
 const toHex = ([r, g, b]: RGB): string =>
@@ -32,7 +32,7 @@ function NameField({
   const [draft, setDraft] = useState(layer.name);
   return (
     <label>
-      name
+      Name
       <input
         className="lp-rename"
         type="text"
@@ -182,7 +182,7 @@ export function LayersPanel({
                 <div className="lp-style">
                   <NameField layer={layer} onRename={onRename} />
                   <label>
-                    color
+                    Color
                     <input
                       type="color"
                       value={toHex(layer.style.color)}
@@ -196,7 +196,7 @@ export function LayersPanel({
                       the glyphs themselves, in the layer's own colour, since
                       the names alone are a poor clue as to what they are. */}
                   <div className="lp-check lp-check-label">
-                    <span className="lp-icon-label">icon</span>
+                    <span className="lp-icon-label">Icon</span>
                     <IconPicker
                       value={layer.style.icon}
                       color={toHex(layer.style.color)}
@@ -204,7 +204,7 @@ export function LayersPanel({
                     />
                   </div>
                   <label>
-                    opacity
+                    Opacity
                     <input
                       type="range"
                       min={0.1}
@@ -217,7 +217,7 @@ export function LayersPanel({
                     />
                   </label>
                   <label>
-                    point
+                    Point
                     <input
                       type="range"
                       min={1}
@@ -230,7 +230,7 @@ export function LayersPanel({
                     />
                   </label>
                   <label>
-                    line
+                    Line
                     <input
                       type="range"
                       min={0.5}
@@ -250,7 +250,7 @@ export function LayersPanel({
                         onStyle(layer.id, { filled: e.target.checked })
                       }
                     />
-                    fill regions
+                    Fill regions
                   </label>
                   {/* Write one of the tuple's attributes next to each feature.
                       Off by default; the candidates are ordered so the most
@@ -268,7 +268,7 @@ export function LayersPanel({
                     if (candidates.length === 0) {
                       return (
                         <label className="lp-check">
-                          label
+                          Label
                           <input
                             className="lp-label-text"
                             type="text"
@@ -285,7 +285,7 @@ export function LayersPanel({
                     }
                     return (
                       <label className="lp-check">
-                        label
+                        Label
                         <select
                           className="lp-label"
                           value={layer.style.label ?? ""}
@@ -303,10 +303,58 @@ export function LayersPanel({
                       </label>
                     );
                   })()}
+                  {/* Symbolic trajectories: one line each beside the moving
+                      point, all of them by default. Unlike the attribute label
+                      this is a set rather than a choice, so it is checkboxes
+                      rather than a dropdown; the section only appears when the
+                      result actually carries one. */}
+                  {(() => {
+                    const attrs = symbolicAttributes(layer.temporal);
+                    if (attrs.length === 0) return null;
+                    const hidden = layer.style.symbolicHidden;
+                    return (
+                      <div className="lp-symbolic">
+                        <div className="lp-symbolic-head">MLabel options</div>
+                        {attrs.map((a) => (
+                          <label className="lp-check" key={a}>
+                            <input
+                              type="checkbox"
+                              className="lp-symbolic-attr"
+                              data-attr={a}
+                              checked={!hidden.includes(a)}
+                              onChange={(e) =>
+                                onStyle(layer.id, {
+                                  symbolicHidden: e.target.checked
+                                    ? hidden.filter((h) => h !== a)
+                                    : [...hidden, a],
+                                })
+                              }
+                            />
+                            {a}
+                          </label>
+                        ))}
+                        <label className="lp-check">
+                          Show Key Prefix
+                          <select
+                            className="lp-symbolic-prefix"
+                            value={layer.style.symbolicPrefix ? "true" : "false"}
+                            onChange={(e) =>
+                              onStyle(layer.id, {
+                                symbolicPrefix: e.target.value === "true",
+                              })
+                            }
+                          >
+                            <option value="false">false</option>
+                            <option value="true">true</option>
+                          </select>
+                        </label>
+                      </div>
+                    );
+                  })()}
                   {/* Trail/positions only apply to moving points. */}
                   {layer.temporal && layer.temporal.trips.length > 0 && (
                     <label className="lp-check">
-                      moving
+                      Show as
                       <select
                         className="lp-moving"
                         value={layer.style.temporalMode}
@@ -317,7 +365,9 @@ export function LayersPanel({
                         }
                       >
                         <option value="trail">trail</option>
-                        <option value="points">positions</option>
+                        {/* The stored mode stays `points`; only the word
+                            shown changes. */}
+                        <option value="points">point</option>
                         <option value="both">both</option>
                       </select>
                     </label>

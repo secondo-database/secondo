@@ -361,6 +361,82 @@ Java GUI's `RelViewer` and `UpdateViewer2`.
   four objects, and a second import of the same file is refused with the
   collision named before anything runs. The check deletes what it created.
 
+**Milestone 12 (symbolic trajectories) — done & verified end-to-end.**
+`mlabel` and `mstring` — a *text value over time*, what SECONDO's
+SymbolicTrajectory algebras call a symbolic trajectory — are drawn as text
+riding along with the moving point of the same tuple, changing as the animation
+runs. It is the feature the old GWT `WebGui2` had as its "label mode"
+(`MVMPointController.animateMovingPoint`), on a clock that respects how long
+each unit actually lasts rather than giving every unit the same 100 ms.
+
+The value is read **at the current instant** by interval lookup (`labelAt` in
+`map/MapView.tsx`, the constant-valued twin of `positionAt`). WebGui2 instead
+flattened the mlabel into an array parallel to the mpoint's units, which capped
+label resolution at the mpoint's granularity and assumed each mpoint unit nested
+inside one label unit; nothing here needs the two to line up.
+
+Unlike attribute labels this is **not opt-in**: every symbolic attribute of the
+tuple gets its own line straight away, stacked under the dot in
+relation-schema order. A symbolic attribute is in the result because the query
+asked for it, and a relation may carry several — a map-matched track with both
+its road class and its street name:
+
+```
+query intstream(1,1) transformstream projectextend[
+    ; Trip: mmOnNetMP2, RoadType: mmRoadTypeMLc, RoadName: mmRoadNameMLc] consume
+
+        ● footway
+          Deichpromenade
+```
+
+Which of them, and whether each line says what it is, are then a **layer
+setting** — an `MLabel options` block in the layers panel with a checkbox per
+trajectory and a `Show Key Prefix` dropdown:
+
+```
+  MLabel options                   ● RoadType: footway
+   ☑ RoadType                        RoadName: Deichpromenade
+   ☑ RoadName
+   Show Key Prefix  [true ▾]
+```
+
+The set is stored as the attributes left *out* (`style.symbolicHidden`) rather
+than the ones taken, so re-running a query that grew an attribute shows it
+instead of silently dropping it. The key prefix is off by default: with one
+trajectory the name is noise, and it is the second one that makes telling them
+apart worth the width.
+
+Lines whose series has no value at that instant are simply absent, so a stack
+grows and shrinks as the track moves in and out of what each trajectory
+describes; the *top* line keeps its place while it does, rather than the block
+re-centring. Labels share one stack with the chosen attribute label rather than
+forming a second one — two labels at one anchor would collide and the
+declutterer would drop one of them.
+
+Backend: a fourth channel, `labels`, beside `trips`/`regions`/`plots`
+(`app/temporal.py`), carrying `[t0, t1, text]` intervals and the tuple `row`
+that ties them to a trip (`properties._row`). Runs of an equal label are merged
+— SECONDO splits a symbolic trajectory where its *source* changes, not where
+the label does, so a map-matched track gives 429 units holding 24 distinct runs
+— and trailing whitespace is stripped, because a shapefile import pads
+`Fclass` to 28 characters and the padding would otherwise make the value
+compare unequal to the obvious `tolabel("footway")`. A label alone is not a
+payload: with nothing to ride it would draw nothing while still widening the
+animation domain every other layer shares.
+
+Two things this does *not* do: `ilabel` (an instant, not a function of time)
+and the set-valued `mlabels`/`mplaces` are still textual nested lists, and a
+label needs the moving point drawn, so `moving: trail` shows none (as it
+already did for attribute labels; the default is `both`).
+
+Verified in a headless browser (`npm run e2e -- symbolic`), which builds two
+mlabels out of berlintest `train7`'s own units since stock berlintest has none:
+both attributes get a line, seeking from 20% to 80% changes the text to what the
+mlabel actually holds there, the checkboxes add and remove their lines, `show
+names` prefixes them, unticking everything leaves the dot alone, a plain mpoint
+gets no `MLabel options` block at all, and an mlabel on its own makes no layer
+and no page error.
+
 ### A note on coordinates & the basemap
 
 SECONDO spatial values carry coordinates in the dataset's *own* world system

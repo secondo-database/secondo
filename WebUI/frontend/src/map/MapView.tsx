@@ -18,7 +18,7 @@ import {
 import { TripsLayer } from "@deck.gl/geo-layers";
 import { Map as BaseMap } from "react-map-gl/maplibre";
 import "maplibre-gl/dist/maplibre-gl.css";
-import type { MovingRegion, Trip } from "../api/client";
+import type { LabelSeries, LabelUnit, MovingRegion, Trip } from "../api/client";
 import type { Layer, RGB } from "../layers/useLayers";
 import type { Theme } from "../theme";
 import { iconAtlas, iconInkBelow } from "../layers/icons";
@@ -27,6 +27,8 @@ import {
   LABEL_FONT_FAMILY,
   LABEL_FONT_SIZE_PX,
   LABEL_FONT_WEIGHT,
+  LABEL_LINE_HEIGHT,
+  LABEL_LINE_PX,
 } from "./declutter";
 import {
   projectBBox,
@@ -70,6 +72,24 @@ function isGeographic(bbox: BBox | undefined): boolean {
 // Interpolate a moving object's position along its (normalized) path at time
 // `t`, or null when it is not defined at t. Same piecewise-linear model the
 // HoeseViewer uses; here it drives the exact-position dots.
+/**
+ * The text of a symbolic trajectory at time `t`, or null when it has none
+ * then. The constant-valued counterpart of `positionAt`: a label holds for its
+ * whole interval, and the gaps between intervals are real -- a matched track
+ * leaves the network the labels describe, and nothing should be written over
+ * the stretch where it did.
+ */
+function labelAt(series: LabelSeries, t: number): string | null {
+  const units = series.units;
+  if (units.length === 0) return null;
+  if (t < units[0][0] || t > units[units.length - 1][1]) return null;
+  for (const [t0, t1, text] of units) {
+    if (t < t0) return null; // inside a gap between two units
+    if (t <= t1) return text;
+  }
+  return null;
+}
+
 function positionAt(trip: Trip, t: number): [number, number] | null {
   const ts = trip.timestamps;
   const path = trip.path;
@@ -174,6 +194,10 @@ const LABEL_TEXT = {
   // with the decluttering, which has to reserve the box deck then draws into.
   fontFamily: LABEL_FONT_FAMILY,
   fontWeight: LABEL_FONT_WEIGHT,
+  // Multi-line labels exist (a moving point carries one line per symbolic
+  // trajectory), and deck's default of 1.0 sets them solid. Shared with the
+  // decluttering for the same reason the font is.
+  lineHeight: LABEL_LINE_HEIGHT,
   // SECONDO data is Latin-1: without an automatic character set the umlauts in
   // street and restaurant names come out as placeholders.
   characterSet: "auto" as const,
@@ -220,7 +244,9 @@ interface HaloDatum {
 function haloCopies(labels: LabelDatum[], dropPx: number): HaloDatum[] {
   const out: HaloDatum[] = [];
   for (const [ox, oy] of HALO_RING) {
-    for (const d of labels) out.push({ ...d, offset: [ox, dropPx + oy] });
+    for (const d of labels) {
+      out.push({ ...d, offset: [ox, (d.drop ?? dropPx) + oy] });
+    }
   }
   return out;
 }
@@ -251,7 +277,16 @@ function toScreenPx(
 
 interface LabelDatum {
   position: [number, number];
+  /** May hold newlines; the lines are drawn as a block below the anchor. */
   text: string;
+  /**
+   * How far below the anchor the middle of this label sits, overriding the
+   * caller's default. Per datum rather than per layer because a stack's height
+   * depends on how many of its lines are defined at this instant -- one dot can
+   * be showing two and its neighbour one. Setting it keeps the *top* line where
+   * a single-line label would be, so a stack that loses a line does not jump.
+   */
+  drop?: number;
 }
 
 // A moving object's exact position at the current instant, plus the tuple it
@@ -344,6 +379,9 @@ export function MapView({
             ...l.temporal,
             trips: projectTrips(l.temporal.trips, projection),
             regions: projectRegions(l.temporal.regions ?? [], projection),
+            // Plots and symbolic labels ride through on the spread: neither
+            // holds coordinates, so there is nothing in them to project.
+            //
             // The bbox must be projected too, or the view fit would treat raw
             // world coordinates as lon/lat (moving objects showed the globe).
             // Plot-only objects (mreal/mint) have no geometry, hence no bbox.
@@ -455,6 +493,31 @@ export function MapView({
     return m;
   }, [layersToRender, globalT0]);
 
+  // And for the symbolic trajectories, grouped by the tuple row they came from
+  // so a moving point can find its own. A row keeps its series in schema order,
+  // which is the order their lines are stacked in.
+  const labelSeriesById = useMemo(() => {
+    const m = new Map<string, Map<number, LabelSeries[]>>();
+    for (const l of layersToRender) {
+      const series = l.temporal?.labels;
+      if (!series || series.length === 0) continue;
+      const byRow = new Map<number, LabelSeries[]>();
+      for (const s of series) {
+        const shifted: LabelSeries = {
+          ...s,
+          units: s.units.map(
+            ([t0, t1, text]): LabelUnit => [t0 - globalT0, t1 - globalT0, text]
+          ),
+        };
+        const bucket = byRow.get(s.row);
+        if (bucket) bucket.push(shifted);
+        else byRow.set(s.row, [shifted]);
+      }
+      m.set(l.id, byRow);
+    }
+    return m;
+  }, [layersToRender, globalT0]);
+
   // Label text and anchors per layer, computed once rather than per frame: the
   // map re-renders on every animation tick, and walking each feature's
   // coordinates there would be wasted work. Anchors come from the *projected*
@@ -500,10 +563,15 @@ export function MapView({
   const placeLabels = (data: LabelDatum[], dropPx: number): LabelDatum[] =>
     data.filter((d) => {
       const [x, y] = toScreenPx(d.position, geographic, zoomLevel);
-      return placer.place(d.text, x, y + dropPx);
+      return placer.place(d.text, x, y + (d.drop ?? dropPx));
     });
 
   const deckLayers = [];
+  // What the symbolic trajectories say this frame, for the e2e check to read
+  // off the DOM: the feature is "the text changes as the dot moves", and a
+  // pixel count cannot tell you that. Symbolic lines only -- a relation of a
+  // thousand named features would otherwise rewrite an attribute every frame.
+  const symbolicTexts: string[] = [];
 
   // Static features, moving regions and moving points are all labelled the same
   // way, so they all come through here: declutter, then draw the halo ring
@@ -534,7 +602,7 @@ export function MapView({
         coordinateSystem,
         ...LABEL_TEXT,
         // Push the text below the symbol rather than on top of it.
-        getPixelOffset: [0, dropPx],
+        getPixelOffset: (d) => [0, d.drop ?? dropPx],
         getPosition: (d) => d.position,
         getText: (d) => d.text,
         getColor: [...labelInk(color, onLight), 255],
@@ -776,16 +844,51 @@ export function MapView({
         // already computed for the dots above, so this costs only the text.
         // A lone mpoint (`query train7`) has no attributes and rides its typed
         // caption instead.
+        //
+        // On top of that, every symbolic trajectory of the same tuple gets a
+        // line: those are values over *time*, so they are read at the current
+        // instant and the same dot says something different a second later.
+        // They are always drawn -- a symbolic attribute is only in the result
+        // because the query asked for it -- and they share one stack with the
+        // chosen attribute rather than forming a second one, because two
+        // labels at one anchor would collide and the placer would drop one.
         const attr = layer.style.label;
         const fixed = layer.style.labelText;
-        if (attr || fixed) {
+        const symbolic = labelSeriesById.get(layer.id);
+        // Which of them to write, and whether to say which is which -- both
+        // from the layers panel. A Set because this is read once per dot per
+        // frame and the list is a handful of names.
+        const hiddenSymbolic = new Set(layer.style.symbolicHidden);
+        const prefixSymbolic = layer.style.symbolicPrefix;
+        if (attr || fixed || symbolic) {
           const moving: LabelDatum[] = [];
           for (const p of positions) {
-            const value = attr
-              ? (p.properties as Record<string, unknown> | undefined)?.[attr]
-              : fixed;
-            if (value === undefined || value === null || value === "") continue;
-            moving.push({ position: p.position, text: String(value) });
+            const props = p.properties as Record<string, unknown> | undefined;
+            const lines: string[] = [];
+            const chosen = attr ? props?.[attr] : fixed;
+            if (chosen !== undefined && chosen !== null && chosen !== "") {
+              lines.push(String(chosen));
+            }
+            const symbolicLines: string[] = [];
+            for (const s of symbolic?.get((props?._row as number) ?? 0) ?? []) {
+              if (hiddenSymbolic.has(s.attr)) continue;
+              const text = labelAt(s, currentTime);
+              if (text) {
+                symbolicLines.push(prefixSymbolic ? `${s.attr}: ${text}` : text);
+              }
+            }
+            if (symbolicLines.length > 0 && symbolicTexts.length < 8) {
+              symbolicTexts.push(symbolicLines.join(" / "));
+            }
+            lines.push(...symbolicLines);
+            if (lines.length === 0) continue;
+            moving.push({
+              position: p.position,
+              text: lines.join("\n"),
+              // Hold the first line where a single line would sit, so a stack
+              // that gains or loses one grows downwards instead of shifting.
+              drop: labelDrop + ((lines.length - 1) * LABEL_LINE_PX) / 2,
+            });
           }
           pushLabels(
             `${layer.id}-pos-labels`,
@@ -805,6 +908,7 @@ export function MapView({
       className="mapview"
       data-projection={projection}
       data-geographic={geographic ? "true" : "false"}
+      data-symbolic-labels={symbolicTexts.join("|")}
     >
       <DeckGL
         views={geographic ? geoView : orthoView}

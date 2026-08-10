@@ -10,6 +10,29 @@ import type { FeatureCollection, TemporalPayload } from "../api/client";
 
 type Props = Record<string, unknown>;
 
+/**
+ * The symbolic trajectories (mlabel/mstring) a layer carries, by attribute
+ * name, in relation-schema order and without the duplicates that several rows
+ * of the same relation produce.
+ *
+ * These are not label *candidates* in the sense the rest of this module means:
+ * there is nothing to rank and nothing to choose between, because they are all
+ * drawn. The layers panel offers a checkbox each so a noisy one can be dropped
+ * -- an OSM road name is empty for most of a footpath -- and this is the list
+ * it enumerates.
+ */
+export function symbolicAttributes(temporal: TemporalPayload | null): string[] {
+  if (!temporal || temporal.trips.length === 0) return [];
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const s of temporal.labels ?? []) {
+    if (seen.has(s.attr)) continue;
+    seen.add(s.attr);
+    out.push(s.attr);
+  }
+  return out;
+}
+
 // A layer's attributes, wherever its geometry came from: static features and
 // moving objects both carry the tuple's non-spatial attributes along, so both
 // can be labelled the same way.

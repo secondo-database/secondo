@@ -32,10 +32,29 @@ export interface Plot {
   timeDomain: [number, number];
 }
 
+/** One interval of a symbolic trajectory: `[t0, t1, text]` in POSIX seconds.
+ *  The value holds for the whole interval -- there is nothing to interpolate
+ *  between two labels -- and a gap between two of them means the label is not
+ *  defined then, not that it kept its last value. */
+export type LabelUnit = [number, number, string];
+
+/** A time-varying text value (`mlabel` / `mstring`). It draws nothing of its
+ *  own: it is written next to the moving point of the same `row`. Several may
+ *  share a row, and they arrive in relation-schema order -- the order their
+ *  lines are stacked in. */
+export interface LabelSeries {
+  attr: string;
+  type: string;
+  row: number;
+  units: LabelUnit[];
+  timeDomain: [number, number];
+}
+
 export interface TemporalPayload {
   trips: Trip[];
   regions: MovingRegion[];
   plots: Plot[];
+  labels: LabelSeries[];
   timeDomain: [number, number];
   bbox: [number, number, number, number] | null;
 }

@@ -211,3 +211,165 @@ def test_parse_instant_date_only():
 def test_parse_instant_rejects_unbounded_markers():
     assert parse_instant("begin of time") is None
     assert parse_instant("end of time") is None
+
+
+# --- symbolic trajectories: mlabel / mstring (Milestone 12) -----------------
+
+# Two units of a map-matched hiking track's road type, in the shape
+# `omapmatchmht ... makemvalue` produces.
+LABEL_UNITS = (
+    '(("2026-08-09-08:24:11.448" "2026-08-09-09:10:18.140" TRUE FALSE) "secondary")'
+    '(("2026-08-09-09:10:18.140" "2026-08-09-09:40:00" TRUE FALSE) "footway")'
+)
+MLABEL = f"(mlabel ({LABEL_UNITS}))"
+
+# The driving case: one moving point with the road type it was matched onto.
+# `_payload` drops a label with no moving point, so every label test that wants
+# a payload back has to pair it with one.
+TRIP_UNIT = (
+    '(("2026-08-09-08:24:11.448" "2026-08-09-09:40:00" TRUE FALSE)'
+    " (10.11 53.60 10.05 53.57))"
+)
+
+
+def _rel(schema: str, *tuples: str) -> str:
+    """A relation of a Trip plus whatever `schema` adds, as parseable text."""
+    return (
+        f"((rel (tuple ((Trip mpoint) {schema}))) "
+        f"({' '.join(tuples)}))"
+    )
+
+
+def _labelled(*attrs: str, rows: int = 1) -> str:
+    """A relation of a Trip plus one mlabel per name in `attrs`, each holding a
+    single unit whose text is the attribute's own name."""
+    schema = " ".join(f"({a} mlabel)" for a in attrs)
+    values = " ".join(
+        f'((("2026-08-09-08:24:11.448" "2026-08-09-09:40:00" TRUE FALSE) "{a}"))'
+        for a in attrs
+    )
+    return _rel(schema, *(f"(({TRIP_UNIT}) {values})" for _ in range(rows)))
+
+
+def test_mlabel_series_shape():
+    payload = from_tree(parse(_rel("(RoadType mlabel)",
+                                   f"(({TRIP_UNIT}) ({LABEL_UNITS}))")))
+    (series,) = payload["labels"]
+    assert series["attr"] == "RoadType"
+    assert series["type"] == "mlabel"
+    assert series["row"] == 0
+    assert [u[2] for u in series["units"]] == ["secondary", "footway"]
+    # A label covers a span: the domain ends at the last interval's *end*.
+    assert series["timeDomain"] == [series["units"][0][0], series["units"][-1][1]]
+
+
+def test_mstring_is_the_same_shape_as_mlabel():
+    def payload_of(type_name: str) -> dict:
+        text = _rel(f"(Road {type_name})", f"(({TRIP_UNIT}) ({LABEL_UNITS}))")
+        return from_tree(parse(text))["labels"][0]
+
+    a, b = payload_of("mlabel"), payload_of("mstring")
+    assert b.pop("type") == "mstring" and a.pop("type") == "mlabel"
+    assert a == b
+
+
+def test_equal_adjacent_labels_merge_into_one_interval():
+    units = (
+        '(("2026-08-09-08:00" "2026-08-09-08:10" TRUE FALSE) "footway")'
+        '(("2026-08-09-08:10" "2026-08-09-08:20" TRUE FALSE) "footway")'
+        '(("2026-08-09-08:20" "2026-08-09-08:30" TRUE FALSE) "residential")'
+    )
+    text = _rel("(RoadType mlabel)", f"(({TRIP_UNIT}) ({units}))")
+    (series,) = from_tree(parse(text))["labels"]
+    assert [u[2] for u in series["units"]] == ["footway", "residential"]
+
+
+def test_a_real_gap_is_not_merged_away():
+    """Two runs of the same label an hour apart stay two intervals -- otherwise
+    the label would appear to persist across a stretch it never covered."""
+    units = (
+        '(("2026-08-09-08:00" "2026-08-09-08:10" TRUE FALSE) "footway")'
+        '(("2026-08-09-09:00" "2026-08-09-09:10" TRUE FALSE) "footway")'
+    )
+    text = _rel("(RoadType mlabel)", f"(({TRIP_UNIT}) ({units}))")
+    (series,) = from_tree(parse(text))["labels"]
+    assert len(series["units"]) == 2
+
+
+def test_trailing_whitespace_is_trimmed():
+    """Shapefile imports are fixed-width padded: `roads.Fclass` is 28 characters
+    for a 7-character road type."""
+    units = f'(("2026-08-09-08:00" "2026-08-09-08:10" TRUE FALSE) "footway{" " * 21}")'
+    text = _rel("(RoadType mlabel)", f"(({TRIP_UNIT}) ({units}))")
+    (series,) = from_tree(parse(text))["labels"]
+    assert series["units"][0][2] == "footway"
+
+
+def test_undefined_and_empty_labels_yield_no_series():
+    for value in ("undefined", "()"):
+        text = _rel("(RoadType mlabel)", f"(({TRIP_UNIT}) {value})")
+        assert from_tree(parse(text))["labels"] == []
+
+
+def test_a_label_alone_is_not_a_payload():
+    """It would draw nothing while widening the animation domain every other
+    layer shares."""
+    assert from_tree(parse(MLABEL)) is None
+
+
+def test_relation_pairs_a_trip_and_a_label_by_row():
+    payload = from_tree(parse(_labelled("RoadType")))
+    assert payload["trips"][0]["properties"]["_row"] == 0
+    assert payload["labels"][0]["row"] == 0
+    assert payload["labels"][0]["attr"] == "RoadType"
+
+
+def test_several_label_attributes_come_out_in_schema_order():
+    payload = from_tree(parse(_labelled("RoadType", "RoadName")))
+    assert [s["attr"] for s in payload["labels"]] == ["RoadType", "RoadName"]
+    assert {s["row"] for s in payload["labels"]} == {0}
+
+
+def test_two_rows_keep_their_own_labels():
+    payload = from_tree(parse(_labelled("RoadType", rows=2)))
+    assert [s["row"] for s in payload["labels"]] == [0, 1]
+    assert [t["properties"]["_row"] for t in payload["trips"]] == [0, 1]
+
+
+def test_a_row_with_an_undefined_label_does_not_shift_the_others():
+    """The row number has to come from the tuple counter, not from how many
+    series have been collected -- otherwise row 2's label lands on row 1."""
+    tup = f"(({TRIP_UNIT}) ({LABEL_UNITS}))"
+    undef = f"(({TRIP_UNIT}) undefined)"
+    payload = from_tree(parse(_rel("(RoadType mlabel)", tup, undef, tup)))
+    assert [s["row"] for s in payload["labels"]] == [0, 2]
+
+
+def test_gap_split_trips_share_one_label_series():
+    gapped = (
+        '(("2026-08-09-08:00" "2026-08-09-08:01" TRUE FALSE) (0.0 0.0 1.0 1.0))'
+        '(("2026-08-09-09:00" "2026-08-09-09:01" TRUE FALSE) (5.0 5.0 6.0 6.0))'
+    )
+    text = _rel("(RoadType mlabel)", f"(({gapped}) ({LABEL_UNITS}))")
+    payload = from_tree(parse(text))
+    assert len(payload["trips"]) == 2
+    assert {t["properties"]["_row"] for t in payload["trips"]} == {0}
+    assert len(payload["labels"]) == 1
+
+
+def test_time_domain_covers_a_label_outliving_its_trip():
+    short = '(("2026-08-09-08:00" "2026-08-09-08:01" TRUE FALSE) (0.0 0.0 1.0 1.0))'
+    late = '(("2026-08-09-08:00" "2026-08-09-10:00" TRUE FALSE) "footway")'
+    text = _rel("(RoadType mlabel)", f"(({short}) ({late}))")
+    payload = from_tree(parse(text))
+    assert payload["timeDomain"][1] == payload["labels"][0]["timeDomain"][1]
+    assert payload["timeDomain"][1] > payload["trips"][0]["timestamps"][-1]
+
+
+def test_a_label_contributes_no_bbox():
+    payload = from_tree(parse(_labelled("RoadType")))
+    assert payload["bbox"] == [10.05, 53.57, 10.11, 53.60]
+
+
+def test_mpoint_payload_still_has_empty_labels():
+    assert from_tree(parse(MPOINT))["labels"] == []

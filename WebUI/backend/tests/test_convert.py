@@ -41,7 +41,23 @@ POINT = "(point (9396.0 9871.0))"
 COUNT = "(int 212099)"
 MPOINT = f"(mpoint ({UNITS}))"
 
-SHAPES = [MIXED, PLAIN, POINT, COUNT, MPOINT]
+# Symbolic trajectories. A label is only ever drawn beside a moving point, so
+# the shape that matters is the pairing -- and with two of them, since the row
+# they share is what puts both lines on the same dot.
+LABEL_UNITS = (
+    '(("2003-11-20-06:03" "2003-11-20-06:03:52.685" TRUE FALSE) "footway")'
+    '(("2003-11-20-06:03:52.685" "2003-11-20-06:04:08" TRUE FALSE) "residential")'
+)
+NAME_UNITS = (
+    '(("2003-11-20-06:03" "2003-11-20-06:04:08" TRUE FALSE) "Wandsestrasse")'
+)
+SYMBOLIC = (
+    "((rel (tuple ((Trip mpoint) (RoadType mlabel) (RoadName mstring)))) ("
+    f"(({UNITS}) ({LABEL_UNITS}) ({NAME_UNITS}))"
+    "))"
+)
+
+SHAPES = [MIXED, PLAIN, POINT, COUNT, MPOINT, SYMBOLIC]
 
 
 def read(text: str, *, page=None, table_only=False, can_stream=True):
@@ -78,6 +94,17 @@ def test_split_matches_whole_tree(text, page):
 def test_a_relation_really_is_pushed():
     _, streamed = read(PLAIN)
     assert streamed is True
+
+
+def test_symbolic_labels_survive_the_push_path():
+    """Not just equal to the whole-tree path: the row that ties a label to its
+    trip is assigned as the tuples go by, so it is the pushed path that can get
+    it wrong."""
+    (_, temporal, _), streamed = read(SYMBOLIC)
+    assert streamed is True
+    assert [s["attr"] for s in temporal["labels"]] == ["RoadType", "RoadName"]
+    assert {s["row"] for s in temporal["labels"]} == {0}
+    assert temporal["trips"][0]["properties"]["_row"] == 0
 
 
 def test_pushing_never_holds_more_than_one_tuple():

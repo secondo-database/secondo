@@ -28,6 +28,16 @@ export interface LayerStyle {
   // Null -- the default -- keeps the plain circle; a name indexes the icon
   // atlas in ./icons.
   icon: IconName | null;
+  // Symbolic trajectories (mlabel/mstring) write a line each next to the moving
+  // point. Which ones is stored as the ones *left out* rather than the ones
+  // taken: the default is all of them, and a layer reloaded with an attribute
+  // it did not have before should show it rather than silently drop it.
+  symbolicHidden: string[];
+  // Whether each of those lines is prefixed with its attribute name
+  // ("RoadType: footway" rather than "footway"). Off by default: with one
+  // trajectory the name is noise, and it is the second one that makes telling
+  // them apart worth the width.
+  symbolicPrefix: boolean;
 }
 
 export interface Layer {
@@ -147,6 +157,11 @@ export function useLayers() {
             label: null,
             labelText: null,
             icon: null,
+            // Symbolic trajectories are the exception to that: they are shown
+            // straight away, because a result only carries one when the query
+            // asked for it by name.
+            symbolicHidden: [],
+            symbolicPrefix: false,
           },
         };
         return [...prev, layer];

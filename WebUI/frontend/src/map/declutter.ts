@@ -19,6 +19,11 @@
 export const LABEL_FONT_FAMILY = "ui-sans-serif, system-ui, sans-serif";
 export const LABEL_FONT_WEIGHT = 600;
 export const LABEL_FONT_SIZE_PX = 12;
+// A multiple of the font size, the way deck's TextLayer takes it. A label can
+// be several lines -- a moving point carries one per symbolic trajectory of its
+// tuple -- and the box reserved here has to be as tall as deck will draw.
+export const LABEL_LINE_HEIGHT = 1.2;
+export const LABEL_LINE_PX = LABEL_FONT_SIZE_PX * LABEL_LINE_HEIGHT;
 
 // Half a line of 12px text, plus the air a label needs around it so two
 // survivors never end up flush against one another.
@@ -78,10 +83,18 @@ export class LabelPlacer {
    * Reserve the box for `text` centred at (x, y) in screen pixels. Returns
    * false, reserving nothing, when it would touch a label already placed --
    * that label is not drawn.
+   *
+   * `text` may hold newlines, in which case the box is as wide as the widest
+   * line and as tall as all of them. A single line gives exactly the box this
+   * reserved before there were any multi-line labels.
    */
   place(text: string, x: number, y: number): boolean {
-    const halfW = labelWidthPx(text) / 2 + PADDING_PX;
-    const halfH = HALF_LINE_PX + PADDING_PX;
+    const lines = text.split("\n");
+    let widest = 0;
+    for (const line of lines) widest = Math.max(widest, labelWidthPx(line));
+    const halfW = widest / 2 + PADDING_PX;
+    const halfH =
+      ((lines.length - 1) * LABEL_LINE_PX) / 2 + HALF_LINE_PX + PADDING_PX;
     const box: Box = [x - halfW, y - halfH, x + halfW, y + halfH];
     for (const b of this.placed) {
       if (box[0] < b[2] && b[0] < box[2] && box[1] < b[3] && b[1] < box[3]) {
