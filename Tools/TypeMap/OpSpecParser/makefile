@@ -11,14 +11,16 @@ OpSpec: scan.o parse.o
 	$(CPPC) -o OpSpec scan.o parse.o
 
 
+# -x c++: the generated scanner and parser are C sources compiled as C++,
+# which clang otherwise accepts only with a deprecation warning.
 scan.o: lex.opspec.c
-	$(CPPC) -c -fPIC -ggdb -o scan.o lex.opspec.c
+	$(CPPC) -c -fPIC -ggdb -x c++ -o scan.o lex.opspec.c
 
 lex.opspec.c: $(BASE).l parse.o
 	flex $(BASE).l
 
 parse.o: $(BASE).tab.c
-	$(CPPC) -fPIC -c -ggdb -o parse.o $(BASE).tab.c -lstd
+	$(CPPC) -fPIC -c -ggdb -x c++ -o parse.o $(BASE).tab.c
 
 
 $(BASE).tab.c: $(BASE).y

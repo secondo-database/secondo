@@ -41,14 +41,17 @@ all: $(OBJECTS) $(LIBOBJ) makedirs
 
 # OpSigParser
 
+# flex and bison emit C, and it is compiled as C++ here -- so say so with
+# -x c++ instead of letting the compiler guess from the .c suffix, which clang
+# only does with a deprecation warning.
 scan.o: lex.opsig.c
-	$(CPPC) -c -fPIC -ggdb -o scan.o lex.opsig.c
+	$(CPPC) -c -fPIC -ggdb -x c++ -o scan.o lex.opsig.c
 
 lex.opsig.c: $(BASE).l parse.o
 	flex $(BASE).l
 
 parse.o: $(BASE).tab.c
-	$(CPPC) -c -fPIC -ggdb -o parse.o $(BASE).tab.c -lstd
+	$(CPPC) -c -fPIC -ggdb -x c++ -o parse.o $(BASE).tab.c
 
 $(BASE).tab.c: $(BASE).y
 	bison -v -d $(BASE).y
