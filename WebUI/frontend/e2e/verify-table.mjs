@@ -26,7 +26,8 @@ page.on("pageerror", (e) => console.log("[pageerror]", e.message));
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
 // Wait for the answer rather than guessing how long it takes: a command is done
-// when the console log has one more entry than before.
+// when the console log has one more entry than before and none of them is still
+// marked pending.
 async function run(cmd) {
   const before = await page.$$eval(".log .entry", (els) => els.length);
   await page.click(".input textarea");
@@ -34,7 +35,11 @@ async function run(cmd) {
   await page.type(".input textarea", cmd);
   await page.keyboard.press("Enter");
   await page.waitForFunction(
-    (n) => document.querySelectorAll(".log .entry").length > n,
+    (n) =>
+      document.querySelectorAll(".log .entry").length > n &&
+      // The entry now goes up when the command is *sent*, so a grown log
+      // is not an answered command: wait for it to stop being pending too.
+      !document.querySelector(".log .entry.pending"),
     { timeout: 30000 },
     before
   );

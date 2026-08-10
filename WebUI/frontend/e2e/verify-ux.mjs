@@ -60,7 +60,12 @@ try {
     await page.type(".input textarea", cmd);
     await page.keyboard.press("Enter");
     await page.waitForFunction(
-      (n) => document.querySelectorAll(".log .entry").length > n,
+      (n) =>
+        document.querySelectorAll(".log .entry").length > n &&
+        // The entry now goes up when the command is *sent*, so a grown
+        // log is not an answered command: wait for the pending mark to
+        // come off it too.
+        !document.querySelector(".log .entry.pending"),
       { timeout: 60000 }, before);
     await wait(300);
   }
@@ -85,8 +90,13 @@ try {
   const before = await page.$$eval(".log .entry", (e) => e.length);
   if (examples.length > 0) {
     await examples[0].click();
-    await page.waitForFunction((n) => document.querySelectorAll(".log .entry").length > n,
-                               { timeout: 60000 }, before).catch(() => {});
+    await page.waitForFunction(
+      (n) =>
+        document.querySelectorAll(".log .entry").length > n &&
+        // The entry goes up when the command is sent, so a grown log is not
+        // an answered command: the pending mark has to come off it too.
+        !document.querySelector(".log .entry.pending"),
+      { timeout: 60000 }, before).catch(() => {});
     await wait(800);
   }
   check(await page.$$eval(".log .entry", (e) => e.length) > before,
@@ -216,8 +226,13 @@ try {
   await page.type(".input textarea", " count");
   await wait(300);
   await page.keyboard.press("Enter");
-  await page.waitForFunction((n) => document.querySelectorAll(".log .entry").length > n,
-                             { timeout: 60000 }, beforeRun).catch(() => {});
+  await page.waitForFunction(
+    (n) =>
+      document.querySelectorAll(".log .entry").length > n &&
+      // The entry goes up when the command is sent, so a grown log is not an
+      // answered command: the pending mark has to come off it too.
+      !document.querySelector(".log .entry.pending"),
+    { timeout: 60000 }, beforeRun).catch(() => {});
   check(await page.$$eval(".log .entry", (e) => e.length) > beforeRun,
         "Enter still runs the query when nothing was picked");
 } catch (e) {

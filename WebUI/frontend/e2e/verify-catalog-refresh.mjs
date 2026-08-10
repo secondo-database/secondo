@@ -65,7 +65,11 @@ try {
     await page.keyboard.press("Escape"); // a completion popup would eat the Enter
     await page.keyboard.press("Enter");
     await page.waitForFunction(
-      (n) => document.querySelectorAll(".log .entry").length > n,
+      (n) =>
+      document.querySelectorAll(".log .entry").length > n &&
+      // The entry now goes up when the command is *sent*, so a grown log
+      // is not an answered command: wait for it to stop being pending too.
+      !document.querySelector(".log .entry.pending"),
       { timeout: 60000 },
       before
     );

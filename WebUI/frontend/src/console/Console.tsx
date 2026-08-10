@@ -21,6 +21,15 @@ export type RunIntent = "explain" | "table";
 
 export interface Entry {
   command: string;
+  // Identifies the entry across the two writes it takes to fill in: it is
+  // logged when the command is sent and completed when the answer is back.
+  id?: number;
+  // The command is on its way out or still running on the server. Everything
+  // below the prompt line is missing because there is nothing yet, not because
+  // the command had nothing to say.
+  pending?: boolean;
+  // performance.now() when it was sent, for the stopwatch shown while pending.
+  startedAt?: number;
   result?: string;
   error?: string;
   hasGeometry?: boolean;
@@ -50,6 +59,13 @@ export interface Entry {
  *  measurement: sub-second in milliseconds, past that in seconds. */
 function fmtElapsed(ms: number): string {
   return ms < 1000 ? `${Math.round(ms)} ms` : `${(ms / 1000).toFixed(2)} s`;
+}
+
+/** The same time while it is still running. One decimal, always in seconds: a
+ *  counter that switches unit mid-count reads as a glitch, and the point here
+ *  is "it is still going", not the measurement. */
+function fmtRunning(ms: number): string {
+  return `${(ms / 1000).toFixed(1)} s`;
 }
 
 interface Props {
@@ -132,6 +148,18 @@ export function Console({
     el.scrollTop =
       el.selectionStart === el.value.length ? el.scrollHeight : top;
   }, [command]);
+
+  // A pending entry counts the seconds it has been waiting, and nothing else
+  // changes while it does -- so the log has to be re-rendered on a timer. A
+  // quarter second reads as live without repainting the whole log ten times a
+  // second, and the interval only exists while something is actually running.
+  const running = history.some((e) => e.pending);
+  const [, tick] = useState(0);
+  useEffect(() => {
+    if (!running) return;
+    const t = setInterval(() => tick((n) => n + 1), 250);
+    return () => clearInterval(t);
+  }, [running]);
 
   // The recalled commands outlive the tab, so every change is written through.
   useEffect(() => {
@@ -366,19 +394,31 @@ export function Console({
           the whole log every time. */}
       <div className="log" role="log" aria-live="polite" aria-relevant="additions">
         {history.map((e, i) => (
-          <div key={i} className="entry">
+          <div key={e.id ?? i} className={"entry" + (e.pending ? " pending" : "")}>
             <div className="cmd">
               <span className="prompt">&gt;</span>
               <span className="cmd-text">{e.command}</span>
-              {/* How long the answer took -- the first thing anyone asks of a
-                  database, and nothing said it before. */}
-              {e.elapsedMs !== undefined && (
+              {/* While it runs, the same slot counts up: the query is on screen
+                  from the moment it is sent, so a long one is not an empty log
+                  and a blank pane. Afterwards it holds what it took -- the
+                  first thing anyone asks of a database. */}
+              {e.pending ? (
                 <span
-                  className="cmd-ms"
-                  title="Time from sending the command to having the result, bridge included"
+                  className="cmd-ms running"
+                  title="Still running — this is how long it has been waiting"
                 >
-                  {fmtElapsed(e.elapsedMs)}
+                  <span className="cmd-spin" />
+                  {fmtRunning(performance.now() - (e.startedAt ?? performance.now()))}
                 </span>
+              ) : (
+                e.elapsedMs !== undefined && (
+                  <span
+                    className="cmd-ms"
+                    title="Time from sending the command to having the result, bridge included"
+                  >
+                    {fmtElapsed(e.elapsedMs)}
+                  </span>
+                )
               )}
             </div>
             {e.plan !== undefined && (

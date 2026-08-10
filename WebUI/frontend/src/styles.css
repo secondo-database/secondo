@@ -109,7 +109,8 @@ body {
    user-initiated and deliberately left alone. */
 @media (prefers-reduced-motion: reduce) {
   .spinner,
-  .cat-spin {
+  .cat-spin,
+  .cmd-spin {
     animation: none;
     border-top-color: var(--accent);
   }
@@ -1702,6 +1703,35 @@ body.dragging {
   font-size: 0.72rem;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
+}
+
+/* The running counter is the one thing on the entry worth looking at while it
+   runs, so unlike the finished time it is not recessive. */
+.cmd-ms.running {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--accent);
+}
+
+/* The command line of a query still on its way back. The bar marks it out from
+   the answered entries above it without moving anything. */
+.entry.pending .cmd {
+  color: var(--text);
+  border-left: 2px solid var(--accent);
+  margin-left: -0.5rem;
+  padding-left: calc(0.5rem - 2px);
+}
+
+.cmd-spin {
+  width: 10px;
+  height: 10px;
+  border: 2px solid var(--border-strong);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  display: inline-block;
+  animation: spin 0.7s linear infinite;
+  flex: none;
 }
 
 .prompt {

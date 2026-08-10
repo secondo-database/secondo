@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   listOperators,
   loadTable,
@@ -221,6 +221,46 @@ export function App() {
     return () => window.removeEventListener("pagehide", release);
   }, []);
 
+  // Every command reaches the log twice: once when it is sent, so a query that
+  // takes a minute is on screen while it runs rather than after it, and once
+  // when the answer (or the error) is here. `id` is what ties the two together
+  // -- the entry's position is not enough, since a GPX import runs its steps
+  // one after another and each appends.
+  const nextEntryId = useRef(1);
+
+  const begin = useCallback((command: string): number => {
+    const id = nextEntryId.current++;
+    setBusy(true);
+    setHistory((h) => [
+      ...h,
+      { id, command, pending: true, startedAt: performance.now() },
+    ]);
+    return id;
+  }, []);
+
+  const settle = useCallback(
+    (id: number, command: string, fields: Partial<Entry>) => {
+      setHistory((h) => {
+        const started = h.find((e) => e.id === id)?.startedAt;
+        const done: Entry = {
+          ...fields,
+          id,
+          command,
+          pending: false,
+          // The pending entry is gone: the log was cleared while this ran. The
+          // answer still belongs in it, so it goes on the end -- but the
+          // stopwatch it would have been measured against went with the entry,
+          // so it goes up without a time rather than with a made-up one.
+          elapsedMs: started === undefined ? undefined : performance.now() - started,
+        };
+        return started === undefined
+          ? [...h, done]
+          : h.map((e) => (e.id === id ? done : e));
+      });
+    },
+    []
+  );
+
   // Show a past result. Opening a table tab is what makes it visible; the map
   // is always there.
   const showResult = useCallback((layerId: string, target: "map" | "table") => {
@@ -246,11 +286,11 @@ export function App() {
       // "Explain" is the only intent that changes what is sent. The prefix is
       // the kernel's own (stripOptimizerPrefix); the frontend just writes it.
       const sent = intent === "explain" ? `optimizer ${command}` : command;
-      setBusy(true);
-      // Wall clock around the round trip, so it includes the bridge and the
-      // conversion -- which is what the user actually waited for. The console
-      // labels it as elapsed rather than as the server's own query time.
-      const started = performance.now();
+      // Logged here, answered below. The elapsed time is wall clock from this
+      // point, so it includes the bridge and the conversion -- which is what
+      // the user actually waited for. The console labels it as elapsed rather
+      // than as the server's own query time.
+      const id = begin(sent);
       try {
         // "Run as table" is answered by the server: it converts the rows only,
         // so a relation of moving points does not build and ship a trips payload
@@ -263,26 +303,21 @@ export function App() {
           fc || temp || tab
             ? add(command, fc, temp, tab, res.relation ?? null)
             : undefined;
-        setHistory((h) => [
-          ...h,
-          {
-            command: sent,
-            result: res.text,
-            hasGeometry: !!fc,
-            hasMotion: !!temp,
-            layerId,
-            rowCount: tab?.rowCount,
-            plan: res.plan ?? undefined,
-            costs: res.costs ?? undefined,
-            message: res.message ?? undefined,
-            planOnly: res.plan_only,
-            executedByOptimizer: res.executed_by_optimizer,
-            // Nothing opened and nothing was drawn; say why, or the menu item
-            // looks like it did nothing at all.
-            noTable: intent === "table" && !tab,
-            elapsedMs: performance.now() - started,
-          },
-        ]);
+        settle(id, sent, {
+          result: res.text,
+          hasGeometry: !!fc,
+          hasMotion: !!temp,
+          layerId,
+          rowCount: tab?.rowCount,
+          plan: res.plan ?? undefined,
+          costs: res.costs ?? undefined,
+          message: res.message ?? undefined,
+          planOnly: res.plan_only,
+          executedByOptimizer: res.executed_by_optimizer,
+          // Nothing opened and nothing was drawn; say why, or the menu item
+          // looks like it did nothing at all.
+          noTable: intent === "table" && !tab,
+        });
         // A plain run opens a table only when the map cannot show the result at
         // all, so a mappable result never steals focus from wherever the user
         // is: where it goes is decided *after* it arrives, from the console
@@ -298,20 +333,15 @@ export function App() {
           setRefreshKey((k) => k + 1);
         return true;
       } catch (e) {
-        setHistory((h) => [
-          ...h,
-          {
-            command: sent,
-            error: e instanceof Error ? e.message : String(e),
-            elapsedMs: performance.now() - started,
-          },
-        ]);
+        settle(id, sent, {
+          error: e instanceof Error ? e.message : String(e),
+        });
         return false;
       } finally {
         setBusy(false);
       }
     },
-    [add, showResult]
+    [add, begin, settle, showResult]
   );
 
   // One command of a GPX import. A sibling of `run` rather than a use of it:
@@ -319,27 +349,23 @@ export function App() {
   // the import wants neither a layer nor a table out of it -- only whether it
   // worked. The console still gets the command, so the import is readable
   // afterwards and every step can be run again by hand.
-  const runStep = useCallback(async (command: string): Promise<StepOutcome> => {
-    setBusy(true);
-    const started = performance.now();
-    try {
-      await runQuery(command, "none");
-      setHistory((h) => [
-        ...h,
-        { command, result: "", elapsedMs: performance.now() - started },
-      ]);
-      return { ok: true };
-    } catch (e) {
-      const error = e instanceof Error ? e.message : String(e);
-      setHistory((h) => [
-        ...h,
-        { command, error, elapsedMs: performance.now() - started },
-      ]);
-      return { ok: false, error };
-    } finally {
-      setBusy(false);
-    }
-  }, []);
+  const runStep = useCallback(
+    async (command: string): Promise<StepOutcome> => {
+      const id = begin(command);
+      try {
+        await runQuery(command, "none");
+        settle(id, command, { result: "" });
+        return { ok: true };
+      } catch (e) {
+        const error = e instanceof Error ? e.message : String(e);
+        settle(id, command, { error });
+        return { ok: false, error };
+      } finally {
+        setBusy(false);
+      }
+    },
+    [begin, settle]
+  );
 
   // Take a dropped GPX file: put it where the SECONDO server can read it, then
   // let the dialog drive the import. The dialog opens straight away, before the
@@ -361,30 +387,31 @@ export function App() {
   // the catalog's path into editing, as the Java GUI's relation chooser is.
   const openRelation = useCallback(
     async (name: string): Promise<boolean> => {
-      setBusy(true);
+      // The command the bridge will build is only known once it answers, so
+      // the pending line says what was asked for; `settle` writes the real one
+      // over it. Loading a big relation is exactly the wait this is about.
+      const asked = `table ${name}`;
+      const id = begin(asked);
       try {
         const res = await loadTable(name);
         const layerId = add(res.command, null, null, res.table, name);
-        setHistory((h) => [
-          ...h,
-          { command: res.command, result: "", layerId, rowCount: res.table.rowCount },
-        ]);
+        settle(id, res.command, {
+          result: "",
+          layerId,
+          rowCount: res.table.rowCount,
+        });
         showResult(layerId, "table");
         return true;
       } catch (e) {
-        setHistory((h) => [
-          ...h,
-          {
-            command: `table ${name}`,
-            error: e instanceof Error ? e.message : String(e),
-          },
-        ]);
+        settle(id, asked, {
+          error: e instanceof Error ? e.message : String(e),
+        });
         return false;
       } finally {
         setBusy(false);
       }
     },
-    [add, showResult]
+    [add, begin, settle, showResult]
   );
 
   const visible = useMemo(() => layers.filter((l) => l.visible), [layers]);
