@@ -2629,11 +2629,9 @@ Import the relations for the images
 
 */
 
-  unsigned int counter = 0;
   for (unsigned int i = 0; i < imageList.size(); i++) {
-      importImgOnNode(nodeNo, imageList[i], 
+      importImgOnNode(nodeNo, imageList[i],
                       relName + "_" + stringutils::int2str(numberer[i]));
-      counter++;
   }
 
   return true;

@@ -100,4 +100,10 @@ namespace CRelAlgebra
     GSpatialAttrArrayTC();
   };
 
+  extern template class GSpatialAttrArrayTC<1>;
+  extern template class GSpatialAttrArrayTC<2>;
+  extern template class GSpatialAttrArrayTC<3>;
+  extern template class GSpatialAttrArrayTC<4>;
+  extern template class GSpatialAttrArrayTC<8>;
+
 }

@@ -59,8 +59,6 @@ using namespace std;
 
 //Some default variables
 const int defaultPageSize = 1024;
-const string::size_type updatePathLength = 1024;
-//the length of the prefix path of a file
 const int defaultSysPageNum = 1;
 //number of pages for maintain system information
 

@@ -35,6 +35,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <string>
 #include <type_traits>   // the static_asserts below
 
+#include "SecondoConfig.h"
 #include "SecondoException.h"
 
 
@@ -48,8 +49,10 @@ lives in BigArray.cpp and is compiled once, instead of being pulled into every
 translation unit that includes a nested list. That is most of the tree.
 
 Nothing here is a handle type from a platform header either: ~fd~ is the POSIX
-descriptor and ~handle~ the Win32 HANDLE, each unused on the other platform, so
+descriptor and ~handle~ the Win32 HANDLE, held as an int and a void pointer, so
 that this header stays free of <sys/mman.h> and of <windows.h> in particular.
+~handle~ exists on Windows only -- SecondoConfig.h settles that from the
+compiler's own macros, so every translation unit sees the same layout.
 
 The file is unlinked the moment it is created, so it cannot outlive the process
 however that process ends -- a crash, a kill and a power cut included. Which
@@ -105,7 +108,9 @@ what lets ~BigArray~ grow while another thread is reading.
   private:
     std::string fname;
     int         fd;       // POSIX descriptor; -1 on Windows
-    void*       handle;   // Win32 HANDLE; 0 on POSIX
+#ifdef SECONDO_WIN32
+    void*       handle;   // Win32 HANDLE
+#endif
 };
 
 

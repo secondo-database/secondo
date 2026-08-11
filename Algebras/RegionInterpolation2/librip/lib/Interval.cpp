@@ -24,7 +24,7 @@ static string timestr(double t) {
     
     tm = gmtime(&ti);
     strftime(buf, sizeof(buf), "%F-%T", tm);
-    sprintf(ret, "%s.%03d", buf, (int) fmod(t,1000));
+    snprintf(ret, sizeof(ret), "%s.%03d", buf, (int) fmod(t,1000));
     return ret;
 }
 

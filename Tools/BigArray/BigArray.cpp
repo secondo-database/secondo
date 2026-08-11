@@ -105,7 +105,7 @@ gigabyte, from processes that had been dead for weeks.
 */
 
 MappedChunkFile::MappedChunkFile(const std::string& filename)
-  : fname(), fd(-1), handle(0)
+  : fname(), fd(-1)
 {
   for(int attempt = 0; attempt < MAX_NAME_ATTEMPTS; attempt++){
     const std::string candidate = candidateName(filename);

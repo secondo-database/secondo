@@ -518,7 +518,6 @@ is shown below:
   }
   Socket *client = Socket::CreateClient( sd );
   int count = 0;
-  int wcount = 0;
 
   char tupleBlock[MAX_TOTALTUPLESIZE];
   memset(tupleBlock, 0, sizeof(tupleBlock));
@@ -529,15 +528,11 @@ is shown below:
   int32_t sock_ID = 0;    //used to synchronize the sockets,
   int32_t tup_Num = 0;     //amount of tuples inside buffer
 
-  int counter = 0;
-
   qp->Open(args[0].addr);
   qp->Request(args[0].addr, elem);
   bool haveNext = false;
   while ( ( haveNext = qp->Received(args[0].addr)) || (tup_Num > 0))
   {
-    counter++;
-
     size_t tupleBlockSize;
 
     if ( haveNext )
@@ -619,7 +614,6 @@ is shown below:
       tup_Num++;
       offset += tupleBlockSize;
       tbSize -= tupleBlockSize;
-      wcount++;
 
       tuple->DeleteIfAllowed();
       qp->Request(args[0].addr, elem);

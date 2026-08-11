@@ -32,7 +32,7 @@ Config.ini: $(SECONDO_BUILD_DIR)/bin/SecondoConfig.ini
 
 
 app$(EXEEXT): Example.o
-	$(CPPC) -o app$(EXEEXT) Example.o  $(LDFLAGS) $(DEFAULTLIB) $(COMMON_LD_FLAGS)
+	$(CPPC) -o app$(EXEEXT) Example.o  $(LDFLAGS) $(DEFAULTLIB_CXX) $(COMMON_LD_FLAGS)
 
 
 Example.o: Example.cpp
