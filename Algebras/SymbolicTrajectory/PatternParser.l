@@ -51,6 +51,7 @@ bool openQuotes = false;
 %}
 %option prefix="pattern"
 %option nounput
+%option noinput
 
 %x condition
 %x result

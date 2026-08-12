@@ -46,6 +46,7 @@ autobuffer     "!!"
 
 %option yylineno
 %option nounput
+%option noinput
 
 %%
 

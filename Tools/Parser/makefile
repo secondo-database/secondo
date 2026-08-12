@@ -72,7 +72,10 @@ all:  $(SPECFILE) $(GENFILES) $(OBJECTS)
 #	echo $(ALL_ALGEBRA_DIRS)
 #	echo "---------------"
 
-$(SPECPARSER):
+SPECPARSER_SRC := $(wildcard SpecParser/*.l SpecParser/*.y SpecParser/*.cpp \
+                             SpecParser/*.h) SpecParser/makefile
+
+$(SPECPARSER): $(SPECPARSER_SRC)
 	$(MAKE) -C SpecParser
 
 $(SPECFILE): $(SPECPARSER) $(SPECFILES) 

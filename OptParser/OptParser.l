@@ -31,6 +31,7 @@ void optlexDestroy(){
 
 %option prefix="opt"
 %option noyywrap
+%option noinput nounput
 
 
 
@@ -50,7 +51,6 @@ otherChar [^\(\)\[\]\"\'A-Za-z0-9_\* \a\b\f\n\r\t\v]
 text '[^']'
 
 %option yylineno
-%option noyywrap
 
 
 %%
