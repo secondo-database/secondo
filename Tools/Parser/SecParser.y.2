@@ -129,7 +129,7 @@ commandblock2  :  OPENDOUBLEBRACE commandseq CLOSEDOUBLEBRACE
       PRINTF(") endseq2)\n");
       $$ = NestedText::AtomC(yacc_outtext->c_str());
     }
-    |  '{' '}'
+    |  OPENDOUBLEBRACE CLOSEDOUBLEBRACE
     { CLEAR();
       PRINTF("(beginseq2 () endseq2)\n");
       $$ = NestedText::AtomC(yacc_outtext->c_str());
