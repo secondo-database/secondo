@@ -48,6 +48,11 @@ NLParser.tab.cpp: NLParser.y
 	$(YACC) -d -o NLParser.tab.cpp $<
 $(TOKENDEF): NLParser.tab.cpp ;
 
+# yynerrs is bison's own: yyparse counts syntax errors in it, and a grammar
+# reads that count back through its error rules. NLParser.y has none, so the
+# variable is written and never read, which clang reports.
+NLParser.tab.o: CCFLAGS += -Wno-unused-but-set-variable
+
 # -Cf: full (fastest) scanner tables, instead of flex's default -Cem, which is
 # the smallest and slowest. It also implies batch input, so LexerInput does a
 # bulk read instead of fetching one character at a time through the istream.
