@@ -225,7 +225,7 @@ void RemoteFilesystem::deleteAllFiles() {
   reader.setPos(4);
   UI64 countUris = reader.readUInt64();
 
-  for (int i = 0; i < countUris; i++) {
+  for (UI64 i = 0; i < countUris; i++) {
     Str uriStr = reader.readStrSer();
     URI uri = URI::fromString(uriStr);
     sendRequestToDataNodeDontCareKilling(uri, "dela");

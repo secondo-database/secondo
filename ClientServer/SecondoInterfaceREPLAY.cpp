@@ -1354,7 +1354,11 @@ destination path
   // copy file from secondo transfer file path to user destination path
   systemCommand = "scp " + nodeIP + ":" + pathOnNode + " " + 
                   nodeIP + ":" + cpDestPath;  
-  system(systemCommand.c_str());
+  if (system(systemCommand.c_str()) != 0) {
+    cout << "Could not copy " << pathOnNode << " to " << cpDestPath
+         << " on node " << nodeIP << endl;
+    return false;
+  }
 
   // no special thread handling needed, because the threads only fill 
   // a new element into the array
@@ -2426,7 +2430,10 @@ Author, Authordoc, Document, Keywords in csv-format
                + stringutils::int2str(i) + " " 
                + FileSystem::GetCurrentFolder() + "/";
  
-    system(cmdShell.c_str());
+    if (system(cmdShell.c_str()) != 0) {
+      cout << "Splitting the DBLP file failed: " << cmdShell << endl;
+      return false;
+    }
   }
 
   return true;

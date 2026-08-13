@@ -270,7 +270,8 @@ IndexNodeManager::associateChunkToFileId(const Str &fileId, const Str &chunkId,
   if (entryIt != this->fileIndex.end()) {
     IndexEntry *pEntry = &entryIt->second;
     for (int i = 0; i < pEntry->chunkInfoListLength; i++) {
-      if (pEntry->chunkInfoList[i].order == order) {
+      if (order >= 0 &&
+          pEntry->chunkInfoList[i].order == (NUMBER) order) {
         ChunkInfo *pci = &pEntry->chunkInfoList[i];
         for (int j = 0; j < pci->chunkLocationListLength; j++) {
           if (pci->chunkLocationList[j].dataNodeUri.toString() ==

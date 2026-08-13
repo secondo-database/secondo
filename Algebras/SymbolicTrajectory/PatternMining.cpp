@@ -2338,7 +2338,7 @@ unsigned long long int ProjectedDB::computeFreqMatrixPosSize() const {
 
 */
 ListExpr ProjectedDB::seqToListExpr(vector<unsigned int>& seq) {
-  ListExpr seqList(nl->Empty()), seqListTemp;
+  ListExpr seqList(nl->Empty()), seqListTemp(nl->Empty());
   if (!seq.empty()) {
     seqList = nl->OneElemList(nl->IntAtom(seq[0]));
     seqListTemp = seqList;
@@ -2350,7 +2350,7 @@ ListExpr ProjectedDB::seqToListExpr(vector<unsigned int>& seq) {
 }
 
 ListExpr ProjectedDB::projToListExpr(vector<vector<unsigned int> >& proj) {
-  ListExpr projList(nl->Empty()), projListTemp;
+  ListExpr projList(nl->Empty()), projListTemp(nl->Empty());
   if (!proj.empty()) {
     projList = nl->OneElemList(seqToListExpr(proj[0]));
     projListTemp = projList;

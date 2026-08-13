@@ -1093,11 +1093,14 @@ void SecondoServer::CallCancelQuery() {
     // Pid still active?
     if(file) {
          char buffer[1024];
-         
-         fread(buffer, sizeof(char), 1024, file);
+
+         size_t bytesRead =
+           fread(buffer, sizeof(char), sizeof(buffer) - 1, file);
          fclose(file);
-         
-         if(strncmp(secondoName, buffer, strlen(secondoName)) == 0) {
+         buffer[bytesRead] = '\0';
+
+         if(bytesRead >= strlen(secondoName) &&
+            strncmp(secondoName, buffer, strlen(secondoName)) == 0) {
              kill(pid, SIGUSR1);
          }
     }
@@ -1917,8 +1920,12 @@ int SecondoServerMode( const int argc, const char* argv[] )
   // Constructed after fmsg so it is destroyed (streams restored) before fmsg.
   StreamRedirectGuard redirectGuard(fmsg.rdbuf());
 
-  freopen(msgfolder.c_str(),"a", stdout);
-  freopen(msgfolder.c_str(),"a", stderr);
+  if (freopen(msgfolder.c_str(),"a", stdout) == 0) {
+    clog << "Could not redirect stdout to " << msgfolder << endl;
+  }
+  if (freopen(msgfolder.c_str(),"a", stderr) == 0) {
+    clog << "Could not redirect stderr to " << msgfolder << endl;
+  }
 
   int rc = 0;
   SecondoServer* appPointer = new SecondoServer( argc, argv );

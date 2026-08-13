@@ -205,8 +205,8 @@ the vector content.
 */
 inline ListExpr STVector::Vector2List()
 {
-  ListExpr list;
-  ListExpr last;
+  ListExpr list = nl->TheEmptyList();
+  ListExpr last = nl->TheEmptyList();
   int simple=1;
   int i=0;
   bool first=true;
@@ -1115,8 +1115,8 @@ void RandomDelay(const MPoint* actual, const Instant* threshold, MPoint& res)
     delayed.Add(*shifted);
     delete shifted;
   }
-  delayed.Add(*temp);
-  delete temp;
+  delayed.Add(*cur);
+  delete cur;
   res.CopyFrom(&delayed);
   if(debugme)
   {
@@ -3129,8 +3129,8 @@ void RandomShiftDelay( const MPoint* actual, const Instant* threshold,
     delayed.Add(*shifted);
     delete shifted;
   }
-  delayed.Add(*temp);
-  delete temp;
+  delayed.Add(*cur);
+  delete cur;
   res.CopyFrom(&delayed);
   if(debugme)
   {

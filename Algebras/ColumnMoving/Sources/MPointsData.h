@@ -321,7 +321,7 @@ at a certain instant ~t~
   inline MPointsData::Unit MPointsData::UnitIterator::next()
   {
     Unit unit;
-    int firstFrameOfNextUnit;
+    int firstFrameOfNextUnit = m_AfterLastFrame;
     m_MPointsData->getUnit(m_CurrentFrame, unit, firstFrameOfNextUnit);
     m_CurrentFrame = firstFrameOfNextUnit;
     return unit;
@@ -656,9 +656,9 @@ index of the next unit of the same moving point.
         rc = false;
         firstFrameOfNextUnit = firstFrameOfUnit + 2;
       } else {  // should never occur
-	rc = false;
+    rc = false;
         firstFrameOfNextUnit = firstFrameOfUnit + 2;
-	assert(false);
+    assert(false);
       }
 
       unit.id = firstFrameOfUnit;

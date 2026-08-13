@@ -544,7 +544,7 @@ int main(int argc, char *argv[]) {
       UI64 used = reader.readUInt64();
       UI64 allocated = reader.readUInt64();
 
-      for (int i = 0; i < used; i++) {
+      for (UI64 i = 0; i < used; i++) {
         Str chunkName = reader.readStrSer();
         Str cat = reader.readStrSer();
         cout << chunkName << " " << cat << endl;

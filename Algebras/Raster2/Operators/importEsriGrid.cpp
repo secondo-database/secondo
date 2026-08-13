@@ -752,8 +752,11 @@ namespace raster2
       // frmts/aigrid/gridlib.c, line 287-317
       int numPixelBytes = rTileSize - 4 - rMinSize;
       int nDstBytes = (numPixelBytes + 7) / 8;
+      // calloc: nothing in this function ever reads the packed
+      // bits for this tile type out of dataFile.
       unsigned char *byteIntermediate;
-      byteIntermediate = (unsigned char *) malloc(nDstBytes);
+      byteIntermediate = (unsigned char *) calloc(nDstBytes > 0 ? nDstBytes : 1,
+                                                  1);
 
       // Iterate over cell rows (y-direction)
       for (uint32_t cellRowIdx=0; cellRowIdx<cellRowCount;
@@ -770,6 +773,7 @@ namespace raster2
                       cout << endl << "Leaving processing of tile, ";
                       cout << "tilePixelCounter: " << tilePixelCounter;
                   }
+                  free(byteIntermediate);
                   return;
               }
 
@@ -809,6 +813,7 @@ namespace raster2
               }
           } // cell columns
       } // cell rows
+      free(byteIntermediate);
     }
 
     /*

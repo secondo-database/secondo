@@ -100,7 +100,8 @@ Str handleMessage(const Str *i, int *flags) {
 
     IndexEntry e;
 
-    if (size > man.config.maxChunkSize) {
+    if (man.config.maxChunkSize > 0 &&
+        size > (UI64) man.config.maxChunkSize) {
 
       if (canDebug) debug("file needs to be split in severals chunks");
       long maxChunkSize = man.config.maxChunkSize;
@@ -263,7 +264,7 @@ Str handleMessage(const Str *i, int *flags) {
       bytesLeft -= deltaLastChunk;
       long oldLengthLastChunk = lastChunk->length;
       //update last chunks length
-      if (deltaLastChunk < lengthToAdd)
+      if ((UI64) deltaLastChunk < lengthToAdd)
         lastChunk->length = maxChunkSize;
       else
         lastChunk->length += lengthToAdd;
@@ -302,7 +303,7 @@ Str handleMessage(const Str *i, int *flags) {
         serActions.append(lastChunk->chunkLocationList[i].chunkId);
         serActions.appendUInt64(currentBufferOffset);
         //how many bytes of the appendix needs to be added here
-        if (deltaLastChunk >= lengthToAdd) {
+        if ((UI64) deltaLastChunk >= lengthToAdd) {
           serActions.appendUInt64(lengthToAdd);
           currentBufferOffset = lengthToAdd;
           if (i == 0) bytesLeft -= lengthToAdd;
@@ -337,7 +338,8 @@ Str handleMessage(const Str *i, int *flags) {
           pEntry->chunkInfoList + startIndexOfNewChunkInfo + i;
 
         UI64 len = maxChunkSize;
-        if (len > bytesLeft) len = bytesLeft;
+        const UI64 remaining = (bytesLeft > 0) ? (UI64) bytesLeft : 0;
+        if (len > remaining) len = remaining;
         bytesLeft -= len;
 
         pChunk->length = len;

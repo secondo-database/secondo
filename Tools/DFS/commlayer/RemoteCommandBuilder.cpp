@@ -48,7 +48,6 @@ RemoteCommandBuilder::RemoteCommandBuilder(const Str &verb, bool sizePreamble) {
 
 void RemoteCommandBuilder::setBody(const Str &body) {
   if (sizePreamble) {
-    int len = 19 + body.len();
     cmd = sizeEnvelope(verb.append(body));
   } else {
     cmd = verb.append(body);

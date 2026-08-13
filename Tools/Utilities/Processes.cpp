@@ -464,7 +464,10 @@ A session without a control tty can only have background jobs.
     }
     if (instance->processDirectory.length() > 0 )
     {
-      chdir( instance->processDirectory.c_str() );
+      if ( chdir( instance->processDirectory.c_str() ) != 0 )
+      {
+        _exit( -5 );
+      }
     }
     execv( spath, argv );
     exit( -3 );  // only reached if exec() failed

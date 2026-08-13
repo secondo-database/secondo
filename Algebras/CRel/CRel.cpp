@@ -182,8 +182,9 @@ void CRel::Clear()
     while (iterator.MoveToNext());
   }
 
+  const uint64_t cacheSize = m_blockCache.GetSize();
   m_blockCache.~LRUCache<BlockCacheEntry>();
-  new (&m_blockCache) LRUCache<BlockCacheEntry>(m_blockCache.GetSize());
+  new (&m_blockCache) LRUCache<BlockCacheEntry>(cacheSize);
 
   m_rowCount = 0;
   m_blockCount = 0;

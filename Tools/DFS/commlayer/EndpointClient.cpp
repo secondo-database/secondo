@@ -53,7 +53,7 @@ Str EndpointClient::sendSyncMessage(URI uri, const Str &msg, bool doEnvelope) {
 
   if (canDebug) this->debug("open");
 
-  int portno, n;
+  int portno;
   struct sockaddr_in serv_addr;
   struct hostent *server;
 

@@ -71,7 +71,7 @@ void FigureSystem::refactor() {
 Str FigureSystem::toStr() {
   char tmp[base];
   for (int i = 0; i < length; i++) {
-    char v = values[i];
+    unsigned char v = (unsigned char) values[i];
     tmp[length - i - 1] = figures[v];
   }
   return Str(tmp, length);

@@ -243,8 +243,6 @@ public:
   virtual void run() {
 
     dfs::checksum::crc64 c;
-    int i = 0x12121212;
-    //cout << c.checksum((uint8_t*)&i,4) << endl;
 
     FigureSystem fs(10, 10);
     aq("fs.toStr1", Str("0000000000"), fs.toStr());

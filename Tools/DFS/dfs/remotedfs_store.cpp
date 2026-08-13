@@ -109,9 +109,9 @@ void RemoteFilesystem::appendToExistingFile(FILEID fileId, FILEBUFFER appendix,
     } else if (verb == "doappendtochunk") {
       Str uri = reader.readStrSer();
       Str chunkId = reader.readStrSer();
-      UI64 bufferOffset = reader.readUInt64();
-      UI64 bufferLengthToSend = reader.readUInt64();
-      UI64 newTotalSize = reader.readUInt64();
+      reader.readUInt64();   // bufferOffset
+      reader.readUInt64();   // bufferLengthToSend
+      reader.readUInt64();   // newTotalSize
       UI64 newChunkSize = reader.readUInt64();
 
       URI uriDataNode = URI::fromString(uri);
@@ -334,12 +334,13 @@ void RemoteFilesystem::storeFileFromLocal(FILEID fileId, FILEPATH localPath,
         if (canDebug) debug("use this location");
         fseek(fp, pci->offsetInFile, SEEK_SET);
 
+        const UI64 totalLength = (length > 0) ? (UI64) length : 0;
         UI64 bytesAlreadyTransfered = 0;
         UI64 bytesToBeTransfered = 0;
         UI64 bufSizeToUse = bufsize;
         UI64 bytesLeft = length;
 
-        if (bufSizeToUse > length) bufSizeToUse = length;
+        if (bufSizeToUse > totalLength) bufSizeToUse = totalLength;
 
         while ((amountRead = fread(fileReadBuffer, 1, bufSizeToUse, fp)) > 0) {
 
@@ -356,8 +357,8 @@ void RemoteFilesystem::storeFileFromLocal(FILEID fileId, FILEPATH localPath,
           }
 
           UI64 bytesToSend = amountRead;
-          if (bytesToBeTransfered > length) {
-            bytesToSend = bytesToBeTransfered - length;
+          if (bytesToBeTransfered > totalLength) {
+            bytesToSend = bytesToBeTransfered - totalLength;
           }
 
           if (canDebug) {
@@ -393,7 +394,7 @@ void RemoteFilesystem::storeFileFromLocal(FILEID fileId, FILEPATH localPath,
 
 
 
-          if (bytesAlreadyTransfered >= length) break;
+          if (bytesAlreadyTransfered >= totalLength) break;
         }
       }
 

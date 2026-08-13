@@ -419,10 +419,13 @@ int ItSpatialJoin::SelectValueMapping(ListExpr args)
     const TBlockTI blockInfo = TBlockTI(GetStreamType(nl->Nth(1 + i, args)),
                                         false);
 
-    uint64_t nameIndex;
+    uint64_t nameIndex = 0;
 
-    GetIndexOfColumn(blockInfo, nl->SymbolValue(nl->Nth(3 + i, args)),
-                     nameIndex);
+    if (!GetIndexOfColumn(blockInfo, nl->SymbolValue(nl->Nth(3 + i, args)),
+                          nameIndex))
+    {
+      return -1;
+    }
 
     TypeConstructor *typeConstructor =
       GetTypeConstructor(blockInfo.columnInfos[nameIndex].type);

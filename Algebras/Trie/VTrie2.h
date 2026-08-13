@@ -74,7 +74,8 @@ This constructor creates a Vtrie node from the record stored
 if file at position recID.
 
 */
-    VTrieNode(SmiRecordFile* file, const SmiRecordId& recID){
+    VTrieNode(SmiRecordFile* file, const SmiRecordId& recID): content(0){
+       memset(links, 0, CHARS*sizeof(SmiRecordId));
        readFrom(file, recID);
     }
 

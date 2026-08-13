@@ -45,7 +45,7 @@ Str dfs::Maschine::volatileId(const Str &appendix) {
     char buffer[1024];
     int read = fread(buffer, 1, 1024, p);
     if (read > 0) input = input.append(Str(buffer, read));
-    fclose(p);
+    pclose(p);
   }
 
   CStr cs(input);

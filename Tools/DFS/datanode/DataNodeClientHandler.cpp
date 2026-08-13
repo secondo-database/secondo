@@ -117,9 +117,11 @@ Str DataNodeClientHandler::onReceived(Str *s, int *resultFlags) {
       length));
 
 
+    const UI64 chunkSize =
+      (pChunk->chunksize > 0) ? (UI64) pChunk->chunksize : 0;
     UI64 lastIndex = offset + length;
-    if (lastIndex > pChunk->chunksize) {
-      length = pChunk->chunksize - offset;
+    if (lastIndex > chunkSize) {
+      length = (offset < chunkSize) ? chunkSize - offset : 0;
       _dr(Str("new bytes to read is ").append(length));
     }
 
