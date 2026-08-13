@@ -41,10 +41,22 @@ endif
 include ./Javagui/makefile.inc
 compileJava := "$(shell $(JAVAC) -help > /dev/null 2>&1; if [ $$? != 0 ]; then echo "false"; else echo "true"; fi)"
 
+# The probe above quotes its answer while callers pass it unquoted
+# (compileJava=false), so every comparison uses this normalized copy --
+# otherwise "compileJava=true" would read as "not true" and skip the GUI.
+compileJavaFlag := $(subst ",,$(compileJava))
+
+# Whether the caller asked for the GUI to be skipped, as opposed to the probe
+# above finding no working javac. Only the second is a fault, and java2 below
+# turns it into a hard error rather than a message that scrolls past.
+javaSkipRequested := $(if $(filter command line environment,\
+                            $(origin compileJava)),yes)
+
 define javac-msg
   @echo ""
-  @echo "Warning: The command \"$(JAVAC) -help\" returned an error!"
-  @echo "         Please check your Java 2 SDK configuration an run again."
+  @echo "Error: The command \"$(JAVAC) -help\" returned an error!"
+  @echo "       Please check your Java 2 SDK configuration and run again,"
+  @echo "       or pass compileJava=false to skip the GUI on purpose."
 endef
 
 
@@ -149,12 +161,15 @@ java: java2 update-config
 
 .PHONY: java2
 java2:
-ifeq ($(compileJava),"true")
+ifeq ($(compileJavaFlag),true)
 	@echo ; echo  " *** Compiling the java based GUI *** "; echo
 	$(MAKE) -C Javagui all
+else ifeq ($(javaSkipRequested),yes)
+	@echo ; echo  "The java based GUI was not compiled (compileJava=false)."
 else
 	@echo ; echo  "The java based GUI was not compiled!"
 	$(javac-msg)
+	@exit 1
 endif
 
 
