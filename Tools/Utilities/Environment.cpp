@@ -51,8 +51,7 @@ Environment::Environment()
   keyMap["SEC_pMinRead"] = Int;
   keyMap["SEC_pMaxRead"] = Int;
   keyMap["SEC_pAllowHints"] = Bool;
-  keyMap["SECONDO_PLATFORM"] = String; 
-  keyMap["SECONDO_BUILD_DIR"] = String; 
+  keyMap["SECONDO_BUILD_DIR"] = String;
 
   init(); 
 }

@@ -42,6 +42,12 @@ September 2003, M. Spiekermann: Implementation of getpagesize()
 #include <stdlib.h>
 #include <errno.h>
 
+// Supplied by makefile.env as -DSECONDO_PLATFORM_NAME="<platform>".
+#ifndef SECONDO_PLATFORM_NAME
+#error "SECONDO_PLATFORM_NAME is not defined -- build via makefile.env, \
+which derives it from $(platform)."
+#endif
+
 
 #ifndef SECONDO_ANDROID
 #if defined(SECONDO_LINUX) || defined(SECONDO_MAC_OSX)
@@ -113,15 +119,9 @@ WinUnix::sleep( const int seconds )
 
 
 string
-WinUnix::getPlatformStr() { 
-  string res = "unknown";
-  char* platform=0;
-  platform = getenv( "SECONDO_PLATFORM" );
-  if ( platform != 0 )
-  {
-      res = string(platform);
-  }
-  return res;
+WinUnix::getPlatformStr() {
+  // Compiled in by makefile.env from $(platform); see -DSECONDO_PLATFORM_NAME.
+  return string(SECONDO_PLATFORM_NAME);
 }
 
 void WinUnix::writeBigEndian(ostream& o, const uint32_t number){

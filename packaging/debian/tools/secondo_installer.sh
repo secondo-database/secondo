@@ -42,14 +42,14 @@ fi
 cp /opt/secondo/etc/SecondoConfig.ini ~/
 sed -i "s|SecondoHome=.*|SecondoHome=$databasedir|" ~/SecondoConfig.ini
 
-# The platform, the SWI-Prolog paths, the JDK and Berkeley DB are detected at
-# login time by the same script the package was built with. Hardcoding them
-# here would break as soon as the installed SWI-Prolog or JDK changes.
+# Only these are needed at run time. The platform is compiled into the binaries
+# and the build-time settings (SWI-Prolog, JDK, Berkeley DB) were resolved when
+# the package was built, so nothing has to be detected at login any more.
 cat <<-EOF > ~/.secondorc
 export SECONDO_WORK_DIR=$workdir
 export SECONDO_BUILD_DIR=/opt/secondo
 export SECONDO_CONFIG=\$HOME/SecondoConfig.ini
-source \$SECONDO_BUILD_DIR/CM-Scripts/secondo-detect.sh
+export PATH="\$PATH:\$SECONDO_BUILD_DIR/Tools/pd"
 EOF
 
 if [ $(grep secondorc ~/.bashrc | wc -l) -eq 0 ]; then

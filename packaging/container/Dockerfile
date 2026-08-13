@@ -53,11 +53,10 @@ ENV SECONDO_BUILD_DIR=/opt/secondo
 WORKDIR /opt/secondo
 COPY . /opt/secondo
 
-# secondo-detect.sh derives the platform, the SWI-Prolog paths, the JDK and
-# Berkeley DB from the installed tools; --check fails the build if one of them
+# makefile.detect derives the platform, the SWI-Prolog paths, the JDK and
+# Berkeley DB from the installed tools; check-env fails the build if one of them
 # is missing rather than producing a kernel with silently disabled features.
-RUN source CM-Scripts/secondo-detect.sh \
-    && ./CM-Scripts/secondo-detect.sh --check \
+RUN make -f makefile.detect check-env \
     && make -j"$(nproc)" \
     && make -C apis/api_cpp/cs \
     && make -C WebUI venv native
@@ -115,7 +114,6 @@ RUN userdel -r ubuntu 2>/dev/null || true; \
 COPY --from=builder --chown=secondo:secondo /opt/secondo/bin /opt/secondo/bin
 COPY --from=builder --chown=secondo:secondo /opt/secondo/Optimizer /opt/secondo/Optimizer
 COPY --from=builder --chown=secondo:secondo /opt/secondo/Data /opt/secondo/Data
-COPY --from=builder --chown=secondo:secondo /opt/secondo/CM-Scripts/secondo-detect.sh /opt/secondo/CM-Scripts/
 COPY --from=builder --chown=secondo:secondo /opt/secondo/WebUI/backend /opt/secondo/WebUI/backend
 COPY --from=frontend --chown=secondo:secondo /build/WebUI/frontend/dist /opt/secondo/WebUI/frontend/dist
 COPY --chown=secondo:secondo packaging/container/docker-entrypoint.sh /opt/secondo/bin/

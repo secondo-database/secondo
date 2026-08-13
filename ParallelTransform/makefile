@@ -31,7 +31,7 @@ LIBOBJECTS=\
 .PHONY: all
 all: $(OBJECTS) $(LIBOBJECTS)
 
-CCFLAGS+= $(PLINCLUDEFLAGS) $(PICFLAG) $(DEFAULTCCFLAGS) --std=c++11 $(shell pkg-config swipl --cflags) -I../Algebras/Relation-C++ -I../Algebras/TupleIdentifier
+CCFLAGS += $(PLINCLUDEFLAGS) $(PICFLAG) -I../Algebras/Relation-C++ -I../Algebras/TupleIdentifier
 
 # Anchor the objects that are copied into $(LIBDIR) as current-directory
 # targets.  VPATH contains $(LIBDIR), so without an explicit prerequisite

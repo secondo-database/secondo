@@ -32,18 +32,16 @@ jobs:
 
       - name: Detect SECONDO build environment
         run: |
-          # Prolog paths/version, Berkeley DB and platform are derived from the
-          # installed tools by secondo-detect.sh.
-          export SECONDO_BUILD_DIR="${GITHUB_WORKSPACE}"
-          export SECONDO_CC="ccache gcc"
-          export SECONDO_CPP="ccache g++"
-          ./CM-Scripts/secondo-detect.sh --print-vars
-          ./CM-Scripts/secondo-detect.sh --check
+          # The platform, Prolog paths, JDK and Berkeley DB are derived by
+          # makefile.detect during the build itself, so only the compiler
+          # override has to be put into the environment here.
           {
-            echo "SECONDO_CC=${SECONDO_CC}"
-            echo "SECONDO_CPP=${SECONDO_CPP}"
-            ./CM-Scripts/secondo-detect.sh --print-vars
+            echo "SECONDO_BUILD_DIR=${GITHUB_WORKSPACE}"
+            echo "SECONDO_CC=ccache gcc"
+            echo "SECONDO_CPP=ccache g++"
           } >> "$GITHUB_ENV"
+          make -s -f makefile.detect print-vars
+          make -f makefile.detect check-env
 
       - name: Show ccache statistics (before build)
         run: ccache -s
@@ -436,19 +434,16 @@ jobs:
 
       - name: Detect SECONDO build environment
         run: |
-          export SECONDO_BUILD_DIR="${GITHUB_WORKSPACE}"
-          export SECONDO_CC="ccache clang"
-          export SECONDO_CPP="ccache clang++"
-          # Source it so LIBRARY_PATH (link-time Homebrew lib dirs) is set here.
-          source ./CM-Scripts/secondo-detect.sh
-          ./CM-Scripts/secondo-detect.sh --print-vars
-          ./CM-Scripts/secondo-detect.sh --check
+          # As on Linux: makefile.detect resolves the platform, Prolog, the JDK,
+          # Berkeley DB and the keg-only Homebrew prefixes during the build, and
+          # exports LIBRARY_PATH (the link-time Homebrew lib dirs) itself.
           {
-            echo "SECONDO_CC=${SECONDO_CC}"
-            echo "SECONDO_CPP=${SECONDO_CPP}"
-            ./CM-Scripts/secondo-detect.sh --print-vars
-            [ -n "${LIBRARY_PATH:-}" ] && echo "LIBRARY_PATH=${LIBRARY_PATH}"
+            echo "SECONDO_BUILD_DIR=${GITHUB_WORKSPACE}"
+            echo "SECONDO_CC=ccache clang"
+            echo "SECONDO_CPP=ccache clang++"
           } >> "$GITHUB_ENV"
+          make -s -f makefile.detect print-vars
+          make -f makefile.detect check-env
 
       - name: Show ccache statistics (before build)
         run: ccache -s

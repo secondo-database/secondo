@@ -42,6 +42,12 @@ This module initializes the JNI Environment. \\
 #include <stdlib.h>
 #include <vector>
 
+// Supplied by makefile.jni as -DSECONDO_J2SDK_ROOT="<jdk home>".
+#ifndef SECONDO_J2SDK_ROOT
+#error "SECONDO_J2SDK_ROOT is not defined -- build via makefile.jni, \
+which derives it from $(J2SDK_ROOT)."
+#endif
+
 #ifdef _WIN32
 #define PATH_SEPARATOR ';'
 #else /* UNIX */
@@ -149,9 +155,13 @@ void processLine(const string& inputLine,string& classpath,
    classpath += getAbsolutePath(line3);
  }
  if(line[1]=='L') {
-    string J2SDKRoot = getenv("J2SDK_ROOT");
+    // Compiled in by makefile.jni from $(J2SDK_ROOT). This used to be
+    // getenv("J2SDK_ROOT"), which is undefined behaviour when the variable is
+    // not exported -- std::string cannot be constructed from NULL, so the
+    // "J2SDKRoot != \"\"" test below was never actually reached.
+    const string J2SDKRoot = SECONDO_J2SDK_ROOT;
 
-    if ( ((line3[0] != '.') && (line3[0] != '/')) && (J2SDKRoot != "") ) 
+    if ( ((line3[0] != '.') && (line3[0] != '/')) && (J2SDKRoot != "") )
     {
       libdir = J2SDKRoot + "/" + line3;
     } 

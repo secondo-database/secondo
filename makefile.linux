@@ -52,4 +52,5 @@ DLLEXT := so
 DLLPREF := lib
 DLLFLAGS := -s -shared
 
-DEFAULTCCFLAGS := -fPIC
+# Append since DEFAULTCCFLAGS might already be set by makefile.env.
+DEFAULTCCFLAGS += -fPIC

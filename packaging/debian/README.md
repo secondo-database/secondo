@@ -13,7 +13,7 @@ repository/     the apt repository index that is published on GitHub Pages
 ```
 
 There is nothing to configure: the build environment (platform, SWI-Prolog, JDK,
-Berkeley DB) is detected by `CM-Scripts/secondo-detect.sh`, the algebras are the
+Berkeley DB) is detected by `makefile.detect`, the algebras are the
 default set of `makefile.algebras.sample`, and the package version is derived from
 `include/version.h` and the packaged commit.
 

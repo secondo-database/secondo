@@ -521,7 +521,7 @@ ALGEBRA_DIRS += OSM
 ALGEBRAS     += OsmAlgebra
 ALGEBRA_DEPS += xml2
 # libxml2 lives outside the standard paths. On Linux it is under /usr; on
-# macOS it is keg-only (SECONDO_LIBXML2_DIR, from secondo-detect.sh).
+# macOS it is keg-only (SECONDO_LIBXML2_DIR, from makefile.detect).
 ifeq ($(platform),mac_osx)
 ALGEBRA_DEP_DIRS += $(SECONDO_LIBXML2_DIR)/lib
 ALGEBRA_INCLUDE_DIRS += $(SECONDO_LIBXML2_DIR)/include/libxml2

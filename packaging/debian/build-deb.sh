@@ -4,7 +4,7 @@
 #
 # Runs on any supported Ubuntu, either directly on the host or inside a
 # container (see docker-build.sh). The build environment is detected by
-# CM-Scripts/secondo-detect.sh, the algebras are the default set from
+# makefile.detect, the algebras are the default set from
 # makefile.algebras.sample, and the package version is derived from
 # include/version.h -- nothing needs to be edited to cut a new package.
 #

@@ -110,10 +110,15 @@ endif
 
 JNIINCLUDE += -I$(INCLUDEDIR)
 
+# The JDK a binary was built against is a property of that binary.
+JNIINCLUDE += -DSECONDO_J2SDK_ROOT=\"$(J2SDK_ROOT)\"
+
 JNILINKOPTS := $(JNI_CCFLAGS)
 
 ifdef LIBJVM_DIR
-JNILINKOPTS += -L$(LIBJVM_DIR) -ljvm
+# -rpath so the loader finds libjvm without LD_LIBRARY_PATH/DYLD_LIBRARY_PATH
+# having to be set for the process: the path is baked into the binary.
+JNILINKOPTS += -L$(LIBJVM_DIR) -Wl,-rpath,$(LIBJVM_DIR) -ljvm
 endif
 
 ifdef LIBJAVA_DIR

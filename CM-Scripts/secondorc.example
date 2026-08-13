@@ -1,5 +1,9 @@
 # Replace the following line with the path to your SECONDO build directory
 export SECONDO_BUILD_DIR=
 
-# Auto detect the SECONDO build environment
-source $SECONDO_BUILD_DIR/CM-Scripts/secondo-detect.sh
+# Where the kernel looks for its configuration at run time.
+export SECONDO_CONFIG=$SECONDO_BUILD_DIR/bin/SecondoConfig.ini
+
+# Optional: lets the PD documentation tools (pd2pdf, pdview, checkpd, ...) be
+# called by name. They also work when called by their full path.
+export PATH="$PATH:$SECONDO_BUILD_DIR/Tools/pd"

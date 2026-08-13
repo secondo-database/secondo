@@ -4,7 +4,7 @@ ifdef SECONDO_CPP
 CXX := $(SECONDO_CPP)
 CC := $(SECONDO_CPP)
 endif
-CXXFLAGS =-I -Wall -g
+CXXFLAGS = -Wall -g
 LD=ld
 CCO = $(CC) $(CCFLAGS)
 

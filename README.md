@@ -84,14 +84,14 @@ git clone https://github.com/secondo-database/secondo.git
 cd secondo
 
 export SECONDO_BUILD_DIR="$PWD"
-source CM-Scripts/secondo-detect.sh
+export SECONDO_CONFIG="$SECONDO_BUILD_DIR/bin/SecondoConfig.ini"
 ```
 
-`secondo-detect.sh` derives compiler, platform, Berkeley DB and SWI-Prolog settings from the
-tools it finds. Check what it found with:
+That is all the build needs. `makefile.detect` derives the platform, Berkeley DB, SWI-Prolog
+and the JDK from the tools it finds, every time you run `make`. Check what it found with:
 
 ```bash
-./CM-Scripts/secondo-detect.sh --check
+make -f makefile.detect check-env
 ```
 
 To make the setup permanent, copy `CM-Scripts/secondorc.example` to `~/.secondorc`, set

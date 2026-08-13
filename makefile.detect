@@ -1,0 +1,284 @@
+#This file is part of SECONDO.
+#
+#Copyright (C) 2004, University in Hagen, Department of Computer Science,
+#Database Systems for New Applications.
+#
+#SECONDO is free software; you can redistribute it and/or modify
+#it under the terms of the GNU General Public License as published by
+#the Free Software Foundation; either version 2 of the License, or
+#(at your option) any later version.
+#
+#SECONDO is distributed in the hope that it will be useful,
+#but WITHOUT ANY WARRANTY; without even the implied warranty of
+#MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#GNU General Public License for more details.
+#
+#You should have received a copy of the GNU General Public License
+#along with SECONDO; if not, write to the Free Software
+#Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+#
+########################################################################
+#
+# SECONDO build environment detection.
+#
+# This is the single place where the build configuration is derived from the
+# tools installed on this machine. makefile.env includes it before anything
+# else, so a plain "make" in a fresh checkout configures itself -- no shell
+# has to be sourced first.
+#
+# It can also be run on its own:
+#
+#   make -s -f makefile.detect print-vars
+#
+# Every variable is only assigned when it does not already have a value, so an
+# exported variable or a "make VAR=..." override always wins.
+#
+########################################################################
+
+# Where this file lives -- captured before anything else is included, because
+# $(MAKEFILE_LIST) grows. This is the root of the SECONDO tree.
+SECONDO_DETECT_MK := $(abspath $(lastword $(MAKEFILE_LIST)))
+
+# The whole block below runs exactly once per "make" tree: the results are
+# exported, and this sentinel stops every recursive $(MAKE) -C from probing the
+# machine again. A single sentinel rather than one guard per variable, because
+# "ifndef" is also true for an exported-but-empty variable -- per-variable
+# guards would re-probe every negative result in all ~260 sub-makes.
+ifndef SECONDO_DETECTED
+
+# --- the SECONDO tree ------------------------------------------------------
+ifndef SECONDO_BUILD_DIR
+SECONDO_BUILD_DIR := $(patsubst %/,%,$(dir $(SECONDO_DETECT_MK)))
+endif
+
+# --- platform --------------------------------------------------------------
+SECONDO_UNAME_S := $(shell uname -s)
+SECONDO_UNAME_M := $(shell uname -m)
+
+ifndef SECONDO_PLATFORM
+ifeq ($(SECONDO_UNAME_S),Darwin)
+  SECONDO_PLATFORM := mac_osx
+else
+ifeq ($(SECONDO_UNAME_S),Linux)
+  ifneq (,$(filter $(SECONDO_UNAME_M),x86_64 amd64 aarch64 arm64))
+    SECONDO_PLATFORM := linux64
+  else
+    SECONDO_PLATFORM := linux
+  endif
+else
+  SECONDO_PLATFORM := linux64
+endif
+endif
+endif
+
+# --- Homebrew prefix (macOS) -----------------------------------------------
+# Differs by architecture: Apple Silicon uses /opt/homebrew, Intel /usr/local.
+# Ask brew once, fall back to the architecture default. Guarded by the sentinel
+# above, so this fork happens once per build rather than once per sub-make.
+ifeq ($(SECONDO_PLATFORM),mac_osx)
+ifndef HOMEBREW_PREFIX
+  HOMEBREW_PREFIX := $(shell brew --prefix 2>/dev/null)
+  ifeq ($(strip $(HOMEBREW_PREFIX)),)
+    ifeq ($(SECONDO_UNAME_M),arm64)
+      HOMEBREW_PREFIX := /opt/homebrew
+    else
+      HOMEBREW_PREFIX := /usr/local
+    endif
+  endif
+endif
+endif
+
+# --- generic probes --------------------------------------------------------
+# Prefixes that are searched for headers and libraries. On Linux $(HOMEBREW_PREFIX)
+# is empty and drops out of the list.
+SECONDO_LIB_PREFIXES := /usr /usr/local $(HOMEBREW_PREFIX)
+
+# $(call secondo-have-lib,<header>,<libname>) -- non-empty when both the header
+# and a matching library exist below one of the prefixes above. The "lib/*/"
+# branch covers Debian multiarch (/usr/lib/x86_64-linux-gnu).
+secondo-have-lib = $(firstword $(foreach p,$(SECONDO_LIB_PREFIXES),\
+    $(if $(wildcard $(p)/include/$(1)),\
+      $(wildcard $(p)/lib/lib$(2).* $(p)/lib/*/lib$(2).*))))
+
+# $(call secondo-brew-opt,<formula names>,<header below include/>) -- the prefix
+# of the first keg-only formula that is actually installed. Homebrew does not
+# symlink keg-only formulae into $(HOMEBREW_PREFIX), so they have to be named
+# explicitly. Probing the directory beats calling "brew --prefix <formula>":
+# same answer, no fork.
+secondo-brew-opt = $(firstword $(foreach f,$(1),\
+    $(if $(wildcard $(HOMEBREW_PREFIX)/opt/$(f)/include/$(2)),$(HOMEBREW_PREFIX)/opt/$(f))))
+
+# --- SWI-Prolog ------------------------------------------------------------
+# The swipl binary is the single source of truth: --dump-runtime-variables
+# reports the include and library directories together, so they cannot drift
+# from the libswipl that actually gets linked. The embedded optimizer links
+# libswipl in -pl mode; it needs no JPL (that was only the retired OptServer).
+ifndef SECONDO_SWIPL
+SECONDO_SWIPL := $(shell command -v swipl 2>/dev/null || command -v pl 2>/dev/null)
+endif
+
+# Output is shell syntax (PLBASE="/usr/lib/swi-prolog";), so strip the quotes
+# and trailing semicolons and read it with $(filter).
+SECONDO_PL_DUMP := $(if $(SECONDO_SWIPL),\
+    $(shell $(SECONDO_SWIPL) --dump-runtime-variables 2>/dev/null | sed -e 's/;$$//' -e 's/"//g'))
+secondo-pl-get = $(patsubst $(1)=%,%,$(filter $(1)=%,$(SECONDO_PL_DUMP)))
+
+ifndef SWI_HOME_DIR
+SWI_HOME_DIR := $(call secondo-pl-get,PLBASE)
+endif
+ifndef PL_LIB_DIR
+PL_LIB_DIR := $(call secondo-pl-get,PLLIBDIR)
+endif
+ifndef PL_DLL_DIR
+PL_DLL_DIR := $(PL_LIB_DIR)
+endif
+ifndef PL_INCLUDE_DIR
+PL_INCLUDE_DIR := $(if $(SWI_HOME_DIR),$(SWI_HOME_DIR)/include)
+endif
+ifndef PL_LIB
+PL_LIB := $(if $(SWI_HOME_DIR),swipl)
+endif
+
+# --- Java (JDK home) -------------------------------------------------------
+ifndef J2SDK_ROOT
+ifeq ($(SECONDO_PLATFORM),mac_osx)
+J2SDK_ROOT := $(shell /usr/libexec/java_home 2>/dev/null)
+else
+# Resolve the symlink chain (Debian alternatives point at the real JDK) and
+# strip /bin/<tool> to get the JDK root.
+J2SDK_ROOT := $(patsubst %/bin/java,%,$(patsubst %/bin/javac,%,\
+    $(realpath $(shell command -v javac 2>/dev/null || command -v java 2>/dev/null))))
+endif
+endif
+
+# --- Berkeley DB -----------------------------------------------------------
+ifeq ($(SECONDO_PLATFORM),mac_osx)
+SECONDO_BDB_PREFIXES := $(HOMEBREW_PREFIX)/opt/berkeley-db $(HOMEBREW_PREFIX)/opt/berkeley-db@5 \
+                        /opt/local /usr/local/opt/berkeley-db /usr/local /usr
+else
+SECONDO_BDB_PREFIXES := /usr /usr/local
+endif
+
+ifndef BERKELEY_DB_DIR
+BERKELEY_DB_DIR := $(firstword \
+    $(foreach p,$(SECONDO_BDB_PREFIXES),$(if $(wildcard $(p)/include/db_cxx.h),$(p))) /usr)
+endif
+ifndef BERKELEY_DB_LIB
+BERKELEY_DB_LIB := db_cxx
+endif
+
+# --- Homebrew keg-only prefixes (macOS) ------------------------------------
+# readline, jpeg, flex and libxml2 are keg-only, i.e. Homebrew does NOT symlink
+# their headers and libraries into $(HOMEBREW_PREFIX). The SDK used to ship
+# these; without it the makefiles have to be pointed at the formula prefixes so
+# that the optimizer (libreadline) and the jpeg-using algebras link.
+ifeq ($(SECONDO_PLATFORM),mac_osx)
+ifndef SECONDO_READLINE_DIR
+SECONDO_READLINE_DIR := $(call secondo-brew-opt,readline,readline/readline.h)
+endif
+ifndef SECONDO_JPEG_DIR
+SECONDO_JPEG_DIR := $(call secondo-brew-opt,jpeg-turbo jpeg,jpeglib.h)
+endif
+# FlexLexer.h MUST come from the same flex that generated the C++ scanners
+# (NLLex, SecLex), or the LexerInput/LexerOutput signatures mismatch. macOS
+# ships an old flex in the SDK, so point at the Homebrew one.
+ifndef SECONDO_FLEX_DIR
+SECONDO_FLEX_DIR := $(call secondo-brew-opt,flex,FlexLexer.h)
+endif
+ifndef SECONDO_LIBXML2_DIR
+SECONDO_LIBXML2_DIR := $(call secondo-brew-opt,libxml2,libxml2/libxml/parser.h)
+endif
+
+# --- link-time library search path (macOS) ---------------------------------
+# Homebrew installs its libraries (boost, ...) under $(HOMEBREW_PREFIX)/lib,
+# which is not a default linker path, and the keg-only formulae under their own
+# prefixes. Several tool makefiles link without the platform LDFLAGS, so rather
+# than patching each one, put the directories on LIBRARY_PATH: the compiler
+# driver adds them to every link. Exported below, so this reaches every recipe
+# and sub-make without a shell having to be sourced first.
+secondo-empty :=
+secondo-space := $(secondo-empty) $(secondo-empty)
+
+SECONDO_LIB_PATHS := $(wildcard $(HOMEBREW_PREFIX)/lib \
+    $(SECONDO_READLINE_DIR:%=%/lib) $(SECONDO_JPEG_DIR:%=%/lib) \
+    $(SECONDO_LIBXML2_DIR:%=%/lib) $(SECONDO_FLEX_DIR:%=%/lib))
+
+ifneq ($(strip $(SECONDO_LIB_PATHS)),)
+LIBRARY_PATH := $(subst $(secondo-space),:,$(strip $(SECONDO_LIB_PATHS)))$(if $(LIBRARY_PATH),:$(LIBRARY_PATH))
+endif
+endif
+
+# --- optional libraries ----------------------------------------------------
+# GNU recode: header and library below a prefix that is searched anyway.
+ifndef SECONDO_HAS_RECODE
+ifneq ($(SECONDO_PLATFORM),android)
+SECONDO_HAS_RECODE := $(if $(call secondo-have-lib,recode.h,recode),yes)
+endif
+endif
+
+# --- publish ---------------------------------------------------------------
+SECONDO_DETECTED := 1
+
+endif # SECONDO_DETECTED
+
+# The variables the build and the runtime care about, in one place.
+SECONDO_DETECT_VARS := \
+	SECONDO_BUILD_DIR \
+	SECONDO_PLATFORM \
+	HOMEBREW_PREFIX \
+	SWI_HOME_DIR \
+	PL_LIB_DIR \
+	PL_DLL_DIR \
+	PL_INCLUDE_DIR \
+	PL_LIB \
+	J2SDK_ROOT \
+	BERKELEY_DB_DIR \
+	BERKELEY_DB_LIB \
+	SECONDO_READLINE_DIR \
+	SECONDO_JPEG_DIR \
+	SECONDO_FLEX_DIR \
+	SECONDO_LIBXML2_DIR \
+	LIBRARY_PATH \
+	SECONDO_HAS_RECODE
+
+# LIBRARY_PATH is deliberately not in this list: it is read by the compiler
+# driver, and an exported-but-empty LIBRARY_PATH is one empty path element,
+# which gcc reads as the current directory. It is exported below only when it
+# actually has a value (macOS).
+export SECONDO_DETECTED $(filter-out LIBRARY_PATH,$(SECONDO_DETECT_VARS))
+
+ifneq ($(strip $(LIBRARY_PATH)),)
+export LIBRARY_PATH
+endif
+
+# Targets are only defined when this file is the makefile being run, not when
+# it is included: the first target of the first makefile read becomes the
+# default goal, and defining one here would displace the "all" of every
+# makefile that includes us.
+ifeq ($(firstword $(MAKEFILE_LIST)),$(lastword $(MAKEFILE_LIST)))
+
+.PHONY: print-vars
+print-vars:
+	@$(foreach v,$(SECONDO_DETECT_VARS),printf '%s=%s\n' '$(v)' '$($(v))';)
+
+# One-line summary plus warnings, exiting non-zero if anything is missing.
+# The packaging runs this before "make" so that a missing dependency fails the
+# build with a readable message, rather than producing a kernel with silently
+# disabled features. The tests are shell rather than $(if ...) because make
+# would split each message into one word per echo.
+.PHONY: check-env
+check-env:
+	@printf 'secondo env: platform %s | swipl %s | jdk %s | bdb %s\n' \
+	  '$(SECONDO_PLATFORM)' '$(if $(SWI_HOME_DIR),$(SWI_HOME_DIR),none)' \
+	  '$(if $(J2SDK_ROOT),$(J2SDK_ROOT),MISSING)' \
+	  '$(if $(BERKELEY_DB_DIR),$(BERKELEY_DB_DIR),MISSING)'
+	@rc=0; \
+	[ -n '$(SWI_HOME_DIR)' ] || { \
+	  echo '  ! swipl not found -> optimizer disabled (install swi-prolog, or set SECONDO_SWIPL)'; rc=1; }; \
+	[ -x '$(J2SDK_ROOT)/bin/javac' ] || { \
+	  echo '  ! JDK not found -> Java GUI will not build (set J2SDK_ROOT)'; rc=1; }; \
+	[ -f '$(BERKELEY_DB_DIR)/include/db_cxx.h' ] || { \
+	  echo '  ! db_cxx.h not under $(BERKELEY_DB_DIR) (set BERKELEY_DB_DIR)'; rc=1; }; \
+	exit $$rc
+
+endif

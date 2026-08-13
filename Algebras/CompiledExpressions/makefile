@@ -34,7 +34,6 @@ CURRENT_ALGEBRA := CompiledExpressionsAlgebra
 
 CE_EXTERN_MAKE_DIR := ../Management
 CE_EXTERN_MAKE_FILE := AlgebraManager.cpp
-TMP_CURRENT_DIR := $(CURDIR)
 
 # expand compile flags if necessary
 #CCFLAGS += -Werror
@@ -65,19 +64,15 @@ else
 		sed -i "s/^\/\/#define _COMPILED_EXPRESSIONS_ALGEBRA_STATIC_/#define _COMPILED_EXPRESSIONS_ALGEBRA_STATIC_/g" LinkCEAlgebraFunction.h ;\
 	fi
 endif
-	for dir in $(CE_EXTERN_MAKE_DIR); do \
+	@for dir in $(CE_EXTERN_MAKE_DIR); do \
 		if [ -e $$dir/makefile ]; then \
-			cd $$dir; \
 			for file in $(CE_EXTERN_MAKE_FILE); do \
 				if [ -e $$dir/$$file ]; then \
-				touch $$dir/$$file; \
+					touch $$dir/$$file; \
 				fi; \
 			done; \
-			if !($(MAKE)) then \
-				exit 1; \
-			fi; \
-			cd $$TMP_CURRENT_DIR; \
-		fi \
+			$(MAKE) -C $$dir || exit 1; \
+		fi; \
 	done
 	@echo && echo " *** Include or Remove CE-Algebra in Secondo finish ***" && echo;
 
