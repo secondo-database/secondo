@@ -8627,17 +8627,22 @@ private:
   boost::mutex mtx;
 
   void start() {
-    for (size_t i = 0; i < array->getSize(); i++) {
+    const size_t slots = array->getSize();
+
+    // Every entry exists before any thread does. A worker reports its result
+    // into filenames[] through fileAvailable as soon as it starts, holding
+    // mtx -- but the push_back that used to follow held nothing and may
+    // reallocate, which moves the very strings a running worker is assigning
+    // to. Sizing the vectors up front and starting the threads afterwards
+    // removes the race and the write through the freed buffer together.
+    filenames.resize(slots);
+    getters.assign(slots, nullptr);
+    runners.assign(slots, nullptr);
+
+    for (size_t i = 0; i < slots; i++) {
       if (array->isSlotUsed(i)) {
-        RelationFileGetter<A> *getter =
-            new RelationFileGetter<A>(array, i, this);
-        getters.push_back(getter);
-        filenames.push_back("");
-        runners.push_back(new boost::thread(*getter));
-      } else { // unused slot
-        filenames.push_back("");
-        runners.push_back(nullptr);
-        getters.push_back(nullptr);
+        getters[i] = new RelationFileGetter<A>(array, i, this);
+        runners[i] = new boost::thread(*getters[i]);
       }
     }
   }
@@ -11509,9 +11514,17 @@ private:
         rtype *r = new rtype(ci, dbname, i, this);
         ci->deleteIfAllowed();
         w.push_back(r);
-        boost::thread *runner = new boost::thread(&rtype::run, r);
-        runners.push_back(runner);
       }
+    }
+
+    // The threads start only once every logger above has been set. Several
+    // slots can share one worker connection, so starting them inside the loop
+    // meant a later iteration wrote ConnectionInfo::cmdLog while an already
+    // running worker read it. Creating a thread synchronizes with everything
+    // the creating thread did first, so this removes the race outright
+    // instead of locking around it.
+    for (size_t k = 0; k < w.size(); k++) {
+      runners.push_back(new boost::thread(&rtype::run, w[k]));
     }
 
     // wait for finishing the threads and delete them

@@ -339,6 +339,13 @@ Application::Application( int argc, const char** argv )
 
 Application::~Application()
 {
+    // Reset the pointer, because the signal handlers this class installs stay
+    // installed for the life of the process and every one of them reaches
+    // through appPointer. Leaving it set meant that a signal arriving during
+    // or after teardown read a destroyed object. ThreadSanitizer caught
+    // exactly that on the server shutdown path.
+    Application::appPointer = 0;
+
     if(Application::relocationInfo != NULL) {
         free(Application::relocationInfo);
         Application::relocationInfo = NULL;
@@ -455,6 +462,17 @@ This is the default signal handler for all signals that would
 abort the process if not handled otherwise.
 
 */
+  // The instance may already be gone: these handlers stay installed for the
+  // whole process, while appPointer is cleared by ~Application. With nothing
+  // left to record the signal for, hand it to the default handler rather than
+  // dereference a destroyed object.
+  if ( appPointer == 0 )
+  {
+    signal( sig, SIG_DFL );
+    raise( sig );
+    return;
+  }
+
   // When the application opted in, a terminating signal is only recorded here;
   // the shutdown itself runs later from the main loop, via
   // ProcessPendingSignals. Everything else -- and every signal when the opt-in
@@ -492,6 +510,11 @@ abort the process if not handled otherwise.
 void
 Application::UserSignalHandler ( int sig )
 {
+  if ( Application::appPointer == 0 )
+  {
+    return;
+  }
+
   // SIGUSR1 is used to cancel running queries
   if ( sig == SIGUSR1 )
   {
@@ -562,6 +585,11 @@ Application::RemoteSignalHandler()
 BOOL
 Application::AbortOnSignalHandler( DWORD sig )
 {
+  if ( Application::appPointer == 0 )
+  {
+    return (FALSE);
+  }
+
   Application::appPointer->lastSignal = sig;
   if ( sig == CTRL_C_EVENT || 
        sig == CTRL_BREAK_EVENT ||

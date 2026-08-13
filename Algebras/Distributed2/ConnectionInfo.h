@@ -29,6 +29,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #ifndef ALGEBRAS_DISTRIBUTED2_CONNECTIONINFO_H_
 #define ALGEBRAS_DISTRIBUTED2_CONNECTIONINFO_H_
 
+#include <atomic>
 #include <boost/thread.hpp>
 #include <mutex>
 
@@ -287,12 +288,12 @@ public:
 
 
     void setLogger(CommandLogger* cmdlog){
-      this->cmdLog = cmdlog;
+      this->cmdLog.store(cmdlog);
     }
     
 
     CommandLogger* getLogger() const{
-      return cmdLog;
+      return cmdLog.load();
     }
 
     void setNum(const int num){
@@ -352,7 +353,13 @@ private:
 
     mutex_type simtx; // mutex for synchronizing 
                                   // access to the interface
-    CommandLogger* cmdLog;  // if this is nor null, commands are
+    // Atomic because it is written and read from several worker threads at
+    // once: getWorkerConnection installs the caller's logger on a connection
+    // that other workers are already running commands through. Which logger
+    // wins was always last-writer-wins; this only makes the access defined
+    // rather than a data race.
+    std::atomic<CommandLogger*> cmdLog;
+                         // if this is nor null, commands are
                          // written to log instead of sending
                          // to the server
     int num; // some number that can be used to store additional information

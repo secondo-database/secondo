@@ -328,7 +328,8 @@ void ConnectionInfo::simpleCommand(std::string command1,
              stopTimeout(true);
           }
         } else {
-          cmdLog->insert(this, command);
+          if (CommandLogger* clog = cmdLog.load())
+            clog->insert(this, command);
           serr.code = 0;
           serr.msg = "command not evaluated";
           resList = mynl->TheEmptyList();
@@ -431,7 +432,8 @@ bool ConnectionInfo::switchDatabase(const std::string& dbname,
     if(!cmdLog || forceExec){
        si->Secondo(cmd, resList, serr);
     } else {
-       cmdLog->insert(this, cmd);
+       if (CommandLogger* clog = cmdLog.load())
+         clog->insert(this, cmd);
        resList = mynl->TheEmptyList();
        serr.code = 0;
        serr.msg = "command not executed";
@@ -445,7 +447,8 @@ bool ConnectionInfo::switchDatabase(const std::string& dbname,
         if(!cmdLog || forceExec){
            si->Secondo(cmd, resList, serr);
         } else {
-           cmdLog->insert(this, cmd);
+           if (CommandLogger* clog = cmdLog.load())
+             clog->insert(this, cmd);
            resList = mynl->TheEmptyList();
            serr.code = 0;
            serr.msg = "command not executed";
@@ -458,7 +461,8 @@ bool ConnectionInfo::switchDatabase(const std::string& dbname,
     if(!cmdLog || forceExec){
        si->Secondo(cmd, resList, serr);
     } else {
-       cmdLog->insert(this, cmd);
+       if (CommandLogger* clog = cmdLog.load())
+         clog->insert(this, cmd);
        resList = mynl->TheEmptyList();
        serr.code = 0;
        serr.msg = "command not executed";
@@ -513,7 +517,8 @@ void ConnectionInfo::simpleCommand(const std::string& command1,
         if(!cmdLog || forceExec){
            si->Secondo(command, myResList, serr);
         } else {
-           cmdLog->insert(this, command);
+           if (CommandLogger* clog = cmdLog.load())
+             clog->insert(this, command);
            myResList = mynl->TheEmptyList();
            serr.code = 0;
            serr.msg = "command not executed";
@@ -583,7 +588,8 @@ void ConnectionInfo::simpleCommandFromList(const std::string& command1,
     if(!cmdLog || forceExec){
        si->Secondo(cmd, myResList, serr);
     } else {
-       cmdLog->insert(this, mynl->ToString(cmd));
+       if (CommandLogger* clog = cmdLog.load())
+         clog->insert(this, mynl->ToString(cmd));
        myResList = mynl->TheEmptyList();
        serr.code = 0;
        serr.msg = "command not executed";
@@ -658,7 +664,8 @@ void ConnectionInfo::simpleCommand(const std::string& command1,
     if(!cmdLog || forceExec){
        si->Secondo(command, myResList, serr);
     } else {
-       cmdLog->insert(this, command);
+       if (CommandLogger* clog = cmdLog.load())
+         clog->insert(this, command);
        myResList = mynl->TheEmptyList();
        serr.code = 0;
        serr.msg = "command not executed";
@@ -847,7 +854,8 @@ bool ConnectionInfo::createOrUpdateObject(const std::string& name,
     if(!cmdLog || forceExec){
        si->Secondo(cmd, resList, serr);
     } else {
-       cmdLog->insert(this, cmd);
+       if (CommandLogger* clog = cmdLog.load())
+         clog->insert(this, cmd);
        resList = mynl->TheEmptyList();
        serr.code = 0;
        serr.msg = "command not executed";
@@ -868,7 +876,8 @@ bool ConnectionInfo::createOrUpdateObject(const std::string& name,
     if(!cmdLog || forceExec){
        si->Secondo(cmd, resList, serr);
     } else {
-       cmdLog->insert(this, cmd);
+       if (CommandLogger* clog = cmdLog.load())
+         clog->insert(this, cmd);
        resList = mynl->TheEmptyList();
        serr.code = 0;
        serr.msg = "command not executed";
@@ -967,7 +976,8 @@ bool ConnectionInfo::createOrUpdateRelationFromBinFile(const std::string& name,
         if(!cmdLog || forceExec){
            si->Secondo(cmd, resList, serr);
         } else {
-           cmdLog->insert(this, cmd);
+           if (CommandLogger* clog = cmdLog.load())
+             clog->insert(this, cmd);
            resList = mynl->TheEmptyList();
            serr.code = 0;
            serr.msg = "command not executed";
@@ -986,7 +996,8 @@ bool ConnectionInfo::createOrUpdateRelationFromBinFile(const std::string& name,
     if(!cmdLog || forceExec){
        si->Secondo(cmd, resList, serr);
     } else {
-       cmdLog->insert(this, cmd);
+       if (CommandLogger* clog = cmdLog.load())
+         clog->insert(this, cmd);
        resList = mynl->TheEmptyList();
        serr.code = 0;
        serr.msg = "command not executed";
@@ -1011,7 +1022,8 @@ bool ConnectionInfo::createOrUpdateRelationFromBinFile(const std::string& name,
     if(!cmdLog || forceExec){
        si->Secondo(cmd, resList, serr);
     } else {
-       cmdLog->insert(this, cmd);
+       if (CommandLogger* clog = cmdLog.load())
+         clog->insert(this, cmd);
        resList = mynl->TheEmptyList();
        serr.code = 0;
        serr.msg = "command not executed";
@@ -1074,7 +1086,8 @@ bool ConnectionInfo::createOrUpdateAttributeFromBinFile(const std::string& name,
         if(!cmdLog || forceExec){
            si->Secondo(cmd, resList, serr);
         } else {
-           cmdLog->insert(this, cmd);
+           if (CommandLogger* clog = cmdLog.load())
+             clog->insert(this, cmd);
            resList = mynl->TheEmptyList();
            serr.code = 0;
            serr.msg = "command not executed";
@@ -1093,7 +1106,8 @@ bool ConnectionInfo::createOrUpdateAttributeFromBinFile(const std::string& name,
     if(!cmdLog || forceExec){
        si->Secondo(cmd, resList, serr);
     } else {
-       cmdLog->insert(this, cmd);
+       if (CommandLogger* clog = cmdLog.load())
+         clog->insert(this, cmd);
        resList = mynl->TheEmptyList();
        serr.code = 0;
        serr.msg = "command not executed";
@@ -1111,7 +1125,8 @@ bool ConnectionInfo::createOrUpdateAttributeFromBinFile(const std::string& name,
     if(!cmdLog || forceExec){
        si->Secondo(cmd, resList, serr);
     } else {
-       cmdLog->insert(this, cmd);
+       if (CommandLogger* clog = cmdLog.load())
+         clog->insert(this, cmd);
        resList = mynl->TheEmptyList();
        serr.code = 0;
        serr.msg = "command not executed";
@@ -1252,7 +1267,8 @@ bool ConnectionInfo::retrieve(const std::string& objName,
       if(!cmdLog || forceExec){
          si->Secondo(cmd, myResList, serr);
       } else {
-         cmdLog->insert(this, cmd);
+         if (CommandLogger* clog = cmdLog.load())
+           clog->insert(this, cmd);
          myResList = mynl->TheEmptyList();
          serr.code = 0;
          serr.msg = "command not executed";
@@ -1391,7 +1407,8 @@ bool ConnectionInfo::retrieveRelationInFile(const std::string& fileName,
     if(!cmdLog || forceExec){
        si->Secondo(cmd, resList, serr);
     } else {
-       cmdLog->insert(this, cmd);
+       if (CommandLogger* clog = cmdLog.load())
+         clog->insert(this, cmd);
        resList = mynl->TheEmptyList();
        serr.code = 0;
        serr.msg = "command not executed";
@@ -1444,7 +1461,8 @@ bool ConnectionInfo::retrieveRelationInFile(const std::string& fileName,
     if(!cmdLog || forceExec){
        si->Secondo(cmd, resList, serr);
     } else {
-       cmdLog->insert(this, cmd);
+       if (CommandLogger* clog = cmdLog.load())
+         clog->insert(this, cmd);
        resList = mynl->TheEmptyList();
        serr.code = 0;
        serr.msg = "command not executed";
@@ -1500,7 +1518,8 @@ bool ConnectionInfo::retrieveRelationFile(const std::string& objName,
     if(!cmdLog || forceExec){
        si->Secondo(cmd, resList, serr);
     } else {
-       cmdLog->insert(this, cmd);
+       if (CommandLogger* clog = cmdLog.load())
+         clog->insert(this, cmd);
        resList = mynl->TheEmptyList();
        serr.code = 0;
        serr.msg = "command not executed";
@@ -1528,7 +1547,8 @@ bool ConnectionInfo::retrieveRelationFile(const std::string& objName,
     if(!cmdLog || forceExec){
        si->Secondo(cmd, resList, serr);
     } else {
-       cmdLog->insert(this, cmd);
+       if (CommandLogger* clog = cmdLog.load())
+         clog->insert(this, cmd);
        resList = mynl->TheEmptyList();
        serr.code = 0;
        serr.msg = "command not executed";
@@ -1559,7 +1579,8 @@ bool ConnectionInfo::retrieveRelationFile(const std::string& objName,
     if(!cmdLog || forceExec){
        si->Secondo(cmd, resList, serr);
     } else {
-       cmdLog->insert(this, cmd);
+       if (CommandLogger* clog = cmdLog.load())
+         clog->insert(this, cmd);
        resList = mynl->TheEmptyList();
        serr.code = 0;
        serr.msg = "command not executed";

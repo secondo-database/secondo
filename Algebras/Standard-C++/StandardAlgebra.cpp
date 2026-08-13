@@ -301,8 +301,8 @@ Within this implementation, we don't use the flag but maintain it in order
 to demonstrate how to handle complex  objects.
 
 */
-long CcInt::intsCreated = 0;
-long CcInt::intsDeleted = 0;
+std::atomic<long> CcInt::intsCreated(0);
+std::atomic<long> CcInt::intsDeleted(0);
 
 /*
 
@@ -471,8 +471,8 @@ The following type constructor, ~REAL~, is defined in the same way as
 ~INT~.
 
 */
-long CcReal::realsCreated = 0;
-long CcReal::realsDeleted = 0;
+std::atomic<long> CcReal::realsCreated(0);
+std::atomic<long> CcReal::realsDeleted(0);
 
 /*
 
@@ -601,8 +601,8 @@ Within this implementation, we don't use the flag but maintain it in order
 to demonstrate how to handle complex  objects.
 
 */
-long CcBool::boolsCreated = 0;
-long CcBool::boolsDeleted = 0;
+std::atomic<long> CcBool::boolsCreated(0);
+std::atomic<long> CcBool::boolsDeleted(0);
 
 /*
 
@@ -743,8 +743,8 @@ TypeConstructor ccBool( CcBool::BasicType(),             CcBoolProperty,
 3.5 Type constructor *CcString*
 
 */
-long CcString::stringsCreated = 0;
-long CcString::stringsDeleted = 0;
+std::atomic<long> CcString::stringsCreated(0);
+std::atomic<long> CcString::stringsDeleted(0);
 
 bool CcString::Adjacent( const Attribute* arg ) const
 {

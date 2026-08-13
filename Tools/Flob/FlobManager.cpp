@@ -11,6 +11,7 @@ of that class.
 
 #include "SecondoSMI.h"
 #include <stdlib.h>
+#include <atomic>
 #include <mutex>
 #include <utility>
 #include "Flob.h"
@@ -72,8 +73,10 @@ FlobManager instance.
 #define FM_useStats
 
 #ifdef FM_useStats
-static size_t createdFlobs;
-static size_t reusedFlobs;
+// Atomic because Flobs are created from several threads at once while the
+// increment of createdFlobs sits outside the manager's mutex.
+static std::atomic<size_t> createdFlobs;
+static std::atomic<size_t> reusedFlobs;
 #endif
 
 
