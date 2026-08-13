@@ -1,3 +1,4 @@
+#!/bin/sh
 # This file is part of the PD system
 # Copyright (C) 1998 Ralf Hartmut Gueting, Fachbereich Informatik, FernUniversitaet Hagen
 
@@ -10,12 +11,17 @@
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-#!/bin/sh
 #
 # pdview <file> - previews an PD file with LaTeX's DVI previewer
 #
 # May 2004, M. Spiekermann
 
-pd2dvi $1; 
+# Resolve the other PD tools relative to this script rather than relying on
+# PATH, so the toolchain also works when invoked by an absolute path.
+pdDir=$(cd "$(dirname "$0")" && pwd)
+PATH="$pdDir:$PATH"
+export PATH
 
-pdpreview $1 dvi $PD_DVI_VIEWER &
+pd2dvi $1;
+
+pdpreview $1 dvi "${PD_DVI_VIEWER:-$pdDir/pdopen}" &

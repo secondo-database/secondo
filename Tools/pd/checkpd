@@ -1,3 +1,4 @@
+#!/bin/bash
 # This file is part of the PD system
 # Copyright (C) 1998 Ralf Hartmut Gueting, Fachbereich Informatik, FernUniversitaet Hagen
 
@@ -11,10 +12,15 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
 
-# !/bin/sh
 # Script for checking of correctness with respect to pd and latex
 #
 #
+# Resolve the other PD tools and the default header relative to this script
+# rather than relying on PATH and PD_HEADER being exported.
+pdDir=$(cd "$(dirname "$0")" && pwd)
+PATH="$pdDir:$PATH"
+export PATH
+
 MAXLINES=80
 IGNORE_INCLUDES="true"
 
@@ -97,7 +103,7 @@ do
         PDFAILED=$(expr $PDFAILED + 1)
       else
         {
-          cat "$PD_HEADER"
+          cat "${PD_HEADER:-$pdDir/pd.header}"
           pdtabs <$F | maketex
         } >"$TEMPDIR"/tmp.tex
 

@@ -1,3 +1,4 @@
+#!/bin/bash
 # This file is part of the PD system
 # Copyright (C) 1998 Ralf Hartmut Gueting, Fachbereich Informatik, FernUniversitaet Hagen
 
@@ -10,11 +11,16 @@
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-#!/bin/sh
 #
 # pd2dvi <file> - Converts a PD file to a TEX file
 #
 # May 2004, M. Spiekermann
+
+# Resolve the other PD tools relative to this script rather than relying on
+# PATH, so the toolchain also works when invoked by an absolute path.
+pdDir=$(cd "$(dirname "$0")" && pwd)
+PATH="$pdDir:$PATH"
+export PATH
 
 function showError()
 {
