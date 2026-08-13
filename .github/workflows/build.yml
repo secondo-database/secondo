@@ -136,10 +136,9 @@ jobs:
       # moves a chunk once it is published and keeps its counters atomic, and
       # nothing but a test says so.
       #
-      # Plain first, because the value checks catch corruption on their own;
-      # then under ThreadSanitizer, which catches the unsynchronized access
-      # before it corrupts anything. Needs no server, so it runs here rather
-      # than with the connection tests further down.
+      # The value checks catch corruption on their own. The accesses that race
+      # without corrupting anything yet are ThreadSanitizer's to find, and it
+      # runs over the whole tree in the build-linux-tsan job rather than here.
       #
       # --list-mem is what makes this reach the storage layer: it sizes the
       # tables to a single page, so BigArray runs out of room within the first
@@ -155,24 +154,21 @@ jobs:
         run: |
           make
           ./app --mode shared --threads 8 --rounds 5 --list-mem 1
-          make tsan-check-sources
-          make tsan
-          TSAN_OPTIONS="halt_on_error=0 history_size=4" \
-            ./app-tsan --mode shared --threads 4 --rounds 2 --list-mem 1
 
           # The other half of the contract -- "operations on the same list need
           # the caller's own lock" -- is the caller's to keep, so NestedList
           # ships a checker that turns breaking it into an immediate abort
-          # naming both threads and the node. Built here from the same sources
-          # (TSAN_FLAGS is just the flag set for that self-contained build; no
-          # sanitizer this time, the checker is the instrument).
+          # naming both threads and the node. "make app-check" is that build:
+          # NestedList.cpp and the test recompiled with -DNL_CHECK_CONCURRENCY
+          # over the stock libsecondo.a. No sanitizer -- the checker is the
+          # instrument, and it looks for overlap in time rather than for the
+          # missing happens-before that TSan reports.
           #
           # Both directions are asserted, because a checker that never fires
           # and a checker that always fires both look like a passing build from
           # one side only.
-          rm -rf tsan app-tsan
-          make tsan TSAN_FLAGS="-g -O1 -DNL_CHECK_CONCURRENCY"
-          ./app-tsan --mode shared --threads 8 --rounds 5 --list-mem 1
+          make app-check
+          ./app-check --mode shared --threads 8 --rounds 5 --list-mem 1
           #
           # ...and one list passed from thread to thread, each one joined
           # before the next starts. That keeps the contract, so it has to run
@@ -181,7 +177,7 @@ jobs:
           # and forgets to unmark it gets wrong. Such a checker still aborts on
           # the unsynchronised mode below and still passes the mode above, so
           # this is the direction that has to be asserted separately.
-          ./app-tsan --mode handover --threads 4 --rounds 5 --list-mem 1
+          ./app-check --mode handover --threads 4 --rounds 5 --list-mem 1
 
           # What the contract run must produce is the checker's *report*, not
           # merely a non-zero exit: a crash, a binary that was never built, and
@@ -192,7 +188,7 @@ jobs:
           # anything kept this step green.
           fired=""
           for attempt in $(seq 1 10); do
-            if out=$(./app-tsan --mode contract --threads 4 --rounds 1 \
+            if out=$(./app-check --mode contract --threads 4 --rounds 1 \
                        --list-mem 1 2>&1); then
               echo "$out"
               echo "FAIL: the concurrency checker did not fire although four" \
@@ -211,13 +207,6 @@ jobs:
                  "reporting once -- the last one is above"
             exit 1
           fi
-
-          # Leave nothing instrumented-looking behind: the connection test
-          # further down builds its own app-tsan in this same directory, and
-          # make would find these objects up to date and reuse them. They were
-          # built without -fsanitize=thread, so that step would run a blind
-          # binary and pass no matter what.
-          rm -rf tsan app-tsan
 
       - name: Setup Node
         uses: actions/setup-node@v7
@@ -342,33 +331,18 @@ jobs:
       # The client library has to tolerate several connections in one process:
       # the WebUI bridge opens one per browser session and runs them in
       # parallel. Tests/csloadtest drives it from many threads and checks the
-      # answers; under ThreadSanitizer it also checks that nothing shared is
-      # touched without synchronization. Runs against the monitor started above.
+      # answers. Runs against the monitor started above. The same test runs
+      # under ThreadSanitizer in the build-linux-tsan job, where both this
+      # process and the server it talks to are instrumented.
       # -----------------------------------------------------------------------
       - name: Test concurrent client connections
         working-directory: Tests/csloadtest
-        # These two drive a server over a socket, so a wedged connection hangs
-        # rather than fails; and see the cap on the nested-list step above for
-        # how a sanitizer run can spin instead of reporting.
+        # This drives a server over a socket, so a wedged connection hangs
+        # rather than fails.
         timeout-minutes: 10
         run: |
           make
           ./app --db berlintest --threads 10 --rounds 5 --expect-binary
-
-      - name: Test concurrent client connections under ThreadSanitizer
-        working-directory: Tests/csloadtest
-        timeout-minutes: 10
-        run: |
-          # Fails if the list of instrumented sources has drifted from the
-          # archive: an object we forget to instrument makes TSan quietly blind.
-          make tsan-check-sources
-          make tsan
-          # TSan exits 66 when it reports anything, which fails this step.
-          # halt_on_error=0 so that a failing run lists every race, not just
-          # the first. Fewer threads and rounds than above: the sanitizer is
-          # slow, and the races it looks for do not need a large workload.
-          TSAN_OPTIONS="halt_on_error=0 history_size=4" \
-            ./app-tsan --db berlintest --threads 4 --rounds 2
 
       - name: Stop the WebUI stack
         if: always()
@@ -386,6 +360,199 @@ jobs:
           cat "${RUNNER_TEMP}/secondo-monitor.log" 2>/dev/null || true
           echo "########## WebUI backend"
           cat "${RUNNER_TEMP}/webui-backend.log" 2>/dev/null || true
+
+   # ------------------------------------------------------------------------
+   # The whole tree under ThreadSanitizer.
+   #
+   # This used to be two steps in build-linux that instrumented a hand-listed
+   # mirror of the client library's sources -- NestedList, BigArray, SocketIO
+   # and the CS interface, and nothing else. The QueryProcessor, every algebra
+   # and the four server daemons were outside it, which is precisely where the
+   # threads that serve users run. Instrumenting a subset is also the one thing
+   # that makes TSan report races that do not exist, because it cannot see the
+   # synchronization in the objects it was not compiled into.
+   #
+   # "make SECONDO_TSAN=1" (see makefile.env) instruments everything instead,
+   # so the mirror and the guard that kept it from drifting are both gone. One
+   # runner is enough: the sanitizer finds races in the code, not in the
+   # platform, so running it on all three Ubuntu versions would cost three
+   # times as much to learn the same thing.
+   # ------------------------------------------------------------------------
+   build-linux-tsan:
+    runs-on: ubuntu-26.04
+    env:
+      # halt_on_error=0 so one run lists every race rather than only the first;
+      # TSan still exits 66, which fails the step that produced it. history_size
+      # trades memory for how far back the "previous access" stack can reach.
+      # detect_deadlocks=0 because Berkeley DB takes its locks out of order on
+      # purpose and resolves the result with its own deadlock detector -- that
+      # is what DB_LOCK_DETECT is for. TSan cannot know that and reported every
+      # occurrence: one restore of berlintest produced 20919 lock-order
+      # inversions, all inside libdb_cxx, a 1.2 million line log, and not one
+      # data race. Races are what this job is for, and they are still detected;
+      # only the lock-order checker is off.
+      TSAN_OPTIONS: >-
+        halt_on_error=0
+        history_size=4
+        detect_deadlocks=0
+        suppressions=${{ github.workspace }}/CM-Scripts/tsan.supp
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v7
+
+      - name: Setup ccache
+        uses: hendrikmuhs/ccache-action@v1.2.23
+        with:
+          # Its own key: -fsanitize=thread and -O1 change every command line, so
+          # these objects would never hit the build-linux cache -- sharing a key
+          # would only make the two jobs evict each other. Larger, too, because
+          # instrumented objects are bigger.
+          key: tsan-ubuntu-26.04
+          max-size: 2G
+
+      - name: Update packages
+        run: |
+          sudo apt-get update
+
+      - name: Install packages
+        run: |
+          sudo apt-get -y install flex bison gcc g++ libdb5.3 libdb5.3-dev libdb5.3++ libdb5.3++-dev db5.3-util libjpeg-dev libgsl0-dev libreadline-dev librecode-dev libgmp-dev libncurses-dev libxml2-dev libboost-all-dev build-essential default-jdk wget swi-prolog-nox swi-prolog-java swi-prolog libquadmath0 libgmp-dev libgmp10 libboost-all-dev libbison-dev libfl-dev nlohmann-json3-dev
+
+      - name: Detect SECONDO build environment
+        run: |
+          {
+            echo "SECONDO_BUILD_DIR=${GITHUB_WORKSPACE}"
+            echo "SECONDO_CC=ccache gcc"
+            echo "SECONDO_CPP=ccache g++"
+          } >> "$GITHUB_ENV"
+          make -s -f makefile.detect print-vars
+          make -f makefile.detect check-env
+
+      - name: Show ccache statistics (before build)
+        run: ccache -s
+
+      # compileJava=false skips the Java GUI: javac never sees a sanitizer flag,
+      # so building it here would only cost time.
+      - name: Build SECONDO with ThreadSanitizer
+        run: |
+          make -j $(nproc) SECONDO_TSAN=1 compileJava=false
+
+      - name: Show ccache statistics (after build)
+        run: ccache -s
+
+      # The top-level make does not build libsecondo.a, and Tests/csloadtest
+      # links it.
+      - name: Build the SECONDO client library
+        run: make -C apis/api_cpp/cs SECONDO_TSAN=1
+
+      # A binary that was never instrumented reports nothing and looks exactly
+      # like a clean run, so check the server binaries carry TSan's calls before
+      # trusting anything below. SecondoMonitor is the one the old job could not
+      # reach at all.
+      - name: Check that the server binaries are instrumented
+        run: |
+          rc=0
+          for b in bin/SecondoMonitor bin/SecondoListener bin/SecondoRegistrar \
+                   bin/SecondoCheckpoint bin/SecondoBDB bin/SecondoCS; do
+            n=$(nm -C "$b" | grep -c __tsan_ || true)
+            echo "$b: $n __tsan_ references"
+            if [ "$n" -lt 10 ]; then
+              echo "FAIL: $b is not instrumented"; rc=1
+            fi
+          done
+          exit $rc
+
+      - name: Test the nested list storage layer
+        run: |
+          make -C Tests tnestedlist SECONDO_TSAN=1
+          Tests/tnestedlist
+
+      - name: Test the BigArray chunked storage
+        run: |
+          make -C Tests tbigarray SECONDO_TSAN=1
+          Tests/tbigarray
+
+      # Several threads on one list, and one list handed from thread to thread.
+      # Needs no server. Fewer threads and rounds than in build-linux: the
+      # sanitizer is slow, and the races it looks for do not need a large
+      # workload.
+      - name: Test concurrent access to one nested list
+        working-directory: Tests/csloadtest
+        timeout-minutes: 30
+        run: |
+          make SECONDO_TSAN=1
+          ./app --mode shared   --threads 4 --rounds 2 --list-mem 1
+          ./app --mode handover --threads 4 --rounds 5 --list-mem 1
+
+      - name: Restore the berlintest database
+        run: |
+          echo "${GITHUB_WORKSPACE}/bin" >> "$GITHUB_PATH"
+          echo "SECONDO_CONFIG=${GITHUB_WORKSPACE}/bin/SecondoConfig.ini" >> "$GITHUB_ENV"
+          echo "SECONDO_PARAM_SecondoHome=${RUNNER_TEMP}/tsan-dbs" >> "$GITHUB_ENV"
+          export PATH="${GITHUB_WORKSPACE}/bin:${PATH}"
+          export SECONDO_CONFIG="${GITHUB_WORKSPACE}/bin/SecondoConfig.ini"
+          export SECONDO_PARAM_SecondoHome="${RUNNER_TEMP}/tsan-dbs"
+          mkdir -p "$SECONDO_PARAM_SecondoHome"
+          cd bin
+          printf 'create database berlintest;\nrestore database berlintest from berlintest;\nclose database;\nquit;\n' \
+            | ./SecondoTTYBDB
+
+      # The replacement for the old app-tsan connection test, and strictly more
+      # than it was: the client process and the server process on the other end
+      # of the socket are now both instrumented.
+      - name: Test concurrent client connections
+        timeout-minutes: 30
+        run: |
+          cd bin
+          ./SecondoMonitor --daemon \
+            --pidfile "${RUNNER_TEMP}/secondo-monitor.pid" \
+            --log "${RUNNER_TEMP}/secondo-monitor.log"
+          ./SecondoMonitor --health
+          cd ../Tests/csloadtest
+          rc=0
+          ./app --db berlintest --threads 4 --rounds 2 || rc=$?
+          # Shut the monitor down before run-tests.sh, whose suites start
+          # monitors of their own and expect the default port to be free.
+          SecondoMonitor --shutdown \
+            --pidfile "${RUNNER_TEMP}/secondo-monitor.pid" || true
+          exit $rc
+
+      # The .test suites and the .examples files are breadth over the operator
+      # set, run in one process, and TSan has nothing to say about them -- they
+      # would only multiply the job's run time. What is left is the part that
+      # runs real SecondoMonitor process trees driven by parallel clients.
+      # The optimizer is skipped because SecondoBDB embeds an uninstrumented
+      # libswipl that threads, garbage-collects and shifts stacks on its own.
+      - name: Test SECONDO
+        run: |
+          cd CM-Scripts/
+          SECONDO_SKIP_TESTRUNNER_TESTS=true \
+          SECONDO_SKIP_ALGEBRA_TESTS=true \
+          SECONDO_SKIP_OPTIMIZER_TESTS=true \
+            ./run-tests.sh -tty /tmp/secondotest-tsan 3600
+
+      - name: Show failed test logs
+        if: failure()
+        run: |
+          for f in "${GITHUB_WORKSPACE}"/bin/*.test.log; do
+            [ -f "$f" ] || continue
+            echo "########## $f"; tail -80 "$f"
+          done
+          find /tmp/secondotest-tsan -type f 2>/dev/null | while read -r f; do
+            echo "########## $f"; tail -80 "$f"
+          done || true
+          for d in "${TMPDIR:-/tmp}"/TestClientServer.* /tmp/TestClientServer.*; do
+            [ -d "$d" ] || continue
+            find "$d" -type f 2>/dev/null | while read -r f; do
+              echo "########## $f"; tail -80 "$f"
+            done
+          done || true
+          for f in "${GITHUB_WORKSPACE}"/bin/Checkpoint.msg \
+                   "${GITHUB_WORKSPACE}"/bin/server.msg/* \
+                   "${RUNNER_TEMP}/secondo-monitor.log"; do
+            [ -f "$f" ] || continue
+            echo "########## $f"; tail -80 "$f"
+          done || true
 
    build-macos:
     # Builds the C++ kernel + TTY, the Java GUI and the embedded-Prolog

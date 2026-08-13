@@ -40,100 +40,55 @@ ClientLoadTest.o: ClientLoadTest.cpp
 
 ########################################################################
 #
-# ThreadSanitizer build: "make tsan", then ./app-tsan
+# Concurrency contract checker: "make app-check", then ./app-check
 #
-# Checks that the client library tolerates several connections in one
-# process. Everything the test links has to be instrumented for the report
-# to mean anything, so the client sources are recompiled here rather than
-# taken from libsecondo.a -- into ./tsan/, so that the objects the normal
-# build produced are left alone. Mixing instrumented and uninstrumented
-# objects is what produces phantom reports.
+# The other half of NestedList's threading contract -- "operations on the
+# same list need the caller's own lock" -- is the caller's to keep, so it
+# cannot be checked by construction. -DNL_CHECK_CONCURRENCY compiles in a
+# checker that turns breaking it into an immediate abort naming both threads
+# and the node, and --mode contract breaks it on purpose.
+#
+# It is not a sanitizer build: ThreadSanitizer catches accesses that race but
+# do not overlap in time, this catches overlapping ones, and the two are
+# complementary. TSan comes from a whole-tree "make SECONDO_TSAN=1" instead
+# (see makefile.env), which is why nothing here has to be instrumented.
+#
+# The flag reaches exactly two translation units. NodeAccessGuard is a free
+# class, not a NestedList member, so the class layout does not change and
+# the rest of libsecondo.a can be used as built; and the NL_WRITING_NODE /
+# NL_READING_NODE macros appear only in NestedList.cpp. The test itself needs
+# it for --mode contract.
 #
 ########################################################################
 
 BD=$(SECONDO_BUILD_DIR)
 
-# The sources behind libsecondo.a. Mirrors CSLIBS in apis/api_cpp/cs/makefile;
-# "make tsan-check-sources" fails if the two have drifted apart.
-CS_SOURCES = \
-  $(BD)/ClientServer/SecondoInterfaceCS.cpp \
-  $(BD)/ClientServer/SocketIO.cpp \
-  $(BD)/QueryProcessor/SecondoInterfaceGeneral.cpp \
-  $(BD)/Tools/BigArray/BigArray.cpp \
-  $(BD)/Tools/NestedLists/NestedList.cpp \
-  $(BD)/Tools/NestedLists/NList.cpp \
-  $(BD)/Tools/NestedLists/NLParser.cpp \
-  $(BD)/Tools/NestedLists/NLScanner.cpp \
-  $(BD)/Tools/NestedLists/NLLex.cpp \
-  $(BD)/Tools/NestedLists/NLParser.tab.cpp \
-  $(BD)/Tools/Utilities/WinUnix.cpp \
-  $(BD)/Tools/Utilities/Environment.cpp \
-  $(BD)/Tools/Utilities/FileSystem.cpp \
-  $(BD)/Tools/Utilities/UtilFunctions.cpp \
-  $(BD)/Tools/Utilities/Application.cpp \
-  $(BD)/Tools/Utilities/Profiles.cpp \
-  $(BD)/Tools/Utilities/Messenger.cpp \
-  $(BD)/Tools/Utilities/StringUtils.cpp \
-  $(BD)/Tools/Utilities/Base64.cpp \
-  $(BD)/Tools/Utilities/AlmostEqual.cpp \
-  $(BD)/Tools/Utilities/satof.cpp \
-  $(BD)/Tools/Flob/ExternalFileCache.cpp \
-  $(BD)/Tools/Flob/FlobManager.cpp \
-  $(BD)/Tools/Flob/PersistentFlobCache.cpp \
-  $(BD)/UserInterfaces/cmsg.cpp \
-  $(BD)/UserInterfaces/SQLLanguage.cpp
+CHECK_FLAGS = -DNL_CHECK_CONCURRENCY
+CHECK_INCLUDES = -I$(BD)/Tools/NestedLists -I../include -I$(BDBINCLUDE)
 
-TSAN_LIB_OBJECTS = $(addprefix tsan/,$(notdir $(CS_SOURCES:.cpp=.o)))
+check/ClientLoadTest.o: ClientLoadTest.cpp
+	@mkdir -p check
+	$(CPPC) -c -o $@ $(CCFLAGS) $(CHECK_FLAGS) $(CHECK_INCLUDES) $< \
+	    -MMD -MP -MF check/ClientLoadTest.dep
 
-# -O1 keeps the stack frames that make a TSan report readable; the sanitizer
-# dominates the run time in any case.
-TSAN_FLAGS = -fsanitize=thread -fno-omit-frame-pointer -g -O1
-TSAN_INCLUDES = -I$(BD)/Tools/NestedLists -I../include -I$(BDBINCLUDE)
+check/NestedList.o: $(BD)/Tools/NestedLists/NestedList.cpp
+	@mkdir -p check
+	$(CPPC) -c -o $@ $(CCFLAGS) $(CHECK_FLAGS) $(CHECK_INCLUDES) $< \
+	    -MMD -MP -MF check/NestedList.dep
 
-vpath %.cpp $(sort $(dir $(CS_SOURCES)))
+-include $(wildcard check/*.dep)
 
-tsan/%.o: %.cpp
-	@mkdir -p tsan
-	$(CPPC) -c -o $@ $(CCFLAGS) $(TSAN_FLAGS) $(TSAN_INCLUDES) $< \
-	    -MMD -MP -MF tsan/$*.dep
+# Our NestedList.o is named ahead of -lsecondo (which LDFLAGS supplies), so
+# every NestedList symbol is already resolved by the time the linker reaches
+# the archive and its own uninstrumented copy is never pulled in.
+app-check$(EXEEXT): check/ClientLoadTest.o check/NestedList.o
+	$(CPPC) -o $@ check/ClientLoadTest.o check/NestedList.o \
+	    $(LDFLAGS) $(DEFAULTLIB) $(COMMON_LD_FLAGS)
 
-tsan/ClientLoadTest.o: ClientLoadTest.cpp
-	@mkdir -p tsan
-	$(CPPC) -c -o $@ $(CCFLAGS) $(TSAN_FLAGS) $(TSAN_INCLUDES) $< \
-	    -MMD -MP -MF tsan/ClientLoadTest.dep
-
--include $(wildcard tsan/*.dep)
-
-.PHONY: tsan
-tsan: Config.ini app-tsan$(EXEEXT)
-
-# Archived rather than linked object by object, exactly as libsecondo.a is:
-# several members (the Flob caches) reference the storage interface, which a
-# client never calls. Out of an archive the linker simply does not pull them
-# in; listing every object instead would demand symbols nothing uses.
-tsan/libsecondo-tsan.a: $(TSAN_LIB_OBJECTS)
-	$(AR) -rs $@ $(TSAN_LIB_OBJECTS)
-
-app-tsan$(EXEEXT): tsan/ClientLoadTest.o tsan/libsecondo-tsan.a
-	$(CPPC) -o $@ tsan/ClientLoadTest.o -Ltsan -lsecondo-tsan $(TSAN_FLAGS) \
-	    -L$(BDB_LIB_DIR) -l$(BERKELEY_DB_LIB) -lpthread -lstdc++ \
-	    $(COMMON_LD_FLAGS)
-
-# Guards the list above against the archive growing a member we do not
-# instrument -- a silently uninstrumented object makes TSan quietly blind.
-.PHONY: tsan-check-sources
-tsan-check-sources:
-	@ar t $(BD)/apis/api_cpp/cs/lib/libsecondo.a | sort > /tmp/cslt_ar.$$$$; \
-	 for s in $(CS_SOURCES); do basename $$s .cpp; done \
-	   | sed 's/$$/.o/' | sort > /tmp/cslt_ours.$$$$; \
-	 if diff -u /tmp/cslt_ar.$$$$ /tmp/cslt_ours.$$$$; then \
-	   echo "tsan source list matches libsecondo.a"; rc=0; \
-	 else \
-	   echo "tsan source list has drifted from apis/api_cpp/cs/makefile"; rc=1; \
-	 fi; \
-	 rm -f /tmp/cslt_ar.$$$$ /tmp/cslt_ours.$$$$; exit $$rc
+.PHONY: check
+check: Config.ini app-check$(EXEEXT)
 
 .PHONY:clean
 clean:
 	rm -f Config.ini app$(EXEEXT) ClientLoadTest.o
-	rm -rf tsan app-tsan$(EXEEXT)
+	rm -rf check app-check$(EXEEXT)

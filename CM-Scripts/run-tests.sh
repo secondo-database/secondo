@@ -118,35 +118,49 @@ fi
 declare -i error=0
 
 #
-# Tests executed by the TestRunner
+# Tests executed by the TestRunner (skippable via SECONDO_SKIP_TESTRUNNER_TESTS).
+# These drive a kernel linked into TestRunner and are, apart from createdb.test
+# which sets up the databases the rest of this section shares, single threaded.
+# The sections below each create their own databases, so skipping this one does
+# not disturb them.
 #
-# The first test create databases
-dbTest="createdb.test"
-dbFile="$buildDir/bin/$dbTest" 
+if [ "${SECONDO_SKIP_TESTRUNNER_TESTS:-}" == "true" ]; then
+  echo "*** Skipping test suites (SECONDO_SKIP_TESTRUNNER_TESTS=true) ***"
+else
+  # The first test create databases
+  dbTest="createdb.test"
+  dbFile="$buildDir/bin/$dbTest"
 
-testSuites=$(find $buildDir/Tests -wholename "*.test")
+  testSuites=$(find $buildDir/Tests -wholename "*.test")
 
-#echo -e "$testSuites"
-#echo "ldd: "$(ldd $SECONDO_BUILD_DIR/bin/SecondoBDB)
+  #echo -e "$testSuites"
+  #echo "ldd: "$(ldd $SECONDO_BUILD_DIR/bin/SecondoBDB)
 
-echo "*** Executing test suites ***"
-for testName in $dbFile $testSuites; do
-  runDir=${testName%/*}
-  testFile=${testName##*/}
-  runTest $runDir $testFile "time $runnerCmd -i  ${testFile}" $timeOutMax
-done
+  echo "*** Executing test suites ***"
+  for testName in $dbFile $testSuites; do
+    runDir=${testName%/*}
+    testFile=${testName##*/}
+    runTest $runDir $testFile "time $runnerCmd -i  ${testFile}" $timeOutMax
+  done
+fi
 
 
 #
-# Algebra tests
+# Algebra tests (skippable via SECONDO_SKIP_ALGEBRA_TESTS). Selftest runs each
+# operator's example queries in one process, so like the section above this is
+# breadth over the operator set rather than concurrency coverage.
 #
-echo "*** Executing algebra tests ***"
-exampleFiles=$(find $buildDir/bin/tmp -wholename "*.examples")
-for testName in $exampleFiles; do
-  runDir=${testName%/*}
-  testFile=${testName##*/}
-  runTest $runDir $testFile "cd $buildDir/bin/; time Selftest tmp/${testFile}" $timeOutMax
-done
+if [ "${SECONDO_SKIP_ALGEBRA_TESTS:-}" == "true" ]; then
+  echo "*** Skipping algebra tests (SECONDO_SKIP_ALGEBRA_TESTS=true) ***"
+else
+  echo "*** Executing algebra tests ***"
+  exampleFiles=$(find $buildDir/bin/tmp -wholename "*.examples")
+  for testName in $exampleFiles; do
+    runDir=${testName%/*}
+    testFile=${testName##*/}
+    runTest $runDir $testFile "cd $buildDir/bin/; time Selftest tmp/${testFile}" $timeOutMax
+  done
+fi
 
 
 #
