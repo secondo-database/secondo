@@ -1,0 +1,33 @@
+# ThreadSanitizer suppressions for the build-linux-tsan CI job.
+#
+# The job builds the whole tree with "make SECONDO_TSAN=1", so everything
+# SECONDO itself compiles is instrumented. What is not instrumented is the
+# third-party code linked into the same binaries -- Berkeley DB above all,
+# which arbitrates with its own test-and-set mutexes in mmap'd shared regions
+# rather than with pthread primitives. TSan intercepts pthread calls, so it
+# sees the synchronization of libraries that use them; it cannot see BDB's,
+# and reports the accesses it protects as races.
+#
+# Add an entry here only for a report that is genuinely not ours to fix, and
+# say in a comment why. A suppression for SECONDO code is a bug being hidden:
+# fix the race instead. Entries are matched against the demangled frames of a
+# report, so keep them as narrow as the report allows.
+#
+# Format (see https://github.com/google/sanitizers/wiki/ThreadSanitizerSuppressions):
+#   race:<function or file substring>
+#   deadlock:<...>
+#   called_from_lib:<library name>
+#
+# This file must exist even when empty -- TSAN_OPTIONS names it, and TSan
+# aborts at startup if the path cannot be opened.
+#
+# Nothing is suppressed here yet, and the one class of noise seen so far is
+# handled outside this file. Berkeley DB acquires locks out of order by design
+# and untangles the result with its own deadlock detector (DB_LOCK_DETECT), so
+# TSan's lock-order checker reported every one: a single restore of berlintest
+# produced 20919 inversions inside libdb_cxx and no data race at all. That is
+# switched off wholesale with detect_deadlocks=0 in the workflow rather than
+# matched here, because the frames come out of a stripped system library and a
+# "deadlock:libdb_cxx" entry would depend on the module name resolving. If the
+# lock-order checker is ever wanted for SECONDO's own mutexes, drop that option
+# and try such an entry here instead.
