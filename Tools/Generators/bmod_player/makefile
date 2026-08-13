@@ -1,26 +1,32 @@
 .PHONY: all clean
 
-CFLAGS += -Wall
-CFLAGS += -g
-CFLAGS += -O2
-CFLAGS += -pthread 
+# This tool is built on its own and does not include makefile.env, so it names
+# the compiler itself -- but it honours SECONDO_CPP like the rest of the tree,
+# and uses CXX/CXXFLAGS rather than putting a C++ compiler in CC.
+CXX ?= g++
+ifdef SECONDO_CPP
+CXX := $(SECONDO_CPP)
+endif
 
-LINKDEPS += $(shell curl-config --libs)
+CXXFLAGS += -Wall
+CXXFLAGS += -g
+CXXFLAGS += -O2
+CXXFLAGS += -pthread
 
-CC = g++
+# ":=" so curl-config is run once, not on every expansion of LINKDEPS.
+LINKDEPS := $(shell curl-config --libs)
 
 OBJS := bmodplayer.o
 
 %.o: %.cpp
-	$(CC) $(CFLAGS) -c -o $@ $< -MMD -MP -MF $*.dep
+	$(CXX) $(CXXFLAGS) -c -o $@ $< -MMD -MP -MF $*.dep
 
 -include $(wildcard *.dep)
 
 all: bmodplayer
 
 bmodplayer: $(OBJS)
-	 $(CC) $(CFLAGS) $(OBJS) -o bmodplayer $(LINKDEPS)
+	$(CXX) $(CXXFLAGS) $(OBJS) -o bmodplayer $(LINKDEPS)
 
 clean:
-	rm -f *.o *.dep
-	rm bmodplayer
+	rm -f *.o *.dep bmodplayer

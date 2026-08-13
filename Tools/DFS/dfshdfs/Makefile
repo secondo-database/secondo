@@ -8,10 +8,7 @@ CXXFLAGS += $(HDFS_INCLUDE)
 all: $(NAME)
 
 $(NAME): $(OBJS)
-	ar rcs $(NAME) $(OBJS)
-
-%.o : %.c %.h
-	g++
+	$(AR) rcs $(NAME) $(OBJS)
 
 clean:
 	rm -f *.o *.a

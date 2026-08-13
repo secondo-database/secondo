@@ -22,7 +22,7 @@
 
 .PHONY:all
 all:
-	g++ collectFlob.cpp -o collectFlob
+	$(CPPC) collectFlob.cpp -o collectFlob
 	cp collectFlob ../../../bin
 	
 	

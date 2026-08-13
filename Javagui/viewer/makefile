@@ -34,7 +34,7 @@ makefile.viewers: makefile.viewers.example
 
 include makefile.viewers
 
-INC_FILES := $(shell ls ./makefile.n*c 2>/dev/null)
+INC_FILES := $(wildcard ./makefile.n*c)
 ifdef INC_FILES
 include $(INC_FILES)
 endif

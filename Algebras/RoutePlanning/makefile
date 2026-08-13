@@ -24,33 +24,8 @@
 ########################################################################
 
 # inlcude global definitions
-include ../../makefile.env
+
 CURRENT_ALGEBRA := RoutePlanningAlgebra
-ALGEBRA_DEPENDENCIES := PointcloudAlgebra
-ALGEBRA_DEPENDENCIES += RTreeAlgebra
-ALGEBRA_DEPENDENCIES += OsmAlgebra
-ALGEBRA_DEPENDENCIES += TinAlgebra
-ALGEBRA_DEPENDENCIES += SpatialAlgebra
-ALGEBRA_DEPENDENCIES += LineFunctionAlgebra
-ALGEBRA_DEPENDENCIES += OrderedRelationAlgebra
-ALGEBRA_DEPENDENCIES += TrajectoryAnnotationAlgebra
+ALGEBRA_DEPENDENCIES := PointcloudAlgebra RTreeAlgebra OsmAlgebra TinAlgebra SpatialAlgebra LineFunctionAlgebra OrderedRelationAlgebra TrajectoryAnnotationAlgebra
 
-# expand compile flags if necessary
-CCFLAGS += -Werror 
-
-# create objects and algebra library. The values for the variables
-# OBJECTS and LIBOBJ are computed automatically by makefile.env 
-.PHONY: all
-all: check_dependencies $(OBJECTS) $(LIBOBJ)
-
-check_dependencies:
-	$(check-algebra-dependencies)
-
-# generic rule for creating a library
-$(LIBOBJ): $(OBJECTS)
-	$(create-lib)
-
-# generic rule for cleaning all generated files
-.PHONY: clean
-clean:
-	$(clean-algebra)
+include ../../makefile.algebra-common

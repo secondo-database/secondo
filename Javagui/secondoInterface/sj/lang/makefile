@@ -65,7 +65,7 @@ ListExpr.class: ListExpr.java | Java_ListExpr
 	$(JAVAC) $(JAVACFLAGS) -classpath $(CP) ListExpr.java
 
 #////////////// generic rules
-%.class: %.java ListExpr.java | Java_ListExpr 
+%.class: %.java ListExpr.class | Java_ListExpr
 	$(JAVAC) $(JAVACFLAGS) -classpath $(CP) $<
 
 

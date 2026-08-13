@@ -24,36 +24,7 @@
 ########################################################################
 
 CURRENT_ALGEBRA := MONTreeAlgebra
+ALGEBRA_DEPENDENCIES := StandardAlgebra RTreeAlgebra HashAlgebra TemporalAlgebra RectangleAlgebra SpatialAlgebra HashAlgebra NetworkAlgebra TemporalNetAlgebra
+ALGEBRA_NO_WERROR := 1
 
-ALGEBRA_DEPENDENCIES := StandardAlgebra
-ALGEBRA_DEPENDENCIES += RTreeAlgebra
-ALGEBRA_DEPENDENCIES += HashAlgebra
-ALGEBRA_DEPENDENCIES += TemporalAlgebra
-ALGEBRA_DEPENDENCIES += RectangleAlgebra
-ALGEBRA_DEPENDENCIES += SpatialAlgebra
-ALGEBRA_DEPENDENCIES += HashAlgebra
-ALGEBRA_DEPENDENCIES += NetworkAlgebra
-ALGEBRA_DEPENDENCIES += TemporalNetAlgebra
-
-# inlcude global definitions
-include ../../makefile.env
-
-# expand compile flags if necessary
-#CCFLAGS += -Werror
-
-# create objects and algebra library. The values for the variables
-# OBJECTS and LIBOBJ are computed automatically by makefile.env 
-.PHONY: all
-all: check_dependencies $(OBJECTS) $(LIBOBJ)
-
-check_dependencies:
-	$(check-algebra-dependencies)
-
-# generic rule for creating a library
-$(LIBOBJ): $(OBJECTS)
-	$(create-lib)
-
-# generic rule for cleaning all generated files
-.PHONY: clean
-clean:
-	$(clean-algebra)
+include ../../makefile.algebra-common

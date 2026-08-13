@@ -23,7 +23,7 @@
 # last changed : 11-2003
 
 include ../../makefile.inc
-include ../../../makefile.$(platform)
+include ../../../$(PLATFORM_MK)
 include ../../../makefile.jni
 
 

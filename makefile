@@ -91,9 +91,12 @@ libapp:
 	$(MAKE) -C android
 	$(MAKE) -C android/secondocore
 
+# The Android SDK location; override if it is not under $(HOME).
+ANDROID_SDK_HOME ?= $(HOME)/android-sdk
+
 secondo4android:
-	$(HOME)/android-sdk/tools/android update project -p $(BUILDDIR)/android/Secondo4Android/ -l ../secondocore
-	ant clean debug -buildfile $(HOME)/secondo/android/Secondo4Android/build.xml
+	$(ANDROID_SDK_HOME)/tools/android update project -p $(BUILDDIR)/android/Secondo4Android/ -l ../secondocore
+	ant clean debug -buildfile $(BUILDDIR)/android/Secondo4Android/build.xml
 
 
 .PHONY: kernel
@@ -197,8 +200,7 @@ clean:
 	$(MAKE) -C apis clean
 	$(MAKE)	-C ParallelTransform clean
 	$(MAKE) -f ./makefile.libs clean
-	rm -f lib/*.a
-	rm -f lib/*.o
+	$(RM) $(LIBDIR)/*.a $(LIBDIR)/*.o
 
 #	ant clean -buildfile $(HOME)/secondo/android/secondocore/build.xml
 #	ant clean -buildfile $(HOME)/secondo/android/Secondo4Android/build.xml
@@ -223,7 +225,23 @@ ttytest:
 cstest:
 	cd CM-Scripts; ./run-tests.sh -cs
 
+# makefile.cm is the legacy configuration-management tooling: SDK tarballs,
+# install kits, ChangeLog handling, upload to the web server. It is pulled in
+# only when one of its targets was actually asked for, because merely reading
+# it has side effects -- it creates /tmp/make-$(USER) and touches marker files
+# through parse-time $(shell ...), and it overwrites the VPATH that
+# makefile.env set. Add new targets from makefile.cm to this list.
+CM_TARGETS := addfiles backup backup-all backup.tgz changelog ChangeLog \
+	checkrootdir copy2web cp_deps cp_files cp_gui cp-sources cscope \
+	cscope.files demo demo2 doc-dist inst-kit isoimage mkcp1252 mkdemodir \
+	mkLat1 newfiles public-linux public-version removeLists remove-old-apps \
+	remove-old-config rmList sdk-cd sdk-scripts sdk-tars showdiff showpubtags \
+	show-separator showtags show-update-msg src-archive src-dist sync-now \
+	sync-test tag-version tar_demo updateChgLog update-environment
+
+ifneq (,$(filter $(CM_TARGETS),$(MAKECMDGOALS)))
 include ./makefile.cm
+endif
 
 ######################################################
 #

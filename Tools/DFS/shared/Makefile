@@ -7,10 +7,8 @@ NAME = libshared.a
 all: $(NAME)
 
 $(NAME): $(OBJS)
-	ar rcs libshared.a $(OBJS)
+	$(AR) rcs libshared.a $(OBJS)
 
-%.o : %.c
-	g++
 
 clean:
 	rm -f *.o *.a

@@ -32,7 +32,12 @@ Config.ini: $(SECONDO_BUILD_DIR)/bin/SecondoConfig.ini
 
 ALGDEPFLAGS=$(addprefix -l, $(ALGEBRA_DEPS))
 
-LDFLAGS:=-L../lib/ -L/home/juergen/jpeg-6b -L/home/juergen/gsl/lib -L/home/juergen/bison/lib -L/home/juergen/flex/lib -lsecondo -lfl  -ly  -lstdc++ $(ALGDEPFLAGS)  $(DEFAULTLIB)
+# Extra library directories for the cross-build. These used to be hardcoded to
+# a developer's home directory; set ANDROID_LIB_DIRS to wherever the
+# cross-compiled jpeg/gsl/bison/flex actually live.
+ANDROID_LIB_DIRS ?=
+
+LDFLAGS:=-L../lib/ $(addprefix -L,$(ANDROID_LIB_DIRS)) -lsecondo -lfl  -ly  -lstdc++ $(ALGDEPFLAGS)  $(DEFAULTLIB)
 
 
 ifneq ($(SECONDO_PLATFORM),win32)

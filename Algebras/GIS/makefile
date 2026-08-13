@@ -20,24 +20,6 @@
 # author: Jana Stehmann
 
 # include global definitions
-include ../../makefile.env
 
-# expand compile flags if necessary
-CCFLAGS +=  -Werror
 
-# create objects and algebra library. The values for the variables
-# OBJECTS and LIBOBJ are computed automatically by makefile.env 
-.PHONY: all
-all: check_dependencies $(OBJECTS) $(LIBOBJ)
-
-check_dependencies:
-	$(check-algebra-dependencies)
-
-# generic rule for creating a library
-$(LIBOBJ): $(OBJECTS)
-	$(create-lib)
-
-# generic rule for cleaning all generated files
-.PHONY: clean
-clean:
-	$(clean-algebra)
+include ../../makefile.algebra-common

@@ -48,13 +48,13 @@ scan.o: lex.opsig.c
 	$(CPPC) -c -fPIC -ggdb -x c++ -o scan.o lex.opsig.c
 
 lex.opsig.c: $(BASE).l parse.o
-	flex $(BASE).l
+	$(LEX) $(BASE).l
 
 parse.o: $(BASE).tab.c
 	$(CPPC) -c -fPIC -ggdb -x c++ -o parse.o $(BASE).tab.c
 
 $(BASE).tab.c: $(BASE).y
-	bison -v -d $(BASE).y
+	$(YACC) -v -d $(BASE).y
 
 # generic rule for creating a library
 $(LIBOBJ): $(OBJECTS)

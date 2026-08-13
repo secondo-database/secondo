@@ -69,14 +69,14 @@ buildincludes:
 	cp $(CPOPTION) $(DEPS1) include
 	cp $(CPOPTION) $(DEPS2) include
 
-buildlib: lib lib/libsecondo.$(LIBEXT)
+buildlib: lib/libsecondo.$(LIBEXT)
 
 lib:
-	mkdir lib
+	mkdir -p lib
 
-
-
-lib/libsecondo.$(LIBEXT): $(SECLIBS) lib
+# "| lib" -- an order-only prerequisite. As a normal one, every write into
+# the directory bumped its mtime and re-ran the archive on each build.
+lib/libsecondo.$(LIBEXT): $(SECLIBS) | lib
 	$(AR) -rs  lib/libsecondo.$(LIBEXT) $(SECOBJ) 
 	@./arlib $(AR) $(CURDIR)/lib/libsecondo.$(LIBEXT) $(SECOBJ)  $(SECLIBS)
 
@@ -87,5 +87,3 @@ clean:
 	rm -rf lib
 	$(MAKE) -C example clean
 	rm -rf temp
-
-

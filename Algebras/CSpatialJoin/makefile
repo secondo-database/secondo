@@ -24,26 +24,9 @@
 ########################################################################
 
 # inlcude global definitions
-include ../../makefile.env
 
 CURRENT_ALGEBRA := CSpatialJoinAlgebra
-ALGEBRA_DEPENDENCIES := StandartAlgebra
-ALGEBRA_DEPENDENCIES += CRelAlgebra
+ALGEBRA_DEPENDENCIES := StandardAlgebra CRelAlgebra
+ALGEBRA_CCFLAGS += $(ALG_INC_DIRS)
 
-# expand compile flags if necessary
-CCFLAGS += -Werror
-CCFLAGS += $(ALG_INC_DIRS)
-
-# create objects and algebra library. The values for the variables
-# OBJECTS and LIBOBJ are computed automatically by makefile.env 
-.PHONY: all
-all: $(OBJECTS) $(LIBOBJ)
-
-# generic rule for creating a library
-$(LIBOBJ): $(OBJECTS)
-	$(create-lib)
-
-# generic rule for cleaning all generated files
-.PHONY: clean
-clean:
-	$(clean-algebra)
+include ../../makefile.algebra-common

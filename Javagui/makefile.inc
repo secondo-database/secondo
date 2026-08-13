@@ -49,16 +49,15 @@ endef
 # viewer subdirectories, and those pull in the same classes.
 .NOTPARALLEL:
 
-# SECONDOPATH should be a shell-variable
-ifndef SECONDO_BUILD_DIR
-$(error Variable SECONDO_BUILD_DIR is not defined. This variable must hold the directory of Secondo)
-endif
-
-ifndef SECONDO_PLATFORM
-$(error Variable SECONDO_PLATFORM is not defined. This variable must hold the directory of Secondo)
-endif
+# Resolve SECONDO_BUILD_DIR and SECONDO_PLATFORM
+SECONDO_GUI_INC_DIR := $(patsubst %/,%,$(dir $(lastword $(MAKEFILE_LIST))))
+include $(SECONDO_GUI_INC_DIR)/../makefile.detect
 
 platform := $(SECONDO_PLATFORM)
+
+# Name of the platform makefile to include. "linux" and "linux64" share one
+# file, so the 64 is stripped -- same rule as in makefile.env.
+PLATFORM_MK := makefile.$(subst linux64,linux,$(platform))
 
 SECONDOPATH := $(SECONDO_BUILD_DIR)
 

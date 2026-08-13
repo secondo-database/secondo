@@ -13,14 +13,12 @@ CC      = gcc
 DATABASE= DB2 
 PLATFORM= SUN 
 
-ifndef SECONDO_PLATFORM
-  posix = 
+include ../../../makefile.detect
+
+ifeq ($(SECONDO_PLATFORM),mac_osx)
+  posix = -D_POSIX_SOURCE
 else
-  ifeq ($(SECONDO_PLATFORM),mac_osx)
-     posix = -D_POSIX_SOURCE
-  else
-     posix = 
-  endif
+  posix =
 endif
 
 #

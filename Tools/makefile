@@ -28,38 +28,35 @@ include ../makefile.env
 .PHONY: all
 all: makedirs
 
+# One list drives both building and cleaning. They used to be two hand-kept
+# recipes that had drifted apart: "clean" recursed into RStarTree, which is
+# never built.
+SUBDIRS := DFS Flob BigArray NestedLists Parser Utilities pd SyntaxParser TypeMap
+
+# Built only when JNI algebras are enabled, but always cleaned -- a leftover
+# object from an earlier JNI build should not survive "make clean".
+JNI_SUBDIRS := Jni
+
 .PHONY: makedirs
 makedirs: makedirsnormal makedirsjni
 
+# Left sequential on purpose. Turning these into per-directory targets would
+# let -j run them concurrently, but the order here is load bearing in at least
+# one place (the generated parsers), and nothing establishes the dependencies
+# between them.
 .PHONY: makedirsnormal
 makedirsnormal:
-	$(MAKE) -C DFS
-	$(MAKE) -C Flob 
-	$(MAKE) -C BigArray
-	$(MAKE) -C NestedLists
-	$(MAKE) -C Parser
-	$(MAKE) -C Utilities
-	$(MAKE) -C pd 
-	$(MAKE) -C SyntaxParser
-	$(MAKE) -C TypeMap
+	@for dir in $(SUBDIRS); do $(MAKE) -C $$dir || exit 1; done
 
 .PHONY: makedirsjni
 makedirsjni:
  ifeq ($(USE_JNI),"true")
-	$(MAKE) -C Jni
+	@for dir in $(JNI_SUBDIRS); do $(MAKE) -C $$dir || exit 1; done
  endif
 
 .PHONY: clean
 clean:
-	$(MAKE) -C BigArray clean
-	$(MAKE) -C NestedLists clean
-	$(MAKE) -C Parser clean
-	$(MAKE) -C Utilities clean
-	$(MAKE) -C Jni clean
-	$(MAKE) -C pd clean
-	$(MAKE) -C Flob clean
-	$(MAKE) -C RStarTree clean
-	$(MAKE) -C SyntaxParser clean
-	$(MAKE) -C TypeMap clean
-	$(MAKE) -C DFS clean
+	@for dir in $(SUBDIRS) $(JNI_SUBDIRS); do \
+	  $(MAKE) -C $$dir clean || exit 1; \
+	done
 

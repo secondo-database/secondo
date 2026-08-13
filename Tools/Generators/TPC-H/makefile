@@ -12,14 +12,12 @@ DATABASE = DB2
 MACHINE = SUN
 WORKLOAD = TPCH
 
-ifndef SECONDO_PLATFORM
-  posix = 
+include ../../../makefile.detect
+
+ifeq ($(SECONDO_PLATFORM),mac_osx)
+  posix = -D_POSIX_SOURCE -D_DARWIN_C_SOURCE
 else
-  ifeq ($(SECONDO_PLATFORM),mac_osx)
-    posix = -D_POSIX_SOURCE -D_DARWIN_C_SOURCE
-  else
-    posix = 
-  endif
+  posix =
 endif
 
 #

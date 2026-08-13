@@ -7,10 +7,8 @@ NAME = libcommlayer.a
 all: $(NAME)
 
 $(NAME): $(OBJS)
-	ar rcs $(NAME) $(OBJS)
+	$(AR) rcs $(NAME) $(OBJS)
 
-%.o : %.c
-	g++
 
 clean:
 	rm -f *.o *.a

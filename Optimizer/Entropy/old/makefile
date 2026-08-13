@@ -43,7 +43,7 @@ patch:
 	tar -xzf $(CURDIR)/opt++patch.tgz;
 	cd $(OPTLIB_ROOT); \
 	make; \
-	make tests
+	$(MAKE) tests
 
 
 .PHONY: clean

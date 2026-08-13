@@ -51,20 +51,24 @@ NLParser.java NLSymbol.java: NLParser.cup
 # It generates the files NLParser.java and NLSymbol.java
 	$(JAVA) -classpath $(CLASSPATH) $(CUP_CLASS) -parser NLParser -symbols NLSymbol -interface < $<
 
-NLParser.class NLSymbol.class: $(SCANERCLASSES) NLParser.java ../ListExpr.java
+NLParser.class: $(SCANERCLASSES) NLParser.java ../ListExpr.java
 # It generates the files NLParser.class and NLSymbol.class
 	$(JAVAC) $(JAVACFLAGS) -classpath $(CLASSPATH) NLParser.java NLSymbol.java ../ListExpr.java
+
+NLSymbol.class: NLParser.class
 
 Stack.class: Stack.java
 	$(JAVAC) $(JAVACFLAGS) -classpath $(CLASSPATH)  Stack.java
 
-NLToken.class NLTokenizer.class: NLJLex.l.java ../ListExpr.java
+NLToken.class: NLJLex.l.java ../ListExpr.java
 # It generates the files NLToken.class and NLTokenizer.class
 	$(JAVAC)  $(JAVACFLAGS) -classpath $(CLASSPATH)  $+
 
+NLTokenizer.class: NLToken.class
+
 
 #////////// Clean rules
-.PHONY clean:
+.PHONY: clean
 clean:
 	rm -f *.class
 	(cd ..; rm -f ListExpr.class $(PARSERCLASSES) $(SCANERCLASSES))

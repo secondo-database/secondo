@@ -110,7 +110,7 @@ CPPSTDOPTION  += $(MACOS_WNO)
 DEFAULTCCFLAGS += $(MACOS_WNO)
 endif
 
-INC_FILES := $(shell ls $(SECONDO_BUILD_DIR)/makefile.n*c 2>/dev/null)
+INC_FILES := $(wildcard $(SECONDO_BUILD_DIR)/makefile.n*c)
 ifdef INC_FILES
 include $(INC_FILES)
 endif

@@ -24,24 +24,8 @@
 ########################################################################
 
 # inlcude global definitions
-include ../../makefile.env
 
 CURRENT_ALGEBRA := SpatialLRAlgebra
-ALGEBRA_DEPENDENCIES += SpatialAlgebra
+ALGEBRA_DEPENDENCIES := SpatialAlgebra
 
-# expand compile flags if necessary
-CCFLAGS += -Werror 
-
-# create objects and algebra library. The values for the variables
-# OBJECTS and LIBOBJ are computed automatically by makefile.env 
-.PHONY: all
-all: $(OBJECTS) $(LIBOBJ)
-
-# generic rule for creating a library
-$(LIBOBJ): $(OBJECTS)
-	$(create-lib)
-
-# generic rule for cleaning all generated files
-.PHONY: clean
-clean:
-	$(clean-algebra)
+include ../../makefile.algebra-common

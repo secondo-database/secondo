@@ -277,7 +277,7 @@ mkdemodir:
 
 .PHONY: cp_deps
 cp_deps: $(DEMO_MAN) $(DEMO_DEPS) $(TPC_GEN)
-	make -C Tools/Generators/TPC-H
+	$(MAKE) -C Tools/Generators/TPC-H
 	cp $^ $(SECONDO_DEMO)/bin
 	cp $(PL_LIB_DIR)/../boot32.prc $(SECONDO_DEMO)
 	cp -R $(PL_LIB_DIR)/../boot $(SECONDO_DEMO)

@@ -41,7 +41,7 @@ allcpp: $(OBJECTS) $(LIBOBJ)
 
 .PHONY: cfbServer
 cfbServer:
-	make -f makecfbs all
+	$(MAKE) -f makecfbs all
 
 # generic rule for creating a library
 $(LIBOBJ): $(OBJECTS)

@@ -42,7 +42,7 @@ SecondoInterface.jar:
 
 .PHONY: alljava
 alljava:
-	make -f makejava all
+	$(MAKE) -f makejava all
 
 .PHONY: allcpp
 allcpp: $(OBJECTS) $(LIBOBJ)

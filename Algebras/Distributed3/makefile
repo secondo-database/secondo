@@ -44,14 +44,14 @@ CCFLAGS += -Werror
 
 .PHONY: all
 all: check_dependencies $(OBJECTS) $(LIBOBJ)
-	make -C tes
-	make -C tes/Operators
-	make -C tes/Operators/Interface2TES
-	make -C tes/Operators/Messaging
-	make -C tes/Operators/OnMaster
-	make -C tes/Operators/OnWorker
-	make -C tes/MessageBroker
-	make -C tes/Helpers
+	$(MAKE) -C tes
+	$(MAKE) -C tes/Operators
+	$(MAKE) -C tes/Operators/Interface2TES
+	$(MAKE) -C tes/Operators/Messaging
+	$(MAKE) -C tes/Operators/OnMaster
+	$(MAKE) -C tes/Operators/OnWorker
+	$(MAKE) -C tes/MessageBroker
+	$(MAKE) -C tes/Helpers
 
 check_dependencies:
 	$(check-algebra-dependencies)
@@ -64,12 +64,12 @@ $(LIBOBJ): $(OBJECTS)
 .PHONY: clean
 clean:
 	$(clean-algebra)
-	make -C tes clean
-	make -C tes/Operators clean
-	make -C tes/Operators/Interface2TES clean
-	make -C tes/Operators/Messaging clean
-	make -C tes/Operators/OnMaster clean
-	make -C tes/Operators/OnWorker clean
-	make -C tes/MessageBroker clean
-	make -C tes/Helpers clean
+	$(MAKE) -C tes clean
+	$(MAKE) -C tes/Operators clean
+	$(MAKE) -C tes/Operators/Interface2TES clean
+	$(MAKE) -C tes/Operators/Messaging clean
+	$(MAKE) -C tes/Operators/OnMaster clean
+	$(MAKE) -C tes/Operators/OnWorker clean
+	$(MAKE) -C tes/MessageBroker clean
+	$(MAKE) -C tes/Helpers clean
 

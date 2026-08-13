@@ -27,7 +27,7 @@
 include ../../makefile.env
 
 CURRENT_ALGEBRA := FileIndexAlgebra
-ALGEBRA_DEPENDENCIES := StandartAlgebra
+ALGEBRA_DEPENDENCIES := StandardAlgebra
 ALGEBRA_DEPENDENCIES += FileIndexAlgebra
 
 CCFLAGS += -Werror 

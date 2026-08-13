@@ -40,11 +40,11 @@ JNITool.o: JNITool.cpp
 
 def:
 ifeq ($(platform),win32)
-	make -f makefile.def
+	$(MAKE) -f makefile.def
 endif
 
 .PHONY:clean
 clean:
 	$(RM) -f *.o
-	make -f makefile.def clean
+	$(MAKE) -f makefile.def clean
 	$(MAKE) -C wrapper clean

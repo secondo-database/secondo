@@ -24,21 +24,9 @@
 ########################################################################
 
 # inlcude global definitions
-include ../../makefile.env
+
 CURRENT_ALGEBRA := DistributedClusteringAlgebra
-ALGEBRA_DEPENDENCIES := StandardAlgebra
-ALGEBRA_DEPENDENCIES += RelationAlgebra
+ALGEBRA_DEPENDENCIES := StandardAlgebra RelationAlgebra
+ALGEBRA_NO_WERROR := 1
 
-# create objects and algebra library. The values for the variables
-# OBJECTS and LIBOBJ are computed automatically by makefile.env 
-.PHONY: all
-all: $(OBJECTS) $(LIBOBJ)
-
-# generic rule for creating a library
-$(LIBOBJ): $(OBJECTS)
-	$(create-lib)
-
-# generic rule for cleaning all generated files
-.PHONY: clean
-clean:
-	$(clean-algebra)
+include ../../makefile.algebra-common

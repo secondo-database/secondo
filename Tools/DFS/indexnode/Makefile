@@ -10,7 +10,6 @@ all: $(NAME)
 $(NAME): $(OBJS) ../commlayer/libcommlayer.a
 	g++ $(OBJS) $(DEPS) -o $(NAME) -lpthread
 
-%.o : %.c
 
 clean:
 	rm -f *.o *.a $(NAME)

@@ -1,0 +1,67 @@
+#This file is part of SECONDO.
+#
+#Copyright (C) 2004, University in Hagen, Department of Computer Science,
+#Database Systems for New Applications.
+#
+#SECONDO is free software; you can redistribute it and/or modify
+#it under the terms of the GNU General Public License as published by
+#the Free Software Foundation; either version 2 of the License, or
+#(at your option) any later version.
+#
+#SECONDO is distributed in the hope that it will be useful,
+#but WITHOUT ANY WARRANTY; without even the implied warranty of
+#MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#GNU General Public License for more details.
+#
+#You should have received a copy of the GNU General Public License
+#along with SECONDO; if not, write to the Free Software
+#Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+#
+########################################################################
+#
+# The common body of an algebra makefile.
+#
+# Nearly every Algebras/<X>/makefile said exactly the same thing. A leaf now
+# declares only what is specific to it and includes this file:
+#
+#   CURRENT_ALGEBRA      := FooAlgebra      # enables the dependency check
+#   ALGEBRA_DEPENDENCIES := BarAlgebra      # algebras Foo needs
+#   ALGEBRA_CCFLAGS      += -DSOMETHING     # extra compile flags
+#   ALGEBRA_NO_WERROR    := 1               # opt out of -Werror
+#   include ../../makefile.algebra-common
+#
+# All of those are optional. Set them BEFORE the include -- makefile.env
+# assigns CCFLAGS outright, so anything added to CCFLAGS before it is included
+# would be lost; that is what ALGEBRA_CCFLAGS is for.
+#
+########################################################################
+
+include $(patsubst %/,%,$(dir $(lastword $(MAKEFILE_LIST))))/makefile.env
+
+# -Werror is the default for algebras. The handful that do not compile cleanly
+# yet set ALGEBRA_NO_WERROR instead of quietly omitting the flag, so the
+# exceptions are visible.
+ifndef ALGEBRA_NO_WERROR
+CCFLAGS += -Werror
+endif
+
+CCFLAGS += $(ALGEBRA_CCFLAGS)
+
+# The values of OBJECTS and LIBOBJ are computed by makefile.env from the *.cpp
+# in this directory and the directory name.
+.PHONY: all
+all: $(if $(ALGEBRA_DEPENDENCIES),check_dependencies) $(OBJECTS) $(LIBOBJ)
+
+# Phony -- it names no file. It was declared in only one of the 68 makefiles
+# that used to define it, so a stray file called "check_dependencies" would
+# have silently disabled every algebra dependency check in the tree.
+.PHONY: check_dependencies
+check_dependencies:
+	$(check-algebra-dependencies)
+
+$(LIBOBJ): $(OBJECTS)
+	$(create-lib)
+
+.PHONY: clean
+clean:
+	$(clean-algebra)

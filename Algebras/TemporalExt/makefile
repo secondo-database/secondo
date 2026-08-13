@@ -24,42 +24,8 @@
 ########################################################################
 
 # inlcude global definitions
-include ../../makefile.env
 
 CURRENT_ALGEBRA := TemporalExtAlgebra
-ALGEBRA_DEPENDENCIES := StandardAlgebra
-ALGEBRA_DEPENDENCIES += BTreeAlgebra
-ALGEBRA_DEPENDENCIES += FTextAlgebra
-ALGEBRA_DEPENDENCIES += MovingRegionAlgebra
-ALGEBRA_DEPENDENCIES += OrderedRelationAlgebra
-ALGEBRA_DEPENDENCIES += RectangleAlgebra
-ALGEBRA_DEPENDENCIES += RelationAlgebra
-ALGEBRA_DEPENDENCIES += RTreeAlgebra
-ALGEBRA_DEPENDENCIES += SpatialAlgebra
-ALGEBRA_DEPENDENCIES += StreamAlgebra
-ALGEBRA_DEPENDENCIES += SymbolicTrajectoryBasicAlgebra
-ALGEBRA_DEPENDENCIES += TemporalAlgebra
-ALGEBRA_DEPENDENCIES += TemporalExtAlgebra
-ALGEBRA_DEPENDENCIES += TemporalUnitAlgebra
-ALGEBRA_DEPENDENCIES += TrieAlgebra
-ALGEBRA_DEPENDENCIES += TupleIdentifierAlgebra
+ALGEBRA_DEPENDENCIES := StandardAlgebra BTreeAlgebra FTextAlgebra MovingRegionAlgebra OrderedRelationAlgebra RectangleAlgebra RelationAlgebra RTreeAlgebra SpatialAlgebra StreamAlgebra SymbolicTrajectoryBasicAlgebra TemporalAlgebra TemporalExtAlgebra TemporalUnitAlgebra TrieAlgebra TupleIdentifierAlgebra
 
-# expand compile flags if necessary
-CCFLAGS += -Werror
-
-# create objects and algebra library. The values for the variables
-# OBJECTS and LIBOBJ are computed automatically by makefile.env 
-.PHONY: all
-all: check_dependencies $(OBJECTS) $(LIBOBJ)
-
-check_dependencies:
-	$(check-algebra-dependencies)
-
-# generic rule for creating a library
-$(LIBOBJ): $(OBJECTS)
-	$(create-lib)
-
-# generic rule for cleaning all generated files
-.PHONY: clean
-clean:
-	$(clean-algebra)
+include ../../makefile.algebra-common

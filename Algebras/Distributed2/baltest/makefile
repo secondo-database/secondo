@@ -31,10 +31,10 @@ all:   baltest crnd
 
 baltest: btest.o ../BalancedCollect.cpp
 	$(MAKE) -C ..
-	g++ -o $@ $^
+	$(CPPC) -o $@ $^
 
 crnd: crnd.o
-	g++ -o $@ $^ 
+	$(CPPC) -o $@ $^ 
 
 # generic rule for cleaning all generated files
 .PHONY: clean

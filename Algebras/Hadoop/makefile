@@ -43,11 +43,11 @@ all: allcpp alljava
 
 .PHONY: alljava
 alljava:
-	make -f makejava all
+	$(MAKE) -f makejava all
 
 .PHONY: allflob
 allflob:
-	make -f makecfb all
+	$(MAKE) -f makecfb all
 	
 .PHONY: allcpp
 allcpp: check_dependencies $(OBJECTS) $(LIBOBJ)

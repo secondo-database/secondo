@@ -78,13 +78,15 @@ buildincludes:
 	cp $(CPOPTION) $(DEPS1) include
 	cp $(CPOPTION) $(DEPS2) include
 
-buildlib: lib lib/libsecondo.$(LIBEXT)
+buildlib: lib/libsecondo.$(LIBEXT)
 
 lib:
-	mkdir lib
+	mkdir -p lib
 
-lib/libsecondo.$(LIBEXT): $(CSLIBS) lib
-	ar -rs  lib/libsecondo.$(LIBEXT) $(CSLIBS) 
+# "| lib" -- an order-only prerequisite. As a normal one, every write into
+# the directory bumped its mtime and re-ran the archive on each build.
+lib/libsecondo.$(LIBEXT): $(CSLIBS) | lib
+	$(AR) -rs  lib/libsecondo.$(LIBEXT) $(CSLIBS) 
 
 
 .PHONY:clean
@@ -92,6 +94,3 @@ clean:
 	rm -rf include/*.h
 	rm -rf lib
 	$(MAKE) -C example clean
-
-
-
