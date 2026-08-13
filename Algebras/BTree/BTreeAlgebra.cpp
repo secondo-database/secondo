@@ -921,7 +921,7 @@ IndexQuery(Word* args, Word& result, int message, Word& local, Supplier s)
         case EXACTMATCH: {
           ili->iter = btree->ExactMatch(key);
           break;
-			 }
+        }
         case RANGE:
           ili->iter = btree->Range(key, secondKey);
           break;
@@ -1616,7 +1616,7 @@ ListExpr allUpdatesBTreeTypeMap( const ListExpr& args, string opName )
 
   // Proceed to last attribute of stream-tuples
   ListExpr rest = nl->Second(nl->Second(streamDescription));
-  ListExpr next;
+  ListExpr next = nl->TheEmptyList();
   while (!(nl->IsEmpty(rest)))
   {
     next = nl->First(rest);
@@ -2194,36 +2194,36 @@ keyrange_vm(Word* args, Word& result, int message, Word& local, Supplier s)
         init_ptr(key, args[2]);
 
         SmiKeyRange factors;
-	SmiKey sk;
+    SmiKey sk;
         AttrToKey( key, sk, btree->GetFile()->GetKeyType() );
-	btree->GetFile()->KeyRange(sk, factors);
-	int n = relation->GetNoTuples();
+    btree->GetFile()->KeyRange(sk, factors);
+    int n = relation->GetNoTuples();
 
-	  /*
-	  cout << "btree.less = " << factors.less << endl;
-	  cout << "btree.equal = " << factors.equal << endl;
-	  cout << "btree.right = " << factors.greater << endl;
-	  cout << "relation.tuples = " << n << endl;
-	  */
+      /*
+      cout << "btree.less = " << factors.less << endl;
+      cout << "btree.equal = " << factors.equal << endl;
+      cout << "btree.right = " << factors.greater << endl;
+      cout << "relation.tuples = " << n << endl;
+      */
 
-	CcReal* lt = new CcReal(factors.less);
-	CcReal* eq = new CcReal(factors.equal);
-	CcReal* gt = new CcReal(factors.greater);
-	CcInt* nk = new CcInt(n);
+    CcReal* lt = new CcReal(factors.less);
+    CcReal* eq = new CcReal(factors.equal);
+    CcReal* gt = new CcReal(factors.greater);
+    CcInt* nk = new CcInt(n);
 
-	Tuple* t = new Tuple( nl->Second(GetTupleResultType(s)) );
-	t->PutAttribute(0, lt);
-	t->PutAttribute(1, eq);
-	t->PutAttribute(2, gt);
-	t->PutAttribute(3, nk);
+    Tuple* t = new Tuple( nl->Second(GetTupleResultType(s)) );
+    t->PutAttribute(0, lt);
+    t->PutAttribute(1, eq);
+    t->PutAttribute(2, gt);
+    t->PutAttribute(3, nk);
 
         result.addr = t;
-	*k = 0;
+    *k = 0;
         return YIELD;
       }
       else
       {
-	result.addr = 0;
+    result.addr = 0;
         return CANCEL;
       }
     }
@@ -2245,11 +2245,11 @@ struct keyrangeInfo : OperatorInfo {
     name      = "keyrange";
 
     signature = "(btree t) x (rel t) x key "
-	        " -> " "stream(tuple((Less real)(Equal real)"
-		"(Greater real)(NumOfKeys int)";
+            " -> " "stream(tuple((Less real)(Equal real)"
+        "(Greater real)(NumOfKeys int)";
     syntax    = "_ _ keyrange(_)";
     meaning   = "Retrieves an estimate for the number of tuples which are"
-	        " less, equal or grater than the given value";
+            " less, equal or grater than the given value";
   }
 };
 

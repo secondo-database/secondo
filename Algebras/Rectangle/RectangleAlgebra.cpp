@@ -1853,8 +1853,8 @@ template<class T, unsigned int dim>
 int Rectangle8ValueMap( Word* args, Word& result, int message,
                         Word& local, Supplier s )
 {
-  double min[dim+1];
-  double max[dim+1];
+  double min[dim+1] = {};
+  double max[dim+1] = {};
   bool alldefined = true;
 
   result = qp->ResultStorage( s );

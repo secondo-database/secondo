@@ -2666,13 +2666,13 @@ int UpdateDirectSave(Word* args, Word& result, int message,
       if (qp->Received(args[0].addr))
       {
         tup = (Tuple*)t.addr;
-	//tup->IncReference();
+    //tup->IncReference();
 
         Tuple *newTuple = new Tuple( resultTupleType );
         assert( newTuple->GetNoAttributes() ==
                 2 * tup->GetNoAttributes() + 1);
 
-	// store old values int the result tuple
+    // store old values int the result tuple
         for (int i = 0; i < tup->GetNoAttributes(); i++)
         {
           newTuple->CopyAttribute(i, tup , i);
@@ -2964,7 +2964,7 @@ int UpdateSearchSave(Word* args, Word& result, int message,
         qp->Request(args[0].addr,t);
         if (qp->Received(args[0].addr))
         {
-	  // process a tuple of the input stream
+      // process a tuple of the input stream
           tup = (Tuple*)t.addr;
           hashValue = 0;
           for( int i = 0; i < tup->GetNoAttributes(); i++ )
@@ -3003,7 +3003,7 @@ int UpdateSearchSave(Word* args, Word& result, int message,
                 supplier = args[3].addr;
                 vector<int>* changedIndices = new vector<int>(noOfAttrs);
                 vector<Attribute*>* newAttrs
-			              = new vector<Attribute*>(noOfAttrs);
+                          = new vector<Attribute*>(noOfAttrs);
 
                 for (int i=1; i <= noOfAttrs; i++)
                 {
@@ -3735,7 +3735,7 @@ ListExpr allUpdatesRTreeTypeMap( ListExpr& args, string opName )
 {
 
 
-   ListExpr rest,next,listn,lastlistn,restRTreeAttrs,
+   ListExpr rest,next = nl->TheEmptyList(),listn,lastlistn,restRTreeAttrs,
            oldAttribute,outList;
   string argstr, argstr2, oldName;
   AlgebraManager* algMgr = SecondoSystem::GetAlgebraManager();

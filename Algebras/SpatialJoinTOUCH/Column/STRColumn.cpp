@@ -203,7 +203,7 @@ namespace STRColumn {
             char direction
             )
     {
-        double valueL, valueR;
+        double valueL = 0.0, valueR = 0.0;
         tupleBlockStr entryL, entryR;
         int64_t i, j, k;
         int64_t n1 = m - l + 1;

@@ -3491,11 +3491,8 @@ The list representation of a classifier is
 \subsection{Constructors}
 
 */
-Classifier::Classifier(const Classifier& src) {
-  charpos = src.charpos;
-  chars = src.chars;
-  delta = src.delta;
-  s2p = src.s2p;
+Classifier::Classifier(const Classifier& src) :
+    charpos(src.charpos), chars(src.chars), delta(src.delta), s2p(src.s2p) {
   defined = src.defined;
 }
 

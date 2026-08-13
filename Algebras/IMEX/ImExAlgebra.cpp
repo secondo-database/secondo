@@ -1472,7 +1472,7 @@ private:
       static char c = 0;
       static string nullstr(&c, 1);
       Tuple* result = BasicTuple->Clone();
-      bool eol;
+      bool eol = true;
       unsigned  i = 0;
       bool err;
 

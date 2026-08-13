@@ -20409,7 +20409,11 @@ public:
     this->array = array;
     this->cmd = cmd;
     this->tt = tt;
-    tt->IncReference();
+    // dcommand2VMT passes no tuple type at all (useResult false, and nothing
+    // on that path builds a tuple), so this has to tolerate a null one.
+    if (tt) {
+      tt->IncReference();
+    }
     if (array->IsDefined()) {
       if (useResult)
         compute();
@@ -20424,7 +20428,9 @@ public:
       t->DeleteIfAllowed();
       q.pop();
     }
-    tt->DeleteIfAllowed();
+    if (tt) {
+      tt->DeleteIfAllowed();
+    }
   }
 
   Tuple *next() {

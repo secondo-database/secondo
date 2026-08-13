@@ -14231,7 +14231,7 @@ const string nthSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
 
  template<class Elem>
  int ExistVMT(Word* args, Word& result, int message, Word& local, Supplier s) {
-	 Word sWord;
+     Word sWord;
 
   result = qp->ResultStorage(s);
   CcBool* b = static_cast<CcBool*>( result.addr );
@@ -14270,7 +14270,7 @@ const string nthSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                           "<text>_ exist</text--->"
                           "<text>Returns true, if the stream "
                           "contains at least one tuple"
-		 	 	 	 	  "</text--->"
+                              "</text--->"
                           "<text>query Kinos feed exist"
                           "</text--->"
                            ") )";
@@ -14282,12 +14282,12 @@ const string nthSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
 
  */
  Operator extrelexist (
-          "exist",                 	// name
-          ExistSpec,               	// specification
+          "exist",                     // name
+          ExistSpec,                   // specification
           2,
-          ExistVM,                  	// value mapping
-          ExistSelect, 	// trivial selection function
-          ExistTypeMap             	// type mapping
+          ExistVM,                      // value mapping
+          ExistSelect,     // trivial selection function
+          ExistTypeMap                 // type mapping
  );
 
 /*
@@ -15294,8 +15294,8 @@ ListExpr Rdup2TypeMap( ListExpr args ) {
 
    ListExpr stream = first.listExpr();
    ListExpr attrList = nl->Second(nl->Second(stream));
-   ListExpr appendList;
-   ListExpr last;
+   ListExpr appendList = nl->TheEmptyList();
+   ListExpr last = nl->TheEmptyList();
 
    // TODO: 
 

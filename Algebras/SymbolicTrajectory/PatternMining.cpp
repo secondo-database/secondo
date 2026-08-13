@@ -3010,8 +3010,8 @@ Tuple* SpadeLI::getNextResult() {
 
 */
 int tsPlaceCmp(const void *a, const void *b) {
-  SplTSPlace *tsp1 = new ((void*)a)SplTSPlace,
-             *tsp2 = new ((void*)b)SplTSPlace;
+  const SplTSPlace *tsp1 = static_cast<const SplTSPlace*>(a),
+                   *tsp2 = static_cast<const SplTSPlace*>(b);
   if (tsp1->instDbl == tsp2->instDbl) {
     return 0;
   }

@@ -625,7 +625,7 @@ CreateRTreeSelect (ListExpr args)
     return result;
   if( nl->SymbolValue(nl->First(relDescription)) == Symbol::STREAM())
   {
-    ListExpr first,
+    ListExpr first = nl->TheEmptyList(),
              rest = attrList;
     while (!nl->IsEmpty(rest))
     {
@@ -3627,7 +3627,8 @@ int CreateRTreeBulkLoadSelect (ListExpr args)
 
   if( nl->SymbolValue(nl->First(relDescription)) == Symbol::STREAM())
   {
-    ListExpr first,
+    // See the note on the identical loop earlier in this file.
+    ListExpr first = nl->TheEmptyList(),
     rest = attrList;
     while (!nl->IsEmpty(rest))
     {

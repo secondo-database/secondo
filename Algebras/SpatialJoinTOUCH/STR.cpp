@@ -190,7 +190,7 @@ namespace STR {
             int64_t leftAttrIndex)
     {
         Attribute * attr1, * attr2;
-        double valueL, valueR;
+        double valueL = 0.0, valueR = 0.0;
         int64_t i, j, k;
         int64_t n1 = m - l + 1;
         int64_t n2 =  r - m;

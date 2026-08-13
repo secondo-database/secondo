@@ -1271,7 +1271,7 @@ ListExpr allUpdatesHashTypeMap( const ListExpr& args, string opName )
   }
 
   // Proceed to last attribute of stream-tuples
-  ListExpr next;
+  ListExpr next = nl->TheEmptyList();
   ListExpr rest = nl->Second(nl->Second(streamDescription));
   while (!(nl->IsEmpty(rest)))
   {

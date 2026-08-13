@@ -7910,7 +7910,7 @@ ListExpr minsertdeletetreeTypeMap(ListExpr args){
 
   // check if last attribute is of type 'tid'
   ListExpr rest = nl->Second(nl->Second(stream));
-  ListExpr next;
+  ListExpr next = nl->TheEmptyList();
   while (!(nl->IsEmpty(rest))) {
     next = nl->First(rest);
     rest = nl->Rest(rest);

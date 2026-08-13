@@ -166,7 +166,7 @@ Must be nothing.  Never cal it outside the cast function.
       }
       char* g = src.getData();
       std::string res(g, src.getSize());
-      delete g;;
+      delete[] g;
       return res;
    }
 

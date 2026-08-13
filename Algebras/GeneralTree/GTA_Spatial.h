@@ -74,6 +74,8 @@ Default constructor (used from the 'read' constructors).
 
 */
     inline Spatial()
+        : m_dim(0),
+          m_vectorlen(0)
     {}
 
 /*

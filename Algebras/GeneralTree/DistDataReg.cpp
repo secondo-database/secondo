@@ -257,37 +257,37 @@ Dbarray<FeatureSignatureTuple> will be used
 
 DistData* DistDataReg::getFeatureSignature(const void* attr)
 {
-	const FeatureSignaturealg::FeatureSignature* sig 
+    const FeatureSignaturealg::FeatureSignature* sig 
     = static_cast<const FeatureSignaturealg::FeatureSignature*>(attr);
     
-	if (!sig->IsDefined())
-	{
-		char def = 0;
-		return new DistData(1, &def);
-	}
+    if (!sig->IsDefined())
+    {
+        char def = 0;
+        return new DistData(1, &def);
+    }
     
-	if (sig->GetNoFeatureSignatureTuples() == 0)
-		return new DistData(false);
-	
-	
+    if (sig->GetNoFeatureSignatureTuples() == 0)
+        return new DistData(false);
+    
+    
     size_t siz = sig->GetNoFeatureSignatureTuples() 
                     * sizeof(FeatureSignatureTuple);
                     
-	char* buffer = new char[siz];   
-	size_t offset = 0;
-	
-	for (int i = 0; i < sig->GetNoFeatureSignatureTuples(); i++)
-	{
+    char* buffer = new char[siz];   
+    size_t offset = 0;
+    
+    for (int i = 0; i < sig->GetNoFeatureSignatureTuples(); i++)
+    {
         FeatureSignatureTuple fst;
-		fst = sig->GetFeatureSignatureTuple(i);
-		
+        fst = sig->GetFeatureSignatureTuple(i);
+        
         memcpy(buffer + offset, &fst, sizeof(FeatureSignatureTuple));
         offset += sizeof(FeatureSignatureTuple);
-	}
-	
+    }
+    
     DistData* res = new DistData(siz, buffer);
-	delete[] buffer;
-	return res;
+    delete[] buffer;
+    return res;
 }
 #endif
 
@@ -388,11 +388,12 @@ DistData* DistDataReg::getDataHPoint(const void* attr)
     HPoint *p = pAttr->hpoint();
     unsigned dim = p->dim();
     GTA_SPATIAL_DOM *coords = p->coords();
-    char buffer[p->size()];
+    const size_t size = p->size();
+    char buffer[size];
     memcpy(buffer, &dim, sizeof(unsigned));
     memcpy(buffer+sizeof(unsigned), coords, p->vectorlen());
     delete p;
-    return new DistData(p->size(), buffer);
+    return new DistData(size, buffer);
 }
 
 /*
@@ -529,7 +530,7 @@ void DistDataReg::initialize()
 #ifdef HAS_IMAGESIMILARITY
     addInfo(DistDataInfo(
        DDATA_NATIVE, DDATA_NATIVE_DESCR, DDATA_NATIVE_ID,
-		FeatureSignaturealg::FeatureSignature::BasicType(), 
+        FeatureSignaturealg::FeatureSignature::BasicType(), 
        getFeatureSignature));
 #endif
 
