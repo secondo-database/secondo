@@ -68,6 +68,7 @@ by the ~StandardAlgebra~:
 
 
 
+#include <atomic>
 #include <string>
 #include <sstream>
 
@@ -609,8 +610,11 @@ CcInt operator--(int){
 
   inline virtual StorageType GetStorageType() const { return Core; }
 
-  static long intsCreated;
-  static long intsDeleted;
+  // Atomic: these are bumped in every constructor and destructor, and
+  // objects of these types are created concurrently by the worker
+  // threads in Distributed2.
+  static std::atomic<long> intsCreated;
+  static std::atomic<long> intsDeleted;
 
  private:
   inttype intval;
@@ -759,8 +763,8 @@ class CcReal : public Attribute
        return (os << realval);
   }
 
-  static long realsCreated;
-  static long realsDeleted;
+  static std::atomic<long> realsCreated;
+  static std::atomic<long> realsDeleted;
 
   inline bool operator==(const CcReal& rhs) const
   {
@@ -1049,8 +1053,8 @@ class CcBool : public Attribute
   }
 
 
-  static long boolsCreated;
-  static long boolsDeleted;
+  static std::atomic<long> boolsCreated;
+  static std::atomic<long> boolsDeleted;
 
   virtual std::string getCsvStr() const{
     if(!IsDefined()){
@@ -1297,8 +1301,8 @@ class CcString : public Attribute
     return (os << "\"" << stringval << "\"");
   }
 
-  static long stringsCreated;
-  static long stringsDeleted;
+  static std::atomic<long> stringsCreated;
+  static std::atomic<long> stringsDeleted;
 
   virtual std::string getCsvStr() const{
     if(!IsDefined()){
@@ -1575,8 +1579,8 @@ class CcString : public Attribute
     return (os << "\"" << stringval << "\"");
   }
 
-  static long stringsCreated;
-  static long stringsDeleted;
+  static std::atomic<long> stringsCreated;
+  static std::atomic<long> stringsDeleted;
 
   virtual std::string getCsvStr() const{
     if(!IsDefined()){
