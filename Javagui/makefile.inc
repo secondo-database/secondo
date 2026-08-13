@@ -32,7 +32,6 @@ GCC := gcc
 
 JAVA := java
 JAVADOC := javadoc
-MAKE := make
 
 define checkjavac
 	@$(JAVAC) -help > /dev/null 2>&1; \
