@@ -25,6 +25,4 @@
 
 # inlcude global definitions
 
-ALGEBRA_NO_WERROR := 1
-
 include ../../makefile.algebra-common

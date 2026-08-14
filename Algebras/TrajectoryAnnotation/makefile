@@ -26,6 +26,5 @@
 CURRENT_ALGEBRA := TrajectoryAnnotationAlgebra
 ALGEBRA_DEPENDENCIES := StandardAlgebra
 ALGEBRA_CCFLAGS += -DWITH_LIBXML2_SUPPORT
-ALGEBRA_NO_WERROR := 1
 
 include ../../makefile.algebra-common

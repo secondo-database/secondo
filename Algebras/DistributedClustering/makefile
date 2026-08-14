@@ -27,6 +27,5 @@
 
 CURRENT_ALGEBRA := DistributedClusteringAlgebra
 ALGEBRA_DEPENDENCIES := StandardAlgebra RelationAlgebra
-ALGEBRA_NO_WERROR := 1
 
 include ../../makefile.algebra-common

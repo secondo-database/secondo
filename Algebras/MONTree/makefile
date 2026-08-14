@@ -25,6 +25,5 @@
 
 CURRENT_ALGEBRA := MONTreeAlgebra
 ALGEBRA_DEPENDENCIES := StandardAlgebra RTreeAlgebra HashAlgebra TemporalAlgebra RectangleAlgebra SpatialAlgebra HashAlgebra NetworkAlgebra TemporalNetAlgebra
-ALGEBRA_NO_WERROR := 1
 
 include ../../makefile.algebra-common

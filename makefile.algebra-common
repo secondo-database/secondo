@@ -27,7 +27,6 @@
 #   CURRENT_ALGEBRA      := FooAlgebra      # enables the dependency check
 #   ALGEBRA_DEPENDENCIES := BarAlgebra      # algebras Foo needs
 #   ALGEBRA_CCFLAGS      += -DSOMETHING     # extra compile flags
-#   ALGEBRA_NO_WERROR    := 1               # opt out of -Werror
 #   include ../../makefile.algebra-common
 #
 # All of those are optional. Set them BEFORE the include -- makefile.env
@@ -38,13 +37,8 @@
 
 include $(patsubst %/,%,$(dir $(lastword $(MAKEFILE_LIST))))/makefile.env
 
-# -Werror is the default for algebras. The handful that do not compile cleanly
-# yet set ALGEBRA_NO_WERROR instead of quietly omitting the flag, so the
-# exceptions are visible.
-ifndef ALGEBRA_NO_WERROR
-CCFLAGS += -Werror
-endif
 
+CCFLAGS += -Werror
 CCFLAGS += $(ALGEBRA_CCFLAGS)
 
 # The values of OBJECTS and LIBOBJ are computed by makefile.env from the *.cpp

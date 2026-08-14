@@ -27,6 +27,5 @@
 
 CURRENT_ALGEBRA := Spatial3D
 ALGEBRA_DEPENDENCIES := StandardAlgebra
-ALGEBRA_NO_WERROR := 1
 
 include ../../makefile.algebra-common

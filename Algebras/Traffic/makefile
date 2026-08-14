@@ -25,6 +25,5 @@
 
 CURRENT_ALGEBRA := TrafficAlgebra
 ALGEBRA_DEPENDENCIES := NetworkAlgebra StandardAlgebra DateTimeAlgebra TemporalAlgebra TemporalNetAlgebra RelationAlgebra
-ALGEBRA_NO_WERROR := 1
 
 include ../../makefile.algebra-common

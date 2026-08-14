@@ -117,22 +117,22 @@ void askGoogle(const string& street, const string& no,
 const string& postcode,const string& ci, Point& result) {
   //Check of spaces and special characters in URL
   string newSt = stringutils::replaceAll(street, " ", "%20");
-  string newSt1 = stringutils::replaceAll(newSt, "ß", "ss");
-  string newSt2 = stringutils::replaceAll(newSt1, "ä", "ae");
-  string newSt3 = stringutils::replaceAll(newSt2, "ö", "oe");
-  string newSt4 = stringutils::replaceAll(newSt3, "ü", "ue");
-  string newSt5 = stringutils::replaceAll(newSt4, "Ä", "Ae");
-  string newSt6 = stringutils::replaceAll(newSt5, "Ö", "Oe");
-  string newSt7 = stringutils::replaceAll(newSt6, "Ü", "Ue");
+  string newSt1 = stringutils::replaceAll(newSt, "\xDF", "ss");
+  string newSt2 = stringutils::replaceAll(newSt1, "\xE4", "ae");
+  string newSt3 = stringutils::replaceAll(newSt2, "\xF6", "oe");
+  string newSt4 = stringutils::replaceAll(newSt3, "\xFC", "ue");
+  string newSt5 = stringutils::replaceAll(newSt4, "\xC4", "Ae");
+  string newSt6 = stringutils::replaceAll(newSt5, "\xD6", "Oe");
+  string newSt7 = stringutils::replaceAll(newSt6, "\xDC", "Ue");
 
   string newc = stringutils::replaceAll(ci, " ", "%20");
-  string newc1 = stringutils::replaceAll(newc, "ß", "ss");
-  string newc2 = stringutils::replaceAll(newc1, "ä", "ae");
-  string newc3 = stringutils::replaceAll(newc2, "ö", "oe");
-  string newc4 = stringutils::replaceAll(newc3, "ü", "ue");
-  string newc5 = stringutils::replaceAll(newc4, "Ä", "Ae");
-  string newc6 = stringutils::replaceAll(newc5, "Ö", "Oe");
-  string newc7 = stringutils::replaceAll(newc6, "Ü", "Ue");
+  string newc1 = stringutils::replaceAll(newc, "\xDF", "ss");
+  string newc2 = stringutils::replaceAll(newc1, "\xE4", "ae");
+  string newc3 = stringutils::replaceAll(newc2, "\xF6", "oe");
+  string newc4 = stringutils::replaceAll(newc3, "\xFC", "ue");
+  string newc5 = stringutils::replaceAll(newc4, "\xC4", "Ae");
+  string newc6 = stringutils::replaceAll(newc5, "\xD6", "Oe");
+  string newc7 = stringutils::replaceAll(newc6, "\xDC", "Ue");
 
   string no1 = stringutils::replaceAll(no, " ", "%20");
   
@@ -485,18 +485,15 @@ geocodeVM1,
 geocodeVM2
 };
 
-//Spezizikation
+// Specification of the operator geocode
 const string geocodeSpec  =
-        "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-        "( <text>(string x int x string) -> point or "
+   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+   "( <text>(string x int x string) -> point or "
 	"(string x [string|int] x int x string) -> point</text--->"
-        "<text>geocode(_,_,_,_)</text--->"
-        "<text>Point to an address</text--->"
-        "<text>query geocode('Universitätsstr.', 11, 58097, 'Hagen')</text--->"
-        ") )";
-
-
-
+   "<text>geocode(_,_,_,_)</text--->"
+   "<text>Point to an address</text--->"
+   "<text>query geocode('Universit\xE4tsstr.', 11, 58097, 'Hagen')</text--->"
+   ") )";
 
 Operator geocodeOp(
  "geocode", // Name des Operators

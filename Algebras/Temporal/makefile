@@ -27,6 +27,5 @@
 
 CURRENT_ALGEBRA := TemporalAlgebra
 ALGEBRA_DEPENDENCIES := StandardAlgebra RelationAlgebra SpatialAlgebra MovingRegionAlgebra RectangleAlgebra StreamAlgebra TemporalUnitAlgebra TupleIdentifierAlgebra
-ALGEBRA_NO_WERROR := 1
 
 include ../../makefile.algebra-common
