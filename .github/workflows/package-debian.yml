@@ -12,6 +12,9 @@ on:
         description: 'Publish the packages to the apt repository on GitHub Pages'
         type: boolean
         default: true
+  schedule:
+    # Rebuild and publish the packages monthly, at 03:00 UTC on the 1st.
+    - cron: '0 3 1 * *'
 
 jobs:
   build:
@@ -51,7 +54,7 @@ jobs:
 
   publish:
     needs: build
-    if: ${{ inputs.publish }}
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.publish }}
     runs-on: ubuntu-latest
     permissions:
       contents: write     # to push the gh-pages branch
