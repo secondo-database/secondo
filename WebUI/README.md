@@ -626,11 +626,13 @@ the output of any failure. It preflights the stack and tells you what is missing
 rather than dumping navigation timeouts. Screenshots land in `e2e/out/`.
 Override with `CHROMIUM=`, `WEBUI_URL=`, `WEBUI_API=`.
 
-Current checks: `animation`, `catalog-basemap`, `catalog-race`,
-`catalog-refresh`, `console`, `db-selection`, `labels`, `layer-icons`,
-`layer-rename`, `layers`, `map`, `mpoint-fit`, `mregion`, `paging`, `plots`,
-`projection`, `remove-layer`, `render-modes`, `sql`, `table`, `table-intent`,
-`theme`, `ui-polish`, `ux`, `viewfit`.
+Current checks: `animation`, `basemap-picker`, `catalog-basemap`,
+`catalog-manual-refresh`, `catalog-race`, `catalog-refresh`, `console`,
+`db-selection`, `gpx-import`, `labels`, `layer-icons`, `layer-rename`,
+`layers`, `map`, `mpoint-fit`, `mregion`, `paging`, `pending-entry`, `plots`,
+`projection`, `remove-layer`, `render-modes`, `space-flip`, `sql`,
+`symbolic-labels`, `table`, `table-intent`, `theme`, `ui-polish`, `ux`,
+`viewfit`.
 
 `table`, `paging` and `catalog-refresh` write to the database — each creates an
 object, works on it and deletes it again. None touches the shipped berlintest
@@ -657,8 +659,8 @@ frontend/
   src/console/   command console (history recall, focus retention)
                  + history.ts: recalled commands persisted in localStorage
   src/layers/    useLayers state + LayersPanel (style/reorder) + GeoJSON export
-  src/map/       deck.gl MapView (Cartesian OR geographic MapLibre + OSM)
-                 + projection (Berlin2WGS)
+  src/map/       deck.gl MapView (Cartesian OR geographic MapLibre + basemap)
+                 + projection (Berlin2WGS) + basemaps (the raster choices)
   src/plots/     PlotPanel: mreal/mint value plots as small multiples
   src/table/     result tabs + the row grid and its pending-change model
   src/timeline/  useAnimator hook + Timeline controls
@@ -747,6 +749,37 @@ leaves the view exactly where you put it. Use the `⤢` button to re-fit on dema
   small sizes); `layers/icons.ts` rasterises the offered subset into one PNG
   atlas at first use and hands it to deck.gl, and offering another of Maki's 215
   icons is one import plus one entry there.
+- **Basemap** (`map/basemaps.ts`): geographic mode draws over a raster basemap,
+  and a picker beside the projection select chooses between **OSM**
+  (OpenStreetMap, the default), **Satellite** (Esri World Imagery) and **Dark**
+  (CARTO dark-matter). The two selects share one row (`.map-ctl`) and never
+  wrap to two: below 520px the layers panel becomes a full-width band directly
+  underneath, positioned to clear exactly one row of controls, and the controls
+  outrank it, so a second row would put the panel's own `▾ Layers` toggle
+  beyond reach. The row is bounded on the right and its selects shrink rather
+  than overflow, so it survives a 320px screen.
+  All three are key-free and carry their own attribution, which
+  MapLibre renders; Google's layers — which the old GWT `WebGui2` offered
+  through an OpenLayers `LayerSwitcher` — need an API key and terms of use, so
+  they are deliberately absent. The picker only exists in geographic mode: in
+  Cartesian there is no basemap to pick, and a permanently disabled dropdown is
+  worse than an absent one. The choice is a display preference like the theme,
+  not a property of the dataset the way the projection is, so it is remembered
+  in `localStorage` across reloads.
+
+  **Labels take their contrast from the basemap, not from the mode.**
+  `onLightCanvas` used to read `geographic || theme === "light"`, which was only
+  correct while the light OSM raster was the only basemap — over imagery or
+  dark-matter every label would have kept near-black ink on a white halo and
+  become unreadable. Each basemap now carries a `light` flag and that decides;
+  the app theme still decides for the Cartesian canvas, which is `--bg-deep`.
+
+  Two provider quirks worth not rediscovering: the ArcGIS REST tile scheme is
+  `{z}/{y}/{x}` — row before column, unlike every other provider here — and
+  CARTO's URL must not carry Leaflet's `{r}` retina placeholder, which MapLibre
+  would request literally instead of substituting. Each source also sets an
+  explicit `maxzoom`, or the map goes blank when zoomed past what the provider
+  has.
 - Internal keys (`_attr`, `_layer`) are hidden from the map tooltip and the
   selection details panel.
 - **View fitting & zoom controls:** the map view is controlled and auto-fits to

@@ -894,14 +894,38 @@ body.dragging {
   cursor: default;
 }
 
-.projection-ctl {
+/* How the map is drawn -- the projection, and in geographic mode the basemap.
+   One row, not a stack: below 520px the layers panel turns into a full-width
+   band directly underneath (see the rule at the foot of this file) that is
+   sized to clear exactly one row of controls. A second row lands on it, and
+   these have the higher z-index, so the panel's own toggle goes under them. */
+.map-ctl {
   position: absolute;
   top: 0.5rem;
   left: 0.5rem;
+  /* Bounded on the right so the row cannot run off a phone: at 16px (the iOS
+     rule below) the two selects want ~320px, and a 360px screen has 290px left
+     once the catalog button is cleared. The bound only binds when space is
+     short -- the children keep their content width otherwise. */
+  right: 0.5rem;
   z-index: 3;
+  display: flex;
+  gap: 0.4rem;
+  align-items: flex-start;
+  /* The box now spans the pane and outranks the layers panel, so it would eat
+     clicks on the panel's top row -- the very bug this layout exists to avoid.
+     Only the controls themselves are hit targets. */
+  pointer-events: none;
 }
 
-.projection-ctl select {
+.map-ctl > * {
+  pointer-events: auto;
+  min-width: 0; /* let a select shrink below its label instead of overflowing */
+}
+
+.projection-ctl select,
+.basemap-ctl select {
+  max-width: 100%;
   background: var(--overlay-2);
   color: var(--text);
   border: 1px solid var(--border);
@@ -2452,7 +2476,7 @@ pre.plan {
      tab strip takes that corner -- the "Map" tab, which the button covered
      completely. The indent is padding rather than a margin so the strip's
      background and its bottom hairline still run the full width. */
-  .projection-ctl {
+  .map-ctl {
     left: 3.9rem;
   }
 
@@ -2580,6 +2604,7 @@ pre.plan {
   .cat-filter,
   .tl-speed,
   .projection-ctl select,
+  .basemap-ctl select,
   .tv-pagesize select,
   .tv-grid td input,
   .tv-grid td select {
@@ -2587,14 +2612,17 @@ pre.plan {
   }
 }
 
-/* The layers panel is 264px against the right edge and the projection select
-   reaches ~230px in from the left, so below roughly 520px of width the select
-   covers the panel's own "▾ Layers" toggle -- and it has the higher z-index, so
-   the toggle was there but unreachable. No width the select can shrink to fixes
-   that on a 360px screen: 264 + the button + the select does not fit a row. So
-   the panel takes a row of its own, and spans it -- a 264px block floating
-   under a half-width select reads as misplaced, a band reads as a toolbar. On a
-   tablet the two sit side by side with room to spare and neither rule applies. */
+/* The layers panel is 264px against the right edge and `.map-ctl` reaches
+   ~230px in from the left, so below roughly 520px of width the controls cover
+   the panel's own "▾ Layers" toggle -- and they have the higher z-index, so the
+   toggle was there but unreachable. No width they can shrink to fixes that on a
+   360px screen: 264 + the button + the controls does not fit a row. So the
+   panel takes a row of its own, and spans it -- a 264px block floating under a
+   half-width select reads as misplaced, a band reads as a toolbar. On a tablet
+   the two sit side by side with room to spare and neither rule applies.
+
+   This is why `.map-ctl` is one row and never wraps: the band's `top` clears
+   exactly one row of controls, so a second one would land on it. */
 @media (max-width: 520px) {
   .layers-panel {
     top: 3.6rem;
@@ -2602,9 +2630,11 @@ pre.plan {
     width: auto;
   }
 
-  /* And the select gives back what it can: it is a two-item control whose
-     labels are short, so only its padding was making it wide. */
-  .projection-ctl select {
+  /* And the selects give back what they can: short labels, so only the padding
+     was making them wide. Two of them share this row at 16px (the iOS rule
+     above), which on a 320px screen is the tightest this corner ever gets. */
+  .projection-ctl select,
+  .basemap-ctl select {
     padding: 0.25rem 0.3rem;
   }
 }

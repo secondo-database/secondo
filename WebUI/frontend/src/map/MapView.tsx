@@ -35,27 +35,15 @@ import {
   projectGeoJSON,
   projectRegions,
   projectTrips,
+  PROJECTION_LABEL,
   type Projection,
 } from "./projection";
+import { BASEMAPS, loadBasemap, saveBasemap, type BasemapId } from "./basemaps";
 
 type BBox = [number, number, number, number];
 
 const orthoView = new OrthographicView({ id: "ortho", flipY: false });
 const geoView = new DeckMapView({ id: "geo", repeat: true });
-
-// Raster OpenStreetMap basemap (no external style file / API key needed).
-const OSM_STYLE = {
-  version: 8 as const,
-  sources: {
-    osm: {
-      type: "raster" as const,
-      tiles: ["https://a.tile.openstreetmap.org/{z}/{x}/{y}.png"],
-      tileSize: 256,
-      attribution: "© OpenStreetMap contributors",
-    },
-  },
-  layers: [{ id: "osm", type: "raster" as const, source: "osm" }],
-};
 
 // A bbox is geographic when it fits within valid lon/lat ranges. SECONDO's own
 // coordinate systems (e.g. berlintest ~10000) fall outside and stay Cartesian.
@@ -154,11 +142,16 @@ function labelAnchor(geometry: {
   return n > 0 ? [sx / n, sy / n] : null;
 }
 
-// Whether the canvas under the labels is light. The OSM raster is light
-// whatever the app theme is, so geographic mode always is; the Cartesian canvas
-// is `--bg-deep`, which follows the theme.
-function onLightCanvas(geographic: boolean, theme: Theme): boolean {
-  return geographic || theme === "light";
+// Whether the canvas under the labels is light. In geographic mode the basemap
+// paints it, so the chosen basemap decides and the app theme does not come into
+// it -- OSM raster is light, imagery and dark-matter are not. The Cartesian
+// canvas is `--bg-deep`, which does follow the theme.
+function onLightCanvas(
+  geographic: boolean,
+  theme: Theme,
+  basemap: BasemapId
+): boolean {
+  return geographic ? BASEMAPS[basemap].light : theme === "light";
 }
 
 // Ink and halo for a layer's labels.
@@ -354,6 +347,7 @@ interface Props {
   globalT0: number;
   currentTime: number;
   projection: Projection;
+  onProjectionChange: (p: Projection) => void;
   // Only the labels care: their ink and halo swap over on a light canvas.
   theme: Theme;
   onSelect: (layerId: string | null, object: unknown) => void;
@@ -364,6 +358,7 @@ export function MapView({
   globalT0,
   currentTime,
   projection,
+  onProjectionChange,
   theme,
   onSelect,
 }: Props) {
@@ -423,6 +418,10 @@ export function MapView({
   // alone. Without a re-fit the MapView controller would then be handed an
   // orthographic {target, zoom} with no longitude/latitude and assert.
   const [viewState, setViewState] = useState<VState>(fit);
+  // Which basemap paints the geographic canvas. Nothing outside the map cares,
+  // so it is not lifted to App -- and the picker has to hide itself in
+  // Cartesian mode, which only this component knows about.
+  const [basemap, setBasemap] = useState<BasemapId>(loadBasemap);
   const [fitState, setFitState] = useState<{
     seen: string[];
     projection: Projection;
@@ -446,7 +445,7 @@ export function MapView({
   const coordinateSystem = geographic
     ? COORDINATE_SYSTEM.LNGLAT
     : COORDINATE_SYSTEM.CARTESIAN;
-  const onLight = onLightCanvas(geographic, theme);
+  const onLight = onLightCanvas(geographic, theme, basemap);
   const haloColor = labelHalo(onLight);
   // Deciding which labels overlap means putting their anchors in screen pixels,
   // which takes the current scale (see toScreenPx).
@@ -908,6 +907,8 @@ export function MapView({
       className="mapview"
       data-projection={projection}
       data-geographic={geographic ? "true" : "false"}
+      data-basemap={basemap}
+      data-on-light={onLight ? "true" : "false"}
       data-symbolic-labels={symbolicTexts.join("|")}
     >
       <DeckGL
@@ -934,8 +935,49 @@ export function MapView({
           return text ? { text } : null;
         }}
       >
-        {geographic && <BaseMap reuseMaps mapStyle={OSM_STYLE} />}
+        {geographic && <BaseMap reuseMaps mapStyle={BASEMAPS[basemap].style} />}
       </DeckGL>
+      {/* How the map is drawn, in one row. One row and not a stack: below 520px
+          the layers panel becomes a full-width band immediately underneath,
+          sized to clear exactly one row of controls. */}
+      <div className="map-ctl">
+        <div className="projection-ctl">
+          <select
+            value={projection}
+            onChange={(e) => onProjectionChange(e.target.value as Projection)}
+            title="Coordinate projection for the map"
+            aria-label="Projection"
+          >
+            {(Object.keys(PROJECTION_LABEL) as Projection[]).map((p) => (
+              <option key={p} value={p}>
+                {PROJECTION_LABEL[p]}
+              </option>
+            ))}
+          </select>
+        </div>
+        {/* Only in geographic mode: in Cartesian there is no basemap to pick,
+            and a permanently disabled dropdown is worse than an absent one. */}
+        {geographic && (
+          <div className="basemap-ctl">
+            <select
+              value={basemap}
+              onChange={(e) => {
+                const next = e.target.value as BasemapId;
+                setBasemap(next);
+                saveBasemap(next);
+              }}
+              title="Basemap drawn under the data"
+              aria-label="Basemap"
+            >
+              {(Object.keys(BASEMAPS) as BasemapId[]).map((b) => (
+                <option key={b} value={b}>
+                  {BASEMAPS[b].label}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+      </div>
       <div className="zoom-ctl">
         <button onClick={() => zoomBy(0.6)} title="Zoom in" aria-label="Zoom in">
           +

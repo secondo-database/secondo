@@ -18,7 +18,7 @@ import { useAnimator } from "./timeline/useAnimator";
 import { isDrawable, useLayers } from "./layers/useLayers";
 import { LayersPanel } from "./layers/LayersPanel";
 import { PlotPanel, type PlotEntry } from "./plots/PlotPanel";
-import { PROJECTION_LABEL, type Projection } from "./map/projection";
+import { type Projection } from "./map/projection";
 import { applyTheme, loadTheme, type Theme } from "./theme";
 
 // Commands after which the catalog on the left is stale: they switch the
@@ -619,25 +619,12 @@ export function App() {
             running query…
           </div>
         )}
-        <div className="projection-ctl">
-          <select
-            value={projection}
-            onChange={(e) => setProjection(e.target.value as Projection)}
-            title="Coordinate projection for the map"
-          >
-            {(Object.keys(PROJECTION_LABEL) as Projection[]).map((p) => (
-              <option key={p} value={p}>
-                {PROJECTION_LABEL[p]}
-              </option>
-            ))}
-          </select>
-        </div>
-
         <MapView
           layers={visible}
           globalT0={domain ? domain[0] : 0}
           currentTime={time}
           projection={projection}
+          onProjectionChange={setProjection}
           theme={theme}
           onSelect={(layerId, object) => {
             const props =
