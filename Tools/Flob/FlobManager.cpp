@@ -604,14 +604,6 @@ bool FlobManager::destroy(Flob &victim) {
    bool isTemp = id.mode == 1;
    if (victim.id.fileId == nativeFlobs && isTemp) {
 
-      /*
-        std::cout << "Destroy native Flob " << victim.id << std::endl;
-        char* buffer = new char[2048];
-        WinUnix::stacktrace("SecondoBDB", buffer);
-        std::cout << "Stacktrace : " << buffer << std::endl << std::endl;
-        delete[] buffer;
-       */
-
 #ifdef THREAD_SAFE
       {std::lock_guard<std::recursive_mutex> guard(ncmtx);
 #endif

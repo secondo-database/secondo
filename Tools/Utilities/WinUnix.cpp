@@ -55,6 +55,10 @@ which derives it from $(platform)."
 #endif
 #endif
 
+#ifdef SECONDO_HAVE_LIBBACKTRACE
+#include <backtrace.h>
+#endif
+
 #include <iostream>
 #include <string>
 
@@ -146,7 +150,7 @@ void WinUnix::writeLittleEndian(ostream& o, const uint32_t number){
 
 
 void WinUnix::writeLittleEndian(ostream& o, 
-	const uint16_t number){
+  const uint16_t number){
   uint16_t x = number;
   if(!isLittleEndian()){
     x =  (( x & 0x00FF) << 8) | ( ( x & 0xFF00) >> 8);
@@ -250,102 +254,194 @@ WinUnix::string2stdout(const char* string) {
    writeAll(fileno(stdout), string, strlen(string));
 }
     
-/* Obtain a backtrace and print it to stdout. */
 #ifndef SECONDO_ANDROID
 #if defined(SECONDO_LINUX) || defined(SECONDO_MAC_OSX)
+
+#ifdef SECONDO_HAVE_LIBBACKTRACE
+
+namespace {
+
+// Created once at startup, never freed: libbacktrace has no counterpart to
+// backtrace\_create\_state, and having the state ready before the crash is
+// what makes backtrace\_full() usable from a signal handler at all.
+struct backtrace_state* btState = 0;
+
+/*
+Writes VALUE in the given base into the caller's stack buffer and returns the
+number of characters written. snprintf() must not be used in a signal handler:
+a signal arriving while the main program is inside it would deadlock on the
+lock it already holds. Application's number2stdout() does not fit either, it
+writes to stdout only.
+
+*/
+size_t
+writeNum(char* buffer, uintptr_t value, unsigned int base)
+{
+   char digits[sizeof(uintptr_t) * 8];
+   size_t len = 0;
+
+   do {
+      digits[len++] = "0123456789abcdef"[value % base];
+      value /= base;
+   } while(value != 0);
+
+   for(size_t pos = 0; pos < len; pos++) {
+      buffer[pos] = digits[len - 1 - pos];
+   }
+
+   return len;
+}
+
 void
-WinUnix::stacktrace(const char* appName, const char* stacktraceOutput,
-    const char* relocationInfo)
+writeStr(int fd, const char* string)
+{
+   WinUnix::writeAll(fd, string, strlen(string));
+}
+
+/*
+Error callback for backtrace\_create\_state() as well as backtrace\_full().
+points to the file descriptor to report on, and is NULL during setup, where
+there is nowhere useful to write and a NULL state is the only signal needed.
+Reporting matters: when backtrace\_full() fails outright no frame is printed at
+all, and a silent empty trace would be the worst possible output.
+
+*/
+void
+btError(void* data, const char* msg, int errnum)
+{
+   if(data == 0) {
+      return;
+   }
+
+   int fd = *(int*) data;
+
+   writeStr(fd, "  [libbacktrace: ");
+   writeStr(fd, (msg != 0) ? msg : "unknown error");
+   writeStr(fd, "]\n");
+   (void) errnum;
+}
+
+/*
+Prints one frame as "0xPC function at file:line". No iostream, no printf and
+no std::string: each of them either allocates or takes a lock the interrupted
+code may already hold. FILENAME and FUNCTION are NUL-terminated buffers owned
+by libbacktrace and valid only for the duration of this call, so they are
+written straight through. The names are DWARF linkage names and stay mangled;
+the wrapper script pipes the trace through c++filt.
+
+*/
+int
+btFrame(void* data, uintptr_t pc, const char* filename, int lineno,
+        const char* function)
+{
+   int fd = *(int*) data;
+
+   // "0x" + at most 16 hex digits + ' ' = 19, and the ":lineno" written
+   // further down needs 11.
+   char buffer[32];
+   size_t len = 0;
+
+   buffer[len++] = '0';
+   buffer[len++] = 'x';
+   len += writeNum(buffer + len, pc, 16);
+   buffer[len++] = ' ';
+   WinUnix::writeAll(fd, buffer, len);
+
+   writeStr(fd, (function != 0) ? function : "??");
+
+   if(filename != 0) {
+      writeStr(fd, " at ");
+      writeStr(fd, filename);
+      buffer[0] = ':';
+      len = 1 + writeNum(buffer + 1, (uintptr_t) (lineno > 0 ? lineno : 0), 10);
+      WinUnix::writeAll(fd, buffer, len);
+   }
+
+   writeStr(fd, "\n");
+
+   return 0;   // keep unwinding
+}
+
+} // anonymous namespace
+#endif
+
+/* Prepare the symbolizing stack tracer. */
+void
+WinUnix::initStacktrace()
+{
+#ifdef SECONDO_HAVE_LIBBACKTRACE
+   // NULL rather than the application name: Application only knows
+   // basename(argv[0]), which libbacktrace would look up relative to the
+   // current directory. Given NULL it locates the running image itself.
+   //
+   // threaded = 1 because SECONDO is multi-threaded.
+   //
+   // This call is cheap, no debug info is read before the first
+   // backtrace_full(), but it is the part that allocates, which is why it
+   // cannot wait for the crash. Should a crash ever hang in the tracer,
+   // reading the debug info in advance (backtrace_pcinfo() on a known
+   // address) is the way out; it is not done by default because it costs
+   // startup time and memory in every run.
+   btState = backtrace_create_state(NULL, 1, btError, NULL);
+#endif
+}
+
+/* Obtain a backtrace and print it. */
+void
+WinUnix::stacktrace(const char* stacktraceOutput)
 {
      string2stdout(" Generating stack trace ... \n");
      string2stdout(" ************ BEGIN STACKTRACE ************\n");
-     
-     void *stacktrace[256];
+
      int fd = fileno(stdout); // File descriptor for stacktrace output
-     int entries = backtrace (stacktrace, 256);
+     int outputfd = -1;
 
      if(stacktraceOutput != NULL) {
          string2stdout("Writing stacktrace to: ");
          string2stdout(stacktraceOutput);
          string2stdout("\n");
-         
-         int outputfd = open (stacktraceOutput, 
+
+         outputfd = open (stacktraceOutput,
                  O_TRUNC | O_WRONLY | O_CREAT, 0666);
-         
+
          if (outputfd != -1) {
              fd = outputfd;
          }
-        
-         if(relocationInfo != NULL) {
-             WinUnix::writeAll(fd, relocationInfo, strlen(relocationInfo));
-         }
-          
-         backtrace_symbols_fd(stacktrace, entries, fd);
-         
-         if (outputfd != -1) {
-            close(outputfd);
-         }
+     }
 
+#ifdef SECONDO_HAVE_LIBBACKTRACE
+     if(btState != 0) {
+         // skip 1 drops this function, the signal handler frame above it is
+         // kept as a marker. libbacktrace walks every loaded object through
+         // dl_iterate_phdr, so a frame in an algebra shared library or in
+         // libc is resolved against that object's own debug info: the case
+         // one relocation offset for the whole process could not get right.
+         backtrace_full(btState, 1, btFrame, btError, &fd);
      } else {
-         string2stdout("No stacktrace output file defined, ");
-         string2stdout("dumping stacktrace to stdout\n");
+         // Setting up the symbolizer failed. Raw addresses beat nothing.
+         void* frames[256];
+         backtrace_symbols_fd(frames, backtrace(frames, 256), fd);
+     }
+#else
+     // No libbacktrace on this platform, so the addresses stay unsymbolized.
+     void* frames[256];
+     backtrace_symbols_fd(frames, backtrace(frames, 256), fd);
+#endif
 
-         if(relocationInfo != NULL) {
-             string2stdout(relocationInfo);
-         }
-         
-         // Dump stacktrace to stdout
-         backtrace_symbols_fd(stacktrace, entries, fileno(stdout));
-         
-         // Generate a hint, how to decode the addresses
-         char** stacktraceString = backtrace_symbols(stacktrace, entries);
-         if(stacktraceString != NULL) {
-       
-            string2stdout("\nTo decode the stack trace, please run: ");
-            string2stdout("addr2line --demangle=auto -p -fs -e ");
-            string2stdout(appName);
-            string2stdout("\n");
+     if (outputfd != -1) {
+        close(outputfd);
+     }
 
-            // Extract and print addresses from stacktrace
-            for (int linePos = 0; linePos < entries; linePos++) {
-                char* line = stacktraceString[linePos];
-                bool print = false;
-                for(size_t pos = 0; pos < strlen(line); pos++) {
-                    if(line[pos] == '[') {
-                        print = true;
-                        string2stdout(" ");
-                        continue;
-                    }
-                    
-                    if(line[pos] == ']') {
-                        break;
-                    }
-                    
-                    if(print) {
-                        WinUnix::writeAll(fileno(stdout), &line[pos], 1);
-                    }
-                }
-            }
-            
-            string2stdout("\n");
-            string2stdout("\n");
-          
-            if(relocationInfo != NULL) {
-               string2stdout("When the binary is compliled with -fPIE, "
-                             "you need to subtract the binary relocation "
-                             "shown above from the addresses.\n");
-               string2stdout("\n");
-            }
-            
-            free(stacktraceString);
-         }
-     } 
-     
      string2stdout("\n *********** END STACKTRACE **********************\n\n");
 }
 #else
 void
-WinUnix::stacktrace(const char* fullAppName, const char* stacktraceOutput)
+WinUnix::initStacktrace()
+{
+}
+
+void
+WinUnix::stacktrace(const char* stacktraceOutput)
 {
   cerr << "Sorry - stack trace not supported." << endl;
 }
@@ -354,7 +450,12 @@ WinUnix::stacktrace(const char* fullAppName, const char* stacktraceOutput)
 #endif
 #else
 void
-WinUnix::stacktrace(const char* fullAppName, const char* stacktraceOutput)
+WinUnix::initStacktrace()
+{
+}
+
+void
+WinUnix::stacktrace(const char* stacktraceOutput)
 {
   cerr << "Sorry - stack trace under Android not supported." << endl;
 }

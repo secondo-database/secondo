@@ -104,7 +104,7 @@ dbDir="/tmp/$USER/test-databases-${date_TimeStamp}"
 
 export SECONDO_CONFIG="$buildDir/bin/SecondoConfig.ini"
 export SECONDO_PARAM_SecondoHome="$dbDir"
-export SECONDO_PARAM_RTFlags="SI:NoQueryAnalysis,DEBUG:DemangleStackTrace" 
+export SECONDO_PARAM_RTFlags="SI:NoQueryAnalysis" 
 
 if [ -d $dbDir ]; then
   printf "%s\n" "Warning database directory ${dbDir} exists! Please remove it."

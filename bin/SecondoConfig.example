@@ -189,11 +189,6 @@ RTFlags += SMI:AutoRemoveLogs
 #RTFlags += NLParser:Debug
 #RTFlags += NL:BinaryListDebug
 
-# Uncomment the next line if you don't want
-# to see a stack trace when Secondo chrashes.
-# Note: The stack trace is not available on windows!
-RTFlags += DEBUG:DemangleStackTrace
-
 
 #Flobcache section--
 [FlobCache]
@@ -215,7 +210,6 @@ Persistent_SlotSize=16777216
 
 # average size of  a persistent flob, default = 512
 Persistent_AvgSize=512
-
 
 
 # --- QueryProcessor Section ---

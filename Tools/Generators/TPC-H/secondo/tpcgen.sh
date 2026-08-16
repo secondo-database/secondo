@@ -59,7 +59,6 @@ if [ -z $buildDir ]; then
 fi 
 
 
-
 printf "\n%s\n" "Creating database ${dbName} with a scale factor ${scaleFactor}!"
 
 tpcDir=${buildDir}/Tools/Generators/TPC-H
@@ -93,7 +92,7 @@ assert cd $tempDir
 
 
 export SECONDO_PARAM_SecondoHome=$bdbHome
-#export SECONDO_PARAM_RTFlags="SMI:NoTransactions,DEBUG:DemangleStackTrace,CMSG:Color"
+#export SECONDO_PARAM_RTFlags="SMI:NoTransactions,CMSG:Color"
 
 ncmd=$(which nice)
 niceOpt="nice -n19"

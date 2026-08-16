@@ -2,11 +2,21 @@
 #
 ##############################
 
-executable=$(which SecondoBDB)
+# The build puts the binaries next to this script, and .secondorc does not add
+# that directory to the PATH, so look there first. The PATH is the fallback for
+# an installed copy, where the two may live apart.
+self="${BASH_SOURCE[0]}"
+[ -L "$self" ] && self=$(readlink -f -- "$self" 2>/dev/null || echo "$self")
+scriptdir=$(cd -- "$(dirname -- "$self")" && pwd)
+executable="$scriptdir/SecondoBDB"
 
 if [ ! -x "$executable" ]; then
-  echo "Error: SecondoBDB not found on PATH" >&2
-  echo "Set up the SECONDO environment first, e.g. 'source ~/.secondorc'" >&2
+  executable=$(command -v SecondoBDB)
+fi
+
+if [ ! -x "$executable" ]; then
+  echo "Error: SecondoBDB found neither in $scriptdir nor on the PATH" >&2
+  echo "Build SECONDO first, or set up the environment, e.g. 'source ~/.secondorc'" >&2
   exit 1
 fi
 
@@ -51,39 +61,14 @@ if [ -n "$stacktrace_output" ] ; then
       echo "========"
       echo -e "\n"
 
-      cat $stacktrace_output
-
-      # Convert addresses to lines if addr2line is available
-      if hash addr2line 2> /dev/null ; then
-         lines=""
-
-         echo -e "\n"
-         echo "========"
-         echo " Trying to decode the stacktrace..."
-         echo "========"
-         echo -e "\n"
-
-         # Get relocation if available 
-         if [ $(cat $stacktrace_output | grep "Binary relocation:" | wc -l) -gt 0 ]; then 
-            binary_relocation=$(cat $stacktrace_output | grep "Binary relocation:" | cut -d ":" -f 2)
-         else
-            binary_relocation="0x0"
-         fi 
-
-         # Extract and collect addresses
-         stacktrace=$(cat $stacktrace_output | grep "0x")
-         for line in $stacktrace; do
-
-           if [ $(echo $line | grep "\[" | wc -l) -eq 0 ]; then 
-             continue
-           fi
-
-           addr=$(echo $line | cut -d "[" -f 2 | sed s/]//g)
-           printf -v raddr "0x%X" $(($addr - $binary_relocation))
-           lines="$lines $raddr"
-         done
-
-         addr2line --demangle=auto -p -fs -e $runner $lines
+      # The trace is symbolized in the crashing process itself, so there is
+      # nothing to decode here. libbacktrace reports the DWARF linkage name and
+      # does not demangle, so the names are run through c++filt when it is
+      # available; without it they stay readable, only mangled.
+      if hash c++filt 2> /dev/null ; then
+         c++filt < "$stacktrace_output"
+      else
+         cat "$stacktrace_output"
       fi
 
       echo "========"

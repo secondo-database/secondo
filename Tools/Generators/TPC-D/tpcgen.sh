@@ -109,7 +109,7 @@ fi
 printSep "Restore database $dbName"
 
 export SECONDO_PARAM_SecondoHome=$bdbHome
-#export SECONDO_PARAM_RTFlags="SMI:NoTransactions,DEBUG:DemangleStackTrace,CMSG:Color"
+#export SECONDO_PARAM_RTFlags="SMI:NoTransactions,CMSG:Color"
 
 niceOpt="nice -n19"
 ncmd=$(which nice)

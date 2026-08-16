@@ -78,8 +78,11 @@ public:
   static bool writeAll(int fd, const char *buffer, size_t size);
 
   static void string2stdout(const char *string);
-  static void stacktrace(const char *appName, const char *stacktraceOutput,
-                         const char *relocationInfo);
+
+  // Prepares the symbolizing stack tracer.
+  static void initStacktrace();
+
+  static void stacktrace(const char *stacktraceOutput);
 
   static inline bool WindowsHost() { return isWin32(); }
   static inline bool isWin32() { return win32; }

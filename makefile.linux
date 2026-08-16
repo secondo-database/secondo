@@ -27,6 +27,20 @@
 # System dependent default libraries
 DEFAULTLIB = -lpthread -lm -ldl -lrt -lstdc++
 
+# In-process symbolization of stack traces. libbacktrace and its header ship
+# with libgcc-*-dev, a hard dependency of g++, so this adds no package
+# dependency; the archive is position independent and links into the PIE
+# executables. Set SECONDO_NO_LIBBACKTRACE=1 to build without it; stack traces
+# then contain unsymbolized addresses.
+ifndef SECONDO_NO_LIBBACKTRACE
+LIBBACKTRACE_A := $(wildcard \
+    $(filter /%,$(shell $(CC) -print-file-name=libbacktrace.a)))
+endif
+ifneq ($(LIBBACKTRACE_A),)
+DEFAULTCCFLAGS += -DSECONDO_HAVE_LIBBACKTRACE -I$(dir $(LIBBACKTRACE_A))include
+DEFAULTLIB     += $(LIBBACKTRACE_A)
+endif
+
 # NOTE: -lpthread is neccessary on SuSe Linux 9.1. But there are two versions, one is 
 # in the /lib directory and another in the /lib/tls directory. The same yields for
 # other libraries. The berkeley db libraries use libraries in the /lib/tls directory.  
@@ -38,7 +52,7 @@ ifeq ($(shared),yes)
 PICFLAG := -fPIC
 OBJEXT := lo
 LIBEXT := so
-LDFLAGS := -s -shared
+LDFLAGS := -shared
 else
 OBJEXT := o
 LIBEXT := a
@@ -50,7 +64,7 @@ DLLPICFLAG := -fPIC
 DLLOBJEXT := lo
 DLLEXT := so
 DLLPREF := lib
-DLLFLAGS := -s -shared
+DLLFLAGS := -shared
 
 # Append since DEFAULTCCFLAGS might already be set by makefile.env.
 DEFAULTCCFLAGS += -fPIC

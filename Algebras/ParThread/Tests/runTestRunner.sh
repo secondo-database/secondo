@@ -11,6 +11,6 @@ secondoBin="$HOME/secondo/bin"
 
 cd "$secondoBin"
 
-export SECONDO_PARAM_RTFlags="SMI:NoTransactions,DEBUG:DemangleStackTrace,CMSG:Color,CTLG:SkipExamples,SI:PrintCmdTimes,SI:ShowCommandTime,SI:NoCommandEcho,QP:OpTree2SVG,QP:ProgDisable"
+export SECONDO_PARAM_RTFlags="SMI:NoTransactions,CMSG:Color,CTLG:SkipExamples,SI:PrintCmdTimes,SI:ShowCommandTime,SI:NoCommandEcho,QP:OpTree2SVG,QP:ProgDisable"
 
 SecondoBDB -test -c "$configPath" -i '../Algebras/ParThread/Tests/parthreadAlgebra.test'

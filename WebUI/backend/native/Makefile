@@ -21,8 +21,9 @@ EXTSUFFIX  := $(shell python -c "import sysconfig;print(sysconfig.get_config_var
 MODULE := secondo_native$(EXTSUFFIX)
 
 INCLUDES = $(PYINCLUDES) -I$(CS_DIR)/include -I$(BDBINCLUDE)
+
 LIBS     = -L$(CS_DIR)/lib -lsecondo -L$(BDB_LIB_DIR) -l$(BERKELEY_DB_LIB) \
-           -lpthread -lstdc++
+           $(DEFAULTLIB_CXX)
 
 .PHONY: all clean
 all: $(MODULE)

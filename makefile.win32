@@ -32,7 +32,7 @@ ifeq ($(shared),yes)
 PICFLAG =
 OBJEXT = o
 LIBEXT = dll
-LDFLAGS = -s -shared
+LDFLAGS = -shared
 EXEFLAGS =
 # ... Windows needs special treatment when creating DLLs
 LDOPT = -Wl,--export-dynamic -Wl,--out-implib,$(LIBDIR)/$(LIBNAME).$(LIBEXT).a
@@ -47,7 +47,7 @@ endif
 DLLPICFLAG =
 DLLOBJEXT = o
 DLLEXT = dll
-DLLFLAGS = -s -shared
+DLLFLAGS = -shared
 
 # Set up default flags for the compiler
 DEFAULTCCFLAGS += -mconsole

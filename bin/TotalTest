@@ -39,8 +39,6 @@ if [ -z "$t" ]; then
 fi
 
 
-
-
 dir=$t/SecTotal_$PID
 
 
@@ -60,7 +58,7 @@ ls -l $dir
 
 #overwrite settings in SecondoConfig.ini
 
-export SECONDO_PARAM_RTFlags="DEBUG:DemangleStackTrace,CMSG:Color,CTLG:SkipExamples,SI:PrintCounters,SMI:AutoRemoveLogs,Server:BinaryTransfer"
+export SECONDO_PARAM_RTFlags="CMSG:Color,CTLG:SkipExamples,SI:PrintCounters,SMI:AutoRemoveLogs,Server:BinaryTransfer"
 export SECONDO_PARAM_SecondoHome=$dir
 
 

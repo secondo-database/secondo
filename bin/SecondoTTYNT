@@ -4,7 +4,25 @@
 #
 # 07.03.2007, M. Spiekermann
 
-export SECONDO_PARAM_RTFlags="DEBUG:DemangleStackTrace,CMSG:Color,SMI:NoTransactions,CTLG:SkipExamples,SI:PrintCmdTimes,SI:ShowCommandTime,SI:NoCommandEcho"
+# The build puts the binaries next to this script, and .secondorc does not add
+# that directory to the PATH, so look there first. The PATH is the fallback for
+# an installed copy, where the two may live apart.
+self="${BASH_SOURCE[0]}"
+[ -L "$self" ] && self=$(readlink -f -- "$self" 2>/dev/null || echo "$self")
+scriptdir=$(cd -- "$(dirname -- "$self")" && pwd)
+executable="$scriptdir/SecondoBDB"
+
+if [ ! -x "$executable" ]; then
+  executable=$(command -v SecondoBDB)
+fi
+
+if [ ! -x "$executable" ]; then
+  echo "Error: SecondoBDB found neither in $scriptdir nor on the PATH" >&2
+  echo "Build SECONDO first, or set up the environment, e.g. 'source ~/.secondorc'" >&2
+  exit 1
+fi
+
+export SECONDO_PARAM_RTFlags="CMSG:Color,SMI:NoTransactions,CTLG:SkipExamples,SI:PrintCmdTimes,SI:ShowCommandTime,SI:NoCommandEcho"
 
 # adjust the defaults if you have more
 # memory available
@@ -17,17 +35,17 @@ VALGRIND_STD_OPTIONS=" --num-callers=25 --suppressions=vgs.txt --error-limit=no 
 
 if [ "$1" == "--valgrind" ]; then
   shift
-  runner="valgrind $VALGRIND_STD_OPTIONS  $(which SecondoBDB)"
+  runner="valgrind $VALGRIND_STD_OPTIONS  $executable"
 else 
 if [ "$1" == "--valgrindlc" ]; then
   shift
-  runner="valgrind $VALGRIND_STD_OPTIONS --leak-check=full $(which SecondoBDB)"
+  runner="valgrind $VALGRIND_STD_OPTIONS --leak-check=full $executable"
 else  
 if [ "$1" == "--profile" ]; then
   shift
-  runner="valgrind --tool=callgrind --dump-instr=yes  --trace-jump=yes  $(which SecondoBDB)"
+  runner="valgrind --tool=callgrind --dump-instr=yes  --trace-jump=yes  $executable"
 else
-  runner="$(which SecondoBDB)"
+  runner="$executable"
 fi
 fi
 fi  

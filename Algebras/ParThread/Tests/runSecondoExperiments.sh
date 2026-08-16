@@ -12,7 +12,7 @@ if [ "$2" = "" ]; then
 	exit
 fi
 
-export SECONDO_PARAM_RTFlags="DEBUG:DemangleStackTrace,CMSG:Color,SMI:NoTransactions,CTLG:SkipExamples,SI:PrintCmdTimes,SI:ShowCommandTime,SI:NoCommandEcho,QP:OpTree2SVG"
+export SECONDO_PARAM_RTFlags="CMSG:Color,SMI:NoTransactions,CTLG:SkipExamples,SI:PrintCmdTimes,SI:ShowCommandTime,SI:NoCommandEcho,QP:OpTree2SVG"
 export SECONDO_PARAM_NodeMem=32000
 export SECONDO_PARAM_StringMem=8000
 export SECONDO_PARAM_TextMem=8000
@@ -59,7 +59,7 @@ do
 
 			cd $secondoBin
 
-            export SECONDO_PARAM_RTFlags="SMI:NoTransactions,DEBUG:DemangleStackTrace,CMSG:Color,CTLG:SkipExamples,SI:PrintCmdTimes,SI:ShowCommandTime,SI:NoCommandEcho,QP:OpTree2SVG,QP:ProgDisable"
+            export SECONDO_PARAM_RTFlags="SMI:NoTransactions,CMSG:Color,CTLG:SkipExamples,SI:PrintCmdTimes,SI:ShowCommandTime,SI:NoCommandEcho,QP:OpTree2SVG,QP:ProgDisable"
 
 		    runner="SecondoBDB -i $sl -c $cl"
 		    $runner 2>&1 | tee "$logdir/$logname"

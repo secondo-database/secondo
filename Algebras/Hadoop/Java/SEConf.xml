@@ -218,13 +218,6 @@
 			<default>false</default>
 		</item>
 
-		<item>
-			<key>RTFlags::DEBUG:DemangleStackTrace</key>
-			<type>MULTI</type>
-			<value>true</value>
-			<default>true</default>
-		</item>
-
 	</section>
 	
 	<section name="FlobCache">

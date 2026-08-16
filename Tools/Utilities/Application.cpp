@@ -67,10 +67,6 @@ command instead of hard coded application name SecondoTTYBDB
 #define _POSIX_OPEN_MAX 256
 #endif
 
-#if defined(SECONDO_LINUX)
-#include <link.h>
-#endif
-
 #include "Messages.h"
 MessageCenter* MessageCenter::msg = 0;
 #ifdef THREAD_SAFE
@@ -81,10 +77,7 @@ MessageCenter* MessageCenter::msg = 0;
  
 Application* Application::appPointer = 0;
 const char* Application::signalStr[NSIG] = {};
-bool Application::dumpStacktrace = true;
 char* Application::stacktraceOutput = NULL;
-char* Application::relocationInfo = NULL;
-char* Application::stacktraceAppName = NULL;
 
 Application* Application::Instance()
 {
@@ -200,33 +193,9 @@ Application::Application( int argc, const char** argv )
   user1Flag = false;
   user2Flag = false;
 
- 
-#if defined(SECONDO_LINUX)
-  // Fetch in-memory relocation offset. Needed when compiled
-  // as position-independent-code (-fPIC) and tools which work 
-  // with ELF addresses (e.g., addr2line) should be used.
-  //
-  // Calculation of the string needs to be made here. In the 
-  // signal handler, no new memory allcations can be made.
-  uintptr_t relocation = _r_debug.r_map->l_addr;
 
-  Application::relocationInfo = 
-      (char *) malloc(128 * sizeof(char));
-
-  snprintf(relocationInfo, 128, 
-      "\nBinary relocation: 0x%" PRIxPTR "\n\n", relocation);
-#endif
- 
 #ifndef SECONDO_WIN32
-  
-  // Store stacktrace output filenanme for later 
-  // use. If the application crashes, it's not ensured that the 
-  // env variabes can be accessed. 
 
-  // Keep a plain copy of the application name for the stacktrace. The signal
-  // handler passes it on, and GetApplicationName hands back a std::string by
-  // value, which is an allocation the handler must not make.
-  Application::stacktraceAppName = strdup( appName.c_str() );
 
   char* localStacktrace = getenv("SECONDO_LOCAL_STACKTRACE");
   if(localStacktrace == 0){
@@ -243,6 +212,10 @@ Application::Application( int argc, const char** argv )
      st << "secondo_stacktrace." << WinUnix::getpid();
      Application::stacktraceOutput = strdup(st.str().c_str());
   }
+
+  // Build the symbol and line number lookup state now: the signal handler
+  // must not allocate, so this cannot wait for the crash.
+  WinUnix::initStacktrace();
 
 
   // --- Trap all signals that would terminate the program by default anyway.
@@ -346,19 +319,9 @@ Application::~Application()
     // exactly that on the server shutdown path.
     Application::appPointer = 0;
 
-    if(Application::relocationInfo != NULL) {
-        free(Application::relocationInfo);
-        Application::relocationInfo = NULL;
-    }
-
     if(Application::stacktraceOutput != NULL) {
         free(Application::stacktraceOutput);
         Application::stacktraceOutput = NULL;
-    }
-
-    if(Application::stacktraceAppName != NULL) {
-        free(Application::stacktraceAppName);
-        Application::stacktraceAppName = NULL;
     }
 
 #ifdef SECONDO_WIN32
@@ -494,13 +457,7 @@ abort the process if not handled otherwise.
 
   if ( sig == SIGABRT || sig == SIGSEGV || sig == SIGFPE || sig == SIGILL)
   {
-     if(Application::dumpStacktrace) {
-        // Never a std::string here: see stacktraceAppName in the constructor.
-        const char* appname = ( Application::stacktraceAppName != NULL )
-                              ? Application::stacktraceAppName : "unknown";
-        WinUnix::stacktrace(appname, stacktraceOutput,
-            Application::relocationInfo);
-     }
+     WinUnix::stacktrace(stacktraceOutput);
   }
   WinUnix::string2stdout( " Calling default signal handler ...\n" );
   signal( sig, SIG_DFL );
