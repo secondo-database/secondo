@@ -211,14 +211,6 @@ Creating shared libraries requires no special measures.
 #endif
 
 /*
-The following symbol must be defined in order to use the latest POSIX APIs:
-
-*/
-#ifdef __GNUC__
-#  define _GNU_SOURCE 1
-#endif
-
-/*
 Define separator character for pathnames in PATH environment variable:
 
 */
