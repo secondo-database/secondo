@@ -26,6 +26,24 @@
 # System dependent default libraries
 DEFAULTLIB = -lpthread -lm -ldl -lc++
 
+# In-process symbolization of stack traces, as on Linux. Apple's toolchain does
+# not ship libbacktrace, but the Homebrew formula of the same name does, and
+# upstream supports Mach-O. secondo-have-lib reports it only when both the
+# header and the library are installed, so without the formula this stays off
+# and stack traces fall back to backtrace_symbols_fd(): function names, but no
+# line numbers.
+#
+# The full library path goes into DEFAULTLIB rather than -lbacktrace because
+# LD_LINK_LIBS (makefile.env) does not carry $(LDFLAGS), so the
+# -L$(HOMEBREW_PREFIX)/lib added below never reaches the executable link.
+ifndef SECONDO_NO_LIBBACKTRACE
+LIBBACKTRACE_LIB := $(call secondo-have-lib,backtrace.h,backtrace)
+endif
+ifneq ($(LIBBACKTRACE_LIB),)
+DEFAULTCCFLAGS += -DSECONDO_HAVE_LIBBACKTRACE
+DEFAULTLIB     += $(LIBBACKTRACE_LIB)
+endif
+
 # macros for shared library support
 ifeq ($(shared),yes)
 PICFLAG := -fPIC
