@@ -164,8 +164,8 @@ cout << "In" << endl << "    TypeInfo: " << nl->ToString(typeInfo) << endl;
     ListExpr first = nl->TheEmptyList();
     ListExpr rest = instance;
     ListExpr subtypeInfo = nl->Second(typeInfo);
-    ListExpr elemList;
-    int count;
+    ListExpr elemList = nl->TheEmptyList();
+    int count = 0;
 
     correct = true;
     Word elemWord;
