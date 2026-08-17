@@ -141,8 +141,7 @@ CS_DEP_FILES := MainTTYCS.dep SecondoTTYCS.dep TestRunnerCS.dep
 
 MainTTYCS.$(OBJEXT): MainTTY.$(OBJEXT)
 MainTTYCS.$(OBJEXT): MainTTY.cpp
-	$(CC) -c -o $@ $< $(CCFLAGS) -DSEC_TTYCS  $(CPPSTDOPTION) \
-	    -MMD -MP -MF MainTTYCS.dep
+	$(CC) -c -o $@ $< $(CCFLAGS) -DSEC_TTYCS  $(CPPSTDOPTION) -MMD -MP -MF MainTTYCS.dep
 
 SecondoPL.$(OBJEXT): $(ENTROPY_OBJ)
 
@@ -150,16 +149,13 @@ SecondoPL.$(OBJEXT): $(ENTROPY_OBJ)
 # repeat the dependency generation that rule does -- without it nothing in this
 # directory was rebuilt when a header changed.
 %.$(OBJEXT): %.cpp
-	$(CC) -c -o $@ $< $(CCFLAGS) $(JNIINCLUDE) $(CPPSTDOPTION) \
-	    -MMD -MP -MF $*.dep
+	$(CC) -c -o $@ $< $(CCFLAGS) $(JNIINCLUDE) $(CPPSTDOPTION) -MMD -MP -MF $*.dep
 
 SecondoTTYCS.$(OBJEXT): SecondoTTY.cpp
-	$(CC) -c -DSECONDO_CLIENT_SERVER -o $@ $< $(CCFLAGS) $(CPPSTDOPTION) \
-	    -MMD -MP -MF SecondoTTYCS.dep
+	$(CC) -c -DSECONDO_CLIENT_SERVER -o $@ $< $(CCFLAGS) $(CPPSTDOPTION) -MMD -MP -MF SecondoTTYCS.dep
 
 TestRunnerCS.$(OBJEXT): TestRunner.cpp
-	$(CC) -c -DSECONDO_CLIENT_SERVER -o $@ $< $(CCFLAGS)  $(CPPSTDOPTION) \
-	    -MMD -MP -MF TestRunnerCS.dep
+	$(CC) -c -DSECONDO_CLIENT_SERVER -o $@ $< $(CCFLAGS)  $(CPPSTDOPTION) -MMD -MP -MF TestRunnerCS.dep
 
 # Read here rather than through makefile.env's DEP_FILES: that list is derived
 # from the *.cpp in this directory, and these objects are named after sources

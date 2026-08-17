@@ -26,15 +26,13 @@ SyntaxParser: scan.o parse.o
 
 
 scan.o: lex.yy.c
-	$(CPPC) -g -fPIC -x c++ -c -o scan.o lex.yy.c \
-	    -MMD -MP -MF scan.dep
+	$(CPPC) -g -fPIC -x c++ -c -o scan.o lex.yy.c -MMD -MP -MF scan.dep
 
 lex.yy.c: SyntaxParser.l parse.o
 	flex SyntaxParser.l
 
 parse.o: SyntaxParser.tab.c
-	$(CPPC) -g -fPIC -x c++ -c -o parse.o SyntaxParser.tab.c \
-	    -MMD -MP -MF parse.dep
+	$(CPPC) -g -fPIC -x c++ -c -o parse.o SyntaxParser.tab.c -MMD -MP -MF parse.dep
 
 
 SyntaxParser.tab.c: SyntaxParser.y

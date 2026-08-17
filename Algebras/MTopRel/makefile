@@ -59,15 +59,13 @@ else
 endif
 
 RegExParser.o: RegExParser.y.c
-	$(CC) -fPIC -x c++ -c -o RegExParser.o RegExParser.y.c \
-	    -MMD -MP -MF RegExParser.dep
+	$(CC) -fPIC -x c++ -c -o RegExParser.o RegExParser.y.c -MMD -MP -MF RegExParser.dep
 
 RegExParser.y.c: RegExParser.y ../FText/Nfa.h
 	$(YACC) -d -o RegExParser.y.c RegExParser.y
 
 Scanner.o: Scanner.c
-	$(CC) -fPIC -c -o Scanner.o Scanner.c \
-	    -MMD -MP -MF Scanner.dep
+	$(CC) -fPIC -c -o Scanner.o Scanner.c -MMD -MP -MF Scanner.dep
 
 Scanner.c: Scanner.l RegExParser.y.c
 	$(LEX) -o Scanner.c Scanner.l

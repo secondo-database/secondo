@@ -73,8 +73,7 @@ Parser: DBLPParser.o dblp.o
 	gcc -o Parser DBLPParser.o dblp.o -ldb $(BDB_LIB_DIR_FLAG) $(LEX_LIB_FLAG) $(LIB_FLAG)
 
 DBLPParser.o: DBLPParser.y.c
-	gcc -c -o DBLPParser.o  $(BDB_INCLUDE_FLAG) DBLPParser.y.c \
-	    -MMD -MP -MF DBLPParser.dep
+	gcc -c -o DBLPParser.o  $(BDB_INCLUDE_FLAG) DBLPParser.y.c -MMD -MP -MF DBLPParser.dep
 
 DBLPParser.y.c: DBLPParser.y
 	bison --yacc -d  -o DBLPParser.y.c DBLPParser.y

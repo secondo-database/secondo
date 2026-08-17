@@ -23,320 +23,241 @@ libMeshGeneratorNetGen.so: $(MYLIBS)
 	gcc -fPIC -shared -o libMeshGeneratorNetGen.so $(MYLIBS) -lstdc++
 
 NGlibs/nglib.o: libsrc/interface/nglib.cpp
-	gcc -fPIC -c -o NGlibs/nglib.o libsrc/interface/nglib.cpp \
-	    -Ilibsrc/interface -Ilibsrc/include -MMD -MP -MF NGlibs/nglib.dep
+	gcc -fPIC -c -o NGlibs/nglib.o libsrc/interface/nglib.cpp -Ilibsrc/interface -Ilibsrc/include -MMD -MP -MF NGlibs/nglib.dep
 
 NGlibs/geom2d.o: libsrc/gprim/geom2d.cpp
-	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include \
-	    -MMD -MP -MF $(@:.o=.dep)
+	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include -MMD -MP -MF $(@:.o=.dep)
 
 NGlibs/genmesh2d.o: libsrc/geom2d/genmesh2d.cpp
-	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include \
-	    -MMD -MP -MF $(@:.o=.dep)
+	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include -MMD -MP -MF $(@:.o=.dep)
 
 NGlibs/stlgeom.o: libsrc/stlgeom/stlgeom.cpp
-	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include \
-	    -MMD -MP -MF $(@:.o=.dep)
+	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include -MMD -MP -MF $(@:.o=.dep)
 
 NGlibs/stlgeomchart.o: libsrc/stlgeom/stlgeomchart.cpp
-	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include \
-	    -MMD -MP -MF $(@:.o=.dep)
+	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include -MMD -MP -MF $(@:.o=.dep)
 
 NGlibs/stlline.o: libsrc/stlgeom/stlline.cpp
-	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include \
-	    -MMD -MP -MF $(@:.o=.dep)
+	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include -MMD -MP -MF $(@:.o=.dep)
 
 NGlibs/stltopology.o: libsrc/stlgeom/stltopology.cpp
-	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include \
-	    -MMD -MP -MF $(@:.o=.dep)
+	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include -MMD -MP -MF $(@:.o=.dep)
 
 NGlibs/stltool.o: libsrc/stlgeom/stltool.cpp
-	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include \
-	    -MMD -MP -MF $(@:.o=.dep)
+	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include -MMD -MP -MF $(@:.o=.dep)
 
 NGlibs/meshstlsurface.o: libsrc/stlgeom/meshstlsurface.cpp
-	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include \
-	    -MMD -MP -MF $(@:.o=.dep)
+	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include -MMD -MP -MF $(@:.o=.dep)
 
 NGlibs/gprim.o: libsrc/gprim/adtree.cpp
-	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include \
-	    -MMD -MP -MF $(@:.o=.dep)
+	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include -MMD -MP -MF $(@:.o=.dep)
 
 NGlibs/geomtest3d.o: libsrc/gprim/geomtest3d.cpp
-	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include \
-	    -MMD -MP -MF $(@:.o=.dep)
+	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include -MMD -MP -MF $(@:.o=.dep)
 
 NGlibs/meshing2.o: libsrc/meshing/meshing2.cpp
-	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include \
-	    -MMD -MP -MF $(@:.o=.dep)
+	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include -MMD -MP -MF $(@:.o=.dep)
 
 NGlibs/meshsurf.o: libsrc/csg/meshsurf.cpp
-	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include \
-	    -MMD -MP -MF $(@:.o=.dep)
+	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include -MMD -MP -MF $(@:.o=.dep)
 
 NGlibs/netrule2.o: libsrc/meshing/netrule2.cpp
-	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include \
-	    -MMD -MP -MF $(@:.o=.dep)
+	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include -MMD -MP -MF $(@:.o=.dep)
 
 NGlibs/stlgeommesh.o: libsrc/stlgeom/stlgeommesh.cpp
-	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include \
-	    -MMD -MP -MF $(@:.o=.dep)
+	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include -MMD -MP -MF $(@:.o=.dep)
 
 NGlibs/meshclass.o: libsrc/meshing/meshclass.cpp
-	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include \
-	    -MMD -MP -MF $(@:.o=.dep)
+	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include -MMD -MP -MF $(@:.o=.dep)
 
 NGlibs/clusters.o: libsrc/meshing/clusters.cpp
-	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include \
-	    -MMD -MP -MF $(@:.o=.dep)
+	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include -MMD -MP -MF $(@:.o=.dep)
 
 NGlibs/topology.o: libsrc/meshing/topology.cpp
-	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include \
-	    -MMD -MP -MF $(@:.o=.dep)
+	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include -MMD -MP -MF $(@:.o=.dep)
 
 NGlibs/improve2.o: libsrc/meshing/improve2.cpp
-	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include \
-	    -MMD -MP -MF $(@:.o=.dep)
+	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include -MMD -MP -MF $(@:.o=.dep)
 
 NGlibs/meshtype.o: libsrc/meshing/meshtype.cpp
-	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include \
-	    -MMD -MP -MF $(@:.o=.dep)
+	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include -MMD -MP -MF $(@:.o=.dep)
 
 NGlibs/meshtool.o: libsrc/meshing/meshtool.cpp
-	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include \
-	    -MMD -MP -MF $(@:.o=.dep)
+	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include -MMD -MP -MF $(@:.o=.dep)
 
 NGlibs/msghandler.o: libsrc/meshing/msghandler.cpp
-	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include \
-	    -MMD -MP -MF $(@:.o=.dep)
+	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include -MMD -MP -MF $(@:.o=.dep)
 
 NGlibs/ngexception.o: libsrc/general/ngexception.cpp
-	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include \
-	    -MMD -MP -MF $(@:.o=.dep)
+	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include -MMD -MP -MF $(@:.o=.dep)
 
 NGlibs/geom3d.o: libsrc/gprim/geom3d.cpp
-	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include \
-	    -MMD -MP -MF $(@:.o=.dep)
+	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include -MMD -MP -MF $(@:.o=.dep)
 
 NGlibs/surface.o: libsrc/csg/surface.cpp
-	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include \
-	    -MMD -MP -MF $(@:.o=.dep)
+	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include -MMD -MP -MF $(@:.o=.dep)
 
 NGlibs/parser2.o: libsrc/meshing/parser2.cpp
-	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include \
-	    -MMD -MP -MF $(@:.o=.dep)
+	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include -MMD -MP -MF $(@:.o=.dep)
 
 NGlibs/improve2gen.o: libsrc/meshing/improve2gen.cpp
-	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include \
-	    -MMD -MP -MF $(@:.o=.dep)
+	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include -MMD -MP -MF $(@:.o=.dep)
 
 NGlibs/mystring.o: libsrc/general/mystring.cpp
-	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include \
-	    -MMD -MP -MF $(@:.o=.dep)
+	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include -MMD -MP -MF $(@:.o=.dep)
 
 NGlibs/densemat.o: libsrc/linalg/densemat.cpp
-	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include \
-	    -MMD -MP -MF $(@:.o=.dep)
+	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include -MMD -MP -MF $(@:.o=.dep)
 
 NGlibs/hashtabl.o: libsrc/general/hashtabl.cpp
-	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include \
-	    -MMD -MP -MF $(@:.o=.dep)
+	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include -MMD -MP -MF $(@:.o=.dep)
 
 NGlibs/moveablemem.o: libsrc/general/moveablemem.cpp
-	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include \
-	    -MMD -MP -MF $(@:.o=.dep)
+	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include -MMD -MP -MF $(@:.o=.dep)
 
 NGlibs/localh.o: libsrc/meshing/localh.cpp
-	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include \
-	    -MMD -MP -MF $(@:.o=.dep)
+	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include -MMD -MP -MF $(@:.o=.dep)
 
 NGlibs/brick.o: libsrc/csg/brick.cpp
-	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include \
-	    -MMD -MP -MF $(@:.o=.dep)
+	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include -MMD -MP -MF $(@:.o=.dep)
 
 NGlibs/triapprox.o: libsrc/csg/triapprox.cpp
-	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include \
-	    -MMD -MP -MF $(@:.o=.dep)
+	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include -MMD -MP -MF $(@:.o=.dep)
 
 NGlibs/polynomial.o: libsrc/linalg/polynomial.cpp
-	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include \
-	    -MMD -MP -MF $(@:.o=.dep)
+	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include -MMD -MP -MF $(@:.o=.dep)
 
 NGlibs/adfront2.o: libsrc/meshing/adfront2.cpp
-	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include \
-	    -MMD -MP -MF $(@:.o=.dep)
+	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include -MMD -MP -MF $(@:.o=.dep)
 
 NGlibs/splinegeometry2.o: libsrc/geom2d/splinegeometry2.cpp
-	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include \
-	    -MMD -MP -MF $(@:.o=.dep)
+	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include -MMD -MP -MF $(@:.o=.dep)
 
 NGlibs/meshfunc2d.o: libsrc/meshing/meshfunc2d.cpp
-	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include \
-	    -MMD -MP -MF $(@:.o=.dep)
+	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include -MMD -MP -MF $(@:.o=.dep)
 
 NGlibs/table.o: libsrc/general/table.cpp
-	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include \
-	    -MMD -MP -MF $(@:.o=.dep)
+	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include -MMD -MP -MF $(@:.o=.dep)
 
 NGlibs/flags.o: libsrc/general/flags.cpp
-	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include \
-	    -MMD -MP -MF $(@:.o=.dep)
+	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include -MMD -MP -MF $(@:.o=.dep)
 
 NGlibs/symbolta.o: libsrc/general/symbolta.cpp
-	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include \
-	    -MMD -MP -MF $(@:.o=.dep)
+	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include -MMD -MP -MF $(@:.o=.dep)
 
 NGlibs/bitarray.o: libsrc/general/bitarray.cpp
-	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include \
-	    -MMD -MP -MF $(@:.o=.dep)
+	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include -MMD -MP -MF $(@:.o=.dep)
 
 NGlibs/optmem.o: libsrc/general/optmem.cpp
-	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include \
-	    -MMD -MP -MF $(@:.o=.dep)
+	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include -MMD -MP -MF $(@:.o=.dep)
 
 NGlibs/triarls.o: libsrc/meshing/triarls.cpp
-	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include \
-	    -MMD -MP -MF $(@:.o=.dep)
+	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include -MMD -MP -MF $(@:.o=.dep)
 
 NGlibs/quadrls.o: libsrc/meshing/quadrls.cpp
-	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include \
-	    -MMD -MP -MF $(@:.o=.dep)
+	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include -MMD -MP -MF $(@:.o=.dep)
 
 NGlibs/adfront3.o: libsrc/meshing/adfront3.cpp
-	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include \
-	    -MMD -MP -MF $(@:.o=.dep)
+	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include -MMD -MP -MF $(@:.o=.dep)
 
 NGlibs/geom2dmesh.o: libsrc/geom2d/geom2dmesh.cpp
-	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include \
-	    -MMD -MP -MF $(@:.o=.dep)
+	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include -MMD -MP -MF $(@:.o=.dep)
 
 NGlibs/ruler2.o: libsrc/meshing/ruler2.cpp
-	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include \
-	    -MMD -MP -MF $(@:.o=.dep)
+	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include -MMD -MP -MF $(@:.o=.dep)
 
 NGlibs/spline2d.o: libsrc/geom2d/spline2d.cpp
-	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include \
-	    -MMD -MP -MF $(@:.o=.dep)
+	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include -MMD -MP -MF $(@:.o=.dep)
 
 NGlibs/curvedelems2.o: libsrc/meshing/curvedelems2.cpp
-	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include \
-	    -MMD -MP -MF $(@:.o=.dep)
+	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include -MMD -MP -MF $(@:.o=.dep)
 
 NGlibs/geomsearch.o: libsrc/meshing/geomsearch.cpp
-	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include \
-	    -MMD -MP -MF $(@:.o=.dep)
+	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include -MMD -MP -MF $(@:.o=.dep)
 
 NGlibs/curvedelems.o: libsrc/meshing/curvedelems.cpp
-	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include \
-	    -MMD -MP -MF $(@:.o=.dep)
+	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include -MMD -MP -MF $(@:.o=.dep)
 
 NGlibs/algprim.o: libsrc/csg/algprim.cpp
-	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include \
-	    -MMD -MP -MF $(@:.o=.dep)
+	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include -MMD -MP -MF $(@:.o=.dep)
 
 NGlibs/meshfunc.o: libsrc/meshing/meshfunc.cpp
-	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include \
-	    -MMD -MP -MF $(@:.o=.dep)
+	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include -MMD -MP -MF $(@:.o=.dep)
 
 NGlibs/improve3.o: libsrc/meshing/improve3.cpp
-	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include \
-	    -MMD -MP -MF $(@:.o=.dep)
+	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include -MMD -MP -MF $(@:.o=.dep)
 
 NGlibs/meshing3.o: libsrc/meshing/meshing3.cpp
-	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include \
-	    -MMD -MP -MF $(@:.o=.dep)
+	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include -MMD -MP -MF $(@:.o=.dep)
 
 NGlibs/delaunay.o: libsrc/meshing/delaunay.cpp
-	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include \
-	    -MMD -MP -MF $(@:.o=.dep)
+	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include -MMD -MP -MF $(@:.o=.dep)
 
 NGlibs/pyramidrls.o: libsrc/meshing/pyramidrls.cpp
-	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include \
-	    -MMD -MP -MF $(@:.o=.dep)
+	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include -MMD -MP -MF $(@:.o=.dep)
 
 NGlibs/pyramid2rls.o: libsrc/meshing/pyramid2rls.cpp
-	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include \
-	    -MMD -MP -MF $(@:.o=.dep)
+	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include -MMD -MP -MF $(@:.o=.dep)
 
 NGlibs/seti.o: libsrc/general/seti.cpp
-	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include \
-	    -MMD -MP -MF $(@:.o=.dep)
+	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include -MMD -MP -MF $(@:.o=.dep)
 
 NGlibs/prism2rls.o: libsrc/meshing/prism2rls.cpp
-	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include \
-	    -MMD -MP -MF $(@:.o=.dep)
+	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include -MMD -MP -MF $(@:.o=.dep)
 
 NGlibs/netrule3.o: libsrc/meshing/netrule3.cpp
-	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include \
-	    -MMD -MP -MF $(@:.o=.dep)
+	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include -MMD -MP -MF $(@:.o=.dep)
 
 NGlibs/global.o: libsrc/meshing/global.cpp
-	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include \
-	    -MMD -MP -MF $(@:.o=.dep)
+	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include -MMD -MP -MF $(@:.o=.dep)
 
 NGlibs/bfgs.o: libsrc/opti/bfgs.cpp
-	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include \
-	    -MMD -MP -MF $(@:.o=.dep)
+	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include -MMD -MP -MF $(@:.o=.dep)
 
 NGlibs/smoothing3.o: libsrc/meshing/smoothing3.cpp
-	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include \
-	    -MMD -MP -MF $(@:.o=.dep)
+	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include -MMD -MP -MF $(@:.o=.dep)
 
 NGlibs/linsearch.o: libsrc/opti/linsearch.cpp
-	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include \
-	    -MMD -MP -MF $(@:.o=.dep)
+	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include -MMD -MP -MF $(@:.o=.dep)
 
 NGlibs/smoothing2.o: libsrc/meshing/smoothing2.cpp
-	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include \
-	    -MMD -MP -MF $(@:.o=.dep)
+	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include -MMD -MP -MF $(@:.o=.dep)
 
 NGlibs/hprefinement.o: libsrc/meshing/hprefinement.cpp
-	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include \
-	    -MMD -MP -MF $(@:.o=.dep)
+	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include -MMD -MP -MF $(@:.o=.dep)
 
 NGlibs/tetrarls.o: libsrc/meshing/tetrarls.cpp
-	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include \
-	    -MMD -MP -MF $(@:.o=.dep)
+	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include -MMD -MP -MF $(@:.o=.dep)
 
 NGlibs/bisect.o: libsrc/meshing/bisect.cpp
-	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include \
-	    -MMD -MP -MF $(@:.o=.dep)
+	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include -MMD -MP -MF $(@:.o=.dep)
 
 NGlibs/secondorder.o: libsrc/meshing/secondorder.cpp
-	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include \
-	    -MMD -MP -MF $(@:.o=.dep)
+	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include -MMD -MP -MF $(@:.o=.dep)
 
 NGlibs/sort.o: libsrc/general/sort.cpp
-	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include \
-	    -MMD -MP -MF $(@:.o=.dep)
+	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include -MMD -MP -MF $(@:.o=.dep)
 
 NGlibs/parser3.o: libsrc/meshing/parser3.cpp
-	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include \
-	    -MMD -MP -MF $(@:.o=.dep)
+	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include -MMD -MP -MF $(@:.o=.dep)
 
 NGlibs/ruler3.o: libsrc/meshing/ruler3.cpp
-	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include \
-	    -MMD -MP -MF $(@:.o=.dep)
+	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include -MMD -MP -MF $(@:.o=.dep)
 
 NGlibs/geomfuncs.o: libsrc/gprim/geomfuncs.cpp
-	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include \
-	    -MMD -MP -MF $(@:.o=.dep)
+	gcc -fPIC -c -o $@ $< -Ilibsrc/interface -Ilibsrc/include -MMD -MP -MF $(@:.o=.dep)
 
 NGlibs/VCmtex.o: libsrc/include/winlibsVC/mtex.cpp
-	gcc -fPIC -c -o $@ $< -Ilibsrc/winlibsVC \
-	    -MMD -MP -MF $(@:.o=.dep)
+	gcc -fPIC -c -o $@ $< -Ilibsrc/winlibsVC -MMD -MP -MF $(@:.o=.dep)
 
 NGlibs/VCmtcore.o: libsrc/include/winlibsVC/mtcore.cpp
-	gcc -fPIC -c -o $@ $< -Ilibsrc/winlibsVC \
-	    -MMD -MP -MF $(@:.o=.dep)
+	gcc -fPIC -c -o $@ $< -Ilibsrc/winlibsVC -MMD -MP -MF $(@:.o=.dep)
 
 NGlibs/VCobjcore.o: libsrc/include/winlibsVC/objcore.cpp
-	gcc -fPIC -c -o $@ $< -Ilibsrc/winlibsVC \
-	    -MMD -MP -MF $(@:.o=.dep)
+	gcc -fPIC -c -o $@ $< -Ilibsrc/winlibsVC -MMD -MP -MF $(@:.o=.dep)
 
 NGlibs/VCexcept.o: libsrc/include/winlibsVC/except.cpp
-	gcc -fPIC -c -o $@ $< -Ilibsrc/winlibsVC \
-	    -MMD -MP -MF $(@:.o=.dep)
+	gcc -fPIC -c -o $@ $< -Ilibsrc/winlibsVC -MMD -MP -MF $(@:.o=.dep)
 
 .PHONY: clean
 

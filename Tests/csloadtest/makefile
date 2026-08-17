@@ -68,13 +68,11 @@ CHECK_INCLUDES = -I$(BD)/Tools/NestedLists -I../include -I$(BDBINCLUDE)
 
 check/ClientLoadTest.o: ClientLoadTest.cpp
 	@mkdir -p check
-	$(CPPC) -c -o $@ $(CCFLAGS) $(CHECK_FLAGS) $(CHECK_INCLUDES) $< \
-	    -MMD -MP -MF check/ClientLoadTest.dep
+	$(CPPC) -c -o $@ $(CCFLAGS) $(CHECK_FLAGS) $(CHECK_INCLUDES) $< -MMD -MP -MF check/ClientLoadTest.dep
 
 check/NestedList.o: $(BD)/Tools/NestedLists/NestedList.cpp
 	@mkdir -p check
-	$(CPPC) -c -o $@ $(CCFLAGS) $(CHECK_FLAGS) $(CHECK_INCLUDES) $< \
-	    -MMD -MP -MF check/NestedList.dep
+	$(CPPC) -c -o $@ $(CCFLAGS) $(CHECK_FLAGS) $(CHECK_INCLUDES) $< -MMD -MP -MF check/NestedList.dep
 
 -include $(wildcard check/*.dep)
 

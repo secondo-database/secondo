@@ -45,29 +45,25 @@ $(LIBOBJ): $(OBJECTS)
 	$(create-lib)
 
 scan.o: lex.pattern.c
-	        $(CPPC) -c -fPIC -ggdb -o $@ -x c++ $< $(DEFAULTCCFLAGS) \
-	            -MMD -MP -MF scan.dep
+	        $(CPPC) -c -fPIC -ggdb -o $@ -x c++ $< $(DEFAULTCCFLAGS) -MMD -MP -MF scan.dep
 
 lex.pattern.c: $(BASE).l parse.o
 	        flex $(BASE).l
 
 parse.o: $(BASE).tab.c
-	        $(CPPC) -c $(PARSEFLAGS) -fPIC -ggdb -o $@ -x c++ $< -I ../../include -I ../../Tools/ListsAndTables -I $(BDB_INCLUDE_DIR) $(ALL_ALGEBRA_DIR_INCLUDE_FLAGS)  $(DEFAULTCCFLAGS) \
-	            -MMD -MP -MF parse.dep
+	        $(CPPC) -c $(PARSEFLAGS) -fPIC -ggdb -o $@ -x c++ $< -I ../../include -I ../../Tools/ListsAndTables -I $(BDB_INCLUDE_DIR) $(ALL_ALGEBRA_DIR_INCLUDE_FLAGS)  $(DEFAULTCCFLAGS) -MMD -MP -MF parse.dep
 
 $(BASE).tab.c: $(BASE).y
 	        bison -v -d $(BASE).y
 
 PatternRegExScanner.o: PatternRegExScanner.c
-	$(CC) -fPIC -c -I../../include -o $@ $< \
-	    -MMD -MP -MF PatternRegExScanner.dep
+	$(CC) -fPIC -c -I../../include -o $@ $< -MMD -MP -MF PatternRegExScanner.dep
 
 PatternRegExScanner.c: PatternRegExScanner.l PatternRegExParser.y.c
 	$(LEX) -o $@ $<
 
 PatternRegExParser.o:  PatternRegExParser.y.c
-	$(CC) -fPIC -x c++ -c -o $@ -I../../  -I../../include $< \
-	    -MMD -MP -MF PatternRegExParser.dep
+	$(CC) -fPIC -x c++ -c -o $@ -I../../  -I../../include $< -MMD -MP -MF PatternRegExParser.dep
 
 PatternRegExParser.y.c: PatternRegExParser.y
 	$(YACC) -d -o $@ $<

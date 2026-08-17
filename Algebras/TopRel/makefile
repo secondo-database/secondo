@@ -44,22 +44,19 @@ else
 endif
 
 TreeParser.o: TreeParser.y.c
-	$(CC) -fPIC -c -o TreeParser.o TreeParser.y.c \
-	    -MMD -MP -MF TreeParser.dep
+	$(CC) -fPIC -c -o TreeParser.o TreeParser.y.c -MMD -MP -MF TreeParser.dep
 
 TreeParser.y.c: TreeParser.y
 	$(YACC) -d -o TreeParser.y.c TreeParser.y
 
 TreeLex.o: TreeLex.c
-	$(CC) -fPIC -c -o TreeLex.o TreeLex.c \
-	    -MMD -MP -MF TreeLex.dep
+	$(CC) -fPIC -c -o TreeLex.o TreeLex.c -MMD -MP -MF TreeLex.dep
 
 TreeLex.c: TreeLex.l TreeParser.y.c
 	$(LEX) -oTreeLex.c TreeLex.l
 
 Tree.o: Tree.c
-	$(CC) -fPIC -c -o Tree.o Tree.c \
-	    -MMD -MP -MF Tree.dep
+	$(CC) -fPIC -c -o Tree.o Tree.c -MMD -MP -MF Tree.dep
 
 .PHONY: pdf
 pdf: TopRelAlgebra.doc.pdf
