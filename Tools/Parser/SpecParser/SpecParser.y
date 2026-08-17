@@ -875,7 +875,9 @@ spec      :  ZZOPERATOR name ZZALIAS ZZIDENTIFIER ZZPATTERN pattern implicit buf
                       exit(1);
                   }
                 }
-                reset(); // make clean 
+                free((void*) $2);
+                free((void*) $4);
+                reset(); // make clean
              }
           ;
 
@@ -1034,17 +1036,21 @@ bufferforced : ZZFORCEBUFFER
              ; 
 
 parameterlist : ZZIDENTIFIER
-                { currenttranslation.implicitNames->push_back(string($1)); 
+                { currenttranslation.implicitNames->push_back(string($1));
+                  free((void*) $1);
                 }
               | parameterlist ',' ZZIDENTIFIER
                 { currenttranslation.implicitNames->push_back(string($3));
+                  free((void*) $3);
                 }
               ;
 typelist : ZZIDENTIFIER
                 { currenttranslation.implicitTypes->push_back(string($1));
+                  free((void*) $1);
                 }
         | typelist ',' ZZIDENTIFIER
                 { currenttranslation.implicitTypes->push_back(string($3));
+                  free((void*) $3);
                 }
         ;
 %%
