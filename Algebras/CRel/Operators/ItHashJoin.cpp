@@ -130,7 +130,7 @@ ListExpr ItHashJoin::TypeMapping(ListExpr args)
     return GetTypeError(2, "column-name a", error);
   }
 
-  uint64_t nameAIndex;
+  uint64_t nameAIndex = 0;
 
   if (!GetIndexOfColumn(blockAInfo, nameA, nameAIndex))
   {
@@ -147,7 +147,7 @@ ListExpr ItHashJoin::TypeMapping(ListExpr args)
     return GetTypeError(3, "column-name b", error);
   }
 
-  uint64_t nameBIndex;
+  uint64_t nameBIndex = 0;
 
   if (!GetIndexOfColumn(blockBInfo, nameB, nameBIndex))
   {

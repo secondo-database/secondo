@@ -1588,4 +1588,11 @@ void TrajectorySimilarityAlgebra::addSampleToTPointSeqOp()
       SampleToTPointSeqSelect, SampleToTPointSeqTypeMap);
 }
 
+/*
+Explicit instantiations.
+
+*/
+template class Sequence<Point>;
+template class Sequence<TPoint>;
+
 } //-- namespace tsa

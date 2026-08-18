@@ -3199,7 +3199,8 @@ void MakeRealm::dorealm2(const vector<HalfSegment>& vs1,
         const vector<HalfSegment>& vs2,const bool isline1, const bool isline2,
         vector<HalfSegmentCheck>& vsc1, vector<HalfSegmentCheck>& vsc2)
 {
-  unsigned int i = 0, j = 0, k, l, hscurrindex, hscurrindexi, hscurrindexj;
+  unsigned int i = 0, j = 0, k = 0, l = 0;
+  unsigned int hscurrindex = 0, hscurrindexi = 0, hscurrindexj = 0;
   HalfSegment hs1, hs2, hscurr, hscurri, hscurrj;
   State status;
 

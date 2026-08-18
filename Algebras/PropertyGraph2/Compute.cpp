@@ -199,7 +199,7 @@ void Compute::CreateInitialMessage()
     size_t pos;
     string initialtuple=tuplestream;
     string rest="";
-    RelationInfo *relinfoinitial;
+    RelationInfo *relinfoinitial = NULL;
     pos = initialtuple.find(" ");
 
     while (pos != std::string::npos)

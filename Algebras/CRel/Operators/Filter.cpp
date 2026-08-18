@@ -103,7 +103,7 @@ ListExpr Filter<project>::TypeMapping(ListExpr args)
 
   string error;
 
-  ListExpr blockType;
+  ListExpr blockType = nl->TheEmptyList();
 
   if (!IsBlockStream(nl->First(nl->First(args)), blockType, error))
   {

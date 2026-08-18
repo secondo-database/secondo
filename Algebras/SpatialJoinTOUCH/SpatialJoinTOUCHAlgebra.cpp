@@ -610,14 +610,14 @@ namespace sjt {
         std::string sAttrName = nl->SymbolValue(attrName2);
 
         // search for column index in the first relation
-        uint64_t fNameIndex;
+        uint64_t fNameIndex = 0;
         if(!GetIndexOfColumn(fTBlockInfo, fAttrName, fNameIndex)) {
             return listutils::typeError("Error in third argument: "
                                         "Invalid column name.");
         }
 
         // search for column index in the second relation
-        uint64_t sNameIndex;
+        uint64_t sNameIndex = 0;
         if(!GetIndexOfColumn(sTBlockInfo, sAttrName, sNameIndex)) {
             return listutils::typeError("Error in fourth argument: "
                                         "Invalid column name.");

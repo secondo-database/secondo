@@ -555,7 +555,7 @@ recycled, or a new slot created. In the case of a recycled slot, it will be
 placed on and assigned to "index"[1] and removed from wherever it was before.
 
 */
-    uint32_t temp;
+    uint32_t temp{0};
     if(inuse) {
       exec([&](auto& p){ p->lockObject(this->darrayName(), true); });
       temp = dpartition->allocateSlot(index, darray.get());

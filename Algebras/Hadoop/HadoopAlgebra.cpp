@@ -5074,7 +5074,7 @@ int hadoopReduceValueMap(Word* args, Word& result,
       bool mapStage = false;
       //Name and Location lists for DLF and DLO flist in the map stage
       NList mq, mfn, mfl, mon, mol;
-      int mapTaskNum;
+      int mapTaskNum = 0;
       if (!inputFList->getUEMapQuery().isEmpty()){
         mapStage = true;
         mq = inputFList->getUEMapQuery().first();

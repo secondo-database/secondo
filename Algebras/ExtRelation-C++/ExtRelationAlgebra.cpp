@@ -8154,7 +8154,7 @@ ListExpr SlidingWindowTypeMap(ListExpr args)
   ListExpr first, second, third, fourth;     // list used for analysing input
   ListExpr listn, lastlistn, listp;  // list used for constructing output
 
-  first = second = third = nl->TheEmptyList();
+  first = second = third = fourth = nl->TheEmptyList();
   listn = lastlistn = listp = nl->TheEmptyList();
 
   string tupleSymbolStr = Tuple::BasicType();

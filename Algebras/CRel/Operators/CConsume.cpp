@@ -104,7 +104,7 @@ ListExpr CConsume::TypeMapping(ListExpr args)
 
   if(argCount == 1){
     //One arg: type mapping overtaken from consume
-    ListExpr blockType;
+    ListExpr blockType = nl->TheEmptyList();
   
     //Is first parameter a stream of tblock?
     if (!IsBlockStream(nl->First(nl->First(args)), blockType))

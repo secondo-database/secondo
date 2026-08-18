@@ -32,15 +32,37 @@ DEBUG = -ggdb
 # Note: The flags below print out all defined symbols the preprocessor knows
 # gcc -dM -E <file>
 
-# Uncomment one of the next lines to compile with code optimizations. 
-#OPTIMIZE = -O1 -finline-functions  -fearly-inlining -finline-limit=1800 -funit-at-a-time --param inline-unit-growth=300
+# Optimization level for the whole tree, overridable from the command line:
+#
+#   make                                # the default below, -Og
+#   make SECONDO_OPTIMIZE="-O2"         # production build
+#   make SECONDO_OPTIMIZE="-O3 -march=native"
+#   make SECONDO_OPTIMIZE=""            # no optimization at all
+#
+# -Og is the default because it is the level GCC intends for code that is
+# going to be debugged.
+#
+# One thing to know before raising it for a production build: objects built at
+# different levels must not be mixed, so run "make clean" first.
+SECONDO_OPTIMIZE ?= -Og
+OPTIMIZE += $(SECONDO_OPTIMIZE)
 
-# Use more optimizations
-#OPTIMIZE += -O2 -finline-functions -mcpu=athlon-xp  
+# From -O1 upwards GCC emits false -Wmaybe-uninitialized reports out of
+# libstdc++ headers -- <regex> moving a std::function inside _NFA::_M_insert_*
+# is one, and there is nothing to initialize at the call site because the
+# variable belongs to the header.
+OPTIMIZE_IS_HIGH := $(filter -O -O1 -O2 -O3 -Ofast,$(SECONDO_OPTIMIZE))
+ifneq ($(OPTIMIZE_IS_HIGH),)
+OPTIMIZE += -Wno-error=maybe-uninitialized
+endif
 
-# Use even more optimization
-#OPTIMIZE += -O3 -march=native
-#OPTIMIZE += -O3
+# Every -O level, -Og included, lets GCC drop the frame pointer; only -O0 keeps
+# it. Keep it in all builds: perf call graphs and the fast unwinder ASan uses
+# for allocation stacks walk that chain.
+
+# To give it up in a production build, pass the opposite flag.
+#   make SECONDO_OPTIMIZE=-O2 SECONDO_ADDITIONAL_DEFAULTCCFLAGS=-fomit-frame-pointer
+DEFAULTCCFLAGS += -fno-omit-frame-pointer
 
 # Do not use assertions. 
 # Assertions may

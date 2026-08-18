@@ -5070,7 +5070,7 @@ int constraint2regionValueMap( Word* args, Word& result, int message,
       return CANCEL;
     }
     Word elem;
-    SymbolicRelation* sr;
+    SymbolicRelation* sr = 0;
     localInfo = (constraint2regionLocalInfo*)local.addr;
     if(localInfo->convexPolygons.size()==0 ||
       localInfo->iter == localInfo->convexPolygons.end())

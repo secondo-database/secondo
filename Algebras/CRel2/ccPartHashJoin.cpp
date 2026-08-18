@@ -191,7 +191,7 @@ ListExpr ccPartHashJoin::TypeMapping(ListExpr args)
   string nameS = nl->SymbolValue(nl->Fourth(args));
 
   // Find index of column-name in R
-  uint64_t nameRIndex;
+  uint64_t nameRIndex = 0;
   if (!GetIndexOfColumn(tblockRInfo, nameR, nameRIndex))
   {
     return listutils::typeError(
@@ -199,7 +199,7 @@ ListExpr ccPartHashJoin::TypeMapping(ListExpr args)
   }
 
   // Find index of column-name in S
-  uint64_t nameSIndex;
+  uint64_t nameSIndex = 0;
   if (!GetIndexOfColumn(tblockSInfo, nameS, nameSIndex))
   {
     return listutils::typeError(

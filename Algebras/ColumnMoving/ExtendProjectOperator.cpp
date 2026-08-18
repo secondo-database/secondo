@@ -131,7 +131,7 @@ ListExpr ExtendProjectOperator::TypeMapping(ListExpr args)
     return GetTypeError(2, "Extension List isn't a list!");
 
   string error;
-  ListExpr blockType;
+  ListExpr blockType = nl->TheEmptyList();
   if (!IsBlockStream(tupleArg, blockType, error))
     return GetTypeError(0, "block stream", error);
 

@@ -78,16 +78,11 @@ ListExpr be_mqueryTM(ListExpr args) {
   // Append default values
   if (nl->ListLength(args) < 4) {
 
-    ListExpr defaults;
-
-    if (!nl->HasLength(args, 2)) {
-      defaults =
-          nl->TwoElemList(listutils::getUndefined(), listutils::getUndefined());
-    }
-
-    if (!nl->HasLength(args, 3)) {
-      defaults = nl->OneElemList(listutils::getUndefined());
-    }
+    ListExpr defaults =
+        nl->HasLength(args, 3)
+            ? nl->TwoElemList(listutils::getUndefined(),
+                              listutils::getUndefined())
+            : nl->OneElemList(listutils::getUndefined());
 
     return nl->ThreeElemList(nl->SymbolAtom(Symbols::APPEND()), defaults,
                              nl->SymbolAtom(CcBool::BasicType()));

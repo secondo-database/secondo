@@ -68,16 +68,11 @@ ListExpr be_mcommandTM(ListExpr args) {
   // Append default values
   if (nl->ListLength(args) < 3) {
 
-    ListExpr defaults;
-
-    if (!nl->HasLength(args, 1)) {
-      defaults =
-          nl->TwoElemList(listutils::getUndefined(), listutils::getUndefined());
-    }
-
-    if (!nl->HasLength(args, 2)) {
-      defaults = nl->OneElemList(listutils::getUndefined());
-    }
+    ListExpr defaults =
+        nl->HasLength(args, 2)
+            ? nl->TwoElemList(listutils::getUndefined(),
+                              listutils::getUndefined())
+            : nl->OneElemList(listutils::getUndefined());
 
     return nl->ThreeElemList(nl->SymbolAtom(Symbols::APPEND()), defaults,
                              nl->SymbolAtom(CcBool::BasicType()));

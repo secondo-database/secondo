@@ -702,9 +702,9 @@ class searchPrefixLocalInfo{
 
       Tuple* next(){
          string word;
-         TupleId id;
-         uint32_t wp;
-         uint32_t cp;
+         TupleId id = 0;
+         uint32_t wp = 0;
+         uint32_t cp = 0;
          if(it->next(word,id,wp,cp)){
             Tuple* res = new Tuple(tt);
             res->PutAttribute(0, new FText(true,word));

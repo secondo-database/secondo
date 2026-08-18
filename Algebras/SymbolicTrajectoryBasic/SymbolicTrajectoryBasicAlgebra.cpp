@@ -2075,10 +2075,7 @@ toplaces: place x ... x place -> places
 */
 ListExpr toplacesTM(ListExpr args) {
   ListExpr rest = args;
-  bool place;
-  if (!nl->IsEmpty(rest)) {
-    place = Place::checkType(nl->First(rest));
-  }
+  bool place = !nl->IsEmpty(rest) && Place::checkType(nl->First(rest));
   while (!nl->IsEmpty(rest)) {
     if (place) {
       if (!Place::checkType(nl->First(rest))) {
