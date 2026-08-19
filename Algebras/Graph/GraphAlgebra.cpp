@@ -2800,7 +2800,7 @@ ListExpr EdgeProperty()
 Word
 CreateEdge( const ListExpr typeInfo )
 {
-    return SetWord(new Vertex(0, 0, 1.0));
+    return SetWord(new Edge(0, 0, 1.0));
 }
 
 void

@@ -1,0 +1,134 @@
+# LeakSanitizer suppressions for the SECONDO regression suite.
+#
+# Every entry below is a REAL leak that was measured, not a false positive.
+# They are suppressed so leak detection can stay switched on and still catch
+# anything NEW. This list is a ratchet: work it down, do not add to it. When a
+# leak is fixed, delete its line and the suite will keep it fixed.
+#
+# Measured from a full 'run-tests.sh -tty' pass on an ASan build, 2026-08-19.
+# Counts are leaked objects observed in that run.
+#
+# LSan matches each pattern as a substring of the symbolised frame, so an entry
+# also hides future leaks from the same function. Entries marked BROAD name a
+# core engine entry point shared by unrelated callers -- those blind the most
+# and are worth replacing with a real fix first, ahead of raw size.
+
+# 600000 objects, 34.38%; seen in: histogram.test
+leak:Transformstream_S_TS
+
+# 503313 objects, 28.84%; seen in: PartitionedStream.examples, partstream.test
+leak:RelationAddr::getNext
+
+# 223112 objects, 12.78%; seen in: histogram.test -- BROAD
+leak:Product
+
+# 168805 objects, 9.67%; seen in: NestedRelation2.examples, PartitionedStream.examples, histogram.test -- BROAD
+leak:OperatorFeed::Feed
+
+# 125335 objects, 7.18%; seen in: PartitionedStream.examples, partstream.test
+leak:PartStreamMappings::puse_vm
+
+# 121963 objects, 6.99%; seen in: Histogram.examples, histogram.test
+leak:extrelationalg::SymmProduct
+
+# 1749 objects, 0.10%; seen in: PartitionedStream.examples, partstream.test
+leak:extrelationalg::SymmJoin
+
+# 562 objects, 0.03%; seen in: STPattern.examples
+leak:STP::ImportPAReasonerFromArgs
+
+# 165 objects, 0.01%; seen in: partstream.test -- BROAD
+leak:Relation::GetTuple
+
+# 59 objects, 0.00%; seen in: SymbolicTrajectory.examples
+leak:stj::AggEntry::sequentialJoin
+
+# 30 objects, 0.00%; seen in: Array.examples, array.test -- BROAD
+leak:CcInt::Clone
+
+# 28 objects, 0.00%; seen in: PartitionedStream.examples, partstream.test -- BROAD
+leak:TupleBuffer::MakeScan
+
+# 18 objects, 0.00%; seen in: PartitionedStream.examples, partstream.test -- BROAD
+leak:InCcInt
+
+# 14 objects, 0.00%; seen in: SymbolicTrajectory.examples, histogram.test -- BROAD
+leak:CreateCcReal
+
+# 10 objects, 0.00%; seen in: SymbolicTrajectoryBasic.examples
+leak:stj::Label::Clone
+
+# 7 objects, 0.00%; seen in: TrajectorySimilarity.examples
+leak:tsa::LIPAggregator
+
+# 6 objects, 0.00%; seen in: FileIndex.examples, MainMemory2.examples, Pregel.examples -- BROAD
+leak:QueryProcessor::EvalP
+
+# 5 objects, 0.00%; seen in: DBService.examples
+leak:DBService::DBServiceClient::DBServiceClient
+
+# 4 objects, 0.00%; seen in: histogram.test
+leak:realstreamFun
+
+# 2 objects, 0.00%; seen in: UpdateRelation.examples, update_simple.test
+leak:UpdateSearchSave
+
+# 2 objects, 0.00%; seen in: planesweep.test
+leak:planesweep::MakeOp::P_Intersects
+
+# 2 objects, 0.00%; seen in: SymbolicTrajectory.examples
+leak:stj::RewriteLI
+
+# 2 objects, 0.00%; seen in: SymbolicTrajectory.examples
+leak:stj::HybridDistanceParameters::getDefaultGeoid
+
+# 2 objects, 0.00%; seen in: JNet.examples
+leak:jnetwork::JNetwork::OutCircle
+
+# 2 objects, 0.00%; seen in: JNet.examples
+leak:jnetwork::JNetwork::InCircle
+
+# 2 objects, 0.00%; seen in: DBService.examples
+leak:DBService::OperatorInitDBServiceWorker::mapValue
+
+# 1 objects, 0.00%; seen in: PartitionedStream.examples
+leak:PartStreamMappings::runtime_vm
+
+# 1 objects, 0.00%; seen in: ExtRelation2.examples -- BROAD
+leak:TupleFileIterator::readData
+
+# 1 objects, 0.00%; seen in: CostEstimation.examples
+leak:GetCostConstantsLocal::GetCostConstantsLocal
+
+# 1 objects, 0.00%; seen in: TemporalNet.examples -- BROAD
+leak:QueryProcessor::Open
+
+# 1 objects, 0.00%; seen in: ColumnMoving.examples
+leak:Stream
+
+# 1 objects, 0.00%; seen in: SymbolicTrajectory.examples
+leak:stj::LongestcommonsubsequenceLI
+
+# 1 objects, 0.00%; seen in: ContinuousQueries.examples
+leak:continuousqueries::relFromTupleBinStr_VM
+
+# 1 objects, 0.00%; seen in: RegionInterpolation2.examples
+leak:temporalalgebra::InMRegion
+
+# 1 objects, 0.00%; seen in: DBService.examples
+leak:DBService::DBServiceManager::restoreConfiguration
+
+
+# --- found by a later full pass; same backlog, same rules ---
+
+# SpatialJoin.examples -- BROAD, core catalog entry point
+leak:SecondoCatalog::InObject
+
+# SpatialJoin.examples -- BROAD, core query-processor entry point
+leak:QueryProcessor::Annotate
+
+# MainMemory2.examples -- BROAD, shared value-input function
+leak:InCcReal
+
+# MainMemory2.examples -- leak inside Berkeley DB's allocator, not our code
+leak:__os_malloc

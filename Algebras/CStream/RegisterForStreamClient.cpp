@@ -88,7 +88,6 @@ RegisterForStreamClient::RegisterForStreamClient(string server,
 
 */
 RegisterForStreamClient::~RegisterForStreamClient() {
-    _askedTypeTupleDescr->DeleteIfAllowed();
 }
 
 /*
