@@ -508,7 +508,7 @@ database state:
     side effect.
 
 */
-    double partition_start;
+    double partition_start = 0;
     bool inuse;
     try {
       partition_start = dpartition->partition(slot);

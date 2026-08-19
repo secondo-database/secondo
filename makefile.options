@@ -78,23 +78,16 @@ DEFAULTCCFLAGS += -fno-omit-frame-pointer
 # Set up default flags for the compiler
 DEFAULTCCFLAGS += $(DEBUG) $(OPTIMIZE) $(TEMPLATEFLAGS) -I. -I$(INCLUDEDIR)
 
-
 # Show all warnings
-DEFAULTCCFLAGS += -Wall  
+DEFAULTCCFLAGS += -Wall
 # -pedantic -Wunreachable-code -Wunknown-pragmas -Wshadow -Wformat=2 -Wundef  -Wbad-function-cast -Wcast-qual  -Wsign-compare -fbounds-check -fstack-check -fcheck-new 
 
-# Define some macros which define optional behaviour in some
-# libraries
-DEFAULTCCFLAGS += -D_REENTRANT
-
 CPPSTDOPTION = -std=c++17
-
 
 #On 32 bit systems, the file size is restrictec to 2GB
 #when handling huge data sets, this may be not sufficient
 #thereby we set the file system to support much larger files
-DEFAULTCCFLAGS += -D_FILE_OFFSET_BITS=64 
-
+DEFAULTCCFLAGS += -D_FILE_OFFSET_BITS=64
 
 # Flag for compiling code of operator value mappings which supports progress measurement. 
 DEFAULTCCFLAGS += -DUSE_PROGRESS
