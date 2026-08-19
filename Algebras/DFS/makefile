@@ -25,6 +25,4 @@
 
 # inlcude global definitions
 
-ALGEBRA_CCFLAGS += -O3
-
 include ../../makefile.algebra-common

@@ -27,6 +27,5 @@
 
 CURRENT_ALGEBRA := TupleVectorAlgebra
 ALGEBRA_DEPENDENCIES := StandardAlgebra RelationAlgebra
-ALGEBRA_CCFLAGS += -O3
 
 include ../../makefile.algebra-common
