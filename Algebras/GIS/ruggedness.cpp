@@ -584,8 +584,7 @@ definition of ruggednessFuns array
     ruggednessFun<raster2::sint>,
     ruggednessFun<raster2::sreal>,
     ruggednessFunTile<TileAlgebra::tint, TileAlgebra::tProperties<int> >,
-    ruggednessFunTile<TileAlgebra::treal, TileAlgebra::tProperties<double> >,
-    0
+    ruggednessFunTile<TileAlgebra::treal, TileAlgebra::tProperties<double> >
   };
 
 /*
@@ -685,5 +684,11 @@ Type Mapping
     }
 
     return listutils::typeError(error);
+  }
+
+  Operator* createRuggednessOperator()
+  {
+    return new Operator(ruggednessInfo(), ruggednessFuns,
+                        ruggednessSelectFun, ruggednessTypeMap);
   }
 }

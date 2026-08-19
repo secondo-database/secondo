@@ -836,8 +836,7 @@ return heightDiff;
 ValueMapping heightatpositionFuns[] =
 {
     heightatpositionFun<raster2::sint>,
-    heightatpositionFun<raster2::sreal>,
-    0
+    heightatpositionFun<raster2::sreal>
 };
 
 
@@ -1292,8 +1291,7 @@ ValueMapping lcomposeFuns[] =
     constlcomposeFun<raster2::sbool, LUBool, LBool>,
     constlcomposeFun<raster2::sstring, LUString, LString>,
     reallcomposeFun<raster2::sint>,
-    reallcomposeFun<raster2::sreal>,
-    0
+    reallcomposeFun<raster2::sreal>
 };
 
 
@@ -1461,8 +1459,7 @@ template<typename Raster> int lfdistanceFun
 ValueMapping lfdistanceFuns[] =
 {
     lfdistanceFun<raster2::sint>,
-    lfdistanceFun<raster2::sreal>,
-    0
+    lfdistanceFun<raster2::sreal>
 };
 
 
@@ -1779,8 +1776,7 @@ template<typename Raster> int lfdistanceparamFun
 ValueMapping lfdistanceparamFuns[] =
 {
     lfdistanceparamFun<raster2::sint>,
-    lfdistanceparamFun<raster2::sreal>,
-    0
+    lfdistanceparamFun<raster2::sreal>
 };
 
 

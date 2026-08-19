@@ -1042,8 +1042,7 @@ Require defined sequences with at least two points each.
 
 ValueMapping dist_lip_functions[] = {
   LIPDistValueMap<PointSeq>,
-  LIPDistValueMap<TPointSeq>,
-  nullptr
+  LIPDistValueMap<TPointSeq>
 };
 
 struct DistLIPInfo : OperatorInfo
@@ -1128,8 +1127,7 @@ Require a $st\_factor \ge 0$ and a $delta \ge 0$.
 }
 
 ValueMapping dist_stlip_functions[] = {
-  STLIPDistValueMap,
-  nullptr
+  STLIPDistValueMap
 };
 
 struct DistSTLIPInfo : OperatorInfo
@@ -1221,8 +1219,7 @@ Require $st\_factor \ge 0$, $delta \ge 0$, and $sp\_factor \ge 0$.
 }
 
 ValueMapping dist_spstlip2_functions[] = {
-  SPSTLIP2DistValueMap,
-  nullptr
+  SPSTLIP2DistValueMap
 };
 
 struct DistSPSTLIP2Info : OperatorInfo
@@ -1307,8 +1304,7 @@ Require a defined and non-negative maximum gap size.
 
 ValueMapping genlip_functions[] = {
   GenLIPDistValueMap<PointSeq>,
-  GenLIPDistValueMap<TPointSeq>,
-  nullptr
+  GenLIPDistValueMap<TPointSeq>
 };
 
 struct GenLIPInfo : OperatorInfo
@@ -1373,8 +1369,7 @@ int GenLIPSelect(ListExpr args)
 */
 ValueMapping genlip2_functions[] = {
   GenLIPDistValueMap<PointSeq,  /*PROCESS_ALL*/ true>,
-  GenLIPDistValueMap<TPointSeq, /*PROCESS_ALL*/ true>,
-  nullptr
+  GenLIPDistValueMap<TPointSeq, /*PROCESS_ALL*/ true>
 };
 
 struct GenLIP2Info : OperatorInfo

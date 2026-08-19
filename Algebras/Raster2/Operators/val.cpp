@@ -33,8 +33,7 @@ namespace raster2
     valFun<int, istype_helper<int> >,
     valFun<double, istype_helper<double> >,
     valFun<char, istype_helper<char> >,
-    valFun<std::string, istype_helper<std::string> >,
-    0
+    valFun<std::string, istype_helper<std::string> >
   };
 
   int valSelectFun(ListExpr args)
@@ -93,5 +92,11 @@ namespace raster2
     }
 
     return valTypeMapListExpr;
+  }
+
+  Operator* createValOperator()
+  {
+    return new Operator(valInfo(), valFuns,
+                        valSelectFun, valTypeMap);
   }
 }

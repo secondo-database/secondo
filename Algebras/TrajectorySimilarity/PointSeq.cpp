@@ -1095,8 +1095,7 @@ int IsEmptyValueMap(
 
 ValueMapping is_empty_functions[] = {
   IsEmptyValueMap<PointSeq>,
-  IsEmptyValueMap<TPointSeq>,
-  nullptr
+  IsEmptyValueMap<TPointSeq>
 };
 
 struct IsEmptyInfo : OperatorInfo
@@ -1149,8 +1148,7 @@ int NoComponentsValueMap(
 
 ValueMapping no_components_functions[] = {
   NoComponentsValueMap<PointSeq>,
-  NoComponentsValueMap<TPointSeq>,
-  nullptr
+  NoComponentsValueMap<TPointSeq>
 };
 
 struct NoComponentsInfo : OperatorInfo
@@ -1203,8 +1201,7 @@ int ToDLineValueMap(
 
 ValueMapping to_dline_functions[] = {
   ToDLineValueMap<PointSeq>,
-  ToDLineValueMap<TPointSeq>,
-  nullptr
+  ToDLineValueMap<TPointSeq>
 };
 
 struct ToDLineInfo : OperatorInfo
@@ -1280,8 +1277,7 @@ int ToPointSeqValueMapTPointSeq(
 ValueMapping to_pointseq_functions[] = {
   ToPointSeqValueMapMPoint,
   ToPointSeqValueMapMPoint</*PARAMS*/ 2>,
-  ToPointSeqValueMapTPointSeq,
-  nullptr
+  ToPointSeqValueMapTPointSeq
 };
 
 struct ToPointSeqInfo : OperatorInfo
@@ -1349,8 +1345,7 @@ int ToTPointSeqValueMap(
 
 ValueMapping to_tpointseq_functions[] = {
   ToTPointSeqValueMap,
-  ToTPointSeqValueMap</*PARAMS*/ 2>,
-  nullptr
+  ToTPointSeqValueMap</*PARAMS*/ 2>
 };
 
 struct ToTPointSeqInfo : OperatorInfo
@@ -1448,8 +1443,7 @@ Require a defined and positive $duration$.
 ValueMapping sample_to_pointseq_functions[] = {
   SampleToPointSeqValueMap<TPointSeq, /*PARAMS*/ 2>,
   SampleToPointSeqValueMap<TPointSeq, /*PARAMS*/ 3>,
-  SampleToPointSeqValueMap<TPointSeq, /*PARAMS*/ 4>,
-  nullptr
+  SampleToPointSeqValueMap<TPointSeq, /*PARAMS*/ 4>
 };
 
 struct SampleToPointSeqInfo : OperatorInfo
@@ -1548,8 +1542,7 @@ Require a defined and positive $duration$.
 ValueMapping sample_to_tpointseq_functions[] = {
   SampleToTPointSeqValueMap<TPointSeq, /*PARAMS*/ 2>,
   SampleToTPointSeqValueMap<TPointSeq, /*PARAMS*/ 3>,
-  SampleToTPointSeqValueMap<TPointSeq, /*PARAMS*/ 4>,
-  nullptr
+  SampleToTPointSeqValueMap<TPointSeq, /*PARAMS*/ 4>
 };
 
 struct SampleToTPointSeqInfo : OperatorInfo

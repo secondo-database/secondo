@@ -211,8 +211,7 @@ namespace raster2 {
         atinstantFun<int, mstype_helper<int>, istype_helper<int> >,
         atinstantFun<double, mstype_helper<double>, istype_helper<double> >,
         atinstantFun<char, msbool_helper, istype_helper<char> >,
-        atinstantFunString,
-        0
+        atinstantFunString
     };
 
     int atinstantSelectFun(ListExpr args) 
@@ -254,4 +253,10 @@ namespace raster2 {
        return nl->SymbolAtom(itype);
     }
     
+
+    Operator* createAtinstantOperator()
+    {
+      return new Operator(atinstantInfo(), atinstantFuns,
+                          atinstantSelectFun, atinstantTypeMap);
+    }
 }

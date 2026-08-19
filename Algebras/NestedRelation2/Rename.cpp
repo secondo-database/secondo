@@ -95,7 +95,7 @@ renaming the attributes of one relation, calling itself for each subrelation.
   return outStreamType;
 }
 
-/*static*/ValueMapping Rename::functions[] = { RenameValue, NULL };
+/*static*/ValueMapping Rename::functions[] = { RenameValue };
 
 /*static*/int Rename::SelectFunction(ListExpr args)
 {
@@ -201,3 +201,13 @@ List of functions for cost estimation.
 CreateCostEstimation Rename::costEstimators[] =
   { LinearProgressEstimator<RenameLocalInfo>::Build };
 
+/*
+Builds the operator. It lives here because the number of value mappings
+is read off the type of ~functions~, which is only complete in this file.
+
+*/
+Operator* Rename::create()
+{
+  return new Operator(Info(), functions, SelectFunction, MapType,
+                      costEstimators);
+}

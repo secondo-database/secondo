@@ -477,8 +477,7 @@ namespace raster2
       matchgridFunM<msstring, msint, matchgrid_traits<std::string> >,
       matchgridFunM<msstring, msbool, matchgrid_traits<std::string> >,
       matchgridFunM<msstring, msreal, matchgrid_traits<std::string> >,
-      matchgridFunM<msstring, msstring, matchgrid_traits<std::string> >,
-      0
+      matchgridFunM<msstring, msstring, matchgrid_traits<std::string> >
   };
 
   int matchgridSelectFun(ListExpr args) {
@@ -507,4 +506,10 @@ namespace raster2
     return offset;
   }
 
+
+  Operator* createMatchgridOperator()
+  {
+    return new Operator(matchgridInfo(), matchgridFuns,
+                        matchgridSelectFun, matchgridTypeMap);
+  }
 }

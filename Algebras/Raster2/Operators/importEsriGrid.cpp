@@ -1067,8 +1067,7 @@ namespace raster2
 
     ValueMapping importEsriGridFuns[] = {
      importEsriGridFun<CcString>,
-     importEsriGridFun<FText>,
-     0
+     importEsriGridFun<FText>
     };
 
     /*
@@ -1433,5 +1432,11 @@ namespace raster2
      cout << "Successfully imported EsriGrid Data" << endl << endl;
 
      return 0;
+    }
+
+    Operator* createImportEsriGridOperator()
+    {
+      return new Operator(importEsriGridInfo(), importEsriGridFuns,
+                          importEsriGridSelectFun, importEsriGridTypeMap);
     }
 }

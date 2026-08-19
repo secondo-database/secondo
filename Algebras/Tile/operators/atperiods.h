@@ -83,7 +83,7 @@ declaration of atperiodsFunctions array.
 
 */
 
-extern ValueMapping atperiodsFunctions[];
+Operator* createAtperiodsOperator();
 
 /*
 Method atperiodsSelectFunction returns the index of specific atperiods function

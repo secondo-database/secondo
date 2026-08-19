@@ -53,6 +53,7 @@ class TypeOf
 
     static ListExpr MapType(ListExpr args);
     static ValueMapping functions[];
+    static Operator* create();
     static int SelectFunction(ListExpr args);
     static int MapValue(Word* args, Word& result, int message, Word& local,
         Supplier s);

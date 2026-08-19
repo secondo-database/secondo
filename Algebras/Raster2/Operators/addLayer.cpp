@@ -181,7 +181,12 @@ msT x sT x instant -> bool
   ValueMapping addLayerFuns[] = {
      addLayerFun<msint>,
      addLayerFun<msreal>,
-     addLayerFun<msbool>,
-     0
+     addLayerFun<msbool>
   };
+
+  Operator* createAddLayerOperator()
+  {
+    return new Operator(addLayerInfo(), addLayerFuns,
+                        addLayerSelectFun, addLayerTM);
+  }
 }

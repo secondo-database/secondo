@@ -98,6 +98,7 @@ class Unnest
 
     static ListExpr MapType(ListExpr args);
     static ValueMapping functions[];
+    static Operator* create();
     static int SelectFunction(ListExpr args);
     static int UnnestValue(Word* args, Word& result, int message,
         Word& local, Supplier s);

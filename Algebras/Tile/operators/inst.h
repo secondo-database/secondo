@@ -82,7 +82,7 @@ declaration of instFunctions array.
 
 */
 
-extern ValueMapping instFunctions[];
+Operator* createInstOperator();
 
 /*
 Method instSelectFunction returns the index of specific inst function

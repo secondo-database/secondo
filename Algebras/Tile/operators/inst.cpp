@@ -107,8 +107,7 @@ ValueMapping instFunctions[] =
   instFunction<itint>,
   instFunction<itreal>,
   instFunction<itbool>,
-  instFunction<itstring>,
-  0
+  instFunction<itstring>
 };
 
 /*
@@ -186,4 +185,10 @@ ListExpr instTypeMappingFunction(ListExpr arguments)
   return type;
 }
 
+
+Operator* createInstOperator()
+{
+  return new Operator(instInfo(), instFunctions,
+                      instSelectFunction, instTypeMappingFunction);
+}
 }

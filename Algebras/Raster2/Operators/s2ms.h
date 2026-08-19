@@ -33,7 +33,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 namespace raster2
 {
-    extern ValueMapping s2msFuns[];
+    Operator* createS2msOperator();
     ListExpr s2msTypeMap(ListExpr args);
     int s2msSelectFun(ListExpr args);
 

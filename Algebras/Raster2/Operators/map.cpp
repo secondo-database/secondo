@@ -279,7 +279,12 @@ namespace raster2
       mapFunMM<msstring, msint>,
       mapFunMM<msstring, msbool>,
       mapFunMM<msstring, msreal>,
-      mapFunMM<msstring, msstring>,
-      0
+      mapFunMM<msstring, msstring>
   };
+
+  Operator* createMapOperator()
+  {
+    return new Operator(mapInfo(), mapFuns,
+                        mapSelectFun, mapTypeMap);
+  }
 }

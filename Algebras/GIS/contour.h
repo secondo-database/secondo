@@ -58,7 +58,7 @@ namespace GISAlgebra
 declaration of contourFuns array
 
 */
-        extern ValueMapping contourFuns[];
+        Operator* createContourOperator();
 
 /*
 Type Mapping

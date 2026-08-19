@@ -56,46 +56,6 @@ extern QueryProcessor *qp;
 
 //ItSpatialJoin-----------------------------------------------------------------
 
-ItSpatialJoin::ItSpatialJoin() :
-  Operator(info, valueMappings, SelectValueMapping, TypeMapping)
-{
-  SetUsesArgsInTypeMapping();
-  SetUsesMemory();
-}
-
-const long ItSpatialJoin::defaultNodeMin = 4;
-
-const OperatorInfo ItSpatialJoin::info = OperatorInfo(
-  "itSpatialJoin",
-  "stream(tblock(ma, ((na0, ca0) ... (nai, cai)))) x "
-  "stream(tblock(mb, ((nb0, cb0) ... (nbi, cbi)))) x "
-  "jna x jnb x (pn0 ... pni) x nmin x nmax x ml x bs "
-  "-> stream(tblock(bs, ((pn0 c0) ... (pni ci)))) with:\n\n"
-
-  "jna / jnb: symbol. the column names from block type a / b to join on. "
-  "(jna, c) || (jnb, c) => c is of kind SPATIALATTRARRAY1D ... "
-  "SPATIALATTRARRAY8D\n\n"
-
-  "(pn0 ... pni): symbol(s). optional. column names to project the result on."
-  "omiting -> (na0 ... nai, nb0 ... nbi).\n\n"
-
-  "nmin: int. optional. min number of entries within the nodes of the used "
-  "rtree. omitting -> 4.\n\n"
-
-  "nmin: int. optional. max number of entries within the nodes of the used "
-  "rtree. omitting -> 2 * nmin.\n\n"
-
-  "ml: int. optional. main memory limit for this operator in MiB. omitting -> "
-  "provided by Secondo.\n\n"
-
-  "bs: int. optional. block size. omitting -> ma",
-  "_ _ itSpatialJoin[_, _, [list], _, _, _, _]",
-  "Executes a iterative spatial join algorithm over two streams of tuple "
-  "blocks using an rtree index. The second stream arument will be used for "
-  "index creation and should contain less entries than the first one. "
-  "Optionally the resulting tuple blocks can be projected on a selected subset "
-  "of columns. This avoids copying workload and is therefore recommended.", "");
-
 ValueMapping ItSpatialJoin::valueMappings[] =
 {
   StreamValueMapping<State<1, 1, false>, CreateState<1, 1, false>>,
@@ -156,9 +116,49 @@ ValueMapping ItSpatialJoin::valueMappings[] =
   StreamValueMapping<State<8, 2, true>, CreateState<8, 2, true>>,
   StreamValueMapping<State<8, 3, true>, CreateState<8, 3, true>>,
   StreamValueMapping<State<8, 4, true>, CreateState<8, 4, true>>,
-  StreamValueMapping<State<8, 8, true>, CreateState<8, 8, true>>,
-  nullptr
+  StreamValueMapping<State<8, 8, true>, CreateState<8, 8, true>>
 };
+
+ItSpatialJoin::ItSpatialJoin() :
+  Operator(info, valueMappings, SelectValueMapping, TypeMapping)
+{
+  SetUsesArgsInTypeMapping();
+  SetUsesMemory();
+}
+
+const long ItSpatialJoin::defaultNodeMin = 4;
+
+const OperatorInfo ItSpatialJoin::info = OperatorInfo(
+  "itSpatialJoin",
+  "stream(tblock(ma, ((na0, ca0) ... (nai, cai)))) x "
+  "stream(tblock(mb, ((nb0, cb0) ... (nbi, cbi)))) x "
+  "jna x jnb x (pn0 ... pni) x nmin x nmax x ml x bs "
+  "-> stream(tblock(bs, ((pn0 c0) ... (pni ci)))) with:\n\n"
+
+  "jna / jnb: symbol. the column names from block type a / b to join on. "
+  "(jna, c) || (jnb, c) => c is of kind SPATIALATTRARRAY1D ... "
+  "SPATIALATTRARRAY8D\n\n"
+
+  "(pn0 ... pni): symbol(s). optional. column names to project the result on."
+  "omiting -> (na0 ... nai, nb0 ... nbi).\n\n"
+
+  "nmin: int. optional. min number of entries within the nodes of the used "
+  "rtree. omitting -> 4.\n\n"
+
+  "nmin: int. optional. max number of entries within the nodes of the used "
+  "rtree. omitting -> 2 * nmin.\n\n"
+
+  "ml: int. optional. main memory limit for this operator in MiB. omitting -> "
+  "provided by Secondo.\n\n"
+
+  "bs: int. optional. block size. omitting -> ma",
+  "_ _ itSpatialJoin[_, _, [list], _, _, _, _]",
+  "Executes a iterative spatial join algorithm over two streams of tuple "
+  "blocks using an rtree index. The second stream arument will be used for "
+  "index creation and should contain less entries than the first one. "
+  "Optionally the resulting tuple blocks can be projected on a selected subset "
+  "of columns. This avoids copying workload and is therefore recommended.", "");
+
 
 ListExpr ItSpatialJoin::TypeMapping(ListExpr args)
 {

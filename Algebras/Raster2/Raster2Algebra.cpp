@@ -108,34 +108,28 @@ Raster2Algebra::Raster2Algebra()
 
 
  
-  AddOperator(atlocationInfo(), atlocationFuns, atlocationSelectFun,
-              atlocationTypeMap);
-  AddOperator(atinstantInfo(), atinstantFuns, atinstantSelectFun,
-              atinstantTypeMap)->SetUsesMemory();
-  AddOperator(instInfo(), instFuns, instSelectFun, instTypeMap);
-  AddOperator(valInfo(), valFuns, valSelectFun, valTypeMap);
-  AddOperator(atperiodsInfo(), atperiodsFuns, atperiodsSelectFun,
-              atperiodsTypeMap)->SetUsesMemory();
-  AddOperator(atrangeInfo(), atrangeFuns, atrangeSelectFun, atrangeTypeMap);
-  AddOperator(deftimeInfo(), deftimeFuns, deftimeSelectFun, deftimeTypeMap);
-  AddOperator(bboxInfo(), bboxFuns, bboxSelectFun, bboxTypeMap);
-  AddOperator(minimumInfo(), minimumFuns, minimumSelectFun, minimumTypeMap);
-  AddOperator(maximumInfo(), maximumFuns, maximumSelectFun, maximumTypeMap);
-  AddOperator(mapInfo(), mapFuns, mapSelectFun, mapTypeMap);
-  AddOperator(map2Info(), map2Funs, map2SelectFun, map2TypeMap);
+  AddOperator(createAtlocationOperator(), true);
+  AddOperator(createAtinstantOperator(), true)->SetUsesMemory();
+  AddOperator(createInstOperator(), true);
+  AddOperator(createValOperator(), true);
+  AddOperator(createAtperiodsOperator(), true)->SetUsesMemory();
+  AddOperator(createAtrangeOperator(), true);
+  AddOperator(createDeftimeOperator(), true);
+  AddOperator(createBboxOperator(), true);
+  AddOperator(createMinimumOperator(), true);
+  AddOperator(createMaximumOperator(), true);
+  AddOperator(createMapOperator(), true);
+  AddOperator(createMap2Operator(), true);
   AddOperator(fromRegionInfo(), fromRegionFun, fromRegionTypeMap);
   AddOperator(toRegionInfo(), toRegionFun, toRegionTypeMap);
-  AddOperator(s2msInfo(), s2msFuns, s2msSelectFun, s2msTypeMap);
-  AddOperator(composeInfo(), composeFuns, composeSelectFun, composeTypeMap);
+  AddOperator(createS2msOperator(), true);
+  AddOperator(createComposeOperator(), true);
 
-  Operator* mgop = AddOperator(matchgridInfo(), matchgridFuns, 
-                               matchgridSelectFun, matchgridTypeMap);
+  Operator* mgop = AddOperator(createMatchgridOperator(), true);
   mgop->SetUsesMemory();
-  AddOperator(getgridInfo(), getgridFuns, getgridSelectFun, getgridTypeMap);
+  AddOperator(createGetgridOperator(), true);
   AddOperator(importHgtInfo(), importHgtFun, importHgtTypeMap);
-  AddOperator(importEsriGridInfo(), importEsriGridFuns,
-		  importEsriGridSelectFun,
-		  importEsriGridTypeMap)->SetUsesArgsInTypeMapping();
+  AddOperator(createImportEsriGridOperator(), true)->SetUsesArgsInTypeMapping();
   AddOperator(importEsriRasterInfo(),
               importEsriRasterFun, importEsriRasterTypeMap);
 
@@ -143,15 +137,12 @@ Raster2Algebra::Raster2Algebra()
   AddOperator(cell2Info(), 0, cell2TypeMap);
   AddOperator(cellsInfo(), 0, cellsTypeMap);
   AddOperator(fromLineInfo(), fromLineFun, fromLineTypeMap);
-  AddOperator(addLayerInfo(), addLayerFuns, 
-              addLayerSelectFun, addLayerTM)->SetUsesMemory();
-  AddOperator(isdefinedInfo(), isdefinedFuns, isdefinedSelectFun, isdefinedTM);
+  AddOperator(createAddLayerOperator(), true)->SetUsesMemory();
+  AddOperator(createIsdefinedOperator(), true);
 
-  AddOperator(createRasterInfo(), createRasterFuns, createRasterSelectFun,
-              createRasterTM);
+  AddOperator(createCreateRasterOperator(), true);
 
-  AddOperator(createGrid3Info(), createGrid3Funs, createGrid3SelectFun,
-              createGrid3TM);
+  AddOperator(createCreateGrid3Operator(), true);
 
   AddOperator(&distance3D);
   AddOperator(&length3D);

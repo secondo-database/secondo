@@ -43,8 +43,7 @@ namespace raster2
     getgridFun3<int, mstype_helper<int> >,
     getgridFun3<double, mstype_helper<double> >,
     getgridFun3<char, msbool_helper >,
-    getgridFun3<string, mstype_helper<string> >,
-    0
+    getgridFun3<string, mstype_helper<string> >
   };
 
   int getgridSelectFun(ListExpr args)
@@ -117,5 +116,11 @@ namespace raster2
     }
 
     return NList::typeError("Expecting a sType or a msType.");
+  }
+
+  Operator* createGetgridOperator()
+  {
+    return new Operator(getgridInfo(), getgridFuns,
+                        getgridSelectFun, getgridTypeMap);
   }
 }

@@ -352,8 +352,7 @@ ValueMapping composeFunctions[] =
   composeFunctionmt<mtint, mtProperties<int> >,
   composeFunctionmt<mtreal, mtProperties<double> >,
   composeFunctionmt<mtbool, mtProperties<char> >,
-  composeFunctionmt<mtstring, mtProperties<std::string> >,
-  0
+  composeFunctionmt<mtstring, mtProperties<std::string> >
 };
 
 /*
@@ -440,4 +439,10 @@ ListExpr composeTypeMappingFunction(ListExpr arguments)
   return type;
 }
 
+
+Operator* createComposeOperator()
+{
+  return new Operator(composeInfo(), composeFunctions,
+                      composeSelectFunction, composeTypeMappingFunction);
+}
 }

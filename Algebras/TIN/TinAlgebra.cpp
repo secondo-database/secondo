@@ -54,7 +54,7 @@ struct atlocationInfo: OperatorInfo {
  }
 };
 ValueMapping atlocationVM[] = { tin::Tin::atlocation_vm,
-  tin::TinAttribute::atlocation_vm, 0 };
+  tin::TinAttribute::atlocation_vm };
 struct tin2stlfileInfo: OperatorInfo {
  tin2stlfileInfo() {
   name = "tin2stlfile";
@@ -71,7 +71,7 @@ struct tin2stlfileInfo: OperatorInfo {
 
  }
 };
-ValueMapping tin2stlfileVM[] = { tin::Tin::tin2stlfile_vm, 0 };
+ValueMapping tin2stlfileVM[] = { tin::Tin::tin2stlfile_vm };
 struct tin2tinattributeInfo: OperatorInfo {
  tin2tinattributeInfo() {
   name = "tin2tinattribute";
@@ -86,7 +86,7 @@ struct tin2tinattributeInfo: OperatorInfo {
 
  }
 };
-ValueMapping tin2tinattributeVM[] = { tin::Tin::tin2tinattribute_vm, 0 };
+ValueMapping tin2tinattributeVM[] = { tin::Tin::tin2tinattribute_vm };
 struct tinattribute2tinInfo: OperatorInfo {
  tinattribute2tinInfo() {
   name = "tinattribute2tin";
@@ -103,7 +103,7 @@ struct tinattribute2tinInfo: OperatorInfo {
  }
 };
 ValueMapping tinattribute2tinVM[] = {
-  tin::TinAttribute::tinattribute2tin_vm, 0 };
+  tin::TinAttribute::tinattribute2tin_vm };
 
 struct unaryOpInfo: OperatorInfo {
  unaryOpInfo() {
@@ -119,7 +119,7 @@ struct unaryOpInfo: OperatorInfo {
     "sortby [Y desc] createTin 4000) unaryOp [fun(n:real) n + 10.0 ]";
  }
 };
-ValueMapping unaryOpVM[] = { tin::Tin::unaryOp_vm, 0 };
+ValueMapping unaryOpVM[] = { tin::Tin::unaryOp_vm };
 
 struct tinminInfo: OperatorInfo {
  tinminInfo() {
@@ -132,7 +132,7 @@ struct tinminInfo: OperatorInfo {
  }
 };
 ValueMapping tinminVM[] = { tin::Tin::tinmin_vm,
-  tin::TinAttribute::tinmin_vm, 0 };
+  tin::TinAttribute::tinmin_vm };
 
 struct tinmaxInfo: OperatorInfo {
  tinmaxInfo() {
@@ -145,7 +145,7 @@ struct tinmaxInfo: OperatorInfo {
  }
 };
 ValueMapping tinmaxVM[] = { tin::Tin::tinmax_vm,
-  tin::TinAttribute::tinmax_vm, 0 };
+  tin::TinAttribute::tinmax_vm };
 struct raster2tinInfo: OperatorInfo {
  raster2tinInfo() {
   name = "raster2tin";
@@ -162,7 +162,7 @@ struct raster2tinInfo: OperatorInfo {
  }
 };
 ValueMapping raster2tinVM[] = { tin::Tin::raster2tin_vm<raster2::sint>,
-  tin::Tin::raster2tin_vm<raster2::sreal>, 0 };
+  tin::Tin::raster2tin_vm<raster2::sreal> };
 
 struct createTinInfo: OperatorInfo {
  createTinInfo() {
@@ -189,7 +189,7 @@ struct createTinInfo: OperatorInfo {
  }
 };
 ValueMapping createTinVM[] = { tin::Tin::createTin_vm<CcReal>,
-  tin::Tin::createTin_vm<CcInt>, 0 };
+  tin::Tin::createTin_vm<CcInt> };
 struct tin2tuplestreamInfo: OperatorInfo {
  tin2tuplestreamInfo() {
   name = "tin2tuplestream";
@@ -204,7 +204,7 @@ struct tin2tuplestreamInfo: OperatorInfo {
   example = " query ortetin tin2tuplestream consume";
  }
 };
-ValueMapping tin2tuplestreamVM[] = { tin::Tin::tin2tuplestream_vm, 0 };
+ValueMapping tin2tuplestreamVM[] = { tin::Tin::tin2tuplestream_vm };
 
 TypeConstructor TinType(tin::Tin::BasicType(), //name
   tin::Tin::Property, //property function describing signature

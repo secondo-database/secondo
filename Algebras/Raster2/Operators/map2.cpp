@@ -733,9 +733,14 @@ grids of the operator arguments are compatible.
       map2FunMM<msstring, msstring, msint>,
       map2FunMM<msstring, msstring, msbool>,
       map2FunMM<msstring, msstring, msreal>,
-      map2FunMM<msstring, msstring, msstring>,
-      0
+      map2FunMM<msstring, msstring, msstring>
   };
 
 
+
+  Operator* createMap2Operator()
+  {
+    return new Operator(map2Info(), map2Funs,
+                        map2SelectFun, map2TypeMap);
+  }
 }

@@ -52,6 +52,12 @@ extern QueryProcessor *qp;
 
 //ItHashJoin--------------------------------------------------------------------
 
+ValueMapping ItHashJoin::valueMappings[] =
+{
+  StreamValueMapping<State<false>, CreateState<false>>,
+  StreamValueMapping<State<true>, CreateState<true>>
+};
+
 ItHashJoin::ItHashJoin() :
   Operator(info, valueMappings, SelectValueMapping, TypeMapping)
 {
@@ -59,12 +65,6 @@ ItHashJoin::ItHashJoin() :
   SetUsesMemory();
 }
 
-ValueMapping ItHashJoin::valueMappings[] =
-{
-  StreamValueMapping<State<false>, CreateState<false>>,
-  StreamValueMapping<State<true>, CreateState<true>>,
-  nullptr
-};
 
 const OperatorInfo ItHashJoin::info = OperatorInfo(
   "itHashJoin",

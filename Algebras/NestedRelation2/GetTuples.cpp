@@ -189,7 +189,7 @@ type "tid"[2].
 }
 
 /*static*/ValueMapping GetTuples::functions[] = { GetTuplesArel,
-    GetTuplesNrel, NULL };
+    GetTuplesNrel };
 
 /*static*/int GetTuples::SelectFunction(ListExpr args)
 {
@@ -429,3 +429,14 @@ List of functions for cost estimation.
 CreateCostEstimation GetTuples::costEstimators[] =
     { LinearProgressEstimator<GetTuplesLocalInfoArel>::Build,
       LinearProgressEstimator<GetTuplesLocalInfoNrel>::Build };
+
+/*
+Builds the operator. It lives here because the number of value mappings
+is read off the type of ~functions~, which is only complete in this file.
+
+*/
+Operator* GetTuples::create()
+{
+  return new Operator(Info(), functions, SelectFunction, MapType,
+                      costEstimators);
+}

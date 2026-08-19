@@ -2233,8 +2233,7 @@ MapMatchingAlgebra::MapMatchingAlgebra()
     //JMapMatchMHT
     ValueMapping JMapMatchMHTFuns[] = {OpJMapMatchingMHTMPointValueMapping,
                                        OpJMapMatchingMHTGPXValueMapping,
-                                       OpJMapMatchingMHTStreamValueMapping,
-                                       0
+                                       OpJMapMatchingMHTStreamValueMapping
     };
 
     AddOperator(JMapMatchMHTInfo(),
@@ -2246,8 +2245,7 @@ MapMatchingAlgebra::MapMatchingAlgebra()
     // MapMatchMHT
     ValueMapping MapMatchMHTFuns[] = { OpMapMatchingMHTMPointValueMapping,
                                        OpMapMatchingMHTGPXValueMapping,
-                                       OpMapMatchingMHTStreamValueMapping,
-                                       0 };
+                                       OpMapMatchingMHTStreamValueMapping };
 
     AddOperator(MapMatchMHTInfo(),
                 MapMatchMHTFuns,
@@ -2261,8 +2259,7 @@ MapMatchingAlgebra::MapMatchingAlgebra()
                        OpOMapMatchingMHTStream2EdgesValueMapping<CcInt>,
                        OpOMapMatchingMHTMPoint2EdgesValueMapping<LongInt>,
                        OpOMapMatchingMHTGPX2EdgesValueMapping<LongInt>,
-                       OpOMapMatchingMHTStream2EdgesValueMapping<LongInt>,
-                     0 };
+                       OpOMapMatchingMHTStream2EdgesValueMapping<LongInt> };
 
     AddOperator(OMapMatchMHTInfo(),
                 OMapMatchMHTFuns,
@@ -2276,8 +2273,7 @@ MapMatchingAlgebra::MapMatchingAlgebra()
                 OpOMapMatchingMHTStream2PositionsValueMapping<CcInt>,
                 OpOMapMatchingMHTMPoint2PositionsValueMapping<LongInt>,
                 OpOMapMatchingMHTGPX2PositionsValueMapping<LongInt>,
-                OpOMapMatchingMHTStream2PositionsValueMapping<LongInt>,
-              0 };
+                OpOMapMatchingMHTStream2PositionsValueMapping<LongInt> };
 
     AddOperator(OMapMatchMHT_PInfo(),
                 OMapMatchMHT_PFuns,
@@ -2291,8 +2287,7 @@ MapMatchingAlgebra::MapMatchingAlgebra()
                  OpOMapMatchingMHTStream2MPointValueMapping<CcInt>,
                  OpOMapMatchingMHTMPoint2MPointValueMapping<LongInt>,
                  OpOMapMatchingMHTGPX2MPointValueMapping<LongInt>,
-                 OpOMapMatchingMHTStream2MPointValueMapping<LongInt>,
-               0 };
+                 OpOMapMatchingMHTStream2MPointValueMapping<LongInt> };
 
     AddOperator(OMapMatchMHT_MPointInfo(),
                 OMapMatchMHT_MPointFuns,
@@ -2301,8 +2296,7 @@ MapMatchingAlgebra::MapMatchingAlgebra()
 
     // GPXImport
     ValueMapping GPXImportFuns[] = { OpGPXImportValueMapping,
-                                     OpGPXImportValueMappingWithScale,
-                                     0 };
+                                     OpGPXImportValueMappingWithScale };
 
     AddOperator(GPXImportInfo(),
                 GPXImportFuns,

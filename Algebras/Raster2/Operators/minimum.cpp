@@ -43,8 +43,7 @@ namespace raster2
     minimumFun<int, mstype_helper<int> >,
     minimumFun<double, mstype_helper<double> >,
     minimumFun<char, msbool_helper>,
-    minimumFun<string, mstype_helper<string> >,
-    0
+    minimumFun<string, mstype_helper<string> >
   };
 
   int minimumSelectFun(ListExpr args)
@@ -141,5 +140,11 @@ namespace raster2
     }
 
     return NList::typeError("Expecting an sType or msType.");
+  }
+
+  Operator* createMinimumOperator()
+  {
+    return new Operator(minimumInfo(), minimumFuns,
+                        minimumSelectFun, minimumTypeMap);
   }
 }

@@ -87,7 +87,7 @@ declaration of getgridFunctions array.
 
 */
 
-extern ValueMapping getgridFunctions[];
+Operator* createGetgridOperator();
 
 /*
 Method getgridSelectFunction returns the index of specific getgrid function

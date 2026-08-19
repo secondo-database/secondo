@@ -111,7 +111,7 @@ Unnest::~Unnest()
   return result;
 }
 
-/*static*/ValueMapping Unnest::functions[] = { UnnestValue, NULL };
+/*static*/ValueMapping Unnest::functions[] = { UnnestValue };
 
 /*static*/int Unnest::SelectFunction(ListExpr args)
 {
@@ -333,3 +333,14 @@ List of functions for cost estimation.
 */
 CreateCostEstimation Unnest::costEstimators[] =
   { LinearProgressEstimator<UnnestLocalInfo>::Build };
+
+/*
+Builds the operator. It lives here because the number of value mappings
+is read off the type of ~functions~, which is only complete in this file.
+
+*/
+Operator* Unnest::create()
+{
+  return new Operator(Info(), functions, SelectFunction, MapType,
+                      costEstimators);
+}

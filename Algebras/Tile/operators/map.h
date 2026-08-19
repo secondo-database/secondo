@@ -90,7 +90,7 @@ declaration of mapFunctions array.
 
 */
 
-extern ValueMapping mapFunctions[];
+Operator* createMapOperator();
 
 /*
 Method mapSelectFunction returns the index of specific map function

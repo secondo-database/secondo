@@ -231,53 +231,35 @@ TileAlgebra::TileAlgebra()
 
   */
 
-  AddOperator(atinstantInfo(), atinstantFunctions, atinstantSelectFunction,
-              atinstantTypeMappingFunction);
-  AddOperator(atlocationInfo(), atlocationFunctions, atlocationSelectFunction,
-              atlocationTypeMappingFunction);
-  AddOperator(atperiodsInfo(), atperiodsFunctions, atperiodsSelectFunction,
-              atperiodsTypeMappingFunction);
-  AddOperator(atrangeInfo(), atrangeFunctions, atrangeSelectFunction,
-              atrangeTypeMappingFunction);
-  AddOperator(bboxInfo(), bboxFunctions, bboxSelectFunction,
-              bboxTypeMappingFunction);
+  AddOperator(createAtinstantOperator(), true);
+  AddOperator(createAtlocationOperator(), true);
+  AddOperator(createAtperiodsOperator(), true);
+  AddOperator(createAtrangeOperator(), true);
+  AddOperator(createBboxOperator(), true);
   AddOperator(CELL1Info(), 0, CELL1TypeMappingFunction);
   AddOperator(CELL2Info(), 0, CELL2TypeMappingFunction);
   AddOperator(CELLSInfo(), 0, CELLSTypeMappingFunction);
-  AddOperator(composeInfo(), composeFunctions, composeSelectFunction,
-              composeTypeMappingFunction);
-  AddOperator(deftimeInfo(), deftimeFunctions, deftimeSelectFunction,
-              deftimeTypeMappingFunction);
+  AddOperator(createComposeOperator(), true);
+  AddOperator(createDeftimeOperator(), true);
   AddOperator(fromlineInfo(), fromlineFunction,
               fromlineTypeMappingFunction);
   AddOperator(fromregionInfo(), fromregionFunction,
               fromregionTypeMappingFunction);
-  AddOperator(getgridInfo(), getgridFunctions, getgridSelectFunction,
-              getgridTypeMappingFunction);
-  AddOperator(instInfo(), instFunctions, instSelectFunction,
-              instTypeMappingFunction);
+  AddOperator(createGetgridOperator(), true);
+  AddOperator(createInstOperator(), true);
   // AddOperator(loadInfo(), loadFunctions, loadSelectFunction,
   //             loadTypeMappingFunction);
-  AddOperator(mapInfo(), mapFunctions, mapSelectFunction,
-              mapTypeMappingFunction);
-  AddOperator(map2Info(), map2Functions, map2SelectFunction,
-              map2TypeMappingFunction);
-  AddOperator(matchgridInfo(), matchgridFunctions, matchgridSelectFunction,
-              matchgridTypeMappingFunction)->SetUsesMemory();
-  AddOperator(maximumInfo(), maximumFunctions, maximumSelectFunction,
-              maximumTypeMappingFunction);
-  AddOperator(minimumInfo(), minimumFunctions, minimumSelectFunction,
-              minimumTypeMappingFunction);
-  AddOperator(t2mtInfo(), t2mtFunctions, t2mtSelectFunction,
-              t2mtTypeMappingFunction);
-  AddOperator(tilesInfo(), tilesFunctions, tilesSelectFunction,
-              tilesTypeMappingFunction);
-  AddOperator(toraster2Info(), toraster2Functions, toraster2SelectFunction,
-              toraster2TypeMappingFunction);
+  AddOperator(createMapOperator(), true);
+  AddOperator(createMap2Operator(), true);
+  AddOperator(createMatchgridOperator(), true)->SetUsesMemory();
+  AddOperator(createMaximumOperator(), true);
+  AddOperator(createMinimumOperator(), true);
+  AddOperator(createT2mtOperator(), true);
+  AddOperator(createTilesOperator(), true);
+  AddOperator(createToraster2Operator(), true);
   AddOperator(toregionInfo(), toregionFunction,
               toregionTypeMappingFunction);
-  AddOperator(valInfo(), valFunctions, valSelectFunction,
-              valTypeMappingFunction);
+  AddOperator(createValOperator(), true);
 }
 
 /*

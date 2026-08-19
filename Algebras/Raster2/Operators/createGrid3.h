@@ -30,7 +30,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 namespace raster2
 {
-  extern ValueMapping createGrid3Funs[];
+  Operator* createCreateGrid3Operator();
   ListExpr createGrid3TM(ListExpr);
   int createGrid3SelectFun(ListExpr);
 

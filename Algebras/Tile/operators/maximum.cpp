@@ -121,8 +121,7 @@ ValueMapping maximumFunctions[] =
   maximumFunction<mtint, mtProperties<int> >,
   maximumFunction<mtreal, mtProperties<double> >,
   maximumFunction<mtbool, mtProperties<char> >,
-  maximumFunction<mtstring, mtProperties<std::string> >,
-  0
+  maximumFunction<mtstring, mtProperties<std::string> >
 };
 
 /*
@@ -206,4 +205,10 @@ ListExpr maximumTypeMappingFunction(ListExpr arguments)
   return type;
 }
 
+
+Operator* createMaximumOperator()
+{
+  return new Operator(maximumInfo(), maximumFunctions,
+                      maximumSelectFunction, maximumTypeMappingFunction);
+}
 }

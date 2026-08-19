@@ -220,8 +220,7 @@ ValueMapping atrangeFunctions[] =
   atrangeFunctionmt<mtint>,
   atrangeFunctionmt<mtreal>,
   atrangeFunctionmt<mtbool>,
-  atrangeFunctionmt<mtstring>,
-  0
+  atrangeFunctionmt<mtstring>
 };
 
 /*
@@ -326,4 +325,10 @@ ListExpr atrangeTypeMappingFunction(ListExpr arguments)
   return type;
 }
 
+
+Operator* createAtrangeOperator()
+{
+  return new Operator(atrangeInfo(), atrangeFunctions,
+                      atrangeSelectFunction, atrangeTypeMappingFunction);
+}
 }

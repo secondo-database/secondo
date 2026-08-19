@@ -4338,18 +4338,18 @@ class SymbolicTrajectoryAlgebra : public Algebra {
   
   ValueMapping distanceVMs[] = {distanceVM<Label>, distanceVM<Labels>,
     distanceVM<Place>, distanceVM<Places>, distanceVM<MLabel>,
-    distanceVM<MLabels>, distanceVM<MPlace>, distanceVM<MPlaces>, 0};
+    distanceVM<MLabels>, distanceVM<MPlace>, distanceVM<MPlaces>};
   AddOperator(distanceInfo(), distanceVMs, distanceSelect, distanceTM);
   
   ValueMapping distancesymVMs[] = {distancesymVM<MLabel>, 
-      distancesymVM<MLabels>, distancesymVM<MPlace>, distancesymVM<MPlaces>, 0};
+      distancesymVM<MLabels>, distancesymVM<MPlace>, distancesymVM<MPlaces>};
   AddOperator(distancesymInfo(), distancesymVMs, distancesymSelect, 
               distancesymTM);
   
   ValueMapping hybriddistanceVMs[] = {hybriddistanceVM<MLabel, false>,
               hybriddistanceVM<MPlace, false>, hybriddistanceVM<MLabels, false>,
               hybriddistanceVM<MLabel, true>, hybriddistanceVM<MPlace, true>,
-              hybriddistanceVM<MLabels, false>, 0};
+              hybriddistanceVM<MLabels, false>};
   AddOperator(hybriddistanceInfo(), hybriddistanceVMs, hybriddistanceSelect, 
               hybriddistanceTM);
   
@@ -4361,7 +4361,7 @@ class SymbolicTrajectoryAlgebra : public Algebra {
   
   ValueMapping longestcommonsubsequenceSymbolicVMs[] = 
     {longestcommonsubsequenceSymbolicVM<MLabel, Label>,
-     longestcommonsubsequenceSymbolicVM<MPlace, Place>, 0};
+     longestcommonsubsequenceSymbolicVM<MPlace, Place>};
   AddOperator(longestcommonsubsequenceSymbolicInfo(), 
               longestcommonsubsequenceSymbolicVMs, 
               longestcommonsubsequenceSymbolicSelect,
@@ -4393,13 +4393,13 @@ class SymbolicTrajectoryAlgebra : public Algebra {
   indextmatches2.SetUsesArgsInTypeMapping();
   
   ValueMapping indexrewriteVMs[] = {indexrewriteVM<MLabel>, 
-    indexrewriteVM<MLabels>, indexrewriteVM<MPlace>, indexrewriteVM<MPlaces>,0};
+    indexrewriteVM<MLabels>, indexrewriteVM<MPlace>, indexrewriteVM<MPlaces>};
   AddOperator(indexrewriteInfo(), indexrewriteVMs, indexrewriteSelect, 
               indexrewriteTM);
   
   ValueMapping createunitrtreeVMs[] = {createunitrtreeVM<MLabel>,
     createunitrtreeVM<MLabels>, createunitrtreeVM<MPlace>, 
-    createunitrtreeVM<MPlaces>, 0};
+    createunitrtreeVM<MPlaces>};
   AddOperator(createunitrtreeInfo(), createunitrtreeVMs, createunitrtreeSelect,
               createunitrtreeTM);
   
@@ -4417,7 +4417,7 @@ class SymbolicTrajectoryAlgebra : public Algebra {
     filtermatchesVM<MPlaces, FText>, filtermatchesVM<MLabel, PatPersistent>,
     filtermatchesVM<MLabels, PatPersistent>, 
     filtermatchesVM<MPlace, PatPersistent>,
-    filtermatchesVM<MPlaces, PatPersistent>, 0};
+    filtermatchesVM<MPlaces, PatPersistent>};
   AddOperator(filtermatchesInfo(), filtermatchesVMs, filtermatchesSelect,
               filtermatchesTM);
   
@@ -4425,21 +4425,21 @@ class SymbolicTrajectoryAlgebra : public Algebra {
     rewriteVM<MLabels, FText>, rewriteVM<MPlace, FText>, 
     rewriteVM<MPlaces, FText>, rewriteVM<MLabel, PatPersistent>,
     rewriteVM<MLabels, PatPersistent>, rewriteVM<MPlace, PatPersistent>,
-    rewriteVM<MPlaces, PatPersistent>, 0};
+    rewriteVM<MPlaces, PatPersistent>};
   AddOperator(rewriteInfo(), rewriteVMs, rewriteSelect, rewriteTM);
   
   ValueMapping multirewriteVMs[] = {multirewriteVM<MLabel>,
-    multirewriteVM<MLabels>, multirewriteVM<MPlace>, multirewriteVM<MPlaces>,0};
+    multirewriteVM<MLabels>, multirewriteVM<MPlace>, multirewriteVM<MPlaces>};
   AddOperator(multirewriteInfo(), multirewriteVMs, multirewriteSelect,
               multirewriteTM);
 
   ValueMapping classifyVMs[] = {classifyVM<MLabel>, classifyVM<MLabels>,
-    classifyVM<MPlace>, classifyVM<MPlaces>, 0};
+    classifyVM<MPlace>, classifyVM<MPlaces>};
   AddOperator(classifyInfo(), classifyVMs, classifySelect, classifyTM);
 
   ValueMapping indexclassifyVMs[] = {indexclassifyVM<MLabel>,
-    indexclassifyVM<MLabels>, indexclassifyVM<MPlace>, indexclassifyVM<MPlaces>,
-    0};
+    indexclassifyVM<MLabels>, indexclassifyVM<MPlace>,
+    indexclassifyVM<MPlaces>};
   AddOperator(indexclassifyInfo(), indexclassifyVMs, indexclassifySelect,
               indexclassifyTM);
 
@@ -4448,7 +4448,7 @@ class SymbolicTrajectoryAlgebra : public Algebra {
   AddOperator(createmlrelInfo(), createmlrelVM, createmlrelTM);
 
   ValueMapping createtrieVMs[] = {createtrieVM<MLabel>, createtrieVM<MLabels>,
-                                createtrieVM<MPlace>, createtrieVM<MPlaces>, 0};
+                                createtrieVM<MPlace>, createtrieVM<MPlaces>};
   AddOperator(createtrieInfo(), createtrieVMs, createtrieSelect, createtrieTM);
   
 //   AddOperator(createMaxspeedRasterInfo(), createMaxspeedRasterVM,

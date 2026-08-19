@@ -278,26 +278,24 @@ Operator::Operator( const OperatorInfo& oi,
 
 Operator::Operator( const OperatorInfo& oi,
                     ValueMapping vms[],
+                    int noF,
                     SelectFunction sf,
                     TypeMapping tm,
                     CreateCostEstimation* createCE )
 {
   excluded = false;
-  int max = 0;
-  while ( vms[max] != 0 ) { max++; }
-
-  assert(checkValidOperatorName(oi.name, max==0));
+  assert(checkValidOperatorName(oi.name, noF==0));
 
   // define member attributes
   name           = oi.name;
   specString     = oi.str();
   spec           = oi;
-  numOfFunctions = max;
+  numOfFunctions = noF;
   selectFunc     = sf;
-  valueMap       = new ValueMapping[max];
-  calls          = new unsigned int[max];
-  createCostEstimation = new CreateCostEstimation[max];
-  costEstimation = new CostEstimation*[max];
+  valueMap       = new ValueMapping[noF];
+  calls          = new unsigned int[noF];
+  createCostEstimation = new CreateCostEstimation[noF];
+  costEstimation = new CostEstimation*[noF];
   typeMap        = tm;
   supportsProgress = oi.supportsProgress ? true : false;
   requestsArgs   = oi.requestsArgs ? true : false;
@@ -305,7 +303,7 @@ Operator::Operator( const OperatorInfo& oi,
   usesMemory     = oi.usesMemory;
   supportsInitFinish = oi.supportsInitFinish;
 
-  for ( int i = 0; i < max; i++ ) {
+  for ( int i = 0; i < noF; i++ ) {
     //cout << "Adding " << i << endl;
     //cout << (void*) vms[i] << endl;
     AddValueMapping( i, vms[i] );
@@ -748,13 +746,3 @@ Algebra::AddOperator( OperatorInfo oi, ValueMapping vm, TypeMapping tm )
   AddOperator(newOp, true);
   return newOp;
 }
-
-Operator*
-Algebra::AddOperator( OperatorInfo oi, ValueMapping vms[],
-                      SelectFunction sf, TypeMapping tm   )
-{
-  Operator* newOp = new Operator(oi, vms, sf, tm);
-  AddOperator(newOp, true);
-  return newOp;
-}
-

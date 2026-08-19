@@ -74,9 +74,14 @@ corresponding attribut arrays.
     ValueMapping40,
     ValueMapping41,
     ValueMapping50,
-    ValueMapping51,
-    nullptr
+    ValueMapping51
   };
+
+  PresentOperator::PresentOperator()
+    : AttrArrayOperator(info, valueMappings,
+                        SelectValueMapping, TypeMapping)
+  {
+  }
 
   ListExpr PresentOperator::TypeMapping(ListExpr args) {
     return typeMapping(signatures(), args);
@@ -294,9 +299,14 @@ corresponding attribut arrays.
     ValueMapping2,
     ValueMapping3,
     ValueMapping4,
-    ValueMapping5,
-    nullptr
+    ValueMapping5
   };
+
+  AtInstantOperator::AtInstantOperator()
+    : AttrArrayOperator(info, valueMappings,
+                        SelectValueMapping, TypeMapping)
+  {
+  }
 
   ListExpr AtInstantOperator::TypeMapping(ListExpr args) {
     return typeMapping(signatures(), args);
@@ -419,9 +429,14 @@ corresponding attribut arrays.
     ValueMapping2,
     ValueMapping3,
     ValueMapping4,
-    ValueMapping5,
-    nullptr
+    ValueMapping5
   };
+
+  AtPeriodsOperator::AtPeriodsOperator()
+    : AttrArrayOperator(info, valueMappings,
+                        SelectValueMapping, TypeMapping)
+  {
+  }
 
   ListExpr AtPeriodsOperator::TypeMapping(ListExpr args) {
     return typeMapping(signatures(), args);
@@ -547,9 +562,14 @@ corresponding attribut arrays.
     ValueMapping30,
     ValueMapping31,
     ValueMapping40,
-    ValueMapping41,
-    nullptr
+    ValueMapping41
   };
+
+  PassesOperator::PassesOperator()
+    : AttrArrayOperator(info, valueMappings,
+                        SelectValueMapping, TypeMapping)
+  {
+  }
 
   ListExpr PassesOperator::TypeMapping(ListExpr args) {
     return typeMapping(signatures(), args);
@@ -740,9 +760,14 @@ corresponding attribut arrays.
     ValueMapping30,
     ValueMapping31,
     ValueMapping40,
-    ValueMapping41,
-    nullptr
+    ValueMapping41
   };
+
+  AtOperator::AtOperator()
+    : AttrArrayOperator(info, valueMappings,
+                        SelectValueMapping, TypeMapping)
+  {
+  }
 
   ListExpr AtOperator::TypeMapping(ListExpr args) {
     return typeMapping(signatures(), args);
@@ -917,9 +942,14 @@ corresponding attribut arrays.
     ValueMapping0,
     ValueMapping1,
     ValueMapping2,
-    ValueMapping3,
-    nullptr
+    ValueMapping3
   };
+
+  InsideOperator::InsideOperator()
+    : Operator(info, valueMappings,
+               SelectValueMapping, TypeMapping)
+  {
+  }
 
   ListExpr InsideOperator::TypeMapping(ListExpr args) {
     int r = IntersectionOperator::mapping(args);
@@ -1023,9 +1053,14 @@ corresponding attribut arrays.
     ValueMapping0,
     ValueMapping1,
     ValueMapping2,
-    ValueMapping3,
-    nullptr
+    ValueMapping3
   };
+
+  IntersectionOperator::IntersectionOperator()
+    : Operator(info, valueMappings,
+               SelectValueMapping, TypeMapping)
+  {
+  }
 
   int IntersectionOperator::mapping(ListExpr args) {
     if(!nl->HasLength(args,2)) 
@@ -1171,9 +1206,14 @@ corresponding attribut arrays.
     ValueMapping1,
     ValueMapping2,
     ValueMapping3,
-    ValueMapping4,
-    nullptr
+    ValueMapping4
   };
+
+  AddRandomOperator::AddRandomOperator()
+    : AttrArrayOperator(info, valueMappings,
+                        SelectValueMapping, TypeMapping)
+  {
+  }
 
   ListExpr AddRandomOperator::TypeMapping(ListExpr args) {
     return typeMapping(signatures(), args);
@@ -1280,9 +1320,14 @@ signature.
       "[const instant value \"2010-01-01\"], 10]");
 
   ValueMapping IndexOperator::valueMappings[] = {
-    ValueMapping0,
-    nullptr
+    ValueMapping0
   };
+
+  IndexOperator::IndexOperator()
+    : Operator(info, valueMappings,
+               SelectValueMapping, TypeMapping)
+  {
+  }
 
   ListExpr IndexOperator::TypeMapping(ListExpr args) {
     if(!nl->HasLength(args, 10)) 

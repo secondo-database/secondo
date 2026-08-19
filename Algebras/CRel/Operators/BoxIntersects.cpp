@@ -49,11 +49,6 @@ extern QueryProcessor *qp;
 
 //BoxIntersects-----------------------------------------------------------------
 
-BoxIntersects::BoxIntersects() :
-  Operator(info, valueMappings, SelectValueMapping, TypeMapping)
-{
-}
-
 ValueMapping BoxIntersects::valueMappings[] =
 {
   AttrArrayValueMapping<1, 1>,
@@ -116,6 +111,12 @@ ValueMapping BoxIntersects::valueMappings[] =
   AttributeValueMapping<8, 4>,
   AttributeValueMapping<8, 8>,
 };
+
+BoxIntersects::BoxIntersects() :
+  Operator(info, valueMappings, SelectValueMapping, TypeMapping)
+{
+}
+
 
 const OperatorInfo BoxIntersects::info =
   OperatorInfo("boxintersects", "SPATIALATTRARRAY x "

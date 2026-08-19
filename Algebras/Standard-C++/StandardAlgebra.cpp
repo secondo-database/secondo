@@ -3465,7 +3465,7 @@ ifthenelseStreamFun(Word* args, Word& result,
 }
 
 
-ValueMapping ifthenelseVM[] = { ifthenelseDataFun, ifthenelseStreamFun, 0};
+ValueMapping ifthenelseVM[] = { ifthenelseDataFun, ifthenelseStreamFun};
 
 
 
@@ -4533,43 +4533,43 @@ ValueMapping ccnum2stringvaluemap[] =
                             CcNum2String<CcReal, true>, 
                             CcNum2String<CcInt, true>,
                             CcNum2String<LongInt, true>};
-ValueMapping abs_vms[] = { abs_vm<CcReal, double>, abs_vm<CcInt, int>, 0 };
+ValueMapping abs_vms[] = { abs_vm<CcReal, double>, abs_vm<CcInt, int> };
 ValueMapping cccharvaluemap[] = { CcCharFun };
 
 ValueMapping CCsinVM[] = {
   CCtrigonVM<CcInt, sin_op>,
-  CCtrigonVM<CcReal, sin_op>, 0};
+  CCtrigonVM<CcReal, sin_op>};
 ValueMapping CCcosVM[] = {
   CCtrigonVM<CcInt, cos_op>,
-  CCtrigonVM<CcReal, cos_op>, 0};
+  CCtrigonVM<CcReal, cos_op>};
 ValueMapping CCtanVM[] = {
   CCtrigonVM<CcInt, tan_op>,
-  CCtrigonVM<CcReal, tan_op>, 0};
+  CCtrigonVM<CcReal, tan_op>};
 ValueMapping CCarcsinVM[] = {
   CCtrigonVM<CcInt, arcsin_op>,
-  CCtrigonVM<CcReal, arcsin_op>, 0};
+  CCtrigonVM<CcReal, arcsin_op>};
 ValueMapping CCarccosVM[] = {
   CCtrigonVM<CcInt, arccos_op>,
-  CCtrigonVM<CcReal, arccos_op>, 0};
+  CCtrigonVM<CcReal, arccos_op>};
 ValueMapping CCarctanVM[] = {
   CCtrigonVM<CcInt, arctan_op>,
-  CCtrigonVM<CcReal, arctan_op>, 0};
+  CCtrigonVM<CcReal, arctan_op>};
 ValueMapping CCdeg2radVM[] = {
     CCtrigonVM<CcInt, deg2rad_op>,
-    CCtrigonVM<CcReal, deg2rad_op>, 0};
+    CCtrigonVM<CcReal, deg2rad_op>};
 ValueMapping CCrad2degVM[] = {
       CCtrigonVM<CcInt, rad2deg_op>,
-      CCtrigonVM<CcReal, rad2deg_op>, 0};
+      CCtrigonVM<CcReal, rad2deg_op>};
 ValueMapping CClogBmap[] = {
         CClogBVM<CcInt, CcInt>,
         CClogBVM<CcInt, CcReal>,
         CClogBVM<CcReal, CcInt>,
-        CClogBVM<CcReal, CcReal>, 0};
+        CClogBVM<CcReal, CcReal>};
 ValueMapping CCpowmap[] = {
         CCpowVM<CcInt, CcInt>,
         CCpowVM<CcInt, CcReal>,
         CCpowVM<CcReal, CcInt>,
-        CCpowVM<CcReal, CcReal>, 0};
+        CCpowVM<CcReal, CcReal>};
 
 ValueMapping CCdms2degmap[] = {
   CCdms2degVM<CcInt, CcInt, CcInt>,
@@ -4579,7 +4579,7 @@ ValueMapping CCdms2degmap[] = {
   CCdms2degVM<CcReal, CcInt, CcInt>,
   CCdms2degVM<CcReal, CcInt, CcReal>,
   CCdms2degVM<CcReal, CcReal, CcInt>,
-  CCdms2degVM<CcReal, CcReal, CcReal>, 0};
+  CCdms2degVM<CcReal, CcReal, CcReal>};
 
 const string CCSpecAdd  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                           "\"Example\" )"

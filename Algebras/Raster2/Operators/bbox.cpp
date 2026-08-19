@@ -43,8 +43,7 @@ namespace raster2
     bboxFun3<int, mstype_helper<int> >,
     bboxFun3<double, mstype_helper<double> >,
     bboxFun3<char, msbool_helper >,
-    bboxFun3<string, mstype_helper<string> >,
-    0
+    bboxFun3<string, mstype_helper<string> >
   };
 
   int bboxSelectFun(ListExpr args)
@@ -117,5 +116,11 @@ namespace raster2
     }
 
     return NList::typeError("Expecting an sType or msType.");
+  }
+
+  Operator* createBboxOperator()
+  {
+    return new Operator(bboxInfo(), bboxFuns,
+                        bboxSelectFun, bboxTypeMap);
   }
 }

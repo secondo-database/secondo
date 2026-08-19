@@ -46,8 +46,7 @@ namespace raster2
     atrangeMFun<msint>,
     atrangeMFun<msreal>,
     atrangeMFun<msbool>,
-    atrangeMFun<msstring>,
-    0
+    atrangeMFun<msstring>
   };
 
   int atrangeSelectFun(ListExpr args)
@@ -152,5 +151,11 @@ namespace raster2
     }
 
     return nlist.first().listExpr();
+  }
+
+  Operator* createAtrangeOperator()
+  {
+    return new Operator(atrangeInfo(), atrangeFuns,
+                        atrangeSelectFun, atrangeTypeMap);
   }
 }

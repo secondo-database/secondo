@@ -771,7 +771,7 @@ insideTypeMap( ListExpr args )
 {
   NList type(args);
   const string errMsg = "Expecting two rectangles "
-	                "or a point and a rectangle";
+                    "or a point and a rectangle";
 
   // first alternative: xpoint x xrectangle -> bool
   if ( type == NList(XPoint::BasicType(), XRectangle::BasicType()) ) {
@@ -985,7 +985,7 @@ class PointRectangleAlgebra : public Algebra
 
     // the overloaded inside operator needs an array of function pointers
     // which must be null terminated!
-    ValueMapping insideFuns[] = { insideFun_PR, insideFun_RR, 0 };
+    ValueMapping insideFuns[] = { insideFun_PR, insideFun_RR };
 
     AddOperator( insideInfo(), insideFuns, insideSelect, insideTypeMap );
   }

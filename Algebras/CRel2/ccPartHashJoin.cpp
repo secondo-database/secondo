@@ -110,12 +110,6 @@ public:
 };
 
 // constructor
-ccPartHashJoin::ccPartHashJoin() :
-    Operator(Info(), valueMappings, SelectValueMapping, TypeMapping)
-{
-  SetUsesMemory();
-}
-
 // destructor
 ccPartHashJoin::~ccPartHashJoin()
 {
@@ -869,8 +863,13 @@ int ccPartHashJoinVM(Word* args, Word& result, int message, Word& local,
 }
 
 ValueMapping ccPartHashJoin::valueMappings[] = {
-    ccPartHashJoinVM,
-    nullptr };
+    ccPartHashJoinVM };
+
+ccPartHashJoin::ccPartHashJoin() :
+    Operator(Info(), valueMappings, SelectValueMapping, TypeMapping)
+{
+  SetUsesMemory();
+}
 
 int ccPartHashJoin::SelectValueMapping(ListExpr args)
 {

@@ -52,19 +52,19 @@ using std::string;
 extern NestedList *nl;
 extern QueryProcessor *qp;
 
+ValueMapping CConsume::valueMappings[] =
+{
+  TBlockValueMapping,
+  TupleValueMapping,
+  SimpleTupleValueMapping
+};
+
 CConsume::CConsume() :
   Operator(info, valueMappings, SelectValueMapping, TypeMapping)
 {
   SetUsesArgsInTypeMapping();
 }
 
-ValueMapping CConsume::valueMappings[] =
-{
-  TBlockValueMapping,
-  TupleValueMapping,
-  SimpleTupleValueMapping,
-  nullptr
-};
 
 const OperatorInfo CConsume::info = OperatorInfo(
   "cconsume", "stream(tuple | tblock) x (int | crel) x [int] -> crel "

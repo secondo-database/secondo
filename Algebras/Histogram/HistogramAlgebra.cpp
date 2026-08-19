@@ -112,12 +112,12 @@ namespace hgr
   AddOperator(IsEqualInfo(), IsEqualFun, HistHistBoolTypeMap);
 
   ValueMapping FindMinBinFuns[] = { FindMinMaxBinFun1d<true>,
-                                    FindMinMaxBinFun2d<true>, 0 };
+                                    FindMinMaxBinFun2d<true> };
   AddOperator(FindMinBinInfo(), FindMinBinFuns,
       FindMinMaxBinSelect, FindMinMaxBinTypeMap);
 
   ValueMapping FindMaxBinFuns[] = { FindMinMaxBinFun1d<false>,
-                                    FindMinMaxBinFun2d<false>, 0 };
+                                    FindMinMaxBinFun2d<false> };
   AddOperator(FindMaxBinInfo(), FindMaxBinFuns,
       FindMinMaxBinSelect, FindMinMaxBinTypeMap);
 

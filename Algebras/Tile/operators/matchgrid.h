@@ -96,7 +96,7 @@ declaration of matchgridFunctions array.
 
 */
 
-extern ValueMapping matchgridFunctions[];
+Operator* createMatchgridOperator();
 
 /*
 Method matchgridSelectFunction returns the index of specific matchgrid function

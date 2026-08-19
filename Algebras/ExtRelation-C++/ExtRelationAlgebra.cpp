@@ -15803,11 +15803,11 @@ class ExtRelationAlgebra : public Algebra
     AddOperator(&extrelmax);
 
     ValueMapping avgFuns[] = { AvgValueMapping<int,CcInt>,
-                         AvgValueMapping<SEC_STD_REAL,CcReal>, 0 };
+                         AvgValueMapping<SEC_STD_REAL,CcReal> };
     ValueMapping sumFuns[] = { SumValueMapping<int,CcInt>,
-                         SumValueMapping<SEC_STD_REAL,CcReal>, 0 };
+                         SumValueMapping<SEC_STD_REAL,CcReal> };
     ValueMapping varFuns[] = { VarValueMapping<int,CcInt>,
-                         VarValueMapping<SEC_STD_REAL,CcReal>, 0 };
+                         VarValueMapping<SEC_STD_REAL,CcReal> };
 
     // Operator* extrelavg =
     AddOperator(avgInfo(), avgFuns, AvgSumSelect, AvgSumTypeMap<true>);
@@ -15827,7 +15827,7 @@ class ExtRelationAlgebra : public Algebra
       StatsValueMapping<int,CcInt,int,CcInt>,
       StatsValueMapping<int,CcInt,SEC_STD_REAL,CcReal>,
       StatsValueMapping<SEC_STD_REAL,CcReal,int,CcInt>,
-      StatsValueMapping<SEC_STD_REAL,CcReal,SEC_STD_REAL,CcReal>, 0
+      StatsValueMapping<SEC_STD_REAL,CcReal,SEC_STD_REAL,CcReal>
     };
     Operator* sio = AddOperator(statsInfo(), statsFuns, 
                                 StatsSelect, StatsTypeMap);

@@ -60,6 +60,7 @@ class Count
 
     static ListExpr MapType(ListExpr args);
     static ValueMapping functions[];
+    static Operator* create();
     static int SelectFunction(ListExpr args);
     static int CountArel(Word* args, Word& result, int message,
         Word& local, Supplier s);

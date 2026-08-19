@@ -45,7 +45,7 @@ namespace GISAlgebra
 declaration of hillshadeFuns array
 
 */
-        extern ValueMapping hillshadeFuns[];
+        Operator* createHillshadeOperator();
 
 /*
 Type Mapping

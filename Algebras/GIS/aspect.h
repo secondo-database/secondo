@@ -45,7 +45,7 @@ namespace GISAlgebra
 declaration of aspectFuns array
 
 */
-        extern ValueMapping aspectFuns[];
+        Operator* createAspectOperator();
 
 /*
 Type Mapping

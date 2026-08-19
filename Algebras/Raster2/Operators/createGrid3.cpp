@@ -104,7 +104,12 @@ namespace raster2
   
   ValueMapping createGrid3Funs[] = {
      createGrid3Fun<CcReal>,
-     createGrid3Fun<DateTime>,
-     0
+     createGrid3Fun<DateTime>
   };
+
+  Operator* createCreateGrid3Operator()
+  {
+    return new Operator(createGrid3Info(), createGrid3Funs,
+                        createGrid3SelectFun, createGrid3TM);
+  }
 }

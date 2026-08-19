@@ -109,8 +109,7 @@ namespace raster2 {
        atlocationMSFun<msbool>,
        atlocationMSFun<msint>,
        atlocationMSFun<msreal>,
-       atlocationMSFun<msstring>,
-       0
+       atlocationMSFun<msstring>
     };
 
     int atlocationSelectFun(ListExpr args) {
@@ -161,4 +160,10 @@ namespace raster2 {
 
     }
 
+
+    Operator* createAtlocationOperator()
+    {
+      return new Operator(atlocationInfo(), atlocationFuns,
+                          atlocationSelectFun, atlocationTypeMap);
+    }
 }

@@ -129,14 +129,11 @@ GISAlgebra::GISAlgebra()
 
   */
 
-  AddOperator(slopeInfo(), slopeFuns, slopeSelectFun, slopeTypeMap);
-  AddOperator(aspectInfo(), aspectFuns, aspectSelectFun, aspectTypeMap);
-  AddOperator(hillshadeInfo(), hillshadeFuns, hillshadeSelectFun, 
-              hillshadeTypeMap);
-  AddOperator(ruggednessInfo(), ruggednessFuns, ruggednessSelectFun, 
-              ruggednessTypeMap);
-  Operator* cont = AddOperator(contourInfo(), contourFuns, 
-                     contourSelectFun, contourTypeMap);
+  AddOperator(createSlopeOperator(), true);
+  AddOperator(createAspectOperator(), true);
+  AddOperator(createHillshadeOperator(), true);
+  AddOperator(createRuggednessOperator(), true);
+  Operator* cont = AddOperator(createContourOperator(), true);
 #ifndef contourlines_fixed_cache
   cont->SetUsesMemory();
 #endif

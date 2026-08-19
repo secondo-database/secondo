@@ -30,7 +30,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 namespace raster2
 {
-    extern ValueMapping minimumFuns[];
+    Operator* createMinimumOperator();
     ListExpr minimumTypeMap(ListExpr args);
     int minimumSelectFun(ListExpr args);
 

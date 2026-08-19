@@ -94,8 +94,7 @@ definition of loadFunctions array.
 ValueMapping loadFunctions[] =
 {
   loadFunction<tintArray>,
-  loadFunction<tintFlob>,
-  0
+  loadFunction<tintFlob>
 };
 
 /*

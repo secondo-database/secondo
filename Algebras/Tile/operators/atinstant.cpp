@@ -111,8 +111,7 @@ ValueMapping atinstantFunctions[] =
   atinstantFunction<mtint, mtProperties<int> >,
   atinstantFunction<mtreal, mtProperties<double> >,
   atinstantFunction<mtbool, mtProperties<char> >,
-  atinstantFunction<mtstring, mtProperties<std::string> >,
-  0
+  atinstantFunction<mtstring, mtProperties<std::string> >
 };
 
 /*
@@ -198,4 +197,10 @@ ListExpr atinstantTypeMappingFunction(ListExpr arguments)
   return type;
 }
 
+
+Operator* createAtinstantOperator()
+{
+  return new Operator(atinstantInfo(), atinstantFunctions,
+                      atinstantSelectFunction, atinstantTypeMappingFunction);
+}
 }

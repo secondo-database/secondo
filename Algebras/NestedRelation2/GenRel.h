@@ -80,6 +80,7 @@ class GenRel
 
     static ListExpr MapType(ListExpr args);
     static ValueMapping functions[];
+    static Operator* create();
     static int SelectFunction(ListExpr args);
     static int GenRelValue(Word* args, Word& result, int message,
         Word& local, Supplier s);

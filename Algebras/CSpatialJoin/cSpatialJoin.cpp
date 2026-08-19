@@ -94,14 +94,6 @@ public:
   }
 };
 
-// constructor
-cSpatialJoin::cSpatialJoin() : Operator(Info(),
-                               valueMappings,
-                               SelectValueMapping,
-                               cspatialjoinTM) {
-  SetUsesMemory();
-}
-
 // destructor
 cSpatialJoin::~cSpatialJoin() {
 }
@@ -189,33 +181,33 @@ ListExpr cSpatialJoin::cspatialjoinTM(ListExpr args) {
                        Kind::SPATIALATTRARRAY2D())) {
     fDim = 2; 
   } else
-	    if(listutils::isKind(fTBlockInfo.columnInfos[fNameIndex].type,
+        if(listutils::isKind(fTBlockInfo.columnInfos[fNameIndex].type,
                      Kind::SPATIALATTRARRAY3D())) {
-		    fDim = 3;
+            fDim = 3;
       } else {
-	        fDim = 0;
+            fDim = 0;
           return listutils::typeError("Attribute " + 
                  fTBlockInfo.columnInfos[fNameIndex].name
                  + " is not of kind " +
                  "SPATIALATTRARRAY2D " +
                  "or SPATIALATTRARRAY3D");
-	        }
-	               
+            }
+                   
   if(listutils::isKind(sTBlockInfo.columnInfos[sNameIndex].type,
                     Kind::SPATIALATTRARRAY2D())) {
     sDim = 2; 
   } else
-	    if(listutils::isKind(sTBlockInfo.columnInfos[sNameIndex].type,
+        if(listutils::isKind(sTBlockInfo.columnInfos[sNameIndex].type,
                     Kind::SPATIALATTRARRAY3D())) {
-		    sDim = 3;
+            sDim = 3;
       } else {
-	        sDim = 0;
+            sDim = 0;
           return listutils::typeError("Attribute " + 
                  sTBlockInfo.columnInfos[sNameIndex].name
                  + " is not of kind " +
                  "SPATIALATTRARRAY2D " +
                  "or SPATIALATTRARRAY3D");
-	      }
+          }
 
   // Initialize the type and size of result tuple block
   // and check for duplicates column names
@@ -224,7 +216,7 @@ ListExpr cSpatialJoin::cspatialjoinTM(ListExpr args) {
   std::set<std::string> columnNames; 
 
   if(fTBlockInfo.GetDesiredBlockSize() >
-	   sTBlockInfo.GetDesiredBlockSize()) {
+       sTBlockInfo.GetDesiredBlockSize()) {
 
     rTBlockInfo.SetDesiredBlockSize(fTBlockInfo.GetDesiredBlockSize());
     } 
@@ -309,10 +301,10 @@ class LocalInfo {
     clearMemF();
     clearMemS();
 
-		if(joinState) {
+        if(joinState) {
       delete joinState;
     }
-		
+        
     fStream.close();
     sStream.close();
   }
@@ -328,16 +320,16 @@ class LocalInfo {
       fStreamIsEmpty = true;
       
       return false;
-		}
+        }
 
     uint64_t rows = tupleBlock->GetRowCount();
      
-		fTBlockVector.push_back(tupleBlock);
-		fMemTBlock += tupleBlock->GetSize();
-		fNumTuples += rows;
+        fTBlockVector.push_back(tupleBlock);
+        fMemTBlock += tupleBlock->GetSize();
+        fNumTuples += rows;
 
     return true;        
-	}
+    }
 
   // Funktion requests tuple block from second stream and stores
   // them in sTBlockVector
@@ -348,13 +340,13 @@ class LocalInfo {
       sStreamIsEmpty = true;
       
       return false;
-		}
+        }
 
     uint64_t rows = tupleBlock->GetRowCount();
     
-		sTBlockVector.push_back(tupleBlock);
-		sMemTBlock += tupleBlock->GetSize();
-		sNumTuples += rows;
+        sTBlockVector.push_back(tupleBlock);
+        sMemTBlock += tupleBlock->GetSize();
+        sNumTuples += rows;
 
     return true;
   }
@@ -383,8 +375,8 @@ class LocalInfo {
     for(CRelAlgebra::TBlock* tb : sTBlockVector) {
       if(tb) {
         tb->DecRef();
-			}
-		}
+            }
+        }
     
     sTBlockVector.clear(); 
     sMemTBlock = 0;
@@ -409,19 +401,19 @@ class LocalInfo {
            && (!fStreamIsEmpty || !sStreamIsEmpty)) {
 
       if(fStreamIsEmpty) {
-			  requestSecondStream();
+              requestSecondStream();
       }
-			else
-			  if(sStreamIsEmpty) {
-				  requestFirstStream();
+            else
+              if(sStreamIsEmpty) {
+                  requestFirstStream();
         }
-			  else // both streams are not empty
-			    if(fNumTuples > sNumTuples) {
+              else // both streams are not empty
+                if(fNumTuples > sNumTuples) {
             requestSecondStream();
           }
-				  else {
+                  else {
             requestFirstStream();
-				  }
+                  }
     }
   }
     
@@ -558,7 +550,7 @@ class LocalInfo {
     std::vector<CRelAlgebra::TBlock*> sTBlockVector;
         
     SpatialJoinState* joinState;
-		
+        
 }; //End class LocalInfo
 
 /*
@@ -595,12 +587,19 @@ int cspatialjoinVM(Word* args, Word& result, int message,
   } // End switch
 
   return 0;
-}	
+}    
 
 ValueMapping cSpatialJoin::valueMappings[] = {
-  cspatialjoinVM,
-  nullptr 
+  cspatialjoinVM 
 };
+
+// constructor
+cSpatialJoin::cSpatialJoin() : Operator(Info(),
+                               valueMappings,
+                               SelectValueMapping,
+                               cspatialjoinTM) {
+  SetUsesMemory();
+}
 
 int cSpatialJoin::SelectValueMapping(ListExpr args) {
   return 0;

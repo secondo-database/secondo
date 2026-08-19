@@ -621,8 +621,7 @@ definition of aspectFuns array
     aspectFun<raster2::sint>,
     aspectFun<raster2::sreal>,
     aspectFunTile<TileAlgebra::tint, TileAlgebra::tProperties<int> >,
-    aspectFunTile<TileAlgebra::treal, TileAlgebra::tProperties<double> >,
-    0
+    aspectFunTile<TileAlgebra::treal, TileAlgebra::tProperties<double> >
   };
 
 /*
@@ -727,5 +726,11 @@ Type Mapping
     }
 
     return listutils::typeError(error);
+  }
+
+  Operator* createAspectOperator()
+  {
+    return new Operator(aspectInfo(), aspectFuns,
+                        aspectSelectFun, aspectTypeMap);
   }
 }

@@ -814,8 +814,7 @@ ValueMapping tilesFunctions[] =
   tilesFunctionit<raster2::isbool, raster2::istype_helper<char>,
                   itbool, itProperties<char> >,
   tilesFunctionit<raster2::isstring, raster2::istype_helper<std::string>,
-                  itstring, itProperties<std::string> >,
-  0
+                  itstring, itProperties<std::string> >
 };
 
 /*
@@ -932,4 +931,10 @@ ListExpr tilesTypeMappingFunction(ListExpr arguments)
   return type;
 }
 
+
+Operator* createTilesOperator()
+{
+  return new Operator(tilesInfo(), tilesFunctions,
+                      tilesSelectFunction, tilesTypeMappingFunction);
+}
 }

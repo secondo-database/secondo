@@ -95,7 +95,7 @@ declaration of atlocationFunctions array.
 
 */
 
-extern ValueMapping atlocationFunctions[];
+Operator* createAtlocationOperator();
 
 /*
 Method atlocationSelectFunction returns the index of specific atlocation

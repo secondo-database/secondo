@@ -52,18 +52,18 @@ using std::vector;
 extern NestedList *nl;
 extern QueryProcessor *qp;
 
+ValueMapping Not::valueMappings[] =
+{
+  RangeValueMapping,
+  TBlockValueMapping,
+  AttrArrayValueMapping
+};
+
 Not::Not() :
   Operator(info, valueMappings, SelectValueMapping, TypeMapping)
 {
 }
 
-ValueMapping Not::valueMappings[] =
-{
-  RangeValueMapping,
-  TBlockValueMapping,
-  AttrArrayValueMapping,
-  nullptr
-};
 
 const OperatorInfo Not::info = OperatorInfo(
   "not", "longint x longints -> longints",

@@ -158,7 +158,7 @@ namespace spatial3DOperatorBBox {
 
   */
 
-  ValueMapping bbox3dVM[] = { SpatialPoint3dBBox, SpatialSurVol3dBBox, 0 };
+  ValueMapping bbox3dVM[] = { SpatialPoint3dBBox, SpatialSurVol3dBBox };
 
   Operator* getBBoxPtr(){
     return new Operator(

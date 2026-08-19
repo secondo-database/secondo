@@ -368,8 +368,7 @@ ValueMapping mapFunctions[] =
   mapFunctionmt<mtstring, mtProperties<std::string>,
                 mtbool, mtProperties<char> >,
   mapFunctionmt<mtstring, mtProperties<std::string>,
-                mtstring, mtProperties<std::string> >,
-  0
+                mtstring, mtProperties<std::string> >
 };
 
 /*
@@ -525,4 +524,10 @@ ListExpr mapTypeMappingFunction(ListExpr arguments)
   return type;
 }
 
+
+Operator* createMapOperator()
+{
+  return new Operator(mapInfo(), mapFunctions,
+                      mapSelectFunction, mapTypeMappingFunction);
+}
 }

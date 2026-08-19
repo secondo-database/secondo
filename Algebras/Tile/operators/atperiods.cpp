@@ -112,8 +112,7 @@ ValueMapping atperiodsFunctions[] =
   atperiodsFunction<mtint>,
   atperiodsFunction<mtreal>,
   atperiodsFunction<mtbool>,
-  atperiodsFunction<mtstring>,
-  0
+  atperiodsFunction<mtstring>
 };
 
 /*
@@ -199,4 +198,10 @@ ListExpr atperiodsTypeMappingFunction(ListExpr arguments)
   return type;
 }
 
+
+Operator* createAtperiodsOperator()
+{
+  return new Operator(atperiodsInfo(), atperiodsFunctions,
+                      atperiodsSelectFunction, atperiodsTypeMappingFunction);
+}
 }

@@ -210,10 +210,7 @@ template<class OperatorType>
 Operator * NestedRelation2Algebra::AddOperatorToAlgebra(
     const bool usesArgsInTypeMapping /*=false*/)
 {
-  Operator *op = NULL;
-  op = new Operator(typename OperatorType::Info(),
-      OperatorType::functions, OperatorType::SelectFunction,
-      OperatorType::MapType, OperatorType::costEstimators);
+  Operator *op = OperatorType::create();
   Algebra::AddOperator(op, true);
   op->EnableProgress();
   if (usesArgsInTypeMapping)

@@ -121,8 +121,7 @@ ValueMapping minimumFunctions[] =
   minimumFunction<mtint, mtProperties<int> >,
   minimumFunction<mtreal, mtProperties<double> >,
   minimumFunction<mtbool, mtProperties<char> >,
-  minimumFunction<mtstring, mtProperties<std::string> >,
-  0
+  minimumFunction<mtstring, mtProperties<std::string> >
 };
 
 /*
@@ -206,4 +205,10 @@ ListExpr minimumTypeMappingFunction(ListExpr arguments)
   return type;
 }
 
+
+Operator* createMinimumOperator()
+{
+  return new Operator(minimumInfo(), minimumFunctions,
+                      minimumSelectFunction, minimumTypeMappingFunction);
+}
 }

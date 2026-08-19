@@ -38,7 +38,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "CellIterator.h"
 
 namespace raster2 {
-  extern ValueMapping composeFuns[];
+  Operator* createComposeOperator();
   ListExpr composeTypeMap(ListExpr args);
   int composeSelectFun(ListExpr args);
 

@@ -230,8 +230,7 @@ namespace raster2 {
     composeFunMS<msint>,
     composeFunMS<msreal>,
     composeFunMS<msbool>,
-    composeFunMS<msstring>,
-    0
+    composeFunMS<msstring>
   };
 
   ListExpr composeTypeMap(ListExpr args)
@@ -294,4 +293,10 @@ namespace raster2 {
     }
 
 
+
+  Operator* createComposeOperator()
+  {
+    return new Operator(composeInfo(), composeFuns,
+                        composeSelectFun, composeTypeMap);
+  }
 }

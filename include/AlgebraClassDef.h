@@ -82,7 +82,7 @@ Destroys an algebra instance.
     nl = nlRef;
     qp = qpRef;
     am = amRef;    
-  }	  
+  }      
   int GetNumTCs() { return (tcs.size()); }
 /*
 Returns the number of type constructors provided by the algebra module.
@@ -119,8 +119,12 @@ Returns a reference to the operator identified by ~index~.
 
   Operator* AddOperator( OperatorInfo oi, ValueMapping vm, TypeMapping tm);
   
-  Operator* AddOperator( OperatorInfo oi, ValueMapping vms[], 
-		    SelectFunction sf,TypeMapping tm);
+  template<std::size_t N>
+  Operator* AddOperator( OperatorInfo oi, ValueMapping (&vms)[N],
+            SelectFunction sf,TypeMapping tm)
+  {
+    return AddOperator(new Operator(oi, vms, sf, tm), true);
+  }
 
 /*
 Are used by the subclassed algebra to add its type constructors and

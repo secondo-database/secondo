@@ -12284,8 +12284,7 @@ int OpNetDistance_glgl ( Word* args, Word& result, int message,
 ValueMapping OpNetDistancemap[] =
 {
   OpNetDistance_gpgp,
-  OpNetDistance_glgl,
-  0
+  OpNetDistance_glgl
 };
 
 int OpNetDistanceselect ( ListExpr args )

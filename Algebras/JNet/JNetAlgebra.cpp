@@ -2630,7 +2630,7 @@ int initialVM(Word* args, Word& result, int message, Word& local, Supplier s) {
   return 0;
 }
 
-ValueMapping initialVMs[] = {initialVM<MJPoint>, initialVM<UJPoint>, 0};
+ValueMapping initialVMs[] = {initialVM<MJPoint>, initialVM<UJPoint>};
 
 const string initialSpec =
    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
@@ -2666,7 +2666,7 @@ int finalVM(Word* args, Word& result, int message, Word& local, Supplier s) {
   return 0;
 }
 
-ValueMapping finalVMs[] = {finalVM<MJPoint>, finalVM<UJPoint>, 0};
+ValueMapping finalVMs[] = {finalVM<MJPoint>, finalVM<UJPoint>};
 
 const string finalSpec =
    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "

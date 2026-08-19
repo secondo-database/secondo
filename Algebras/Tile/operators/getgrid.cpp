@@ -116,8 +116,7 @@ ValueMapping getgridFunctions[] =
   getgridFunction<mtint, mtProperties<int> >,
   getgridFunction<mtreal, mtProperties<double> >,
   getgridFunction<mtbool, mtProperties<char> >,
-  getgridFunction<mtstring, mtProperties<std::string> >,
-  0
+  getgridFunction<mtstring, mtProperties<std::string> >
 };
 
 /*
@@ -205,4 +204,10 @@ ListExpr getgridTypeMappingFunction(ListExpr arguments)
   return type;
 }
 
+
+Operator* createGetgridOperator()
+{
+  return new Operator(getgridInfo(), getgridFunctions,
+                      getgridSelectFunction, getgridTypeMappingFunction);
+}
 }

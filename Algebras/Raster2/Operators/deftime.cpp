@@ -34,8 +34,7 @@ namespace raster2 {
     deftimeFun<msint>,
     deftimeFun<msreal>,
     deftimeFun<msbool>,
-    deftimeFun<msstring>,
-    0
+    deftimeFun<msstring>
   };
 
   int deftimeSelectFun(ListExpr args) {
@@ -72,4 +71,10 @@ namespace raster2 {
 
       return NList::typeError("Expected msT.");
     }
+
+  Operator* createDeftimeOperator()
+  {
+    return new Operator(deftimeInfo(), deftimeFuns,
+                        deftimeSelectFun, deftimeTypeMap);
+  }
 }

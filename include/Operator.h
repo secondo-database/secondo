@@ -29,6 +29,7 @@ AlgebraClassDef.h and AlgebraInit.h
 #ifndef SEC_OPERATOR_H
 #define SEC_OPERATOR_H
 
+#include <cstddef>
 #include <string>
 #include <vector>
 #include <stdlib.h>
@@ -273,13 +274,27 @@ Constructs an operator with *one* evaluation functions.
             TypeMapping tm,
             CreateCostEstimation createCE = 0 );
 
+  template<std::size_t N>
   Operator( const OperatorInfo& oi,
-            ValueMapping vms[],
+            ValueMapping (&vms)[N],
             SelectFunction sf,
             TypeMapping tm,
-            CreateCostEstimation* createCE = 0 );
+            CreateCostEstimation* createCE = 0 )
+    : Operator( oi, vms, static_cast<int>(N), sf, tm, createCE ) {}
 
 /*
+Constructs an operator with one overloaded evaluation function per entry of
+~vms~. Binding the array by reference recovers its length from its type, so
+the operator and the array cannot disagree about it. An earlier revision
+took ~vms~ as a plain pointer and looked for a terminating 0 to find the
+end, which read past every array that had never been given one.
+
+This needs a real array, not a pointer, so ~vms~ must be defined in the same
+translation unit. An algebra whose value mappings live elsewhere builds the
+operator next to them and exports that instead of the array; see the
+createXXXOperator() functions in Algebras/Raster2 and Algebras/Tile, or
+nr2a::Count::create() in Algebras/NestedRelation2.
+
 Versions using ~OperatorInfo~.
 
 */
@@ -546,6 +561,19 @@ std::ostream& Print(std::ostream& o) const;
 
 
     private:
+
+    Operator( const OperatorInfo& oi,
+              ValueMapping vms[],
+              int noF,
+              SelectFunction sf,
+              TypeMapping tm,
+              CreateCostEstimation* createCE );
+/*
+Implements the constructor above. Private on purpose: ~noF~ and ~vms~ can
+disagree, and the only caller that cannot get them out of step is the
+template, which reads the count off the array type.
+
+*/
 
     bool AddValueMapping( const int index, ValueMapping f );
 /*

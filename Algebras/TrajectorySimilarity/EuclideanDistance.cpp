@@ -125,8 +125,7 @@ ValueMapping dist_euclidean_functions[] = {
   EuclideanDistValueMap<PointSeq,  /*HAS_GEOID*/ false>,
   EuclideanDistValueMap<PointSeq,  /*HAS_GEOID*/ true>,
   EuclideanDistValueMap<TPointSeq, /*HAS_GEOID*/ false>,
-  EuclideanDistValueMap<TPointSeq, /*HAS_GEOID*/ true>,
-  nullptr
+  EuclideanDistValueMap<TPointSeq, /*HAS_GEOID*/ true>
 };
 
 struct DistEuclideanInfo : OperatorInfo

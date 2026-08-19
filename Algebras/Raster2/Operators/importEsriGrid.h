@@ -45,7 +45,7 @@ namespace raster2
     */
     const bool DEBUG_OUTPUT_ENABLED = false;
 
-    extern ValueMapping importEsriGridFuns[];
+    Operator* createImportEsriGridOperator();
     ListExpr importEsriGridTypeMap(ListExpr args);
     int importEsriGridSelectFun(ListExpr);
     template<class inClass> int importEsriGridFun

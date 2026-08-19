@@ -121,7 +121,12 @@ namespace raster2
      createRasterFun<msbool>,
      createRasterFun<msint>,
      createRasterFun<msreal>,
-     createRasterFun<msstring>,
-     0
+     createRasterFun<msstring>
   };
+
+  Operator* createCreateRasterOperator()
+  {
+    return new Operator(createRasterInfo(), createRasterFuns,
+                        createRasterSelectFun, createRasterTM);
+  }
 }

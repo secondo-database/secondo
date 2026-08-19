@@ -33,8 +33,7 @@ namespace raster2
     instFun<int, istype_helper<int> >,
     instFun<double, istype_helper<double> >,
     instFun<char, istype_helper<char> >,
-    instFun<std::string, istype_helper<std::string> >,
-    0
+    instFun<std::string, istype_helper<std::string> >
   };
 
   int instSelectFun(ListExpr args)
@@ -81,5 +80,11 @@ namespace raster2
     }
 
     return instTypeMapListExpr;
+  }
+
+  Operator* createInstOperator()
+  {
+    return new Operator(instInfo(), instFuns,
+                        instSelectFun, instTypeMap);
   }
 }

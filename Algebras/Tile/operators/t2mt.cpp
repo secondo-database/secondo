@@ -191,8 +191,7 @@ ValueMapping t2mtFunctions[] =
   t2mtFunction<tint, mtProperties<int> >,
   t2mtFunction<treal, mtProperties<double> >,
   t2mtFunction<tbool, mtProperties<char> >,
-  t2mtFunction<tstring, mtProperties<string> >,
-  0
+  t2mtFunction<tstring, mtProperties<string> >
 };
 
 /*
@@ -287,4 +286,10 @@ ListExpr t2mtTypeMappingFunction(ListExpr arguments)
   return type;
 }
 
+
+Operator* createT2mtOperator()
+{
+  return new Operator(t2mtInfo(), t2mtFunctions,
+                      t2mtSelectFunction, t2mtTypeMappingFunction);
+}
 }

@@ -109,8 +109,7 @@ ValueMapping valFunctions[] =
   valFunction<itint, itProperties<int> >,
   valFunction<itreal, itProperties<double> >,
   valFunction<itbool, itProperties<char> >,
-  valFunction<itstring, itProperties<std::string> >,
-  0
+  valFunction<itstring, itProperties<std::string> >
 };
 
 /*
@@ -188,4 +187,10 @@ ListExpr valTypeMappingFunction(ListExpr arguments)
   return type;
 }
 
+
+Operator* createValOperator()
+{
+  return new Operator(valInfo(), valFunctions,
+                      valSelectFunction, valTypeMappingFunction);
+}
 }

@@ -49,20 +49,20 @@ extern QueryProcessor *qp;
 
 //ApplyPredicate----------------------------------------------------------------
 
-Distance::Distance() :
-  Operator(info, valueMappings, SelectValueMapping, TypeMapping)
-{
-}
-
 ValueMapping Distance::valueMappings[] =
 {
   RectangleValueMapping<1>,
   RectangleValueMapping<2>,
   RectangleValueMapping<3>,
   RectangleValueMapping<4>,
-  RectangleValueMapping<8>,
-  nullptr
+  RectangleValueMapping<8>
 };
+
+Distance::Distance() :
+  Operator(info, valueMappings, SelectValueMapping, TypeMapping)
+{
+}
+
 
 const OperatorInfo Distance::info = OperatorInfo(
     "distance",

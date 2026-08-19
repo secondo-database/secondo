@@ -116,8 +116,7 @@ ValueMapping bboxFunctions[] =
   bboxFunction<mtint, mtProperties<int> >,
   bboxFunction<mtreal, mtProperties<double> >,
   bboxFunction<mtbool, mtProperties<char> >,
-  bboxFunction<mtstring, mtProperties<std::string> >,
-  0
+  bboxFunction<mtstring, mtProperties<std::string> >
 };
 
 /*
@@ -205,4 +204,10 @@ ListExpr bboxTypeMappingFunction(ListExpr arguments)
   return type;
 }
 
+
+Operator* createBboxOperator()
+{
+  return new Operator(bboxInfo(), bboxFunctions,
+                      bboxSelectFunction, bboxTypeMappingFunction);
+}
 }

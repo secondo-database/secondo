@@ -98,7 +98,7 @@ declaration of atrangeFunctions array.
 
 */
 
-extern ValueMapping atrangeFunctions[];
+Operator* createAtrangeOperator();
 
 /*
 Method atrangeSelectFunction returns the index of specific atrange function

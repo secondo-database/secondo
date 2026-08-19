@@ -41,8 +41,7 @@ namespace raster2
     maximumFun<int, mstype_helper<int> >,
     maximumFun<double, mstype_helper<double> >,
     maximumFun<char, msbool_helper>,
-    maximumFun<std::string, mstype_helper<std::string> >,
-    0
+    maximumFun<std::string, mstype_helper<std::string> >
   };
 
   int maximumSelectFun(ListExpr args)
@@ -141,5 +140,11 @@ namespace raster2
     }
 
     return NList::typeError("Expecting an sType or msType.");
+  }
+
+  Operator* createMaximumOperator()
+  {
+    return new Operator(maximumInfo(), maximumFuns,
+                        maximumSelectFun, maximumTypeMap);
   }
 }

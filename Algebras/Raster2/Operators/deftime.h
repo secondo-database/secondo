@@ -32,7 +32,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Algebras/Temporal/TemporalAlgebra.h"
 
 namespace raster2 {
-    extern ValueMapping deftimeFuns[];
+    Operator* createDeftimeOperator();
     ListExpr deftimeTypeMap(ListExpr args);
     int deftimeSelectFun(ListExpr args);
 

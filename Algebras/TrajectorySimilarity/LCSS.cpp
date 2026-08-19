@@ -324,8 +324,7 @@ ValueMapping lcss_functions[] = {
   LCSSOpValueMap<TPointSeq,   CcInt, false,     true,    false,   lcss>,
   LCSSOpValueMap<TPointSeq,   CcInt, false,     true,    true,    lcss>,
   LCSSOpValueMap<stj::MLabel, CcInt, false,     false,   false,   lcss>,
-  LCSSOpValueMap<stj::MLabel, CcInt, false,     false,   true,    lcss>,
-  nullptr
+  LCSSOpValueMap<stj::MLabel, CcInt, false,     false,   true,    lcss>
 };
 
 struct LCSSInfo : OperatorInfo
@@ -415,8 +414,7 @@ ValueMapping rel_lcss_functions[] = {
   LCSSOpValueMap<TPointSeq,   CcReal, true,      true,    false,   rel_lcss>,
   LCSSOpValueMap<TPointSeq,   CcReal, true,      true,    true,    rel_lcss>,
   LCSSOpValueMap<stj::MLabel, CcReal, true,      false,   false,   rel_lcss>,
-  LCSSOpValueMap<stj::MLabel, CcReal, true,      false,   true,    rel_lcss>,
-  nullptr
+  LCSSOpValueMap<stj::MLabel, CcReal, true,      false,   true,    rel_lcss>
 };
 
 struct RelLCSSInfo : OperatorInfo
@@ -481,8 +479,7 @@ ValueMapping dist_lcss_functions[] = {
   LCSSOpValueMap<TPointSeq,   CcReal, true,      true,    false,   dist_lcss>,
   LCSSOpValueMap<TPointSeq,   CcReal, true,      true,    true,    dist_lcss>,
   LCSSOpValueMap<stj::MLabel, CcReal, true,      false,   false,   dist_lcss>,
-  LCSSOpValueMap<stj::MLabel, CcReal, true,      false,   true,    dist_lcss>,
-  nullptr
+  LCSSOpValueMap<stj::MLabel, CcReal, true,      false,   true,    dist_lcss>
 };
 
 struct DistLCSSInfo : OperatorInfo

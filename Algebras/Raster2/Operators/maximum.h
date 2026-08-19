@@ -30,7 +30,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 namespace raster2
 {
-    extern ValueMapping maximumFuns[];
+    Operator* createMaximumOperator();
     ListExpr maximumTypeMap(ListExpr args);
     int maximumSelectFun(ListExpr args);
 

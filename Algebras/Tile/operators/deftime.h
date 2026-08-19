@@ -82,7 +82,7 @@ declaration of deftimeFunctions array.
 
 */
 
-extern ValueMapping deftimeFunctions[];
+Operator* createDeftimeOperator();
 
 /*
 Method deftimeSelectFunction returns the index of specific deftime function

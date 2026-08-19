@@ -222,8 +222,7 @@ ValueMapping atlocationFunctions[] =
   atlocationFunctionmt<mtint, mtProperties<int> >,
   atlocationFunctionmt<mtreal, mtProperties<double> >,
   atlocationFunctionmt<mtbool, mtProperties<char> >,
-  atlocationFunctionmt<mtstring, mtProperties<std::string> >,
-  0
+  atlocationFunctionmt<mtstring, mtProperties<std::string> >
 };
 
 /*
@@ -331,4 +330,10 @@ ListExpr atlocationTypeMappingFunction(ListExpr arguments)
   return type;
 }
 
+
+Operator* createAtlocationOperator()
+{
+  return new Operator(atlocationInfo(), atlocationFunctions,
+                      atlocationSelectFunction, atlocationTypeMappingFunction);
+}
 }

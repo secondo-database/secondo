@@ -4774,7 +4774,7 @@ class SymbolicTrajectoryBasicAlgebra : public Algebra {
   mplaces.AssociateKind(Kind::DATA());
   mplaces.AssociateKind(Kind::TEMPORAL());
   
-  ValueMapping tolabelVMs[] = {tolabelVM<FText>, tolabelVM<CcString>, 0};
+  ValueMapping tolabelVMs[] = {tolabelVM<FText>, tolabelVM<CcString>};
   AddOperator(tolabelInfo(), tolabelVMs, tolabelSelect, tolabelTM);
 
   AddOperator(tostringInfo(), tostringVM, tostringTM);
@@ -4783,27 +4783,27 @@ class SymbolicTrajectoryBasicAlgebra : public Algebra {
   
   AddOperator(mstringtomlabelInfo(), mstringtomlabelVM, mstringtomlabelTM);
   
-  ValueMapping tolabelsVMs[] = {tolabelsVM<FText>, tolabelsVM<CcString>, 0};
+  ValueMapping tolabelsVMs[] = {tolabelsVM<FText>, tolabelsVM<CcString>};
   AddOperator(tolabelsInfo(), tolabelsVMs, tolabelsSelect, tolabelsTM);
   
-  ValueMapping toplacesVMs[] = {toplacesVM_P, toplacesVM_T, 0};
+  ValueMapping toplacesVMs[] = {toplacesVM_P, toplacesVM_T};
   AddOperator(toplacesInfo(), toplacesVMs, toplacesSelect, toplacesTM);
   
   ValueMapping collect_labelsVMs[] = {collect_labelsVM<Label>, 
-    collect_labelsVM<CcString>, collect_labelsVM<FText>, 0};
+    collect_labelsVM<CcString>, collect_labelsVM<FText>};
   AddOperator(collect_labelsInfo(), collect_labelsVMs, collect_labelsSelect,
               collect_labelsTM);
 
   ValueMapping containsVMs[] = {containsSingleVM<Labels, Label>,
     containsSingleVM<Places, Place>, containsMultiVM<Labels, Labels>, 
     containsMultiVM<Places, Places>, containsBasicVM<CcString>,
-    containsBasicVM<FText>, 0};
+    containsBasicVM<FText>};
   AddOperator(containsInfo(), containsVMs, containsSelect, containsTM);
   
-  ValueMapping intersectsVMs[] = {intersectsVM<Labels>, intersectsVM<Places>,0};
+  ValueMapping intersectsVMs[] = {intersectsVM<Labels>, intersectsVM<Places>};
   AddOperator(intersectsInfo(), intersectsVMs, intersectsSelect, intersectsTM);
   
-  ValueMapping toplaceVMs[] = {toplaceVM<CcString>, toplaceVM<FText>, 0};
+  ValueMapping toplaceVMs[] = {toplaceVM<CcString>, toplaceVM<FText>};
   AddOperator(toplaceInfo(), toplaceVMs, toplaceSelect, toplaceTM);
   
   AddOperator(nameInfo(), nameVM, nameTM);
@@ -4812,14 +4812,13 @@ class SymbolicTrajectoryBasicAlgebra : public Algebra {
   
   ValueMapping equalsVMs[] = {equalsVM<Label>, equalsVM<Labels>, 
     equalsVM<Place>, equalsVM<Places>, equalsVM<Label, CcString>,
-    equalsVM<Label, FText>, equalsVM<CcString, Label>, equalsVM<FText, Label>, 
-    0};
+    equalsVM<Label, FText>, equalsVM<CcString, Label>, equalsVM<FText, Label>};
   AddOperator(equalsInfo(), equalsVMs, equalsUnequalsSelect, equalsUnequalsTM);
 
   ValueMapping unequalsVMs[] = {unequalsVM<Label>, unequalsVM<Labels>, 
     unequalsVM<Place>, unequalsVM<Places>, unequalsVM<Label, CcString>,
     unequalsVM<Label, FText>, unequalsVM<CcString, Label>, 
-    unequalsVM<FText, Label>, 0};
+    unequalsVM<FText, Label>};
   AddOperator(unequalsInfo(), unequalsVMs, equalsUnequalsSelect,
               equalsUnequalsTM);
   
@@ -4827,20 +4826,20 @@ class SymbolicTrajectoryBasicAlgebra : public Algebra {
     unionVM<Labels, Label, Labels>, unionVM<Label, Labels, Labels>,
     unionVM<Labels, Labels, Labels>, unionVM<Place, Place, Places>, 
     unionVM<Places, Place, Places>, unionVM<Place, Places, Places>,
-    unionVM<Places, Places, Places>, 0};
+    unionVM<Places, Places, Places>};
   AddOperator(unionInfo(), unionVMs, unionSelect, unionTM);
   
   ValueMapping intersectionVMs[] = {intersectionVM<Labels>,
-    intersectionVM<Places>, 0};
+    intersectionVM<Places>};
   AddOperator(intersectionInfo(), intersectionVMs, intersectionSelect, 
               intersectionTM);
   
   ValueMapping minusVMs[] = {minusVM<Labels, Label>, minusVM<Labels, Labels>,
-    minusVM<Places, Place>, minusVM<Places, Places>, 0};
+    minusVM<Places, Place>, minusVM<Places, Places>};
   AddOperator(minusInfo(), minusVMs, minusSelect, minusTM);
   
   #ifdef HAS_RECODE
-  ValueMapping recodeVMs[] = {recodeVM<MLabel>, recodeVM<MLabels>, 0};
+  ValueMapping recodeVMs[] = {recodeVM<MLabel>, recodeVM<MLabels>};
   AddOperator(recodeInfo(), recodeVMs, recodeSelect, recodeTM);
   #endif
   
@@ -4848,20 +4847,20 @@ class SymbolicTrajectoryBasicAlgebra : public Algebra {
     the_unitSymbolicVM<Labels, ULabels>, the_unitSymbolicVM<Place, UPlace>,
     the_unitSymbolicVM<Places, UPlaces>, the_unitIvSymbolicVM<Label, ULabel>,
     the_unitIvSymbolicVM<Labels, ULabels>, the_unitIvSymbolicVM<Place, UPlace>,
-    the_unitIvSymbolicVM<Places, UPlaces>, 0};
+    the_unitIvSymbolicVM<Places, UPlaces>};
   AddOperator(the_unitSymbolicInfo(), the_unitSymbolicVMs,
               the_unitSymbolicSelect, the_unitSymbolicTM);
   
   ValueMapping makemvalueSymbolicVMs[] = {makemvalueSymbolicVM<ULabel, MLabel>,
     makemvalueSymbolicVM<ULabels, MLabels>, makemvalueSymbolicVM<UPlace,MPlace>,
-    makemvalueSymbolicVM<UPlaces, MPlaces>, 0};
+    makemvalueSymbolicVM<UPlaces, MPlaces>};
   AddOperator(makemvalueSymbolicInfo(), makemvalueSymbolicVMs,
               makemvalueSymbolicSelect, makemvalueSymbolic_TM);
 
   ValueMapping makemvalue2SymbolicVMs[] = {makemvalue2SymbolicVM<ULabel,MLabel>,
     makemvalue2SymbolicVM<ULabels, MLabels>, 
     makemvalue2SymbolicVM<UPlace, MPlace>,
-    makemvalue2SymbolicVM<UPlaces, MPlaces>, 0};
+    makemvalue2SymbolicVM<UPlaces, MPlaces>};
   AddOperator(makemvalue2SymbolicInfo(), makemvalue2SymbolicVMs,
               makemvalueSymbolicSelect, makemvalueSymbolic_TM);
   
@@ -4870,7 +4869,7 @@ class SymbolicTrajectoryBasicAlgebra : public Algebra {
     passesSymbolicVM<MLabels, Label>, passesSymbolicVM<MLabels, Labels>,
     passesSymbolicVM<MLabels, CcString>, passesSymbolicVM<MLabels, FText>,
     passesSymbolicVM<MPlace, Place>, passesSymbolicVM<MPlaces, Place>,
-    passesSymbolicVM<MPlaces, Places>, 0};
+    passesSymbolicVM<MPlaces, Places>};
   AddOperator(passesSymbolicInfo(), passesSymbolicVMs, atPassesSymbolicSelect,
               passesSymbolicTM);
   
@@ -4879,32 +4878,32 @@ class SymbolicTrajectoryBasicAlgebra : public Algebra {
     atSymbolicVM<MLabels, Label>, atSymbolicVM<MLabels, Labels>,
     atSymbolicVM<MLabels, CcString>, atSymbolicVM<MLabels, FText>,
     atSymbolicVM<MPlace, Place>, atSymbolicVM<MPlaces, Place>,
-    atSymbolicVM<MPlaces, Places>, 0};
+    atSymbolicVM<MPlaces, Places>};
   AddOperator(atSymbolicInfo(), atSymbolicVMs, atPassesSymbolicSelect, 
               atSymbolicTM);
   
   ValueMapping deftimeSymbolicVMs[] = {deftimeSymbolicVM<MLabel>,
     deftimeSymbolicVM<MLabels>, deftimeSymbolicVM<MPlace>,
-    deftimeSymbolicVM<MPlaces>, 0};
+    deftimeSymbolicVM<MPlaces>};
   AddOperator(deftimeSymbolicInfo(), deftimeSymbolicVMs, symbolicSimpleSelect, 
               deftimeSymbolicTM);
   
   ValueMapping atinstantSymbolicVMs[] = {atinstantSymbolicVM<MLabel, ILabel>,
     atinstantSymbolicVM<MLabels, ILabels>, atinstantSymbolicVM<MPlace, IPlace>,
-    atinstantSymbolicVM<MPlaces, IPlaces>, 0};
+    atinstantSymbolicVM<MPlaces, IPlaces>};
   AddOperator(atinstantSymbolicInfo(), atinstantSymbolicVMs,
               symbolicSimpleSelect, atinstantSymbolicTM);
   
   ValueMapping atperiodsSymbolicVMs[] = {atperiodsSymbolicVM<MLabel>,
     atperiodsSymbolicVM<MLabels>, atperiodsSymbolicVM<MPlace>, 
-    atperiodsSymbolicVM<MPlaces>, 0};
+    atperiodsSymbolicVM<MPlaces>};
   AddOperator(atperiodsSymbolicInfo(), atperiodsSymbolicVMs, 
               symbolicSimpleSelect, atperiodsSymbolicTM);
   
   ValueMapping nocomponentsSymbolicVMs[] = {nocomponentsSymbolicVM<MLabel>,
     nocomponentsSymbolicVM<MLabels>, nocomponentsSymbolicVM<MPlace>,
     nocomponentsSymbolicVM<MPlaces>, nocomponentsSymbolicVM<Labels>,
-    nocomponentsSymbolicVM<Places>, 0};
+    nocomponentsSymbolicVM<Places>};
   AddOperator(nocomponentsSymbolicInfo(), nocomponentsSymbolicVMs,
               nocomponentsSymbolicSelect, nocomponentsSymbolicTM);
   
@@ -4912,25 +4911,25 @@ class SymbolicTrajectoryBasicAlgebra : public Algebra {
     getIntervalSymbolicVM<MLabels>, getIntervalSymbolicVM<MPlace>, 
     getIntervalSymbolicVM<MPlaces>, getIntervalSymbolicVM<ULabel>,
     getIntervalSymbolicVM<ULabels>, getIntervalSymbolicVM<UPlace>, 
-    getIntervalSymbolicVM<UPlaces>, 0};
+    getIntervalSymbolicVM<UPlaces>};
   AddOperator(getIntervalSymbolicInfo(), getIntervalSymbolicVMs, 
               getIntervalSymbolicSelect, getIntervalSymbolicTM);
   
   ValueMapping getunitSymbolicVMs[] = {getunitSymbolicVM<MLabel, ULabel>,
     getunitSymbolicVM<MLabels, ULabels>, getunitSymbolicVM<MPlace, UPlace>, 
-    getunitSymbolicVM<MPlaces, UPlaces>, 0};
+    getunitSymbolicVM<MPlaces, UPlaces>};
   AddOperator(getunitSymbolicInfo(), getunitSymbolicVMs, symbolicSimpleSelect,
               getunitSymbolicTM);
   
   ValueMapping getPositionSymbolicVMs[] = {getPositionSymbolicVM<MLabel>,
     getPositionSymbolicVM<MLabels>, getPositionSymbolicVM<MPlace>,
-    getPositionSymbolicVM<MPlaces>, 0};
+    getPositionSymbolicVM<MPlaces>};
   AddOperator(getPositionSymbolicInfo(), getPositionSymbolicVMs,
               getPositionSymbolicSelect, getPositionSymbolicTM);
   
   ValueMapping unitsSymbolicVMs[] = {unitsSymbolicVM<MLabel, ULabel>,
     unitsSymbolicVM<MLabels, ULabels>, unitsSymbolicVM<MPlace, UPlace>, 
-    unitsSymbolicVM<MPlaces, UPlaces>, 0};
+    unitsSymbolicVM<MPlaces, UPlaces>};
   AddOperator(unitsSymbolicInfo(), unitsSymbolicVMs, symbolicSimpleSelect,
               unitsSymbolicTM);
   
@@ -4938,7 +4937,7 @@ class SymbolicTrajectoryBasicAlgebra : public Algebra {
     initialSymbolicVM<ULabels, ILabels>, initialSymbolicVM<MLabel, ILabel>,
     initialSymbolicVM<MLabels, ILabels>, initialSymbolicVM<UPlace, IPlace>,
     initialSymbolicVM<UPlaces, IPlaces>, initialSymbolicVM<MPlace, IPlace>,
-    initialSymbolicVM<MPlaces, IPlaces>, 0};
+    initialSymbolicVM<MPlaces, IPlaces>};
   AddOperator(initialSymbolicInfo(), initialSymbolicVMs, 
               initialFinalSymbolicSelect, initialFinalSymbolicTM);
   
@@ -4946,38 +4945,37 @@ class SymbolicTrajectoryBasicAlgebra : public Algebra {
     finalSymbolicVM<ULabels, ILabels>, finalSymbolicVM<MLabel, ILabel>,
     finalSymbolicVM<MLabels, ILabels>, finalSymbolicVM<UPlace, IPlace>,
     finalSymbolicVM<UPlaces, IPlaces>, finalSymbolicVM<MPlace, IPlace>,
-    finalSymbolicVM<MPlaces, IPlaces>, 0};
+    finalSymbolicVM<MPlaces, IPlaces>};
   AddOperator(finalSymbolicInfo(), finalSymbolicVMs, 
               initialFinalSymbolicSelect, initialFinalSymbolicTM);
   
   ValueMapping valSymbolicVMs[] = {valSymbolicVM<ILabel, Label>,
     valSymbolicVM<ILabels, Labels>, valSymbolicVM<IPlace, Place>,
-    valSymbolicVM<IPlaces, Places>, 0};
+    valSymbolicVM<IPlaces, Places>};
   AddOperator(valSymbolicInfo(), valSymbolicVMs, valInstSymbolicSelect,
               valSymbolicTM);
   
   ValueMapping instSymbolicVMs[] = {instSymbolicVM<ILabel>,
-    instSymbolicVM<ILabels>, instSymbolicVM<IPlace>, instSymbolicVM<IPlaces>,
-    0};
+    instSymbolicVM<ILabels>, instSymbolicVM<IPlace>, instSymbolicVM<IPlaces>};
   AddOperator(instSymbolicInfo(), instSymbolicVMs, valInstSymbolicSelect,
               instSymbolicTM);
   
   ValueMapping insideSymbolicVMs[] = {insideSymbolicVM<MLabel, Labels>,
-    insideSymbolicVM<MPlace, Places>, 0};
+    insideSymbolicVM<MPlace, Places>};
   AddOperator(insideSymbolicInfo(), insideSymbolicVMs, insideSymbolicSelect,
               insideSymbolicTM);
   
   ValueMapping concatVMs[] = {concatVM<MLabel>, concatVM<MLabels>,
-    concatVM<MPlace>, concatVM<MPlaces>, 0};
+    concatVM<MPlace>, concatVM<MPlaces>};
   AddOperator(concatInfo(), concatVMs, symbolicSimpleSelect, concatTM);
 
   ValueMapping compressVMs[] = {compressVM<MLabel>, compressVM<MLabels>,
-    compressVM<MPlace>, compressVM<MPlaces>, 0};
+    compressVM<MPlace>, compressVM<MPlaces>};
   AddOperator(compressInfo(), compressVMs, compressSelect, compressTM);
 
   ValueMapping fillgapsVMs[] = {fillgapsVM_1<MLabel>, fillgapsVM_1<MLabels>,
     fillgapsVM_1<MPlace>, fillgapsVM_1<MPlaces>, fillgapsVM_Str<MLabel>, 
-    fillgapsVM_Str<MLabels>, fillgapsVM_Str<MPlace>, fillgapsVM_Str<MPlaces>,0};
+    fillgapsVM_Str<MLabels>, fillgapsVM_Str<MPlace>, fillgapsVM_Str<MPlaces>};
   AddOperator(fillgapsInfo(), fillgapsVMs, fillgapsSelect, fillgapsTM);
   }
   

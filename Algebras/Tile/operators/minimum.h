@@ -88,7 +88,7 @@ declaration of minimumFunctions array.
 
 */
 
-extern ValueMapping minimumFunctions[];
+Operator* createMinimumOperator();
 
 /*
 Method minimumSelectFunction returns the index of specific minimum function

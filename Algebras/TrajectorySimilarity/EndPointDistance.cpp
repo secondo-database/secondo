@@ -117,8 +117,7 @@ ValueMapping dist_origin_functions[] = {
   EndPointDistValueMap<PointSeq,  /*HAS_GEOID*/ false, dist_origin>,
   EndPointDistValueMap<PointSeq,  /*HAS_GEOID*/ true,  dist_origin>,
   EndPointDistValueMap<TPointSeq, /*HAS_GEOID*/ false, dist_origin>,
-  EndPointDistValueMap<TPointSeq, /*HAS_GEOID*/ true,  dist_origin>,
-  nullptr
+  EndPointDistValueMap<TPointSeq, /*HAS_GEOID*/ true,  dist_origin>
 };
 
 struct DistOriginInfo : OperatorInfo
@@ -163,8 +162,7 @@ ValueMapping dist_destination_functions[] = {
   EndPointDistValueMap<PointSeq,  /*HAS_GEOID*/ false, dist_destination>,
   EndPointDistValueMap<PointSeq,  /*HAS_GEOID*/ true,  dist_destination>,
   EndPointDistValueMap<TPointSeq, /*HAS_GEOID*/ false, dist_destination>,
-  EndPointDistValueMap<TPointSeq, /*HAS_GEOID*/ true,  dist_destination>,
-  nullptr
+  EndPointDistValueMap<TPointSeq, /*HAS_GEOID*/ true,  dist_destination>
 };
 
 struct DistDestinationInfo : OperatorInfo
@@ -217,8 +215,7 @@ ValueMapping dist_origin_and_destination_functions[] = {
   EndPointDistValueMap<
       TPointSeq, /*HAS_GEOID*/ false, dist_origin_and_destination>,
   EndPointDistValueMap<
-      TPointSeq, /*HAS_GEOID*/ true,  dist_origin_and_destination>,
-  nullptr
+      TPointSeq, /*HAS_GEOID*/ true,  dist_origin_and_destination>
 };
 
 struct DistOriginAndDestinationInfo : OperatorInfo

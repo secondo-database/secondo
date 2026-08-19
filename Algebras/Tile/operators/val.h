@@ -81,7 +81,7 @@ declaration of valFunctions array.
 
 */
 
-extern ValueMapping valFunctions[];
+Operator* createValOperator();
 
 /*
 Method valSelectFunction returns the index of specific val function

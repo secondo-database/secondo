@@ -90,7 +90,7 @@ declaration of composeFunctions array.
 
 */
 
-extern ValueMapping composeFunctions[];
+Operator* createComposeOperator();
 
 /*
 Method composeSelectFunction returns the index of specific compose function

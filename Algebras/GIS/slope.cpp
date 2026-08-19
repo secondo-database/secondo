@@ -596,8 +596,7 @@ definition of slopeFuns array
     slopeFun<raster2::sint>,
     slopeFun<raster2::sreal>,
     slopeFunTile<TileAlgebra::tint, TileAlgebra::tProperties<int> >,
-    slopeFunTile<TileAlgebra::treal, TileAlgebra::tProperties<double> >,
-    0
+    slopeFunTile<TileAlgebra::treal, TileAlgebra::tProperties<double> >
   };
 
 /*
@@ -702,5 +701,11 @@ Type Mapping
     }
 
     return listutils::typeError(error);
+  }
+
+  Operator* createSlopeOperator()
+  {
+    return new Operator(slopeInfo(), slopeFuns,
+                        slopeSelectFun, slopeTypeMap);
   }
 }

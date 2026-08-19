@@ -54,18 +54,18 @@ namespace Operators{
 //ApplyPredicate----------------------------------------------------------------
 
 template<CompareMode mode>
+ValueMapping Compare<mode>::valueMappings[] =
+{
+  AttributeValueMapping,
+  AttrArrayValueMapping
+};
+
+template<CompareMode mode>
 Compare<mode>::Compare() :
   Operator(info, valueMappings, SelectValueMapping, TypeMapping)
 {
 }
 
-template<CompareMode mode>
-ValueMapping Compare<mode>::valueMappings[] =
-{
-  AttributeValueMapping,
-  AttrArrayValueMapping,
-  nullptr
-};
 
 OperatorInfo GetOperatorInfo(CompareMode mode)
 {

@@ -659,8 +659,7 @@ ValueMapping toraster2Functions[] =
   toraster2Functionit<itbool, itProperties<char>,
                       raster2::isbool, raster2::istype_helper<char> >,
   toraster2Functionit<itstring, itProperties<std::string>,
-                      raster2::isstring, raster2::istype_helper<std::string> >,
-  0
+                      raster2::isstring, raster2::istype_helper<std::string> >
 };
 
 /*
@@ -794,4 +793,10 @@ ListExpr toraster2TypeMappingFunction(ListExpr arguments)
   return type;
 }
 
+
+Operator* createToraster2Operator()
+{
+  return new Operator(toraster2Info(), toraster2Functions,
+                      toraster2SelectFunction, toraster2TypeMappingFunction);
+}
 }

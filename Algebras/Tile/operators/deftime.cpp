@@ -109,8 +109,7 @@ ValueMapping deftimeFunctions[] =
   deftimeFunction<mtint>,
   deftimeFunction<mtreal>,
   deftimeFunction<mtbool>,
-  deftimeFunction<mtstring>,
-  0
+  deftimeFunction<mtstring>
 };
 
 /*
@@ -188,4 +187,10 @@ ListExpr deftimeTypeMappingFunction(ListExpr arguments)
   return type;
 }
 
+
+Operator* createDeftimeOperator()
+{
+  return new Operator(deftimeInfo(), deftimeFunctions,
+                      deftimeSelectFunction, deftimeTypeMappingFunction);
+}
 }

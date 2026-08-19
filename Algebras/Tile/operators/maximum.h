@@ -88,7 +88,7 @@ declaration of maximumFunctions array.
 
 */
 
-extern ValueMapping maximumFunctions[];
+Operator* createMaximumOperator();
 
 /*
 Method maximumSelectFunction returns the index of specific maximum function

@@ -42,8 +42,7 @@ namespace raster2 {
         s2msFun<sint, msint>,
         s2msFun<sreal, msreal>,
         s2msFun<sbool, msbool>,
-        s2msFun<sstring, msstring>,
-        0
+        s2msFun<sstring, msstring>
     };
 
     int s2msSelectFun(ListExpr args) {
@@ -82,6 +81,12 @@ namespace raster2 {
        std::string ct = util::getValueBasicType(st);
        std::string mt = util::getMovingSpatialBasicType(ct);
        return  nl->SymbolAtom(mt); 
+    }
+
+    Operator* createS2msOperator()
+    {
+      return new Operator(s2msInfo(), s2msFuns,
+                          s2msSelectFun, s2msTypeMap);
     }
 }
 

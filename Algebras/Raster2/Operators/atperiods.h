@@ -36,7 +36,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Algebras/Temporal/TemporalAlgebra.h"
 
 namespace raster2 {
-    extern ValueMapping atperiodsFuns[];
+    Operator* createAtperiodsOperator();
     ListExpr atperiodsTypeMap(ListExpr args);
     int atperiodsSelectFun(ListExpr args);
 

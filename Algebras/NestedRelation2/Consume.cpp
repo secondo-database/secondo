@@ -67,7 +67,7 @@ Consume::~Consume()
   return 0;
 }
 
-/*static*/ValueMapping Consume::functions[] = { ConsumeValue, NULL };
+/*static*/ValueMapping Consume::functions[] = { ConsumeValue };
 
 /*
 All provided tuples are added to the resulting nested relation.
@@ -115,3 +115,14 @@ List of functions for cost estimation.
 */
 CreateCostEstimation Consume::costEstimators[] =
   { BlockingProgressEstimator::Build };
+
+/*
+Builds the operator. It lives here because the number of value mappings
+is read off the type of ~functions~, which is only complete in this file.
+
+*/
+Operator* Consume::create()
+{
+  return new Operator(Info(), functions, SelectFunction, MapType,
+                      costEstimators);
+}

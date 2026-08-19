@@ -103,7 +103,7 @@ declaration of map2Functions array.
 
 */
 
-extern ValueMapping map2Functions[];
+Operator* createMap2Operator();
 
 /*
 Method map2SelectFunction returns the index of specific map2 function

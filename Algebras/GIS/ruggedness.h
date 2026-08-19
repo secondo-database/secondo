@@ -45,7 +45,7 @@ namespace GISAlgebra
 declaration of ruggednessFuns array
 
 */
-        extern ValueMapping ruggednessFuns[];
+        Operator* createRuggednessOperator();
 
 /*
 Type Mapping

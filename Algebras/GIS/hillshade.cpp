@@ -736,8 +736,7 @@ definition of hillshadeFuns array
     hillshadeFun<raster2::sint>,
     hillshadeFun<raster2::sreal>,
     hillshadeFunTile<TileAlgebra::tint, TileAlgebra::tProperties<int> >,
-    hillshadeFunTile<TileAlgebra::treal, TileAlgebra::tProperties<double> >,
-    0
+    hillshadeFunTile<TileAlgebra::treal, TileAlgebra::tProperties<double> >
   };
 
 /*
@@ -848,5 +847,11 @@ Type Mapping
     }
 
     return listutils::typeError(error);
+  }
+
+  Operator* createHillshadeOperator()
+  {
+    return new Operator(hillshadeInfo(), hillshadeFuns,
+                        hillshadeSelectFun, hillshadeTypeMap);
   }
 }

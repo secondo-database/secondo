@@ -53,17 +53,17 @@ extern QueryProcessor *qp;
 
 //ApplyPredicate----------------------------------------------------------------
 
+ValueMapping ApplyPredicate::valueMappings[] =
+{
+  AttrArrayValueMapping,
+  TBlockValueMapping
+};
+
 ApplyPredicate::ApplyPredicate() :
   Operator(info, valueMappings, SelectValueMapping, TypeMapping)
 {
 }
 
-ValueMapping ApplyPredicate::valueMappings[] =
-{
-  AttrArrayValueMapping,
-  TBlockValueMapping,
-  nullptr
-};
 
 const OperatorInfo ApplyPredicate::info = OperatorInfo(
   "apply", "(ATTRARRAY | tblock) x (map BLOCKENTRY bool) -> longints",

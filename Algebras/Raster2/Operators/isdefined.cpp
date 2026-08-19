@@ -105,7 +105,12 @@ namespace raster2
      isdefinedFun<isbool>,
      isdefinedFun<isint>,
      isdefinedFun<isreal>,
-     isdefinedFun<isstring>,
-     0
+     isdefinedFun<isstring>
   };
+
+  Operator* createIsdefinedOperator()
+  {
+    return new Operator(isdefinedInfo(), isdefinedFuns,
+                        isdefinedSelectFun, isdefinedTM);
+  }
 }

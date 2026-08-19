@@ -197,17 +197,17 @@ ListExpr Project::Info::GetIndicesExpr(ListExpr listEnd) const
 
 //Project-----------------------------------------------------------------------
 
+ValueMapping Project::valueMappings[] =
+{
+  StreamValueMapping<State>,
+  TBlockValueMapping
+};
+
 Project::Project() :
   Operator(info, valueMappings, SelectValueMapping, TypeMapping)
 {
 }
 
-ValueMapping Project::valueMappings[] =
-{
-  StreamValueMapping<State>,
-  TBlockValueMapping,
-  nullptr
-};
 
 const OperatorInfo Project::info = OperatorInfo(
   "project", "stream(tblock) x symbol x symbol* -> stream(tblock)",

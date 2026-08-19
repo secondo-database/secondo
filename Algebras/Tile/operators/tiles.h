@@ -117,7 +117,7 @@ declaration of tilesFunctions array.
 
 */
 
-extern ValueMapping tilesFunctions[];
+Operator* createTilesOperator();
 
 /*
 Method tilesSelectFunction returns the index of specific tiles function

@@ -120,43 +120,10 @@ namespace sjt {
         }
     };
 
-    spatialJoinTouchRow::spatialJoinTouchRow() : Operator(
-            spatialJoinRowInfo(),
-            valueMappings,
-            SelectValueMapping,
-            spatialJoinRowType
-            )
-    {
-        SetUsesArgsInTypeMapping();
-        SetUsesMemory();
-    }
-
     spatialJoinTouchRow::~spatialJoinTouchRow() {
     }
 
-    spatialJoinTouchM::spatialJoinTouchM() : Operator(
-            spatialJoinMInfo(),
-            valueMappings,
-            SelectValueMapping,
-            spatialJoinMType
-            )
-    {
-        SetUsesArgsInTypeMapping();
-        SetUsesMemory();
-    }
-
     spatialJoinTouchM::~spatialJoinTouchM() {
-    }
-
-    spatialJoinTouchColumn::spatialJoinTouchColumn() : Operator(
-            spatialJoinColumnInfo(),
-            valueMappings,
-            SelectValueMapping,
-            spatialJoinColumnType
-            )
-    {
-        SetUsesArgsInTypeMapping();
-        SetUsesMemory();
     }
 
     spatialJoinTouchColumn::~spatialJoinTouchColumn() {
@@ -669,6 +636,17 @@ namespace sjt {
             spatialJoinMFun
     };
 
+    spatialJoinTouchRow::spatialJoinTouchRow() : Operator(
+            spatialJoinRowInfo(),
+            valueMappings,
+            SelectValueMapping,
+            spatialJoinRowType
+            )
+    {
+        SetUsesArgsInTypeMapping();
+        SetUsesMemory();
+    }
+
     int spatialJoinTouchRow::SelectValueMapping(ListExpr args) {
 
         ListExpr stream1 = nl->First(args);
@@ -690,6 +668,17 @@ namespace sjt {
             spatialJoinMFun
     };
 
+    spatialJoinTouchM::spatialJoinTouchM() : Operator(
+            spatialJoinMInfo(),
+            valueMappings,
+            SelectValueMapping,
+            spatialJoinMType
+            )
+    {
+        SetUsesArgsInTypeMapping();
+        SetUsesMemory();
+    }
+
     int spatialJoinTouchM::SelectValueMapping(ListExpr args) {
 
         ListExpr stream1 = nl->First(args);
@@ -710,6 +699,17 @@ namespace sjt {
             spatialJoinColumnFun,
             spatialJoinMFun
     };
+
+    spatialJoinTouchColumn::spatialJoinTouchColumn() : Operator(
+            spatialJoinColumnInfo(),
+            valueMappings,
+            SelectValueMapping,
+            spatialJoinColumnType
+            )
+    {
+        SetUsesArgsInTypeMapping();
+        SetUsesMemory();
+    }
 
     int spatialJoinTouchColumn::SelectValueMapping(ListExpr args) {
 

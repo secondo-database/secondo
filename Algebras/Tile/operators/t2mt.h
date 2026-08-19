@@ -85,7 +85,7 @@ declaration of t2mtFunctions array.
 
 */
 
-extern ValueMapping t2mtFunctions[];
+Operator* createT2mtOperator();
 
 /*
 Method t2mtSelectFunction returns the index of specific t2mt function

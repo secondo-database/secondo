@@ -2013,8 +2013,7 @@ declaration of contourFuns array
     contourFun<raster2::sint>,
     contourFun<raster2::sreal>,
     contourFunTile<TileAlgebra::tint, TileAlgebra::tProperties<int> >,
-    contourFunTile<TileAlgebra::treal, TileAlgebra::tProperties<double> >,
-    0
+    contourFunTile<TileAlgebra::treal, TileAlgebra::tProperties<double> >
   };
 
 /*
@@ -2788,5 +2787,11 @@ exceptions: -
       *g = s_in->GetValue((int[]){column - 1, row - 1});
       *h = s_in->GetValue((int[]){column, row - 1});
     }
+  }
+
+  Operator* createContourOperator()
+  {
+    return new Operator(contourInfo(), contourFuns,
+                        contourSelectFun, contourTypeMap);
   }
 }

@@ -8686,8 +8686,7 @@ int OpPasses(Word* args,
 
 ValueMapping OpPassesvaluemap[] = {
   OpPasses<GPoint>,
-  OpPasses<GLine>,
-  0
+  OpPasses<GLine>
 };
 
 int OpPassesSelect( ListExpr args )
@@ -8828,8 +8827,7 @@ int OpAt(Word* args,
 
 ValueMapping OpAtValueMap[] = {
   OpAt<GPoint>,
-  OpAt<GLine>,
-  0
+  OpAt<GLine>
 };
 
 int OpAtSelect( ListExpr args )
@@ -9032,8 +9030,7 @@ int OpDeftimeSelect(ListExpr args) {
 
 ValueMapping OpDeftimeValueMapping [] = {
   OpDeftime<MGPoint>,
-  OpDeftime<UGPoint>,
-  0
+  OpDeftime<UGPoint>
 };
 
 struct deftimeInfo:OperatorInfo{
@@ -9398,8 +9395,7 @@ int OpLengthSelect(ListExpr args){
 
 ValueMapping OpLengthValueMap[] = {
   OpLength<MGPoint>,
-  OpLength<UGPoint>,
-  0
+  OpLength<UGPoint>
 };
 
 struct lengthInfo:OperatorInfo{
@@ -9527,8 +9523,7 @@ int OpPresentSelect(ListExpr args){
 
 ValueMapping OpPresentValueMap[] = {
   OpPresent<MGPoint, Periods>,
-  OpPresent<MGPoint, Instant>,
-  0
+  OpPresent<MGPoint, Instant>
 };
 
 struct presentInfo:OperatorInfo{

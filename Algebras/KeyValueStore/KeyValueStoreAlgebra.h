@@ -138,7 +138,7 @@ class KeyValueStoreAlgebra : public Algebra {
     AddOperator(kvsSetIdInfo(), kvsSetIdVM, kvsSetIdTM);
     AddOperator(kvsSetMasterInfo(), kvsSetMasterVM, kvsSetMasterTM);
 
-    ValueMapping retrieveFuns[] = {kvsRetrieveByIdVM, kvsRetrieveByRegionVM, 0};
+    ValueMapping retrieveFuns[] = {kvsRetrieveByIdVM, kvsRetrieveByRegionVM};
     AddOperator(kvsRetrieveInfo(), retrieveFuns, kvsRetrieveSelect,
                 kvsRetrieveTM);
 

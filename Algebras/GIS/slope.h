@@ -45,7 +45,7 @@ namespace GISAlgebra
 declaration of slopeFuns array
 
 */
-        extern ValueMapping slopeFuns[];
+        Operator* createSlopeOperator();
 
 /*
 Type Mapping

@@ -117,7 +117,7 @@ declaration of toraster2Functions array.
 
 */
 
-extern ValueMapping toraster2Functions[];
+Operator* createToraster2Operator();
 
 /*
 Method toraster2SelectFunction returns the index of specific toraster2 function

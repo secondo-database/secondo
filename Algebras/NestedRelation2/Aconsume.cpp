@@ -41,7 +41,7 @@ Aconsume::~Aconsume()
   return result;
 }
 
-ValueMapping Aconsume::functions[] = { AconsumeValue, NULL };
+ValueMapping Aconsume::functions[] = { AconsumeValue };
 
 /*static*/int Aconsume::SelectFunction(ListExpr args)
 {
@@ -80,3 +80,13 @@ List of functions for cost estimation.
 CreateCostEstimation Aconsume::costEstimators[] =
   { BlockingProgressEstimator::Build };
 
+/*
+Builds the operator. It lives here because the number of value mappings
+is read off the type of ~functions~, which is only complete in this file.
+
+*/
+Operator* Aconsume::create()
+{
+  return new Operator(Info(), functions, SelectFunction, MapType,
+                      costEstimators);
+}

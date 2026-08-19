@@ -28,7 +28,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 namespace raster2
 {
-  extern ValueMapping atrangeFuns[];
+  Operator* createAtrangeOperator();
   ListExpr atrangeTypeMap(ListExpr args);
   int atrangeSelectFun(ListExpr args);
 

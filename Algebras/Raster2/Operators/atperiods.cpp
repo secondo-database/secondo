@@ -29,8 +29,7 @@ namespace raster2 {
     atperiodsFun<int, mstype_helper<int> >,
     atperiodsFun<double, mstype_helper<double> >,
     atperiodsFun<char, msbool_helper >,
-    atperiodsFun<std::string, mstype_helper<std::string> >,
-    0
+    atperiodsFun<std::string, mstype_helper<std::string> >
   };
 
 
@@ -57,38 +56,44 @@ namespace raster2 {
         return -1;
     }
 
-	ListExpr atperiodsTypeMap(ListExpr args)
-	{
-	  NList type(args);
+    ListExpr atperiodsTypeMap(ListExpr args)
+    {
+      NList type(args);
 
-	  if (type.length() != 2) {
-	    return type.typeError("Expect two arguments."); 
-	  }
+      if (type.length() != 2) {
+        return type.typeError("Expect two arguments."); 
+      }
 
        if (type.second() != NList(temporalalgebra::Periods::BasicType())) {
-	     return type.typeError("Expect sec arg periods."); 
-	   }
-	   
+         return type.typeError("Expect sec arg periods."); 
+       }
+       
       if (type.first() == NList(msbool::BasicType()))
       {
-	     return NList(msbool::BasicType()).listExpr();
-	  }
+         return NList(msbool::BasicType()).listExpr();
+      }
 
       if (type.first() == NList(msint::BasicType()))
       {
-	     return NList(msint::BasicType()).listExpr();
-	  }
+         return NList(msint::BasicType()).listExpr();
+      }
 
       if (type.first() == NList(msreal::BasicType()))
       {
-	     return NList(msreal::BasicType()).listExpr();
-	  }
+         return NList(msreal::BasicType()).listExpr();
+      }
 
       if (type.first() == NList(msstring::BasicType()))
       {
-	     return NList(msstring::BasicType()).listExpr();
-	  }
+         return NList(msstring::BasicType()).listExpr();
+      }
 
-	  return NList::typeError("Expected msT.");
-	}
+      return NList::typeError("Expected msT.");
+    }
+
+  Operator* createAtperiodsOperator()
+  {
+    return new Operator(atperiodsInfo(), atperiodsFuns,
+                        atperiodsSelectFun, atperiodsTypeMap);
+  }
 }

@@ -74,7 +74,7 @@ stream whose tuple type equals the type of the relation's tuples.
   return result;
 }
 
-ValueMapping Feed::functions[] = { FeedArel, FeedNrel, NULL };
+ValueMapping Feed::functions[] = { FeedArel, FeedNrel };
 
 /*static*/int Feed::SelectFunction(ListExpr args)
 {
@@ -225,4 +225,15 @@ Feed::LocalInfoNrel::LocalInfoNrel(NRelIterator * iter,
 Feed::LocalInfoNrel::~LocalInfoNrel()
 {
   delete iter;
+}
+
+/*
+Builds the operator. It lives here because the number of value mappings
+is read off the type of ~functions~, which is only complete in this file.
+
+*/
+Operator* Feed::create()
+{
+  return new Operator(Info(), functions, SelectFunction, MapType,
+                      costEstimators);
 }

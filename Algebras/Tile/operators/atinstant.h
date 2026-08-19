@@ -83,7 +83,7 @@ declaration of atinstantFunctions array.
 
 */
 
-extern ValueMapping atinstantFunctions[];
+Operator* createAtinstantOperator();
 
 /*
 Method atinstantSelectFunction returns the index of specific atinstant function

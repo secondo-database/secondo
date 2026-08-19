@@ -145,7 +145,7 @@ type but need not be evaluated. It is
   return result;
 }
 
-ValueMapping GenRel::functions[] = { GenRelValue, NULL };
+ValueMapping GenRel::functions[] = { GenRelValue };
 
 /*static*/int GenRel::SelectFunction(ListExpr args)
 {
@@ -360,3 +360,14 @@ List of functions for cost estimation.
 */
 CreateCostEstimation GenRel::costEstimators[] =
   { BlockingProgressEstimator::Build };
+
+/*
+Builds the operator. It lives here because the number of value mappings
+is read off the type of ~functions~, which is only complete in this file.
+
+*/
+Operator* GenRel::create()
+{
+  return new Operator(Info(), functions, SelectFunction, MapType,
+                      costEstimators);
+}

@@ -51,6 +51,15 @@ using std::string;
 extern NestedList *nl;
 extern QueryProcessor *qp;
 
+ValueMapping Count::valueMappings[] =
+{
+  CRelValueMapping,
+  BlockStreamValueMapping,
+  BlockValueMapping,
+  ArrayStreamValueMapping,
+  ArrayValueMapping
+};
+
 Count::Count() :
   Operator(info, valueMappings, SelectValueMapping, TypeMapping)
 {
@@ -63,15 +72,6 @@ const OperatorInfo Count::info = OperatorInfo(
   "relation, tuple block or stream of tuple block(s)",
   "query people feed filter[.Age > 50] count");
 
-ValueMapping Count::valueMappings[] =
-{
-  CRelValueMapping,
-  BlockStreamValueMapping,
-  BlockValueMapping,
-  ArrayStreamValueMapping,
-  ArrayValueMapping,
-  nullptr
-};
 
 ListExpr Count::TypeMapping(ListExpr args)
 {

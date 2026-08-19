@@ -46,8 +46,7 @@ the value mapping functions.
   {
   public:
     
-    PresentOperator() : AttrArrayOperator(info, valueMappings, 
-                                          SelectValueMapping, TypeMapping) {}
+    PresentOperator();
                                           
   private:
     
@@ -92,8 +91,7 @@ the value mapping functions.
   {
   public:
     
-    AtInstantOperator() : AttrArrayOperator(info, valueMappings,  
-                                            SelectValueMapping, TypeMapping) {}
+    AtInstantOperator();
 
   private:
     
@@ -126,8 +124,7 @@ the value mapping functions.
   {
   public:
     
-    AtPeriodsOperator() : AttrArrayOperator(info, valueMappings,  
-                                            SelectValueMapping, TypeMapping) {}
+    AtPeriodsOperator();
 
   private:
     
@@ -160,8 +157,7 @@ the value mapping functions.
   {
   public:
     
-    PassesOperator() : AttrArrayOperator(info, valueMappings,  
-                                         SelectValueMapping, TypeMapping) {}
+    PassesOperator();
 
   private:
     
@@ -202,8 +198,7 @@ the value mapping functions.
   {
   public:
     
-    AtOperator() : AttrArrayOperator(info, valueMappings, SelectValueMapping,  
-                                     TypeMapping) {}
+    AtOperator();
 
   private:
     
@@ -244,8 +239,7 @@ the value mapping functions.
   {
   public:
     
-    InsideOperator() : Operator(info, valueMappings, SelectValueMapping,  
-                                TypeMapping) {}
+    InsideOperator();
 
   private:
     
@@ -274,8 +268,7 @@ the value mapping functions.
   {
   public:
     
-    IntersectionOperator() : Operator(info, valueMappings, SelectValueMapping,  
-                                TypeMapping) {}
+    IntersectionOperator();
 
     static int mapping(ListExpr args);
 
@@ -305,8 +298,7 @@ the value mapping functions.
   {
   public:
     
-    AddRandomOperator() : AttrArrayOperator(info, valueMappings,  
-                                            SelectValueMapping, TypeMapping) {}
+    AddRandomOperator();
 
   private:
     
@@ -340,8 +332,7 @@ signature.
   {
   public:
     
-    IndexOperator() : Operator(info, valueMappings,  
-                               SelectValueMapping, TypeMapping) {}
+    IndexOperator();
 
   private:
     

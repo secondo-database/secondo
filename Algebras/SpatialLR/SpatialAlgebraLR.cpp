@@ -766,11 +766,11 @@ Adding operators to algebra.
 Adding value mappings for overloaded operators to algebra.
 
 */
-      ValueMapping intersectFuns[] = {intersectFun_L, intersectFun_R, 0};
+      ValueMapping intersectFuns[] = {intersectFun_L, intersectFun_R};
       AddOperator(intersectInfo(), intersectFuns,
                   intersectSelect, intersectTypeMap);
 
-      ValueMapping boundsFuns[] = {boundsFun_L, boundsFun_R, 0};
+      ValueMapping boundsFuns[] = {boundsFun_L, boundsFun_R};
       AddOperator(boundsInfo(), boundsFuns, boundsSelect, boundsTypeMap);
     }
 

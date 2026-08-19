@@ -86,7 +86,7 @@ declaration of bboxFunctions array.
 
 */
 
-extern ValueMapping bboxFunctions[];
+Operator* createBboxOperator();
 
 /*
 Method bboxSelectFunction returns the index of specific bbox function

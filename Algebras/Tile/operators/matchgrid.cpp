@@ -857,8 +857,7 @@ ValueMapping matchgridFunctions[] =
                       matchgridTraits<std::string> >,
   matchgridFunctionmt<mtstring, mtProperties<std::string>,
                       mtstring, mtProperties<std::string>,
-                      matchgridTraits<std::string> >,
-  0
+                      matchgridTraits<std::string> >
 };
 
 /*
@@ -1143,4 +1142,10 @@ ListExpr matchgridTypeMappingFunction(ListExpr arguments)
   return type;
 }
 
+
+Operator* createMatchgridOperator()
+{
+  return new Operator(matchgridInfo(), matchgridFunctions,
+                      matchgridSelectFunction, matchgridTypeMappingFunction);
+}
 }
