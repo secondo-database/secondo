@@ -26,6 +26,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 
 #include <string>
+#include <vector>
 #include "CollectionAlgebra.h"
 
 
@@ -946,9 +947,12 @@ cout << "SaveComponent" << endl;
       Flob* tempFLOB = elem->GetFLOB(i);
       size = tempFLOB->getSize();
       elementData.resize(offset+size);
-      char data[size];
-      tempFLOB->read(data, size, 0);
-      elementData.write(data, size, offset);
+      // An empty Flob is legal.
+      if(size > 0) {
+        std::vector<char> data(size);
+        tempFLOB->read(data.data(), size, 0);
+        elementData.write(data.data(), size, offset);
+      }
       offset += size;
       // change flob in Elem
       Flob changedFlob = Flob::createFrom(fid,rid,offset, mode, size);

@@ -36,6 +36,7 @@ operation geocode.
 */
 
 #include "Algebra.h"
+#include <cstring>
 #include "NestedList.h"
 #include "ListUtils.h"
 #include "NList.h"
@@ -75,7 +76,7 @@ using namespace mappings;
 //3 methodes for creation of the socket
 std::runtime_error CreateSocketError() 
 {
-	
+    
 std::ostringstream temp; 
 
     temp << "Socket-Fehler #" << errno << ": " << strerror(errno);
@@ -101,14 +102,14 @@ void SendAll(int socket, const char* const buf, const int size)
 
 void GetLine(int socket, std::stringstream& line) 
 {
-	for(char c; recv(socket, &c, 1, 0) > 0; line << c) 
+    for(char c; recv(socket, &c, 1, 0) > 0; line << c) 
     { 
         if(c == '\n') 
         { 
             return; 
         } 
     }
-	throw CreateSocketError(); 
+    throw CreateSocketError(); 
 }
 
 
@@ -137,8 +138,8 @@ const string& postcode,const string& ci, Point& result) {
   string no1 = stringutils::replaceAll(no, " ", "%20");
   
   
-  //constant values of url	
-  string pre="GET /maps/api/geocode/xml?address=";	
+  //constant values of url    
+  string pre="GET /maps/api/geocode/xml?address=";    
   //string post="+CA&sensor=false HTTP/1.1\r\n;";
   //post +="Host: maps.googleapis.com\r\nConnection: close\r\n\r\n";
   //create url
@@ -177,19 +178,20 @@ const string& postcode,const string& ci, Point& result) {
             result.SetDefined(false); 
             return;  
         } 
-        service.sin_addr.s_addr = *reinterpret_cast<unsigned long*>(*p); 
+        memcpy(&service.sin_addr.s_addr, *p,
+               sizeof(service.sin_addr.s_addr));
         ++p; 
         resulte = connect(Socket, reinterpret_cast<sockaddr*>(&service), 
                           sizeof(service));
    } while(resulte == -1); 
 
-	
+    
    SendAll(Socket, request.c_str(), request.size());
 
    // open output stream, delete old content
    ofstream fout("../bin/output.xml", ios::trunc);  
-	
-   if (fout.good()) {	
+    
+   if (fout.good()) {    
       bool write = false;
       while(!fout.eof()) { 
         stringstream line; 
@@ -269,12 +271,12 @@ const string& postcode,const string& ci, Point& result) {
               subsubcur = subsubcur->next;
             }
           }
-			    subcur = subcur->next;
+                subcur = subcur->next;
         }
      }
      cur = cur->next;
   }
-	
+    
   xmlFreeDoc(doc);
 
   if(f1 && f2){
@@ -301,29 +303,29 @@ int len = nl->ListLength(args);
 string err = "(string x string x int x string) or "
 "(string x int x int x string) or (string x int x string) expected";
 if((len!=3) && (len !=4)){ // 3 oder 4 argumente
-	return listutils::typeError(err);
+    return listutils::typeError(err);
 }
 
 if(len == 3){
-	if( !CcString::checkType(nl->First(args)) || 
-	!CcInt::checkType(nl->Second(args)) ||
-	!CcString::checkType(nl->Third(args))){
-	return listutils::typeError(err);
-	} else {
-	return listutils::basicSymbol<Point>();
-	}
+    if( !CcString::checkType(nl->First(args)) || 
+    !CcInt::checkType(nl->Second(args)) ||
+    !CcString::checkType(nl->Third(args))){
+    return listutils::typeError(err);
+    } else {
+    return listutils::basicSymbol<Point>();
+    }
 }
 
 if(len == 4){
-	if( !CcString::checkType(nl->First(args)) || 
-	(!CcString::checkType(nl->Second(args)) &&
-	!CcInt::checkType(nl->Second(args))) ||
-	!CcInt::checkType(nl->Third(args)) ||
-	!CcString::checkType(nl->Fourth(args))){
-	 return listutils::typeError(err);
- 	} else {
-	return listutils::basicSymbol<Point>();
- 	}
+    if( !CcString::checkType(nl->First(args)) || 
+    (!CcString::checkType(nl->Second(args)) &&
+    !CcInt::checkType(nl->Second(args))) ||
+    !CcInt::checkType(nl->Third(args)) ||
+    !CcString::checkType(nl->Fourth(args))){
+     return listutils::typeError(err);
+     } else {
+    return listutils::basicSymbol<Point>();
+     }
 }
 
 else {return listutils::typeError(err);}
@@ -332,22 +334,22 @@ else {return listutils::typeError(err);}
 int geocodeSelect(ListExpr args){
 int len = nl->ListLength(args);
 if(len == 3){ // string x int x string
-	return 0; // index in umVM
-	} 
+    return 0; // index in umVM
+    } 
 if (len ==4) { // point x text x int
   if(CcString::checkType(nl->Second(args))) {
-	return 1;
-	}
+    return 1;
+    }
   if (CcInt::checkType(nl->Second(args))){
-	return 2;}
+    return 2;}
   else {
-	return listutils::basicSymbol<Point>();
- 	}
+    return listutils::basicSymbol<Point>();
+     }
 
 }
 else {
-	return listutils::basicSymbol<Point>();
- 	}
+    return listutils::basicSymbol<Point>();
+     }
 }
 
 
@@ -489,7 +491,7 @@ geocodeVM2
 const string geocodeSpec  =
    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
    "( <text>(string x int x string) -> point or "
-	"(string x [string|int] x int x string) -> point</text--->"
+    "(string x [string|int] x int x string) -> point</text--->"
    "<text>geocode(_,_,_,_)</text--->"
    "<text>Point to an address</text--->"
    "<text>query geocode('Universit\xE4tsstr.', 11, 58097, 'Hagen')</text--->"

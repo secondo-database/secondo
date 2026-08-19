@@ -689,14 +689,14 @@ class MmORelNetworkSectionAdapter : public mapmatch::IMMNetworkSection {
     MmORelNetworkSectionAdapter()
       :m_pEdge(NULL),
        m_pONetwork(NULL),
-       m_eRoadType((ERoadType)-1) {}
+       m_eRoadType(-1) {}
 
     MmORelNetworkSectionAdapter(
                             const MmORelNetworkEdge<T>& rEdge,
                             const MmORelNetwork<T>* pONetwork)
       :m_pEdge(new MmORelNetworkEdge<T>(rEdge)),
        m_pONetwork(pONetwork),
-       m_eRoadType((ERoadType)-1) {}
+       m_eRoadType(-1) {}
     
 
     MmORelNetworkSectionAdapter(
@@ -798,8 +798,8 @@ class MmORelNetworkSectionAdapter : public mapmatch::IMMNetworkSection {
     }
 
     mapmatch::IMMNetworkSection::ERoadType GetRoadType(void) const {
-      if (((int)m_eRoadType) >= 0)
-        return m_eRoadType;
+      if (m_eRoadType >= 0)
+        return (mapmatch::IMMNetworkSection::ERoadType)m_eRoadType;
       
       else if (m_pEdge != NULL) {
         const std::string& strRoadType = m_pEdge->GetRoadType();
@@ -861,7 +861,7 @@ class MmORelNetworkSectionAdapter : public mapmatch::IMMNetworkSection {
         else
           m_eRoadType = RT_OTHER;
         
-        return m_eRoadType;
+        return (mapmatch::IMMNetworkSection::ERoadType)m_eRoadType;
       }
       else
         return IMMNetworkSection::RT_UNKNOWN;
@@ -921,7 +921,11 @@ class MmORelNetworkSectionAdapter : public mapmatch::IMMNetworkSection {
   private:
     MmORelNetworkEdge<T>* m_pEdge;
     const MmORelNetwork<T>* m_pONetwork;
-    mutable mapmatch::IMMNetworkSection::ERoadType m_eRoadType;
+    // Holds a cached road type, or -1 while it has not been determined
+    // yet. The sentinel is kept in an int rather than in an ERoadType:
+    // the enumerators start at RT_UNKNOWN = 0, so -1 is outside the
+    // range the enum can represent and loading it is undefined.
+    mutable int m_eRoadType;
 };
 
 

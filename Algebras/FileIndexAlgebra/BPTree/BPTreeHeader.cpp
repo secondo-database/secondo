@@ -13,10 +13,12 @@ using std::to_string;
 
 namespace fialgebra{
 
+  // The two leading chars occupy a whole size_t slot so that everything after
+  // them is naturally aligned; see the constructors.
   size_t BPTreeHeader::constantSize =
-    sizeof(char) + sizeof(char) + sizeof(size_t) + sizeof(size_t) +
-    sizeof(unsigned int) + sizeof(unsigned int) +
-    sizeof(unsigned long) + sizeof(unsigned long);
+    sizeof(size_t) + sizeof(size_t) + sizeof(size_t) +
+    sizeof(unsigned long) + sizeof(unsigned long) +
+    sizeof(unsigned int) + sizeof(unsigned int);
 
   // ctor
   BPTreeHeader::BPTreeHeader(char* bytes, size_t length, size_t pageSize){
@@ -33,13 +35,16 @@ namespace fialgebra{
       m_bytes     = bytes;
       // Muss eigentlich immer TreeHeaderMarker.BPlusTree sein
       m_marker    = m_bytes;
-      m_pageSize  = (size_t*)(m_marker + 1);
+      m_version   = m_bytes + 1;
+      // The scalars start at an 8 byte boundary. Packing them directly behind
+      // the two leading chars put every one of them on an odd offset, so each
+      // access was a misaligned load or store.
+      m_pageSize  = (size_t*)(m_bytes + sizeof(size_t));
       m_valueSize = m_pageSize + 1;
       m_root      = (unsigned long*)(m_valueSize + 1);
       m_emptyPage = m_root + 1;
       m_algebraID = (unsigned int*)(m_emptyPage + 1);
       m_typeID    = m_algebraID + 1;
-      m_version   = (char*)(m_typeID + 1);
     }
   }
   BPTreeHeader::BPTreeHeader(size_t pageSize,
@@ -60,13 +65,13 @@ namespace fialgebra{
 
     m_bytes     = new char[pageSize];
     m_marker    = m_bytes;
-    m_pageSize  = (size_t*)(m_marker + 1);
+    m_version   = m_bytes + 1;
+    m_pageSize  = (size_t*)(m_bytes + sizeof(size_t));
     m_valueSize = m_pageSize + 1;
     m_root      = (unsigned long*)(m_valueSize + 1);
     m_emptyPage = m_root + 1;
     m_algebraID = (unsigned int*)(m_emptyPage + 1);
     m_typeID    = m_algebraID + 1;
-    m_version   = (char*)(m_typeID + 1);
 
     (*m_marker)    = (char)TreeHeaderMarker::BPlusTree;
     (*m_pageSize)  = pageSize;

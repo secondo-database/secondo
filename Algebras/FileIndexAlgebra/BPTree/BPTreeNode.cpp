@@ -40,7 +40,7 @@ namespace fialgebra{
     m_valueCast = valueCast;
 
     m_isLeaf = (bool*)bytes;
-    m_valueCount = (size_t*)(m_isLeaf + 1);
+    m_valueCount = (size_t*)(bytes + sizeof(size_t));
     m_ids = (unsigned long*)(m_valueCount + 1);
 
 #ifdef BPTreeNodeMax
@@ -74,7 +74,7 @@ namespace fialgebra{
     m_bytes = new char[pageSize];
     m_isLeaf = (bool*)m_bytes;
     *m_isLeaf = isLeaf;
-    m_valueCount = (size_t*)(m_isLeaf + 1);
+    m_valueCount = (size_t*)(m_bytes + sizeof(size_t));
     *m_valueCount = 0;
     m_ids = (unsigned long*)(m_valueCount + 1);
 

@@ -23,7 +23,11 @@ using std::runtime_error;
 
 namespace fialgebra{
   template <int dim>
-  size_t RTreeNode<dim>::constantSize = sizeof(bool) + sizeof(size_t);
+  // The leading bool takes a whole size_t slot rather than one byte, so that
+  // the entry counter and the value area behind it start on an 8 byte
+  // boundary. Packed directly behind the bool, every box in the value area sat
+  // on an odd offset and each access to one was a misaligned access.
+  size_t RTreeNode<dim>::constantSize = sizeof(size_t) + sizeof(size_t);
   template <int dim>
   size_t RTreeNode<dim>::typeSize = SizeOfRectangle<dim>();
 
@@ -43,7 +47,7 @@ namespace fialgebra{
 
     m_bytes = new char[pageSize];
     m_isLeaf = (bool*)m_bytes;
-    m_numberOfEntries = (size_t *)(m_isLeaf + 1);
+    m_numberOfEntries = (size_t *)(m_bytes + sizeof(size_t));
     m_values = (char*)(m_numberOfEntries + 1);
     m_ids = (size_t*)(m_values + (m_max * typeSize));
 
@@ -68,7 +72,7 @@ namespace fialgebra{
     m_pageSize = pageSize;
     m_bytes = bytes;
     m_isLeaf = (bool*)m_bytes;
-    m_numberOfEntries = (size_t *)(m_isLeaf + 1);
+    m_numberOfEntries = (size_t *)(m_bytes + sizeof(size_t));
     m_values = (char*)(m_numberOfEntries + 1);
     m_ids = (size_t*)(m_values + (m_max * typeSize));
   }
@@ -84,7 +88,7 @@ namespace fialgebra{
     memcpy(m_bytes, o.m_bytes, m_pageSize);
 
     m_isLeaf = (bool*)m_bytes;
-    m_numberOfEntries = (size_t *)(m_isLeaf + 1);
+    m_numberOfEntries = (size_t *)(m_bytes + sizeof(size_t));
     m_values = (char*)(m_numberOfEntries + 1);
     m_ids = (size_t*)(m_values + (m_max * typeSize));
 
@@ -356,7 +360,7 @@ namespace fialgebra{
     memcpy(m_bytes, o.m_bytes, m_pageSize);
 
     m_isLeaf = (bool*)m_bytes;
-    m_numberOfEntries = (size_t *)(m_isLeaf + 1);
+    m_numberOfEntries = (size_t *)(m_bytes + sizeof(size_t));
     m_values = (char*)(m_numberOfEntries + 1);
     m_ids = (size_t*)(m_values + (m_max * typeSize));
 

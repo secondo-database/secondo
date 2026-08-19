@@ -14,8 +14,10 @@ using std::to_string;
 
 
 namespace fialgebra{
-  size_t RTreeHeader::constantSize =
-    (2 * sizeof(char)) + (6 * sizeof(size_t));
+  // The marker and version chars share one size_t slot so that the six scalars
+  // behind them are naturally aligned; packed directly behind the two chars
+  // every one of them sat on an odd offset.
+  size_t RTreeHeader::constantSize = (7 * sizeof(size_t));
 
   RTreeHeader::RTreeHeader(char* bytes, size_t length, size_t pageSize){
     if (length < constantSize){
@@ -29,13 +31,15 @@ namespace fialgebra{
     else{
       m_bytes = bytes;
       m_marker    = m_bytes;
-      m_pageSize  = (size_t*)(m_marker + 1);
+
+      m_version   = m_bytes + 1;
+
+      m_pageSize  = (size_t*)(m_bytes + sizeof(size_t));
       m_valueSize = m_pageSize + 1;
       m_root = m_valueSize + 1;
       m_emptyPage = m_root + 1;
       m_dimension = m_emptyPage + 1;
       m_minEntries = m_dimension + 1;
-      m_version   = (char*)(m_minEntries + 1);
     }
   }
 
@@ -48,13 +52,15 @@ namespace fialgebra{
     else{
       m_bytes     = new char[pageSize];
       m_marker    = m_bytes;
-      m_pageSize  = (size_t*)(m_marker + 1);
+
+      m_version   = m_bytes + 1;
+
+      m_pageSize  = (size_t*)(m_bytes + sizeof(size_t));
       m_valueSize = m_pageSize + 1;
       m_root      = m_valueSize + 1;
       m_emptyPage = m_root + 1;
       m_dimension = m_emptyPage + 1;
       m_minEntries = m_dimension + 1;
-      m_version   = (char*)(m_minEntries + 1);
 
       (*m_marker)    = (char)TreeHeaderMarker::Rtree;
       (*m_pageSize)  = pageSize;
@@ -83,13 +89,15 @@ namespace fialgebra{
     else{
       m_bytes = bytes;
       m_marker    = m_bytes;
-      m_pageSize  = (size_t*)(m_marker + 1);
+
+      m_version   = m_bytes + 1;
+
+      m_pageSize  = (size_t*)(m_bytes + sizeof(size_t));
       m_valueSize = m_pageSize + 1;
       m_root = m_valueSize + 1;
       m_emptyPage = m_root + 1;
       m_dimension = m_emptyPage + 1;
       m_minEntries = m_dimension + 1;
-      m_version   = (char*)(m_minEntries + 1);
     }
   }
 

@@ -125,17 +125,23 @@ public:
         }
 
         int16_t convert16BitEndian(const int16_t n) {
-          int16_t value = n;
-          return ((value << 8) | ((value >> 8) & 0xFF));
+          // Unsigned for the same reason as the 32 bit version below: shifting
+          // a negative value left is undefined, and n is signed.
+          uint16_t value = static_cast<uint16_t>(n);
+          return static_cast<int16_t>(
+                 ((value << 8) & 0xff00u) | ((value >> 8) & 0x00ffu));
         }
 
   int32_t convertEndian(int32_t val)
   {
-    int32_t tmp = val;
-      return (tmp << 24) |
-            ((tmp <<  8) & 0x00ff0000) |
-            ((tmp >>  8) & 0x0000ff00) |
-            ((tmp >> 24) & 0x000000ff);
+    // Swapped as unsigned: shifting a signed value left into or past the sign
+    // bit is undefined, and the top byte does exactly that.
+    uint32_t tmp = static_cast<uint32_t>(val);
+      return static_cast<int32_t>(
+             ((tmp << 24) & 0xff000000u) |
+             ((tmp <<  8) & 0x00ff0000u) |
+             ((tmp >>  8) & 0x0000ff00u) |
+             ((tmp >> 24) & 0x000000ffu));
   }
 
   uint32_t convertEndian(const uint32_t n)

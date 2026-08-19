@@ -144,7 +144,11 @@ public:
 private:
     ONetworkEdge<T>* m_pEdge;
     const ONetwork<T>* m_pONetwork;
-    mutable ERoadType m_eRoadType;
+    // Holds a cached road type, or -1 while it has not been determined
+    // yet. The sentinel is kept in an int rather than in an ERoadType:
+    // the enumerators start at RT_UNKNOWN = 0, so -1 is outside the
+    // range the enum can represent and loading it is undefined.
+    mutable int m_eRoadType;
 };
 
 
@@ -246,7 +250,7 @@ template<class T>
 ONetworkSectionAdapter<T>::ONetworkSectionAdapter()
 :m_pEdge(NULL),
  m_pONetwork(NULL),
- m_eRoadType((ERoadType)-1)
+ m_eRoadType(-1)
 {
 }
 
@@ -256,7 +260,7 @@ ONetworkSectionAdapter<T>::ONetworkSectionAdapter(
                             const ONetwork<T>* pONetwork)
 :m_pEdge(new ONetworkEdge<T>(rEdge)),
  m_pONetwork(pONetwork),
- m_eRoadType((ERoadType)-1)
+ m_eRoadType(-1)
 {
 }
 
@@ -396,9 +400,9 @@ std::string ONetworkSectionAdapter<T>::GetRoadName(void) const
 template<class T>
 IMMNetworkSection::ERoadType ONetworkSectionAdapter<T>::GetRoadType(void) const
 {
-    if (((int)m_eRoadType) >= 0)
+    if (m_eRoadType >= 0)
     {
-        return m_eRoadType;
+        return (ERoadType)m_eRoadType;
     }
     else if (m_pEdge != NULL)
     {
@@ -509,7 +513,7 @@ IMMNetworkSection::ERoadType ONetworkSectionAdapter<T>::GetRoadType(void) const
             m_eRoadType = RT_OTHER;
         }
 
-        return m_eRoadType;
+        return (ERoadType)m_eRoadType;
     }
     else
     {

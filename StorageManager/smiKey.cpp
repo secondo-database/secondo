@@ -331,14 +331,29 @@ SmiKey::SetKey( const KeyDataType kdt,
 {
   switch (kdt)
   {
+    // ~key~ points into caller-supplied storage and carries no alignment
+    // guarantee, so the value is copied out rather than read through a cast
+    // pointer.
     case SmiKey::Integer:
-      SetKey( *((int32_t*) key) );
+      {
+        int32_t intValue;
+        memcpy( &intValue, key, sizeof( intValue ) );
+        SetKey( intValue );
+      }
       break;
     case SmiKey::Longint:
-      SetKey( *((int64_t*) key) );
+      {
+        int64_t longValue;
+        memcpy( &longValue, key, sizeof( longValue ) );
+        SetKey( longValue );
+      }
       break;
     case SmiKey::Float:
-      SetKey( *((double*) key) );
+      {
+        double floatValue;
+        memcpy( &floatValue, key, sizeof( floatValue ) );
+        SetKey( floatValue );
+      }
       break;
     case SmiKey::String:
     case SmiKey::Composite:

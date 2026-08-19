@@ -80,7 +80,9 @@ namespace fialgebra{
 
     ObjectCast m_valueCast;
 
-    const size_t constantSize = sizeof(size_t) + sizeof(bool) +
+    // isLeaf is padded to a full size_t slot so the rest of the page is
+    // naturally aligned; see BPTreeNode's constructors.
+    const size_t constantSize = sizeof(size_t) + sizeof(size_t) +
                                 sizeof(unsigned long) + sizeof(unsigned long);
 
     std::string ToString(Attribute& value) const;

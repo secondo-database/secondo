@@ -240,6 +240,8 @@ definitions of our four classes: ~CcInt~, ~CcReal~, ~CcBool~, ~CcString~.
 #include "Symbols.h"
 #include "Stream.h"
 
+#include <climits>
+#include <cstdint>
 #include <iostream>
 #include <string>
 #include <sstream>
@@ -2120,14 +2122,15 @@ CcProduct_ii( Word* args, Word& result, int message, Word& local, Supplier s )
   {
     int a = ((CcInt*)args[0].addr)->GetIntval();
     int b = ((CcInt*)args[1].addr)->GetIntval();
-    int prod = a*b;
-    if( (b!=0) && ((prod/b)!=a))
+    // The product is formed in 64 bits and the range checked afterwards.
+    const int64_t prod = (int64_t)a * (int64_t)b;
+    if( prod < INT_MIN || prod > INT_MAX )
     {
         ((CcInt *)result.addr)->Set( false, 0 );
     }
     else
     {
-        ((CcInt *)result.addr)->Set( true, prod );
+        ((CcInt *)result.addr)->Set( true, (int)prod );
     }
   }
   else

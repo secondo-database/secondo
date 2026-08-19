@@ -12,43 +12,45 @@
 # Format is <check>:<source file>. Note this suppresses the check for the whole
 # file, not just the line named, so a fix is always better than an entry here.
 
-# 10 suites -- uninitialised bool in the attribute type descriptor
+# 10 suites -- AttrType's copy constructor reads insideAbove from a source that
+# was default-constructed and never written (observed values include 0xBE, the
+# fill byte for fresh heap).
+#
+# Do NOT fix this by initialising the members in AttrType(). Persistent values
+# are restored by reading raw bytes over the object and then running the default
+# constructor on top of them:
+#
+#     Flob::read((char*)elem, sizeof(DbArrayElement), ...);   // DbArray.h
+#     elem = (new ((void*)elem) DbArrayElement);              // ctor runs AFTER
+#
+# HalfSegment(), Point() and AttrType() are all empty for exactly this reason.
+# Giving any of them an initialiser overwrites data that has just been restored
+# from disk. A real fix has to separate the two roles -- an explicit restore
+# constructor for the placement-new sites, an initialising one for everyone else.
 bool:AttrType.h
 
-# 1 suite -- uninitialised bool read in Attribute
+# 1 suite -- same shape one level up: Attribute's copy constructor reads
+# a.del.isDefined from a default-constructed source. AttrDelete's default
+# constructor documents the same constraint in a comment, and the Cast functions
+# are the placement-new sites here:
+#
+#     CastInt( void* addr ) { return (new (addr) CcInt); }
+#
+# Initialising isDefined would clear the defined flag of every attribute read
+# from disk.
 bool:Attribute.h
 
 # 1 suite -- third-party header, not our code
 bool:librip.h
 
-# 6 suites -- misaligned int32_t load in the storage key encoding
-alignment:smiKey.cpp
-
 # 3 suites -- invalid KeyDataType enum value in the ordered-relation key path
 enum:CompositeKey.cpp
-
-# 1 suite -- misaligned unsigned long load
-alignment:TrajectoryAnnotation.cpp
-
-# 1 suite -- misaligned float store
-alignment:Vertex.cpp
-
-# 1 suite -- 46341 * 46341 overflows int
-signed-integer-overflow:StandardAlgebra.cpp
 
 # 1 suite -- subtracting LLONG_MIN overflows long int
 signed-integer-overflow:DateTimeAlgebra.cpp
 
-# 1 suite -- left shift of 16777216 by 24 places overflows int
-shift-base:Import.h
-
 # 1 suite -- member call through a null R_Tree pointer
 null:JNetwork.cpp
-
-# 1 suite -- variable length array with a non-positive bound
-vla-bound:Collection.cpp
-
-# --- found by a later full pass; same backlog, same rules ---
 
 # 3 suites -- member call through a misaligned R_Tree pointer
 alignment:NetworkAlgebra.cpp
@@ -56,14 +58,3 @@ alignment:NetworkAlgebra.cpp
 # 1 suite -- invalid TimeType enum value
 enum:DateTimeAlgebra.cpp
 
-# 1 suite -- invalid ERoadType enum value
-enum:ONetworkAdapter.h
-
-# NOT suppressed, on purpose: FileIndexAlgebra places Attribute and Rectangle
-# objects directly into unaligned on-disk page buffers, so every field access
-# on one is reported. That is ~130 findings in FileIndex.examples from a single
-# root cause -- the page buffers need aligning (or the objects need copying
-# through an aligned temporary). It is left failing because 185 of those
-# reports land in core headers (Attribute.h, StandardTypes.h,
-# RectangleAlgebra.h); suppressing those would switch off alignment checking
-# for the whole tree to silence one algebra.

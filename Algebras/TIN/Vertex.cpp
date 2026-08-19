@@ -23,6 +23,7 @@
 */
 
 #include "Vertex.h"
+#include <cstring>
 #include "SecondoDependencies.h"
 #include "VertexContainerSet.h"
 #include <iomanip>
@@ -70,11 +71,14 @@ void Vertex::print(std::ostream & out) const {
 void Vertex::putSTLbinaryRepresentation(char * buff,
   uint32_t & offset) const {
 
- *((float*) (buff + offset)) = (float) x;
+ // buff + offset carries no alignment guarantee, so the values are copied in
+ // rather than stored through a cast pointer. The bytes written are the same.
+ const float fx = (float) x, fy = (float) y, fz = (float) z;
+ memcpy(buff + offset, &fx, sizeof(float));
  offset += sizeof(float);
- *((float*) (buff + offset)) = (float) y;
+ memcpy(buff + offset, &fy, sizeof(float));
  offset += sizeof(float);
- *((float*) (buff + offset)) = (float) z;
+ memcpy(buff + offset, &fz, sizeof(float));
  offset += sizeof(float);
 
 }
