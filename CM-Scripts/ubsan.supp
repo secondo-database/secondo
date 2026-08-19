@@ -43,18 +43,6 @@ bool:Attribute.h
 # 1 suite -- third-party header, not our code
 bool:librip.h
 
-# 3 suites -- invalid KeyDataType enum value in the ordered-relation key path
-enum:CompositeKey.cpp
-
-# 1 suite -- subtracting LLONG_MIN overflows long int
-signed-integer-overflow:DateTimeAlgebra.cpp
-
-# 1 suite -- member call through a null R_Tree pointer
-null:JNetwork.cpp
-
-# 3 suites -- member call through a misaligned R_Tree pointer
-alignment:NetworkAlgebra.cpp
-
 # 1 suite -- invalid TimeType enum value
 enum:DateTimeAlgebra.cpp
 

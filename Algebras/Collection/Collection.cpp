@@ -1046,9 +1046,12 @@ cout << "RestoreComponent" << endl;
 cout << "  offset: " << offset << endl;
 cout << "  size(" << i << "): " << size << endl;
 #endif
-      char tempData[size];
-      elementData.read(tempData, size, offset);
-      tempFLOB->write(tempData, size, 0);
+      // An empty Flob is legal and gave this array a bound of 0.
+      if(size > 0) {
+        std::vector<char> tempData(size);
+        elementData.read(tempData.data(), size, offset);
+        tempFLOB->write(tempData.data(), size, 0);
+      }
       offset += size;
     }
 

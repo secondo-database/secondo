@@ -1441,7 +1441,15 @@ void DateTime::Add(const DateTime* P2){
       SetDefined(false);
       return;
    }
-   value += P2->value;
+   // The extremes stand for begin/end of time, so the sum can leave
+   // the representable range.
+   const int64_t v2 = P2->value;
+   if( (v2 > 0 && value > max_VALUE - v2) ||
+       (v2 < 0 && value < min_VALUE - v2) ){
+      SetDefined(false);
+      return;
+   }
+   value += v2;
 }
 
 
@@ -1503,7 +1511,18 @@ void DateTime::Minus(const DateTime* P2) {
       SetDefined(false);
       return;
    }
-   value -= P2->value;
+   // "begin of time" and "end of time" are the extreme int64 values, so a
+   // subtraction involving one of them can leave the representable range. A
+   // result that cannot be represented is reported as undefined rather than
+   // wrapped: signed overflow is undefined behaviour, and the wrapped value
+   // was not meaningful either.
+   const int64_t v2 = P2->value;
+   if( (v2 < 0 && value > max_VALUE + v2) ||
+       (v2 > 0 && value < min_VALUE + v2) ){
+      SetDefined(false);
+      return;
+   }
+   value -= v2;
 
 
 }

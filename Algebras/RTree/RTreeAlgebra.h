@@ -1726,7 +1726,7 @@ The destructor.
 Open and Save are used by NetworkAlgebra to save and open the rtree of network.
 
 */
-    bool  Open( SmiRecord& valueRecord,
+    static bool Open( SmiRecord& valueRecord,
                 size_t& offset,
                 std::string typeInfo,
                 Word &value);

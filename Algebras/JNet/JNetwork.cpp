@@ -741,14 +741,14 @@ JNetwork::JNetwork(SmiRecord& valueRecord, size_t& offset,
   Word wTree;
 
   if (ok)
-    ok = junctionsRTree->Open(valueRecord, offset,
+    ok = R_Tree<2,TupleId>::Open(valueRecord, offset,
                               JNetUtil::GetJunctionsRTreeTypeInfo(), wTree);
 
   if (ok)
     junctionsRTree = (R_Tree<2,TupleId>*) wTree.addr;
 
   if (ok)
-    ok = sectionsRTree->Open(valueRecord, offset,
+    ok = R_Tree<2,TupleId>::Open(valueRecord, offset,
                              JNetUtil::GetSectionsRTreeTypeInfo(), wTree);
 
   if (ok)

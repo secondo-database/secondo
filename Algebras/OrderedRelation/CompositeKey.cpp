@@ -141,7 +141,7 @@ CompositeKey::CompositeKey(PrefetchingIterator* iter, SmiSize& offset):
 }
 
 CompositeKey::CompositeKey() :
-  IndexableAttribute(false),data(0){
+  IndexableAttribute(false),kdt(SmiKey::Unknown),charsize(0),data(0){
 }
 
 CompositeKey::CompositeKey(const CompositeKey& src): IndexableAttribute(src),
