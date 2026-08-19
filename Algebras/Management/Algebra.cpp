@@ -105,6 +105,9 @@ OperatorInfo::OperatorInfo( const string& opName, const string& specStr)
   if (list.length() >= 5)
   remark = list.elem(5).str();
 
+  supportsProgress = false;
+  requestsArgs = false;
+  usesArgsInTypeMapping = false;
   usesMemory = false;
   supportsInitFinish = false;
 }

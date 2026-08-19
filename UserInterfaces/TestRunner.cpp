@@ -264,7 +264,7 @@ TestRunner::TestRunner( const TTYParameter& tp )
   testCaseLine = 0;
   numErrors = 0;
 
-  expectedResult = nl->TheEmptyList();
+  expectedResult = 0;
   
   verbose = false;
 

@@ -192,13 +192,15 @@ class SecondoServer : public Application
   string CreateTmpName(const string& prefix);
   bool WaitForRequest();
 
-  Socket*           client;
-  SecondoInterface* si;
-  NestedList*       nl;
+  // Initialised here, not in Execute(): the destructor deletes client, si and
+  // csp, and Execute() can return before it ever assigns them.
+  Socket*           client = 0;
+  SecondoInterface* si = 0;
+  NestedList*       nl = 0;
   string            parmFile;
   string            dbDir;
   string            port;
-  bool              quit;
+  bool              quit = false;
   // The sink offered to the command being executed, or 0 outside CallSecondo.
   // WriteResponse asks it whether the result has already gone out, in which
   // case only the frame's terminator is left to write.
@@ -206,9 +208,9 @@ class SecondoServer : public Application
   string            registrar;
   string            user;
   string            pswd;
-  bool              sqlEnabled;
+  bool              sqlEnabled = false;
 
-  CSProtocol* csp;
+  CSProtocol* csp = 0;
 };
 
 
