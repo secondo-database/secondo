@@ -1,0 +1,192 @@
+name: Sanitizer build and test
+
+# On demand only. A full AddressSanitizer + UndefinedBehaviorSanitizer build of
+# the tree plus the whole test suite takes far longer than the ordinary build,
+# and the bugs it finds are not the kind that appear between one commit and the
+# next, so paying for it on every push would buy little.
+on:
+  workflow_dispatch:
+    inputs:
+      test_timeout:
+        description: 'Per-test timeout in seconds'
+        required: false
+        default: '12000'
+      cs_clients:
+        description: 'Concurrent clients in the client/server test'
+        required: false
+        default: '6'
+
+jobs:
+  # --------------------------------------------------------------------------
+  # "make SECONDO_ASAN=1 SECONDO_UBSAN=1" (see makefile.env) instruments the
+  # whole tree. One runner is enough: these sanitizers find bugs in the code,
+  # not in the platform, so repeating the job across Ubuntu versions would cost
+  # three times as much to learn the same thing.
+  #
+  # Unlike the ThreadSanitizer job, this one deliberately runs the .test suites
+  # and the .examples files. Breadth over the operator set is exactly what finds
+  # uninitialised reads, bad enum values and misaligned access -- those live in
+  # individual operators, not in the process tree.
+  # --------------------------------------------------------------------------
+  build-linux-asan-ubsan:
+    runs-on: ubuntu-26.04
+    env:
+      # halt_on_error is deliberately NOT set. UBSan prints and carries on, and
+      # run-tests.sh fails a test by scanning its log rather than by trusting
+      # the exit code, so aborting at the first finding would only hide every
+      # later one in the same run and turn cataloguing them into one build per
+      # bug.
+      #
+      # The suppression files list findings that already existed when the
+      # sanitizers were switched on. They are real bugs, not false positives;
+      # the lists are a ratchet so anything NEW fails while the backlog is
+      # worked down. Leak suppressions must go in LSAN_OPTIONS: ASan reads its
+      # own file as interceptor suppressions and rejects a leak: pattern with
+      # "failed to parse suppressions".
+      ASAN_OPTIONS: detect_leaks=1
+      UBSAN_OPTIONS: >-
+        print_stacktrace=1
+        suppressions=${{ github.workspace }}/CM-Scripts/ubsan.supp
+      LSAN_OPTIONS: >-
+        suppressions=${{ github.workspace }}/CM-Scripts/lsan.supp
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v7
+
+      - name: Setup ccache
+        uses: hendrikmuhs/ccache-action@v1.2.23
+        with:
+          # Its own key: -fsanitize=address,undefined changes every command
+          # line, so these objects would never hit the build-linux cache and
+          # sharing a key would only make the jobs evict each other. Larger,
+          # too, because instrumented objects are bigger.
+          key: asan-ubsan-ubuntu-26.04
+          max-size: 2G
+
+      - name: Update packages
+        run: |
+          sudo apt-get update
+
+      - name: Install packages
+        run: |
+          sudo apt-get -y install flex bison gcc g++ libdb5.3 libdb5.3-dev libdb5.3++ libdb5.3++-dev db5.3-util libjpeg-dev libgsl0-dev libreadline-dev librecode-dev libgmp-dev libncurses-dev libxml2-dev libboost-all-dev build-essential default-jdk wget swi-prolog-nox swi-prolog-java swi-prolog libquadmath0 libgmp-dev libgmp10 libboost-all-dev libbison-dev libfl-dev nlohmann-json3-dev
+
+      - name: Detect SECONDO build environment
+        run: |
+          {
+            echo "SECONDO_BUILD_DIR=${GITHUB_WORKSPACE}"
+            echo "SECONDO_CC=ccache gcc"
+            echo "SECONDO_CPP=ccache g++"
+          } >> "$GITHUB_ENV"
+          make -s -f makefile.detect print-vars
+          make -f makefile.detect check-env
+
+      - name: Show ccache statistics (before build)
+        run: ccache -s
+
+      # compileJava=false skips the Java GUI: javac never sees a sanitizer flag,
+      # so building it here would only cost time.
+      - name: Build SECONDO with Address and UndefinedBehavior sanitizers
+        run: |
+          make -j $(nproc) SECONDO_ASAN=1 SECONDO_UBSAN=1 compileJava=false
+
+      - name: Show ccache statistics (after build)
+        run: ccache -s
+
+      # A binary that was never instrumented reports nothing and looks exactly
+      # like a clean run, so check the binaries carry the sanitizers' calls
+      # before trusting anything below.
+      - name: Check that the binaries are instrumented
+        run: |
+          rc=0
+          for b in bin/SecondoMonitor bin/SecondoListener bin/SecondoBDB \
+                   bin/SecondoCS bin/TestRunner bin/Selftest; do
+            [ -x "$b" ] || { echo "FAIL: $b missing"; rc=1; continue; }
+            a=$(nm -C "$b" | grep -c __asan_ || true)
+            u=$(nm -C "$b" | grep -c __ubsan_ || true)
+            echo "$b: $a __asan_, $u __ubsan_ references"
+            if [ "$a" -lt 10 ] || [ "$u" -lt 10 ]; then
+              echo "FAIL: $b is not instrumented by both sanitizers"; rc=1
+            fi
+          done
+          exit $rc
+
+      # The suppression files are only useful if the runtimes actually accept
+      # them. A malformed entry makes the runtime bail out with "failed to parse
+      # suppressions", which silently disables every suppression in the file --
+      # and an unknown check name is enough to do it.
+      - name: Check that the suppression files parse
+        run: |
+          rc=0
+          out=$(cd bin && printf 'quit;\n' | ./SecondoTTYBDB 2>&1) || true
+          if echo "$out" | grep -q "failed to parse suppressions"; then
+            echo "FAIL: a suppression file was rejected by a sanitizer runtime"
+            echo "$out" | grep -B2 -A2 "failed to parse suppressions"
+            rc=1
+          fi
+          exit $rc
+
+      - name: Test the nested list storage layer
+        run: |
+          make -C Tests tnestedlist SECONDO_ASAN=1 SECONDO_UBSAN=1
+          Tests/tnestedlist
+
+      - name: Test the BigArray chunked storage
+        run: |
+          make -C Tests tbigarray SECONDO_ASAN=1 SECONDO_UBSAN=1
+          Tests/tbigarray
+
+      # The optimizer is skipped for the same reason the ThreadSanitizer job
+      # skips it: SecondoBDB embeds an uninstrumented libswipl that manages its
+      # own memory and shifts stacks. Under ASan that surfaces as the allocator
+      # itself failing ("AddressSanitizer failed to deallocate ..."), which says
+      # nothing about SECONDO.
+      #
+      # Fewer concurrent clients than the default 25: every server in the tree
+      # is instrumented here, and 25 of them together are slow enough that the
+      # clients time out waiting for a greeting.
+      - name: Test SECONDO
+        run: |
+          cd CM-Scripts/
+          SECONDO_SKIP_OPTIMIZER_TESTS=true \
+          SECONDO_CS_TEST_CLIENTS=${{ inputs.cs_clients }} \
+          SECONDO_CS_TEST_SQL_CLIENTS=${{ inputs.cs_clients }} \
+            ./run-tests.sh -tty /tmp/secondotest-asan ${{ inputs.test_timeout }}
+
+      # run-tests.sh names the cause of each failure and prints the finding
+      # ahead of the log, but the logs themselves stay on the runner.
+      - name: Show failed test logs
+        if: failure()
+        run: |
+          for f in "${GITHUB_WORKSPACE}"/bin/*.test.log \
+                   "${GITHUB_WORKSPACE}"/bin/tmp/*.examples.log; do
+            [ -f "$f" ] || continue
+            echo "########## $f"; tail -120 "$f"
+          done || true
+          find /tmp/secondotest-asan -type f 2>/dev/null | while read -r f; do
+            echo "########## $f"; tail -120 "$f"
+          done || true
+          for f in "${GITHUB_WORKSPACE}"/ClientServer/TestClientServer.log \
+                   "${GITHUB_WORKSPACE}"/bin/server.msg/*; do
+            [ -f "$f" ] || continue
+            echo "########## $f"; tail -120 "$f"
+          done || true
+
+      # A compact list of what the run found, so the summary page answers "what
+      # broke" without opening the log.
+      - name: Summarise sanitizer findings
+        if: always()
+        run: |
+          {
+            echo "### Sanitizer findings"
+            echo
+            echo '| count | finding |'
+            echo '|------:|---------|'
+            cat "${GITHUB_WORKSPACE}"/bin/*.test.log \
+                "${GITHUB_WORKSPACE}"/bin/tmp/*.examples.log 2>/dev/null \
+              | grep -ohE "ERROR: (Address|Leak|Thread)Sanitizer: [a-z-]+|^[A-Za-z0-9_/.-]+\.(cpp|h):[0-9]+:[0-9]+: runtime error: [a-z ]+" \
+              | sed 's/|/\\|/g' | sort | uniq -c | sort -rn | head -40 \
+              | while read -r n rest; do echo "| $n | \`$rest\` |"; done
+            echo
+            echo 'Empty means the run was clean apart from what the suppression files already cover.'
+          } >> "$GITHUB_STEP_SUMMARY"
