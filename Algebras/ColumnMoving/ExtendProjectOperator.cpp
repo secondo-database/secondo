@@ -342,5 +342,7 @@ create and return the projected and extended block
     m_projectionIndices.GetCapacity(), extendColumns, extendColumnCount,
     m_extensionTypes);
 
+  sourceBlock->DecRef();
+
   return block;
 }

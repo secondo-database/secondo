@@ -2669,6 +2669,9 @@ M* RewriteLI<M>::getNextResult() {
 //           imi.print(true);
           rewBindings.insert(imi);
           M *source = match->m;
+          if (result) { // only the last result of the run is returned
+            result->DeleteIfAllowed();
+          }
           result = rewrite(source, imi, match->p->getAssigns());
         }
       }

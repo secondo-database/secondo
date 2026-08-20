@@ -2295,6 +2295,7 @@ void JNetwork::OutCircle(const jnetwork::RouteLocation& src,
     PQManagement* pqueue = new PQManagement();
     InitPriorityQueue(pqueue, src, distLimit, result);
     ProcessPriorityQueue(pqueue, distLimit, result);
+    delete pqueue;
     result->EndBulkload();
   }
   else
@@ -2314,6 +2315,7 @@ void JNetwork::InCircle(const jnetwork::RouteLocation& src,
     PQManagement* pqueue = new PQManagement();
     InitReversePriorityQueue(pqueue, src, distLimit, result);
     ProcessReversePriorityQueue(pqueue, distLimit, result);
+    delete pqueue;
     result->EndBulkload();
   }
   else

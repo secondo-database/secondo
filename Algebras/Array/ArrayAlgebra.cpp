@@ -1347,9 +1347,12 @@ tieFun( Word* args, Word& result, int message, Word& local, Supplier s )
 
   // In the next statement the (by the Query Processor) provided place for
   // the result is not used in order to be flexible with regard to the
-  // result type.
+  // result type. It has to be handed over explicitly, otherwise nobody ever
+  // frees it.
 
+  qp->DeleteResultStorage(s);
   result.addr = partResult.addr;
+  qp->ChangeResultStorage(s, result);
 
   return 0;
 }
@@ -1436,6 +1439,11 @@ cumulateFun( Word* args, Word& result, int message, Word& local, Supplier s )
   Word* a = new Word[n];
   Word cumResult;
 
+  // The first value still belongs to the argument array; every later one is
+  // a clone owned by this function and has to be freed once it has been
+  // copied into a[i] and used as the argument of the next round.
+  bool cumResultIsClone = false;
+
   cumResult = array->getElement(0);
 
   for (int i=0; i<n; i++) {
@@ -1446,14 +1454,24 @@ cumulateFun( Word* args, Word& result, int message, Word& local, Supplier s )
       qp->Request(args[1].addr, funresult);
 
       if (funresult.addr != cumResult.addr) {
-        //(am->DeleteObj(algebraId, typeId))(typeOfElement, cumResult);
-        // SPM: will be deleted by the QP's destroy function.
+        Word previous = cumResult;
+        bool previousIsClone = cumResultIsClone;
+
         cumResult =
              Array::genericClone(algebraId, typeId, typeOfElement, funresult);
+        cumResultIsClone = true;
+
+        if (previousIsClone) {
+          (am->DeleteObj(algebraId, typeId))(typeOfElement, previous);
+        }
       }
     }
 
     a[i] = Array::genericClone(algebraId, typeId, typeOfElement, cumResult);
+  }
+
+  if (cumResultIsClone) {
+    (am->DeleteObj(algebraId, typeId))(typeOfElement, cumResult);
   }
 
   result = qp->ResultStorage(s);

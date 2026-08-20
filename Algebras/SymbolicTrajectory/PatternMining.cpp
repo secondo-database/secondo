@@ -2764,7 +2764,8 @@ void RelAgg::combineEntries(unsigned int endOfPrefix, RelAgg *ra,
 //          << ra->freqLabels[label] << ", has " << newEntry.occs.size() 
 //          << " occs" << endl;
   }
-  else {
+  else { // entry is discarded; its periods would leak otherwise
+    newEntry.deletePeriods();
     freqLabels[label] = "";
   }
 }

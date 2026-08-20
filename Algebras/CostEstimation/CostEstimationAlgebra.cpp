@@ -144,6 +144,10 @@ class GetCostConstantsLocal{
        pos = 0;
     }
 
+    ~GetCostConstantsLocal(){
+       tt->DeleteIfAllowed();
+    }
+
     Tuple* next(){
      if(pos>=values.size()){
        return 0;

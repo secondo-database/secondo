@@ -1594,6 +1594,15 @@ TupleFileIterator::TupleFileIterator(TupleFile& f)
 
 TupleFileIterator::~TupleFileIterator()
 {
+  // The next data block is always prefetched, so one is still held whenever
+  // the scan is abandoned before the end of the file -- e.g. by an operator
+  // like head, which stops requesting tuples early.
+  if ( data )
+  {
+    free(data);
+    data = 0;
+  }
+
   tupleFile.Close();
 }
 
@@ -1678,6 +1687,7 @@ char* TupleFileIterator::readData(size_t& size)
       cerr << "TupleFileIterator::ReadNextTuple: error "
            << "reading tuple data block in file '"
            << tupleFile.pathName << "'!\n" << endl;
+      free(data);
       size = 0;
       return 0;
     }

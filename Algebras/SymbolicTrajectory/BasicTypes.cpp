@@ -169,11 +169,13 @@ CcString* HybridDistanceParameters::getDefault(unsigned int memberNo) {
       break;
     }
     case 5: {
-      if (getDefaultGeoid() == 0) {
+      Geoid *defaultGeoid = getDefaultGeoid();
+      if (defaultGeoid == 0) {
         valuestr << "null" << endl;
       }
       else {
-        valuestr << getDefaultGeoid()->getName();
+        valuestr << defaultGeoid->getName();
+        defaultGeoid->DeleteIfAllowed();
       }
       break;
     }

@@ -4811,7 +4811,11 @@ bool MakeOp::P_Intersects(const Line* line1, const Line* line2)
       // if two segments are the same -> return true
       if (hs1.GetLeftPoint()== hs2.GetLeftPoint() &&
           hs1.GetRightPoint()== hs2.GetRightPoint() )
-         { return true; }
+      {
+         res1->Destroy(); delete res1;
+         res2->Destroy(); delete res2;
+         return true;
+      }
       else if ( hs1 < hs2)  i ++;
       else if ( hs1 > hs2)   j ++;
    } // end while

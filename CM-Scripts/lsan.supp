@@ -34,17 +34,8 @@ leak:extrelationalg::SymmProduct
 # 1749 objects, 0.10%; seen in: PartitionedStream.examples, partstream.test
 leak:extrelationalg::SymmJoin
 
-# 562 objects, 0.03%; seen in: STPattern.examples
-leak:STP::ImportPAReasonerFromArgs
-
 # 165 objects, 0.01%; seen in: partstream.test -- BROAD
 leak:Relation::GetTuple
-
-# 59 objects, 0.00%; seen in: SymbolicTrajectory.examples
-leak:stj::AggEntry::sequentialJoin
-
-# 30 objects, 0.00%; seen in: Array.examples, array.test -- BROAD
-leak:CcInt::Clone
 
 # 28 objects, 0.00%; seen in: PartitionedStream.examples, partstream.test -- BROAD
 leak:TupleBuffer::MakeScan
@@ -52,14 +43,10 @@ leak:TupleBuffer::MakeScan
 # 18 objects, 0.00%; seen in: PartitionedStream.examples, partstream.test -- BROAD
 leak:InCcInt
 
-# 14 objects, 0.00%; seen in: SymbolicTrajectory.examples, histogram.test -- BROAD
+# seen in: histogram.test -- BROAD. The SymbolicTrajectory.examples half of
+# this entry was jaccardSimilarity not releasing its GetComponent results and
+# is fixed; what is left comes in through histogram.test.
 leak:CreateCcReal
-
-# 10 objects, 0.00%; seen in: SymbolicTrajectoryBasic.examples
-leak:stj::Label::Clone
-
-# 7 objects, 0.00%; seen in: TrajectorySimilarity.examples
-leak:tsa::LIPAggregator
 
 # 6 objects, 0.00%; seen in: FileIndex.examples, MainMemory2.examples, Pregel.examples -- BROAD
 leak:QueryProcessor::EvalP
@@ -70,56 +57,17 @@ leak:DBService::DBServiceClient::DBServiceClient
 # 4 objects, 0.00%; seen in: histogram.test
 leak:realstreamFun
 
-# 2 objects, 0.00%; seen in: UpdateRelation.examples, update_simple.test
-leak:UpdateSearchSave
-
-# 2 objects, 0.00%; seen in: planesweep.test
-leak:planesweep::MakeOp::P_Intersects
-
-# 2 objects, 0.00%; seen in: SymbolicTrajectory.examples
-leak:stj::RewriteLI
-
-# 2 objects, 0.00%; seen in: SymbolicTrajectory.examples
-leak:stj::HybridDistanceParameters::getDefaultGeoid
-
-# 2 objects, 0.00%; seen in: JNet.examples
-leak:jnetwork::JNetwork::OutCircle
-
-# 2 objects, 0.00%; seen in: JNet.examples
-leak:jnetwork::JNetwork::InCircle
-
 # 2 objects, 0.00%; seen in: DBService.examples
 leak:DBService::OperatorInitDBServiceWorker::mapValue
 
 # 1 objects, 0.00%; seen in: PartitionedStream.examples
 leak:PartStreamMappings::runtime_vm
 
-# 1 objects, 0.00%; seen in: ExtRelation2.examples -- BROAD
-leak:TupleFileIterator::readData
-
-# 1 objects, 0.00%; seen in: CostEstimation.examples
-leak:GetCostConstantsLocal::GetCostConstantsLocal
-
 # 1 objects, 0.00%; seen in: TemporalNet.examples -- BROAD
 leak:QueryProcessor::Open
 
-# 1 objects, 0.00%; seen in: ColumnMoving.examples
-leak:Stream
-
-# 1 objects, 0.00%; seen in: SymbolicTrajectory.examples
-leak:stj::LongestcommonsubsequenceLI
-
-# 1 objects, 0.00%; seen in: ContinuousQueries.examples
-leak:continuousqueries::relFromTupleBinStr_VM
-
-# 1 objects, 0.00%; seen in: RegionInterpolation2.examples
-leak:temporalalgebra::InMRegion
-
 # 1 objects, 0.00%; seen in: DBService.examples
 leak:DBService::DBServiceManager::restoreConfiguration
-
-
-# --- found by a later full pass; same backlog, same rules ---
 
 # SpatialJoin.examples -- BROAD, core catalog entry point
 leak:SecondoCatalog::InObject

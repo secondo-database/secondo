@@ -139,16 +139,14 @@ int relFromTupleBinStr_VM(Word* args, Word& result, int message,
     Tuple* t = new Tuple(tt);
 
     t->ReadFromBinStr(0, tuplebinstr);
-    
-    Relation* rel = new Relation(tt);
-    
+    result = qp->ResultStorage(s);
+    GenericRelation* rel = static_cast<GenericRelation*>(result.addr);
+
     rel->Clear();
     rel->AppendTuple(t);
     
     t->DeleteIfAllowed();
     tt->DeleteIfAllowed();
-
-    result.setAddr(rel);
 
     return 0;
 }

@@ -130,9 +130,15 @@ int interpolate2valmap(Word* args,
         w = InMRegion(nl->Empty(), Rl2ListExpr(res), 0, err, correct);
     }
     
-    if (correct)
+    if (correct) {
+        // InMRegion built its own MRegion; hand it over to the query
+        // processor and release the default result storage, which would
+        // otherwise be the only reference left to either of them.
+        MRegion *resultStorage = static_cast<MRegion*> (result.addr);
         result.setAddr(w.addr);
-    else {
+        qp->ChangeResultStorage(s, result);
+        resultStorage->DeleteIfAllowed();
+    } else {
        // Yield an error message here.
        ErrorReporter::ReportError("interpolate2 internal error");
        MRegion *res = new MRegion(0);

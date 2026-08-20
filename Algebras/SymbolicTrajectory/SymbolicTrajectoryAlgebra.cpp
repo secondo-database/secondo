@@ -593,11 +593,11 @@ class LongestcommonsubsequenceLI {
   ~LongestcommonsubsequenceLI() {}
   
   B* getNextValue() {
-    B *value = new B(true);
     int pos = limits.first + counter;
     if (pos > limits.second) {
       return 0;
     }
+    B *value = new B(true);
     src.GetBasic(pos, *value);
     counter++;
     return value;

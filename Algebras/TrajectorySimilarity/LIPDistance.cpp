@@ -456,7 +456,7 @@ public:
   void addPolygon(std::unique_ptr<Polygon> polygon)
   {
     if (polygon)
-      polygons.push_back(std::move(*polygon.release()));
+      polygons.push_back(std::move(*polygon));
   }
 
   void reset()

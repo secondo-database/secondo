@@ -3022,10 +3022,12 @@ int UpdateSearchSave(Word* args, Word& result, int message,
                     ((Attribute*)value.addr)->Clone();
                   (*newAttrs)[i-1] = newAttribute;
 
-                  // change attribute value for the output tuple
-                  newTuple->PutAttribute(index, newAttribute);
+                  // change attribute value for the output tuple. UpdateTuple
+                  // below hands the same attribute to nextTup, so both tuples
+                  // have to hold a reference of their own -- otherwise
+                  // whichever is destroyed first takes the attribute with it.
+                  newTuple->PutAttribute(index, newAttribute->Copy());
                 }
-                nextTup->IncReference();
                 qp->SetModified(qp->GetSon(s, 1));
                 qp->SetModified(qp->GetSon(s, 2));
                 relation->UpdateTuple( nextTup,*changedIndices,*newAttrs);

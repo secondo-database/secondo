@@ -3045,6 +3045,7 @@ int ComputeClosureVM(
   Word value;
   PointAlgebraReasoner* paReasoner= 0;
   ClosureResult closureRes= ImportPAReasonerFromArgs(TRTable, paReasoner);
+  delete paReasoner;
   result = qp->ResultStorage( s );
   ((CcInt*)result.addr)->Set(true, closureRes);
   return 0;

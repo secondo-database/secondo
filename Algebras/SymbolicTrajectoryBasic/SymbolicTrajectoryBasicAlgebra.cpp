@@ -1758,6 +1758,8 @@ double jaccardSimilarity(collection::Collection& v1,
     else if (elem1->GetValue() > 0 || elem2->GetValue() > 0) {
       un++;
     }
+    elem1->DeleteIfAllowed();
+    elem2->DeleteIfAllowed();
   }
   if (un == 0) {
     return 0.0;
@@ -2215,12 +2217,15 @@ int collect_labelsVM(Word* args, Word& result, int message, Word& local,
   while (elem != 0) {
     if (!elem->IsDefined() && !ignoreundef) {
       res->SetDefined(false);
+      elem->DeleteIfAllowed();
+      stream.close();
       return 0;
     }
     else {
       string elemstr = elem->GetValue();
       res->Append(elemstr);
     }
+    elem->DeleteIfAllowed();
     elem = stream.request();
   }
   stream.close();
