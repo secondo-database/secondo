@@ -734,6 +734,16 @@ tree is built, the ~Destroy~ function should be called.
 
 */
 
+  void ReleaseAnnotatedConstant( const ListExpr annotatedArg );
+/*
+Releases the entry of the ~values~ array that ~Annotate~ created for an
+annotated constant atom. The pseudo operators ~counter~, ~predinfo~ and
+~memory~ keep only the plain number of their annotated arguments, so no node
+of the operator tree ever refers to those entries and neither ~Destroy~ nor
+~DestroyValuesArray~ can reach them.
+
+*/
+
   bool IsCorrectTypeExpr( const ListExpr expr );
 
 

@@ -13,23 +13,14 @@
 # core engine entry point shared by unrelated callers -- those blind the most
 # and are worth replacing with a real fix first, ahead of raw size.
 
-# 600000 objects, 34.38%; seen in: histogram.test
-leak:Transformstream_S_TS
-
 # 503313 objects, 28.84%; seen in: PartitionedStream.examples, partstream.test
 leak:RelationAddr::getNext
 
-# 223112 objects, 12.78%; seen in: histogram.test -- BROAD
-leak:Product
-
-# 168805 objects, 9.67%; seen in: NestedRelation2.examples, PartitionedStream.examples, histogram.test -- BROAD
+# seen in: NestedRelation2.examples, PartitionedStream.examples -- BROAD
 leak:OperatorFeed::Feed
 
 # 125335 objects, 7.18%; seen in: PartitionedStream.examples, partstream.test
 leak:PartStreamMappings::puse_vm
-
-# 121963 objects, 6.99%; seen in: Histogram.examples, histogram.test
-leak:extrelationalg::SymmProduct
 
 # 1749 objects, 0.10%; seen in: PartitionedStream.examples, partstream.test
 leak:extrelationalg::SymmJoin
@@ -43,19 +34,11 @@ leak:TupleBuffer::MakeScan
 # 18 objects, 0.00%; seen in: PartitionedStream.examples, partstream.test -- BROAD
 leak:InCcInt
 
-# seen in: histogram.test -- BROAD. The SymbolicTrajectory.examples half of
-# this entry was jaccardSimilarity not releasing its GetComponent results and
-# is fixed; what is left comes in through histogram.test.
-leak:CreateCcReal
-
 # 6 objects, 0.00%; seen in: FileIndex.examples, MainMemory2.examples, Pregel.examples -- BROAD
 leak:QueryProcessor::EvalP
 
 # 5 objects, 0.00%; seen in: DBService.examples
 leak:DBService::DBServiceClient::DBServiceClient
-
-# 4 objects, 0.00%; seen in: histogram.test
-leak:realstreamFun
 
 # 2 objects, 0.00%; seen in: DBService.examples
 leak:DBService::OperatorInitDBServiceWorker::mapValue
@@ -68,15 +51,6 @@ leak:QueryProcessor::Open
 
 # 1 objects, 0.00%; seen in: DBService.examples
 leak:DBService::DBServiceManager::restoreConfiguration
-
-# SpatialJoin.examples -- BROAD, core catalog entry point
-leak:SecondoCatalog::InObject
-
-# SpatialJoin.examples -- BROAD, core query-processor entry point
-leak:QueryProcessor::Annotate
-
-# MainMemory2.examples -- BROAD, shared value-input function
-leak:InCcReal
 
 # MainMemory2.examples -- leak inside Berkeley DB's allocator, not our code
 leak:__os_malloc

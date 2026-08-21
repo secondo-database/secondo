@@ -1014,6 +1014,9 @@ The algorithm is taken from
             << "The stream contains an undefined value." << endl;
         resultHg->Clear();
         resultHg->SetDefined(false);
+        // The element just requested is still owned here; leaving the loop
+        // early skips the DeleteIfAllowed at the end of the body.
+        streamObj->DeleteIfAllowed();
         qp->Close(args[0].addr);
         return 0;
       }
@@ -1024,6 +1027,7 @@ The algorithm is taken from
             << "The stream is not sorted or contains duplicates." << endl;
         resultHg->Clear();
         resultHg->SetDefined(false);
+        streamObj->DeleteIfAllowed();
         qp->Close(args[0].addr);
         return 0;
       }

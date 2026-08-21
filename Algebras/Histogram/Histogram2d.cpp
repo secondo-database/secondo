@@ -1275,6 +1275,21 @@ int SetHistogram2dFun(Word *args, Word &result, int message, Word &local,
   receivedX = qp->Received(args[0].addr);
   receivedY = qp->Received(args[1].addr);
 
+  // Both streams keep one requested element pending in ~elemX~/~elemY~ while
+  // the loop runs; it is consumed at the end of the respective block. The
+  // error exits below leave the loop before that happens, so they have to
+  // release whatever is still pending on either side.
+  auto releasePending = [&]() {
+    if (receivedX) {
+      ((CcReal *)elemX.addr)->DeleteIfAllowed();
+      receivedX = false;
+    }
+    if (receivedY) {
+      ((CcReal *)elemY.addr)->DeleteIfAllowed();
+      receivedY = false;
+    }
+  };
+
   while (receivedX || receivedY) {
     if (receivedX) {
       streamObjX = (CcReal *)elemX.addr;
@@ -1285,6 +1300,7 @@ int SetHistogram2dFun(Word *args, Word &result, int message, Word &local,
              << "The first stream contains an undefined value." << endl;
         resultHg->Clear();
         resultHg->SetDefined(false);
+        releasePending();
         qp->Close(args[0].addr);
         qp->Close(args[1].addr);
         return 0;
@@ -1296,6 +1312,7 @@ int SetHistogram2dFun(Word *args, Word &result, int message, Word &local,
              << endl;
         resultHg->Clear();
         resultHg->SetDefined(false);
+        releasePending();
         qp->Close(args[0].addr);
         qp->Close(args[1].addr);
         return 0;
@@ -1326,6 +1343,7 @@ int SetHistogram2dFun(Word *args, Word &result, int message, Word &local,
              << "The second stream contains an undefined value." << endl;
         resultHg->Clear();
         resultHg->SetDefined(false);
+        releasePending();
         qp->Close(args[0].addr);
         qp->Close(args[1].addr);
         return 0;
@@ -1337,6 +1355,7 @@ int SetHistogram2dFun(Word *args, Word &result, int message, Word &local,
              << endl;
         resultHg->Clear();
         resultHg->SetDefined(false);
+        releasePending();
         qp->Close(args[0].addr);
         qp->Close(args[1].addr);
         return 0;
@@ -2709,6 +2728,11 @@ public:
    */
 
   ~SortStream() {
+    while (!tuples.empty()) {
+      tuples.top().ref->DeleteIfAllowed();
+      tuples.pop();
+    }
+
     while (!mergeTuples.empty()) {
       mergeTuples.top().ref->DeleteIfAllowed();
       mergeTuples.pop();

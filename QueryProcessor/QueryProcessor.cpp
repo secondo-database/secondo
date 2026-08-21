@@ -2607,6 +2607,8 @@ will be processed.
               int counterNo =
                 nl->IntValue(nl->First(nl->First(nl->Second(list))));
 
+              ReleaseAnnotatedConstant( nl->Second(list) );
+
               if ( counterNo > 0 && counterNo <= NO_COUNTERS )
               {
                 return nl->TwoElemList(
@@ -2636,6 +2638,9 @@ will be processed.
               if (traceMode)
                 cout << "Case 5: A predinfo definition." << endl;
 
+              ReleaseAnnotatedConstant( nl->Second(list) );
+              ReleaseAnnotatedConstant( nl->Third(list) );
+
               return nl->TwoElemList(
                          nl->FiveElemList(
                            nl->SymbolAtom("none"),
@@ -2650,6 +2655,8 @@ will be processed.
             {
               if (traceMode)
                 cout << "Case 6: A memory definition." << endl;
+
+              ReleaseAnnotatedConstant( nl->Second(list) );
 
               return nl->TwoElemList(
                        nl->FourElemList(
@@ -3108,6 +3115,42 @@ QueryProcessor::DestroyValuesArray()
       }
     }
   }
+}
+
+/*
+Releases a single constant of the ~values~ array.
+
+~Annotate~ turns every constant atom into an entry of the ~values~ array and
+into an annotated node ~(<value> constant <index>)~. The pseudo operators
+~counter~, ~predinfo~ and ~memory~ do not pass that node on -- they copy the
+plain number out of it and drop the rest -- so the operator tree never refers
+to the entry and neither ~Destroy~ nor ~DestroyValuesArray~ reaches it. Those
+annotations call this function to give the value back right away.
+
+*/
+void
+QueryProcessor::ReleaseAnnotatedConstant( const ListExpr annotatedArg )
+{
+  if ( !nl->HasMinLength( annotatedArg, 1 ) )
+    return;
+
+  ListExpr constant = nl->First( annotatedArg );
+  if ( !nl->HasLength( constant, 3 ) ||
+       nl->AtomType( nl->Second( constant ) ) != SymbolType ||
+       nl->SymbolValue( nl->Second( constant ) ) != "constant" ||
+       nl->AtomType( nl->Third( constant ) ) != IntType )
+    return;
+
+  int index = nl->IntValue( nl->Third( constant ) );
+  if ( index < 0 || index >= valueno )
+    return;
+
+  ValueInfo& v = values[index];
+  if ( !v.isConstant || v.isList || v.isPtr || v.value.addr == 0 )
+    return;
+
+  (algebraManager->DeleteObj( v.algId, v.typeId ))( v.typeInfo, v.value );
+  v.value.setAddr( 0 );
 }
 
 /*****************************************************************************
