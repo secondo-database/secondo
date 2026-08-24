@@ -45,9 +45,9 @@ SECONDO consists of three components that can be used together or independently:
 | --- | --- | --- |
 | **Kernel** | C++ | Query processing over the implemented algebras; extensible by algebra modules; uses Berkeley DB as storage manager. |
 | **Optimizer** | Prolog | Conjunctive query optimization and an SQL-like query language, translated into executable query plans. |
-| **GUI (Javagui)** | Java | Extensible graphical interface with viewers for spatial data and animation of moving objects. |
+| **WebUI** | Python + TypeScript/React | Browser-based interface: a FastAPI bridge in front of the kernel, and a React/deck.gl frontend with a map view, layer styling, and timeline animation for moving objects. |
 
-The GUI can send query plans directly to the kernel, or ask the optimizer to turn an SQL query
+The WebUI can send query plans directly to the kernel, or ask the optimizer to turn an SQL query
 into a plan. The optimizer, in turn, queries the kernel for schemas, cardinalities and
 selectivities. The kernel runs standalone or as a server (`SecondoMonitor`) that serves several
 clients concurrently.
@@ -103,14 +103,14 @@ To make the setup permanent, copy `CM-Scripts/secondorc.example` to `~/.secondor
 make -j$(nproc)      # macOS: make -j$(sysctl -n hw.ncpu)
 ```
 
-This builds the kernel, the optimizer and the GUI. Useful partial targets — see `make help` for
-the full list:
+This builds the kernel, the optimizer and the legacy Java GUI. Useful partial targets — see
+`make help` for the full list:
 
 | Target | Builds |
 | --- | --- |
 | `make TTY` | Kernel and the single-user shell interface only |
 | `make optimizer` | `SecondoPL` and the embedded optimizer engine |
-| `make java` | The Java GUI |
+| `make java` | The legacy Java GUI (`Javagui`) — superseded by the [WebUI](#6-start-the-webui) below |
 | `make runtests` | The automatic test suite |
 | `make clean` | All objects, libraries and applications |
 
@@ -166,17 +166,31 @@ Estimated costs: 75.0261
 
 To get more details about the optimizer, run `helpMe` or `showOptions`.
 
-### 6. Start the GUI
+### 6. Start the WebUI
 
-The GUI is a client, so a server has to be running first:
+The WebUI is a browser-based UI containing: a command console, a
+`deck.gl`/MapLibre map that renders points, lines, regions and moving objects, and a timeline
+that animates them. It is a client, so a server has to be running first:
 
 ```bash
 cd bin && ./SecondoMonitor -s          # start the database server
-cd Javagui && ./sgui                   # start the GUI
+
+cd ../WebUI
+source ~/.secondorc
+make venv native                       # once: Python virtualenv + the pybind11 bridge
+make prod                              # build the frontend, then serve everything on :8000
 ```
 
-`Javagui` shows query results in viewers — including a spatial viewer that renders points,
-lines and regions, and animates moving objects.
+Open `http://localhost:8000`, open `berlintest`, and try `query UBahn` — the underground network
+draws on the map as a background layer. `berlintest`'s coordinates are not WGS84, so switching
+the projection dropdown (top left) to **BerlinMOD → OSM** is what places it on a real
+OpenStreetMap basemap of Berlin:
+
+<img src="https://secondo-database.github.io/images/screen_ubahn_mapped.jpg" alt="SECONDO WebUI showing the Berlin U-Bahn network on an OpenStreetMap basemap">
+
+*Map data © [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors*
+
+See [WebUI/README.md](WebUI/README.md) for the full setup, prerequisites and development mode.
 
 ---
 
@@ -223,6 +237,21 @@ Secondo => query trajectory(train7);
 Secondo => query distance(train7, mehringdamm);
 ```
 
+This is where the [WebUI](#6-start-the-webui) pays off: the same queries, typed into its console
+against `berlintest`, draw and animate directly on the map. `query train7` animates the train
+along its route with a play/pause/scrub timeline:
+
+<img src="https://secondo-database.github.io/images/screen_ubahn_moving.jpg" alt="SECONDO WebUI animating train7 along the U-Bahn network on the timeline">
+
+*Map data © [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors*
+
+`query distance(train7, mehringdamm)` plots the same `mreal` alongside it, dropping to zero as
+the train passes through the station:
+
+<img src="https://secondo-database.github.io/images/screen_ubahn_mehringdam_mreal.jpg" alt="SECONDO WebUI animating train7 alongside its distance to mehringdamm as an mreal plot">
+
+*Map data © [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors*
+
 The same questions in SQL, via the optimizer:
 
 ```prolog
@@ -252,12 +281,9 @@ Secondo => query Trains feed filter[not(isempty(deftime(intersection(.Trip, msno
            projectextend[Id; Insnow: intersection(.Trip, msnow)] consume;
 ```
 
-This is where the GUI pays off: load the `BerlinU.cat` categories in the *Hoese viewer*, display
-`UBahn` as a background, and the query results become an animation — trains moving along the
-network, the snow area drifting across it, and the trains changing colour as they enter it.
-
-The full walk-through, including the GUI steps and the display styles to pick, is the
-[Short Guide to Using SECONDO](https://secondo-database.github.io/files/Documentation/General/Secondo-mod.pdf).
+The full walk-through — installation, every query above run from the WebUI console, and the
+query optimizer in action — is the
+[Getting Started guide](https://secondo-database.github.io/content_getting_started.html).
 
 ---
 
@@ -268,7 +294,7 @@ The full walk-through, including the GUI steps and the display styles to pick, i
 | `SecondoTTYBDB` | `bin/` | single user | Textual shell linked directly against the kernel. |
 | `SecondoTTYCS` | `bin/` | client | Same shell, but talks to `SecondoMonitor` over TCP/IP. |
 | `SecondoPL` | `Optimizer/` | single user | Prolog shell with SQL-like queries and the optimizer. |
-| `Javagui` (`sgui`) | `Javagui/` | client | Graphical interface with pluggable viewers. |
+| WebUI | `WebUI/` | client (browser) | Map view, layer styling, moving-object animation, SQL console. |
 | `TestRunner` | `bin/` | — | Runs `.test` scripts and checks expected results. |
 
 ---
@@ -277,8 +303,10 @@ The full walk-through, including the GUI steps and the display styles to pick, i
 
 | Document | |
 | --- | --- |
+| **Getting Started** — installation, first queries, moving objects | [Website](https://secondo-database.github.io/content_getting_started.html) |
 | **User Manual** — commands, interfaces, optimizer, GUI | [PDF](https://secondo-database.github.io/files/Documentation/General/SecondoManual.pdf) |
 | **Programmer's Guide** — writing your own algebra | [PDF](Documents/ProgrammersGuide.pdf) |
+| **WebUI** — architecture, setup, milestones | [WebUI/README.md](WebUI/README.md) |
 | **Installation Instructions** | [Website](https://secondo-database.github.io/content_install.html) |
 | **Algebra and viewer documentation** | [Website](https://secondo-database.github.io/content_docu.html) |
 | **Distributed Query Processing in SECONDO** | [PDF](https://secondo-database.github.io/files/Documentation/General/DistributedQueryProcessinginSecondo.pdf) |
