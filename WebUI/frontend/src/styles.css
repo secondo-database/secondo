@@ -1742,19 +1742,38 @@ body.dragging {
   cursor: default;
 }
 
-/* The two log switches. Pressed is the resting state -- everything is shown
-   until someone says otherwise -- so it is *off* that has to be visible at a
-   glance, and it is drawn as struck through rather than merely dimmed: a dim
-   button is what a disabled one looks like, and these are the opposite of
-   disabled. */
+/* The two log switches. Unlike their neighbours these are states, not actions,
+   so they carry a state the way `.cat-db.active` does -- and for the same
+   reason: at this size a border colour is not a state. Two signals, because one
+   of them is a colour and a colour alone is neither reliable across the two
+   themes nor readable to everyone: an accent wash that lights the button up,
+   and a struck-through label when the block it names is hidden. The glyph is
+   left to say which block the switch is for, which is its own job. */
+.dock-btn[aria-pressed] {
+  border-color: var(--border-strong);
+}
+
+.dock-btn[aria-pressed="true"] {
+  background: color-mix(in srgb, var(--accent) 16%, var(--surface));
+  border-color: var(--accent);
+  color: var(--text);
+}
+
+.dock-btn[aria-pressed="true"] .dock-ic {
+  color: var(--accent);
+}
+
+/* Off is quiet, but never so quiet that it reads as disabled -- the label is
+   struck rather than merely dimmed, which says "hidden" and not "unavailable". */
 .dock-btn[aria-pressed="false"] {
   color: var(--faint);
   border-style: dashed;
 }
 
-.dock-btn[aria-pressed="false"] .dock-ic {
+.dock-btn[aria-pressed="false"] .dock-lbl {
   text-decoration: line-through;
 }
+
 
 .log {
   flex: 1;

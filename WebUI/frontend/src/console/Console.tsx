@@ -412,10 +412,14 @@ export function Console({
         {/* What the log shows. Both are noise as often as they are the answer
             -- the plan for anyone not tuning a query, the nested list for
             anyone who already has the value -- so each is a switch rather than
-            a layout decision made once for everybody. Pressed means shown,
-            which is why `aria-pressed` carries the state and the label does
-            not change with it. The plan switch is left out entirely on a server
-            that has no optimizer: it could never have anything to hide. */}
+            a layout decision made once for everybody. Which state they are in
+            is said twice over -- the button lights up, and the label is struck
+            through when the block it names is hidden -- because one of the two
+            is a colour, and a colour alone is not a state. The glyph stays the
+            block's own, so which switch is which is still readable at a glance.
+            `aria-pressed` says the same to a screen reader. The plan switch is
+            left out entirely on a server that has no optimizer: it could never
+            have anything to hide. */}
         {optimizer !== false && (
           <button
             className="dock-btn"
@@ -427,7 +431,8 @@ export function Console({
                 : "Show the optimized query on every entry"
             }
           >
-            <span className="dock-ic">≡</span> plan
+            <span className="dock-ic">≡</span>
+            <span className="dock-lbl">plan</span>
           </button>
         )}
         <button
@@ -440,7 +445,8 @@ export function Console({
               : "Show the nested-list result on every entry"
           }
         >
-          <span className="dock-ic">{"{}"}</span> result
+          <span className="dock-ic">{"{}"}</span>
+          <span className="dock-lbl">result</span>
         </button>
         {/* The recalled commands outlive the tab, so they need a way back to
             empty; the log on screen goes with them. */}
