@@ -22,6 +22,8 @@ import car from "@mapbox/maki/icons/car.svg?raw";
 import chargingStation from "@mapbox/maki/icons/charging-station.svg?raw";
 import cinema from "@mapbox/maki/icons/cinema.svg?raw";
 import circleStroked from "@mapbox/maki/icons/circle-stroked.svg?raw";
+import cross from "@mapbox/maki/icons/cross.svg?raw";
+import diamond from "@mapbox/maki/icons/diamond.svg?raw";
 import fastFood from "@mapbox/maki/icons/fast-food.svg?raw";
 import ferry from "@mapbox/maki/icons/ferry.svg?raw";
 import fireStation from "@mapbox/maki/icons/fire-station.svg?raw";
@@ -42,9 +44,12 @@ import restaurant from "@mapbox/maki/icons/restaurant.svg?raw";
 import school from "@mapbox/maki/icons/school.svg?raw";
 import scooter from "@mapbox/maki/icons/scooter.svg?raw";
 import shop from "@mapbox/maki/icons/shop.svg?raw";
+import square from "@mapbox/maki/icons/square.svg?raw";
+import squareStroked from "@mapbox/maki/icons/square-stroked.svg?raw";
 import star from "@mapbox/maki/icons/star.svg?raw";
 import taxi from "@mapbox/maki/icons/taxi.svg?raw";
 import triangle from "@mapbox/maki/icons/triangle.svg?raw";
+import triangleStroked from "@mapbox/maki/icons/triangle-stroked.svg?raw";
 import water from "@mapbox/maki/icons/water.svg?raw";
 
 // Maki ships 215 icons; offering all of them would bloat both the atlas and the
@@ -82,20 +87,28 @@ const SVG = {
   school,
   bank,
   post,
-  // places and plain shapes
+  // places
   building,
   monument,
   park,
   water,
   marker,
-  star,
+  // plain shapes, filled and outlined: the neutral way to tell two point layers
+  // apart when neither of them is a place. No filled circle -- that is the
+  // default symbol already, offered as the picker's first cell.
+  square,
+  "square-stroked": squareStroked,
   triangle,
+  "triangle-stroked": triangleStroked,
+  diamond,
+  star,
+  cross,
   "circle-stroked": circleStroked,
 } as const;
 
 export type IconName = keyof typeof SVG;
 
-// Alphabetical: the dropdown is a flat list of 35 names with no headings, so
+// Alphabetical: the dropdown is a flat list of 40 names with no headings, so
 // the only way to find one is to know where it sorts. The grouping above is
 // for whoever edits this file, not for whoever uses the picker.
 export const ICON_NAMES = (Object.keys(SVG) as IconName[]).sort();

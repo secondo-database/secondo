@@ -109,6 +109,34 @@ try {
         }
       return { top, bottom, center: h / 2 };
     });
+  // What share of its own bounding box the symbol's ink covers. This is what
+  // separates the plain shapes from the default disc: a filled square and a
+  // disc of the same size are nearly the same height, but the square covers its
+  // box entirely and the disc only pi/4 of it. Only meaningful with a single
+  // symbol on screen.
+  const inkFill = () =>
+    page.evaluate(() => {
+      const c = document.querySelector(".mapview canvas");
+      const gl = c.getContext("webgl2", { preserveDrawingBuffer: true }) ||
+                 c.getContext("webgl", { preserveDrawingBuffer: true });
+      const w = c.width, h = c.height;
+      const px = new Uint8Array(w * h * 4);
+      gl.readPixels(0, 0, w, h, gl.RGBA, gl.UNSIGNED_BYTE, px);
+      let top = Infinity, bottom = -Infinity, left = Infinity, right = -Infinity, n = 0;
+      for (let y = 0; y < h; y++)
+        for (let x = 0; x < w; x++) {
+          const i = (y * w + x) * 4;
+          if (px[i + 3] > 10 && Math.max(px[i], px[i + 1], px[i + 2]) > 70) {
+            n++;
+            if (y < top) top = y;
+            if (y > bottom) bottom = y;
+            if (x < left) left = x;
+            if (x > right) right = x;
+          }
+        }
+      if (!n) return 0;
+      return n / ((bottom - top + 1) * (right - left + 1));
+    });
   // Deck redraws asynchronously (and the icon atlas arrives via a data-URL
   // fetch), so read until two consecutive frames agree rather than guessing a
   // sleep -- an early read once measured a trail that was already switched off.
@@ -130,6 +158,20 @@ try {
     await page.click(`.lp-icon-cell[data-icon="${name}"]`);
     await page.waitForFunction(() => !document.querySelector(".lp-icon-grid"),
                                { timeout: 3000 });
+  };
+  // The "Point" slider in the style editor, which sizes both the disc and the
+  // icon box. React listens on the value setter, so poke it the same way the
+  // timeline seek does.
+  const setRadius = async (px) => {
+    await page.evaluate((v) => {
+      const label = [...document.querySelectorAll(".lp-style label")]
+        .find((l) => l.textContent.trim().startsWith("Point"));
+      const el = label.querySelector("input[type=range]");
+      const set = Object.getOwnPropertyDescriptor(
+        window.HTMLInputElement.prototype, "value").set;
+      set.call(el, String(v));
+      el.dispatchEvent(new Event("input", { bubbles: true }));
+    }, px);
   };
   const clearLayers = async () => {
     const btn = await page.evaluateHandle(() =>
@@ -198,6 +240,13 @@ try {
   const bad = cells.filter((c) => !c.circle && (c.d.length < 20 || c.d.includes("&")));
   check(bad.length === 0,
         `every glyph is drawn with decoded path data (${bad.map((c) => c.name).join(",") || "all ok"})`);
+  // The plain shapes, which are what a layer depicting nothing in particular
+  // gets when it only needs to differ from the layer next to it.
+  const SHAPES = ["square", "square-stroked", "triangle", "triangle-stroked",
+                  "diamond", "star", "cross", "circle-stroked"];
+  const absent = SHAPES.filter((n) => !cells.some((c) => c.name === n));
+  check(absent.length === 0,
+        `the plain shapes are all offered (${absent.join(",") || "all present"})`);
   check(cells.filter((c) => c.selected).length === 1 &&
         cells.find((c) => c.selected).name === "rail",
         "the current symbol is marked selected");
@@ -232,6 +281,25 @@ try {
   await setIcon("");
   check(Math.abs((await settled(symbolHeight)) - circleH) <= 2,
         `and returns to the disc when the icon is cleared`);
+
+  // --- a plain shape draws as that shape ----------------------------------
+  // Height alone barely separates a square from the default disc -- both fill
+  // the icon box vertically. What separates them is how much of that box the
+  // ink covers: all of it for the square, pi/4 of it for the disc. At the
+  // default 4px radius the symbol is ~10px across and antialiasing blurs that
+  // ratio away, so wind the Point slider up first and measure a big one.
+  await setRadius(14);
+  await settled(symbolHeight);
+  const discFill = await inkFill();
+  await setIcon("square");
+  await settled(symbolHeight);
+  const squareFill = await inkFill();
+  await page.screenshot({ path: `${OUT}/icon-square.png` });
+  check(squareFill > 0.93,
+        `the square fills its bounding box (${squareFill.toFixed(2)})`);
+  check(discFill < 0.85 && squareFill - discFill > 0.1,
+        `and the default disc does not (${discFill.toFixed(2)})`);
+  await setRadius(4);
 
   // --- the pin hangs above its position ------------------------------------
   // Every glyph is centred on the position except "marker", which is an arrow

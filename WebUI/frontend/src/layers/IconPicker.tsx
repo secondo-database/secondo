@@ -94,7 +94,7 @@ export function IconPicker({ value, color, onChange }: Props) {
               </button>
             ))}
           </div>
-          {/* The grid alone is 36 unlabelled glyphs; this names whichever one
+          {/* The grid alone is 41 unlabelled glyphs; this names whichever one
               the pointer or focus is on, so the set stays browsable without
               waiting on a tooltip. */}
           <div className="lp-icon-caption">{captioned ?? CIRCLE_LABEL}</div>

@@ -831,8 +831,13 @@ leaves the view exactly where you put it. Use the `⤢` button to re-fit on dema
   positions draw as a circle by default; the `icon` picker swaps in a symbol
   (`bus`, `rail`, `car`, `restaurant`, …) tinted with the layer's colour, so a
   trains layer and a buses layer are distinguishable by shape and not by colour
-  alone. The **point radius** still sizes them. The picker (`layers/IconPicker`)
-  opens a grid of the glyphs themselves rather than a list of names — a name
+  alone. Alongside the place and vehicle symbols the set carries plain geometric
+  shapes — `square`, `square-stroked`, `triangle`, `triangle-stroked`,
+  `diamond`, `star`, `cross`, `circle-stroked` — for layers that depict nothing
+  in particular and just need to differ from each other; the filled circle is
+  not among them because it is the default, offered as the picker's first cell.
+  The **point radius** still sizes them. The picker (`layers/IconPicker`) opens
+  a grid of the glyphs themselves rather than a list of names — a name
   like `rail-metro` says little about a 15px symbol — each drawn in the layer's
   colour, with the hovered one named underneath; Escape closes it. The icons are
   [Maki](https://github.com/mapbox/maki) (CC0-1.0, drawn for cartography at
