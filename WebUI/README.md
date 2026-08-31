@@ -776,7 +776,7 @@ leaves the view exactly where you put it. Use the `⤢` button to re-fit on dema
 - **Basemap** (`map/basemaps.ts`): geographic mode draws over a raster basemap,
   and a picker beside the projection select chooses between **OSM**
   (OpenStreetMap, the default), **Satellite** (Esri World Imagery) and **Dark**
-  (CARTO dark-matter). The two selects share one row (`.map-ctl`) and never
+  (Esri Dark Gray Canvas). The two selects share one row (`.map-ctl`) and never
   wrap to two: below 520px the layers panel becomes a full-width band directly
   underneath, positioned to clear exactly one row of controls, and the controls
   outrank it, so a second row would put the panel's own `▾ Layers` toggle
@@ -793,17 +793,25 @@ leaves the view exactly where you put it. Use the `⤢` button to re-fit on dema
 
   **Labels take their contrast from the basemap, not from the mode.**
   `onLightCanvas` used to read `geographic || theme === "light"`, which was only
-  correct while the light OSM raster was the only basemap — over imagery or
-  dark-matter every label would have kept near-black ink on a white halo and
+  correct while the light OSM raster was the only basemap — over imagery or a
+  dark canvas every label would have kept near-black ink on a white halo and
   become unreadable. Each basemap now carries a `light` flag and that decides;
   the app theme still decides for the Cartesian canvas, which is `--bg-deep`.
 
-  Two provider quirks worth not rediscovering: the ArcGIS REST tile scheme is
-  `{z}/{y}/{x}` — row before column, unlike every other provider here — and
-  CARTO's URL must not carry Leaflet's `{r}` retina placeholder, which MapLibre
-  would request literally instead of substituting. Each source also sets an
-  explicit `maxzoom`, or the map goes blank when zoomed past what the provider
-  has.
+  Two provider quirks worth not rediscovering. The ArcGIS REST tile scheme is
+  `{z}/{y}/{x}` — row before column, unlike OSM's; both Esri layers take that
+  order, and swapping it returns tiles from the wrong place rather than
+  failing. And each source sets an explicit `maxzoom`, or the map goes blank
+  when zoomed past what the provider actually has — Esri's Dark Gray Canvas
+  stops at 16 and answers deeper requests with a placeholder tile, not a 404.
+
+  **A keyless basemap can die without any status code noticing.** Dark was
+  CARTO's dark-matter until CARTO withdrew anonymous access — not by returning
+  401, but by keeping the 200 and burning an "API KEY REQUIRED" watermark into
+  every tile. Nothing in the app or its tests could see that; it surfaced only
+  when someone looked at the map. So when a basemap looks wrong, compare a
+  fetched tile by eye before hunting for a bug here, and check keyless
+  providers the same way after a long gap.
 - Internal keys (`_attr`, `_layer`) are hidden from the map tooltip and the
   selection details panel.
 - **View fitting & zoom controls:** the map view is controlled and auto-fits to

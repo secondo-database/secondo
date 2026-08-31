@@ -71,8 +71,8 @@ export const BASEMAPS: Record<BasemapId, Basemap> = {
     style: rasterStyle(
       "satellite",
       // The ArcGIS REST tile scheme is {z}/{y}/{x} -- row before column, unlike
-      // every other provider here. Swapping them silently returns tiles from
-      // the wrong place rather than failing.
+      // OSM's. Swapping them silently returns tiles from the wrong place rather
+      // than failing. Both Esri layers below take that order.
       [
         "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
       ],
@@ -85,11 +85,20 @@ export const BASEMAPS: Record<BasemapId, Basemap> = {
     light: false,
     style: rasterStyle(
       "dark",
-      // No `{r}` retina placeholder: that is Leaflet's, and MapLibre would
-      // request the two characters literally instead of substituting "@2x".
-      ["https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png"],
-      20,
-      "© OpenStreetMap contributors © CARTO"
+      // Esri's Dark Gray Canvas, in the {z}/{y}/{x} order noted above. This is
+      // the "Base" half of Esri's Base/Reference pair: it labels countries and
+      // regions but not streets, which suits a ground the map draws its own
+      // labels over. The rest is the companion Canvas/World_Dark_Gray_Reference
+      // layer, and adding it would need `rasterStyle` widened to two sources.
+      //
+      // Note the cap below: z17 and deeper serve an identical 2.5KB "map data
+      // not yet available" placeholder rather than 404ing, so without it the
+      // map would fill with placeholders instead of stretching z16.
+      [
+        "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}",
+      ],
+      16,
+      "© Esri, HERE, Garmin, © OpenStreetMap contributors"
     ),
   },
 };

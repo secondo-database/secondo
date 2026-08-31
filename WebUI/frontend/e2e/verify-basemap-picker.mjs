@@ -4,7 +4,11 @@
 // chosen basemap rather than the mode, and that the choice survives a reload.
 //
 // Needs only berlintest. Reaches tile hosts other than OSM (Esri), so a
-// restrictive proxy will fail step 4 on network rather than on logic.
+// restrictive proxy will fail the switching steps on network rather than logic.
+//
+// This checks the wiring, not the provider's terms: a basemap can be dead and
+// still answer 200 with a watermarked tile (see the CARTO note in the README),
+// which no assertion here can see. That is what the screenshots are for.
 import { createRequire } from "module";
 import { mkdirSync } from "fs";
 import { dirname } from "path";
@@ -35,14 +39,17 @@ try {
   await page.setViewport({ width: 1280, height: 800 });
   page.on("pageerror", (e) => console.log("[pageerror]", e.message));
 
-  // Count tiles per host: the only way to prove a switch changed what is
-  // actually fetched rather than only what the dropdown says.
-  const tiles = { osm: 0, esri: 0 };
+  // Count tiles per source: the only way to prove a switch changed what is
+  // actually fetched rather than only what the dropdown says. Satellite and
+  // Dark are both Esri, so the host alone no longer separates them -- bucket on
+  // the service path instead.
+  const tiles = { osm: 0, imagery: 0, darkgray: 0 };
   page.on("response", (r) => {
     if (r.status() !== 200) return;
     const u = r.url();
     if (u.includes("tile.openstreetmap.org")) tiles.osm++;
-    if (u.includes("arcgisonline.com")) tiles.esri++;
+    if (u.includes("World_Imagery")) tiles.imagery++;
+    if (u.includes("World_Dark_Gray_Base")) tiles.darkgray++;
   });
 
   await page.goto(URL, { waitUntil: "networkidle0" });
@@ -93,15 +100,28 @@ try {
   check(satState.basemap === "satellite", `switched to satellite (${satState.basemap})`);
   check(satState.onLight === "false",
         "label contrast follows the basemap, not the mode");
-  check(tiles.esri > 0, `Esri imagery tiles loaded (${tiles.esri})`);
+  check(tiles.imagery > 0, `Esri imagery tiles loaded (${tiles.imagery})`);
   await page.screenshot({ path: `${OUT}/basemap-satellite.png` });
 
-  // 4) The choice is a display preference, so it outlives the page.
+  // 4) Switch to dark. Same host as satellite, so only the service path proves
+  //    the switch reached the network.
+  await page.select(".basemap-ctl select", "dark");
+  await sleep(4000);
+
+  const darkState = await page.$eval(".mapview", (e) => ({
+    basemap: e.dataset.basemap, onLight: e.dataset.onLight,
+  }));
+  check(darkState.basemap === "dark", `switched to dark (${darkState.basemap})`);
+  check(darkState.onLight === "false", "labels drawn for a dark canvas");
+  check(tiles.darkgray > 0, `Esri dark-gray tiles loaded (${tiles.darkgray})`);
+  await page.screenshot({ path: `${OUT}/basemap-dark.png` });
+
+  // 5) The choice is a display preference, so it outlives the page.
   await page.reload({ waitUntil: "networkidle0" });
   await sleep(800);
   const remembered = await page.evaluate(() =>
     localStorage.getItem("secondo.webui.basemap"));
-  check(remembered === "satellite", `choice remembered across a reload (${remembered})`);
+  check(remembered === "dark", `choice remembered across a reload (${remembered})`);
 } finally {
   await browser.close();
 }
