@@ -21,7 +21,7 @@ VENV = backend/.venv
 
 .PHONY: prod build native venv serve clean check-env
 
-prod: build serve
+prod: venv native build serve
 
 build:
 	cd frontend && npm ci && npm run build
