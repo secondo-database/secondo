@@ -1497,6 +1497,107 @@ body.dragging {
   word-break: break-word;
 }
 
+/* The card's header is three parts now -- name, position, close -- so the name
+   takes the slack and the other two keep their size. */
+.details-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* "row 13 of 58". Muted and non-bold: it is where you are, not what you are
+   looking at. */
+.details-where {
+  color: var(--muted);
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* The line whose geometry was actually clicked. Marked twice -- a ◆ in the
+   gutter and a tinted ground -- because with two spatial attributes in one
+   tuple this is the only thing saying which of them is selected. */
+.details .dr-clicked {
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+}
+
+.details .dr-clicked .dk,
+.details .dr-clicked .dv {
+  color: var(--text);
+}
+
+.dr-mark {
+  color: var(--accent);
+  margin-right: 0.3rem;
+}
+
+/* An attribute whose value this row has not loaded: the column's type stands in
+   for it. Muted and italic so it reads as a placeholder rather than as a string
+   value that happens to say "line". */
+.details .dv .dr-unloaded {
+  color: var(--faint);
+  font-style: italic;
+  font-family: ui-monospace, Menlo, monospace;
+  font-size: 0.7rem;
+}
+
+/* Nested-list values, shown the way the grid shows them. */
+.details .dv.mono {
+  font-family: ui-monospace, Menlo, monospace;
+  font-size: 0.7rem;
+  color: var(--text-2);
+}
+
+.details .dv.num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Said when the card is filled from the map's properties rather than from the
+   result's rows, so a short list does not read as a complete tuple. */
+.details-partial {
+  padding: 0.35rem 0.6rem;
+  border-top: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 0.7rem;
+}
+
+.details-foot {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.4rem 0.5rem;
+  border-top: 1px solid var(--border);
+  /* Sticky, so the buttons stay reachable when a wide tuple makes the card
+     scroll -- the card is what scrolls, not an inner list. */
+  position: sticky;
+  bottom: 0;
+  background: var(--overlay);
+}
+
+/* The steppers are square; only the jump carries a label, and it takes the
+   rest of the row so it is the obvious target. */
+.details-foot .dock-btn {
+  padding: 0.25rem 0.5rem;
+}
+
+.details-show {
+  flex: 1;
+  justify-content: center;
+}
+
+.details-foot .dock-btn:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--text);
+}
+
+.details-foot .dock-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
 /* Value plots: small multiples, one per measure (never a shared/dual y-axis).
    Positioned by .ov-left, below the details panel. */
 .plots {
@@ -2440,6 +2541,45 @@ pre.plan {
   color: var(--err);
 }
 
+/* The locate button is the one row control that is not destructive, so it must
+   not inherit the delete button's red. It also sits in every row of every
+   drawable result, where ✕ only appears in edit mode -- hence the resting
+   state is visible rather than faint. */
+.tv-locate {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.tv-locate:hover {
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  border-radius: 4px;
+}
+
+/* The selected tuple, the grid's half of the link with the map. Signalled
+   twice -- a wash and a solid left edge -- so it survives the even-row banding
+   underneath it and does not depend on colour alone. The edge is on a cell
+   rather than the row because a <tr> takes no border in a collapsed table. */
+.tv-grid tbody tr.tv-selected > td {
+  background: color-mix(in srgb, var(--accent) 16%, var(--surface));
+  color: var(--text);
+}
+
+.tv-grid tbody tr.tv-selected > td:first-child {
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+
+/* Beats both the banding and the hover rule that follow it in source order. */
+.tv-grid tbody tr.tv-selected:hover > td {
+  background: color-mix(in srgb, var(--accent) 24%, var(--surface));
+}
+
+/* A row is clickable whenever the map can show it. Not a pointer cursor in edit
+   mode: there the click belongs to the cell being typed into. */
+.tv-grid tbody tr:has(.tv-locate) {
+  cursor: pointer;
+}
+
 .tv-empty {
   padding: 1.5rem;
   text-align: center;
@@ -2627,7 +2767,23 @@ pre.plan {
 
   .details {
     max-width: none;
-    max-height: 35dvh;
+    max-height: 45dvh;
+  }
+
+  /* A whole tuple is taller than the handful of scalar properties the card used
+     to hold, and on a phone the footer is the only way to the table -- so the
+     card gets more of the screen here rather than hiding its own buttons. The
+     footer is sticky, so the values scroll under it either way. */
+  .details-foot .dock-btn {
+    min-height: 2.1rem;
+  }
+
+  /* Thumb-sized: this one sits inside a grid row, where the default 1.5rem box
+     is under the comfortable target. */
+  .tv-locate {
+    min-width: 2rem;
+    min-height: 2rem;
+    font-size: 1rem;
   }
 
   .plots {

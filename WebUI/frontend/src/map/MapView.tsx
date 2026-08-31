@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import DeckGL from "@deck.gl/react";
 import {
   COORDINATE_SYSTEM,
@@ -19,7 +19,8 @@ import { TripsLayer } from "@deck.gl/geo-layers";
 import { Map as BaseMap } from "react-map-gl/maplibre";
 import "maplibre-gl/dist/maplibre-gl.css";
 import type { LabelSeries, LabelUnit, MovingRegion, Trip } from "../api/client";
-import type { Layer, RGB } from "../layers/useLayers";
+import type { Layer, RGB, Selection } from "../layers/useLayers";
+import { isSelectedFeature } from "../layers/rows";
 import type { Theme } from "../theme";
 import { iconAtlas, iconInkBelow } from "../layers/icons";
 import {
@@ -304,6 +305,37 @@ function unionBBox(layers: Layer[]): BBox | undefined {
   return minx === Infinity ? undefined : [minx, miny, maxx, maxy];
 }
 
+/** The extent of a set of GeoJSON geometries, whatever their nesting depth.
+ *  Used only to frame one selected tuple, so walking the coordinates is fine --
+ *  the layer bboxes come from the backend, which builds them as it goes. */
+function geomsBBox(geoms: { coordinates: unknown }[]): BBox | undefined {
+  let minx = Infinity, miny = Infinity, maxx = -Infinity, maxy = -Infinity;
+  const walk = (c: unknown) => {
+    if (!Array.isArray(c)) return;
+    if (typeof c[0] === "number" && typeof c[1] === "number") {
+      const [x, y] = c as [number, number];
+      if (x < minx) minx = x;
+      if (x > maxx) maxx = x;
+      if (y < miny) miny = y;
+      if (y > maxy) maxy = y;
+      return;
+    }
+    for (const part of c) walk(part);
+  };
+  for (const g of geoms) walk(g.coordinates);
+  return minx === Infinity ? undefined : [minx, miny, maxx, maxy];
+}
+
+/** Give a selected object room around it, and give a *point* -- which has no
+ *  extent at all -- some to begin with, or fitting it lands the view at a zoom
+ *  derived from floating-point epsilon. `all` is the whole data's extent, so a
+ *  lone point is framed at a scale that relates to the dataset. */
+function padded(b: BBox, all: BBox | undefined): BBox {
+  const ref = all ? Math.max(all[2] - all[0], all[3] - all[1]) : 1;
+  const pad = Math.max(b[2] - b[0], b[3] - b[1], ref * 0.02) * 0.5;
+  return [b[0] - pad, b[1] - pad, b[2] + pad, b[3] + pad];
+}
+
 function fitCartesian(bbox: BBox | undefined) {
   if (!bbox) return { target: [0, 0, 0] as [number, number, number], zoom: 0 };
   const [minx, miny, maxx, maxy] = bbox;
@@ -351,6 +383,13 @@ interface Props {
   // Only the labels care: their ink and halo swap over on a light canvas.
   theme: Theme;
   onSelect: (layerId: string | null, object: unknown) => void;
+  /** The selected tuple, drawn on top of everything else. */
+  selection: Selection | null;
+  /** A request to fit the view to one tuple's geometry. Only ever set by the
+   *  grid's ◎: a selection made *on the map* must leave the view alone, which
+   *  is the `isMouseSelected` guard around HoeseViewer.makeSelectionVisible.
+   *  The nonce makes asking twice for the same row act twice. */
+  focus: { layerId: string; row: number | null; attr: string | null; nonce: number } | null;
 }
 
 export function MapView({
@@ -361,6 +400,8 @@ export function MapView({
   onProjectionChange,
   theme,
   onSelect,
+  selection,
+  focus,
 }: Props) {
   // Apply the chosen projection to each layer's coordinates once (not per
   // frame). With "berlinmod" the local BBBike coordinates become WGS84 lon/lat.
@@ -438,6 +479,27 @@ export function MapView({
     });
     setViewState(fit);
   }
+
+  // The extent of whatever is currently highlighted, cached from the render
+  // that built it so the effect below does not have to resolve the geometry a
+  // second time. Deterministic from props, so a discarded render writes the
+  // same value.
+  const selExtent = useRef<BBox | undefined>(undefined);
+
+  // Fit the view to the tuple the grid asked for -- and only then. A selection
+  // made on the map deliberately leaves the view where the user put it, which
+  // is HoeseViewer's `isMouseSelected` guard: without it, clicking a feature
+  // recentres the map out from under the click.
+  useEffect(() => {
+    if (!focus) return;
+    const b = selExtent.current;
+    if (!b) return;
+    const box = padded(b, bbox);
+    setViewState(geographic ? fitGeographic(box) : fitCartesian(box));
+    // The nonce alone: asking twice for the same row has to act twice, and
+    // re-running because the data changed would fight the user's own panning.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focus?.nonce]);
 
   const zoomBy = (delta: number) =>
     setViewState((vs: VState) => ({ ...vs, zoom: (vs.zoom ?? 0) + delta }));
@@ -610,9 +672,20 @@ export function MapView({
     );
   };
 
+  // The selected tuple's geometry, gathered as the layers are built and drawn
+  // last (below), so it sits above every layer -- GraphWindow.paintChildren
+  // redraws HoeseViewer's selected object over the whole stack for the same
+  // reason. Collected here rather than in a second pass because the two
+  // time-dependent shapes, a moving region's face and a trip's current
+  // position, are computed in this loop and nowhere else.
+  const selectedGeoms: { type: string; coordinates: unknown }[] = [];
+
   for (const layer of layersToRender) {
     const [r, g, b] = layer.style.color;
     const s = layer.style;
+    // A selection belongs to exactly one layer, and a hidden layer draws
+    // nothing -- including its highlight.
+    const sel = selection?.layerId === layer.id ? selection : null;
 
     // Only touched when the layer actually wants an icon, so a session that
     // never assigns one never builds the atlas. And never ask deck for icons
@@ -640,6 +713,16 @@ export function MapView({
     ];
 
     if (layer.geojson) {
+      if (sel) {
+        for (const f of layer.geojson.features) {
+          const feat = f as {
+            properties?: Record<string, unknown>;
+            geometry?: { type: string; coordinates: unknown };
+          };
+          if (feat.geometry && isSelectedFeature(feat.properties, sel))
+            selectedGeoms.push(feat.geometry);
+        }
+      }
       deckLayers.push(
         new GeoJsonLayer({
           id: `${layer.id}-static`,
@@ -696,8 +779,10 @@ export function MapView({
       for (const region of regions) {
         const faces = facesAt(region, currentTime);
         if (faces) {
+          const picked = sel && isSelectedFeature(region.properties, sel);
           for (const face of faces) {
             polys.push({ polygon: face, properties: region.properties });
+            if (picked) selectedGeoms.push({ type: "Polygon", coordinates: face });
           }
         }
       }
@@ -781,6 +866,19 @@ export function MapView({
             updateTriggers: { getColor: [r, g, b], getWidth: s.lineWidth },
           })
         );
+      }
+
+      // Outside the render-mode branches on purpose: a layer set to `trail`
+      // draws no dots, and its selected trip still has to be marked. The dot is
+      // what a click lands on; the whole path is what says *which* trip it is
+      // once the dot is one of many.
+      if (sel) {
+        for (const trip of trips) {
+          if (!isSelectedFeature(trip.properties, sel)) continue;
+          const pos = positionAt(trip, currentTime);
+          if (pos) selectedGeoms.push({ type: "Point", coordinates: pos });
+          selectedGeoms.push({ type: "LineString", coordinates: trip.path });
+        }
       }
 
       if (showPoints) {
@@ -900,6 +998,47 @@ export function MapView({
     }
   }
 
+  // Drawn after every layer, so it is on top of all of them whatever the draw
+  // order is. Deliberately *not* deck's `highlightedObjectIndex`: setting that
+  // turns off `autoHighlight`, which would cost the map the hover highlight it
+  // already has, and it addresses a feature by array index -- which the two
+  // time-dependent shapes have no equivalent of.
+  selExtent.current = geomsBBox(selectedGeoms);
+
+  if (selectedGeoms.length > 0) {
+    deckLayers.push(
+      new GeoJsonLayer({
+        id: "selection",
+        data: {
+          type: "FeatureCollection",
+          features: selectedGeoms.map((geometry) => ({
+            type: "Feature",
+            geometry,
+            properties: {},
+          })),
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        } as any,
+        coordinateSystem,
+        // The highlight is an indicator, not an object: clicking it must fall
+        // through to whatever is underneath, or the second click on a stack
+        // would only ever re-pick the thing already selected.
+        pickable: false,
+        stroked: true,
+        filled: false,
+        // Two rings, light over dark, so the mark reads on both canvases -- the
+        // near-black Cartesian one and a light OSM basemap. A single accent
+        // outline disappears into whichever of the two is closer to it.
+        getLineColor: onLight ? [17, 17, 17, 235] : [255, 255, 255, 235],
+        getLineWidth: 3,
+        lineWidthUnits: "pixels",
+        pointType: "circle",
+        getPointRadius: 9,
+        pointRadiusUnits: "pixels",
+        updateTriggers: { getLineColor: onLight },
+      })
+    );
+  }
+
   return (
     // The mode is already visible in the projection dropdown; expose it here as
     // state (not a second label) so tests can assert it.
@@ -916,6 +1055,17 @@ export function MapView({
         viewState={viewState}
         onViewStateChange={(e: { viewState: VState }) => setViewState(e.viewState)}
         controller={true}
+        // deck's default resting cursor is `grab` -- an open hand, whose hot
+        // spot is its middle and which covers the very feature being aimed at.
+        // A plain arrow has a crisp tip, so a small point or a thin line can
+        // actually be hit. Hovering something pickable still switches to the
+        // hand, which now does useful work: with `autoHighlight` it says "this
+        // click will land" *before* the click, rather than decorating the whole
+        // canvas whether there is anything under it or not. Dragging keeps
+        // `grabbing`, which is what panning looks like everywhere else.
+        getCursor={({ isDragging, isHovering }) =>
+          isDragging ? "grabbing" : isHovering ? "pointer" : "default"
+        }
         layers={deckLayers}
         onClick={(info: PickingInfo) => {
           if (info.object && info.layer) {

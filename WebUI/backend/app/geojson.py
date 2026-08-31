@@ -261,7 +261,7 @@ class RelationFeatures:
     list function produces -- it *is* that function's loop body.
     """
 
-    __slots__ = ("names", "types", "spatial_idx", "bounds", "features")
+    __slots__ = ("names", "types", "spatial_idx", "bounds", "features", "_rows")
 
     def __init__(self, type_expr: Node, bounds: _Bounds | None = None) -> None:
         # type_expr = ['rel', ['tuple', [[name, atype], ...]]]
@@ -277,6 +277,7 @@ class RelationFeatures:
         ]
         self.bounds = bounds
         self.features: list[dict] = []
+        self._rows = 0
 
     @property
     def wanted(self) -> bool:
@@ -287,6 +288,10 @@ class RelationFeatures:
         return bool(self.spatial_idx)
 
     def feed(self, tup: Node) -> None:
+        # Counted before anything can return, so the ordinal stays in step with
+        # `table.RelationRows.total`, which is also incremented unconditionally.
+        row = self._rows
+        self._rows += 1
         if not isinstance(tup, list):
             return
         names, types, spatial_idx = self.names, self.types, self.spatial_idx
@@ -299,8 +304,15 @@ class RelationFeatures:
             if i < len(tup):
                 geom = geometry_from(types[i], tup[i], self.bounds)
                 if geom:
+                    # `_row` is the tuple's position in the answer's scan order,
+                    # which is what ties a feature back to its row in the table
+                    # payload -- built from the same tuple stream, in the same
+                    # order, by `table.RelationRows`. `temporal.RelationMoving`
+                    # emits the same key for the same reason. A tuple with two
+                    # spatial attributes yields two features sharing one `_row`
+                    # and told apart by `_attr`.
                     self.features.append(
-                        _feature(geom, {**props, "_attr": names[i]})
+                        _feature(geom, {**props, "_attr": names[i], "_row": row})
                     )
 
     def collection(self) -> dict | None:

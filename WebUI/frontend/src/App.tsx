@@ -12,6 +12,8 @@ import { Catalog } from "./catalog/Catalog";
 import { GpxImportDialog, type StepOutcome } from "./catalog/GpxImportDialog";
 import { MapView } from "./map/MapView";
 import { MAP_TAB, ResultTabs } from "./table/ResultTabs";
+import { RowCard } from "./table/RowCard";
+import { attrOf, attrOfRow, featurePropertiesOfRow, rowOf } from "./layers/rows";
 import { TableView } from "./table/TableView";
 import { Timeline } from "./timeline/Timeline";
 import { useAnimator } from "./timeline/useAnimator";
@@ -274,6 +276,71 @@ export function App() {
 
   // Closing a tab only puts the table away -- the result stays a layer and its
   // console entry opens it again.
+  // Which row the open table should scroll to, and which geometry the map
+  // should fit. Both carry a nonce rather than a bare row number: asking twice
+  // for the same row has to act twice, or the second press of "show row in
+  // table" looks like it did nothing.
+  const [tableFocus, setTableFocus] = useState<{
+    layerId: string;
+    row: number;
+    nonce: number;
+  } | null>(null);
+  const [mapFocus, setMapFocus] = useState<{
+    layerId: string;
+    row: number | null;
+    attr: string | null;
+    nonce: number;
+  } | null>(null);
+
+  // map -> table. The grid resolves the row, because it is what owns the page
+  // and the sort: the ordinal addresses a scan position, so it only means a row
+  // while the relation is in scan order.
+  const showRow = useCallback(
+    (layerId: string, row: number) => {
+      showResult(layerId, "table");
+      setTableFocus((f) => ({ layerId, row, nonce: (f?.nonce ?? 0) + 1 }));
+    },
+    [showResult]
+  );
+
+  // table -> map. Selecting a row selects its geometry; `properties` comes from
+  // whichever feature that tuple produced, so the card can still say something
+  // about a row the grid holds and the map does not.
+  const selectRow = useCallback(
+    (layerId: string, row: number) => {
+      const layer = layers.find((l) => l.id === layerId);
+      if (!layer) return;
+      const props = featurePropertiesOfRow(layer, row);
+      setSelected({
+        layerId,
+        properties: props ?? {},
+        row,
+        attr: attrOf(props),
+        from: "table",
+      });
+    },
+    [layers, setSelected]
+  );
+
+  // The one path that moves the view. Everything else leaves it where the user
+  // put it -- selecting on the map above all, which is the `isMouseSelected`
+  // guard around HoeseViewer.makeSelectionVisible.
+  const locateRow = useCallback(
+    (layerId: string, row: number) => {
+      const layer = layers.find((l) => l.id === layerId);
+      if (!layer) return;
+      selectRow(layerId, row);
+      setActiveTab(MAP_TAB);
+      setMapFocus((f) => ({
+        layerId,
+        row,
+        attr: attrOfRow(layer, row),
+        nonce: (f?.nonce ?? 0) + 1,
+      }));
+    },
+    [layers, selectRow]
+  );
+
   const closeTable = useCallback((layerId: string) => {
     setOpenTables((t) => t.filter((id) => id !== layerId));
     setActiveTab((a) => (a === layerId ? MAP_TAB : a));
@@ -459,6 +526,25 @@ export function App() {
   const activeLayer =
     activeTab === MAP_TAB ? null : layers.find((l) => l.id === activeTab) ?? null;
 
+  // The layer the selection belongs to, resolved live rather than snapshotted
+  // into the Selection: it can be renamed, restyled or reloaded with more rows
+  // while the card is open, and the card must follow.
+  const selectedLayer = selected
+    ? layers.find((l) => l.id === selected.layerId) ?? null
+    : null;
+  // How far the card's ‹ › may walk. With a stored relation behind the result
+  // the card fetches whatever row it is given, so the steppers walk the whole
+  // thing -- the grid's page has stopped being the limit. A derived result has
+  // nothing to fetch from, so there they are held to the rows that were
+  // actually sent.
+  const stepBounds = useMemo<[number, number] | null>(() => {
+    const t = selectedLayer?.table;
+    if (!t || t.rowCount === 0) return null;
+    const source = t.relation ?? selectedLayer?.relation ?? null;
+    if (source && t.totalKnown) return [0, t.totalRows - 1];
+    return [t.offset, t.offset + t.rowCount - 1];
+  }, [selectedLayer]);
+
   const domain = useMemo(() => {
     let min = Infinity;
     let max = -Infinity;
@@ -627,14 +713,22 @@ export function App() {
           projection={projection}
           onProjectionChange={setProjection}
           theme={theme}
+          selection={selected}
+          focus={mapFocus}
           onSelect={(layerId, object) => {
             const props =
               object &&
               (object as { properties?: Record<string, unknown> }).properties;
             if (layerId && props) {
+              const p = props as Record<string, unknown>;
               setSelected({
                 layerId,
-                properties: props as Record<string, unknown>,
+                properties: p,
+                // Stamped by the backend on every feature built from a
+                // relation; absent for an individual object, which has no row.
+                row: rowOf(p),
+                attr: attrOf(p),
+                from: "map",
               });
             } else {
               setSelected(null);
@@ -697,32 +791,27 @@ export function App() {
         {/* One bottom-left column, so the plots can never cover the attributes
             of the feature that was just clicked. */}
         <div className="ov-left">
-        {selected && (
-          <div className="details">
-            <div className="details-head">
-              {/* Resolved live rather than snapshotted, so a rename while the
-                  panel is open is reflected here too. */}
-              <span>
-                {layers.find((l) => l.id === selected.layerId)?.name ??
-                  selected.layerId}
-              </span>
-              <button onClick={() => setSelected(null)} title="Close">
-                ✕
-              </button>
-            </div>
-            <table>
-              <tbody>
-                {Object.entries(selected.properties)
-                  .filter(([k]) => !k.startsWith("_"))
-                  .map(([k, v]) => (
-                    <tr key={k}>
-                      <td className="dk">{k}</td>
-                      <td className="dv">{String(v)}</td>
-                    </tr>
-                  ))}
-              </tbody>
-            </table>
-          </div>
+        {selectedLayer && selected && (
+          <RowCard
+            layer={selectedLayer}
+            selection={selected}
+            onClose={() => setSelected(null)}
+            onShowRow={
+              // Not offered when the row cannot be reached: an ad-hoc result is
+              // capped rather than paged, so a row past the cap has no page to
+              // turn to and the jump could only switch tabs to say so. The card
+              // says it instead, where the user is already looking.
+              selected.row !== null &&
+              selectedLayer.table &&
+              (selectedLayer.table.pageable ||
+                selected.row <
+                  selectedLayer.table.offset + selectedLayer.table.rowCount)
+                ? () => showRow(selected.layerId, selected.row!)
+                : null
+            }
+            onStep={(d) => selectRow(selected.layerId, selected.row! + d)}
+            stepBounds={stepBounds}
+          />
         )}
 
         {domain && (
@@ -759,6 +848,20 @@ export function App() {
             table={activeLayer.table}
             relation={activeLayer.relation}
             onTable={(t) => setTable(activeLayer.id, t)}
+            focus={
+              tableFocus && tableFocus.layerId === activeLayer.id
+                ? tableFocus
+                : null
+            }
+            selectedRow={
+              selected && selected.layerId === activeLayer.id ? selected.row : null
+            }
+            onSelectRow={(row) => selectRow(activeLayer.id, row)}
+            onLocateRow={
+              isDrawable(activeLayer)
+                ? (row) => locateRow(activeLayer.id, row)
+                : null
+            }
           />
         )}
         </div>

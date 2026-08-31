@@ -128,6 +128,34 @@ def test_relation_with_point_attr():
     assert f0["geometry"] == {"type": "Point", "coordinates": [1.0, 2.0]}
     assert f0["properties"]["Name"] == "a"
     assert f0["properties"]["_attr"] == "Pos"
+    # The tuple's position in the answer's scan order -- what links a feature to
+    # its row in the table payload; see RelationFeatures.feed.
+    assert [f["properties"]["_row"] for f in fc["features"]] == [0, 1]
+
+
+def test_two_spatial_attributes_share_one_row():
+    """One tuple, two geometries: same `_row`, told apart by `_attr`. Selecting
+    either has to resolve to the same table row."""
+    text = (
+        "((rel (tuple ((Name string) (From point) (To point)))) "
+        '(("a" (1.0 2.0) (3.0 4.0)) ("b" (5.0 6.0) (7.0 8.0))))'
+    )
+    props = [f["properties"] for f in to_geojson(text)["features"]]
+    assert [(p["_row"], p["_attr"]) for p in props] == [
+        (0, "From"), (0, "To"), (1, "From"), (1, "To"),
+    ]
+
+
+def test_row_survives_a_tuple_with_no_geometry():
+    """A tuple whose geometry is undefined produces no feature, but must not
+    shift the ordinals of the tuples after it -- the table still has a row for
+    it, so the numbering has to keep the gap."""
+    text = (
+        "((rel (tuple ((Name string) (Pos point)))) "
+        '(("a" (1.0 2.0)) ("b" (undef)) ("c" (3.0 4.0))))'
+    )
+    fc = to_geojson(text)
+    assert [f["properties"]["_row"] for f in fc["features"]] == [0, 2]
 
 
 def test_property_padding_is_stripped_but_the_key_stays():

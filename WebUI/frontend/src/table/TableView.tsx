@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { TableColumn, TablePayload } from "../api/client";
 import { commitTable, loadTable } from "../api/client";
 import { formatCell, isEditable, pendingOr, useTableEdit } from "./useTableEdit";
@@ -12,6 +12,18 @@ interface Props {
   relation: string | null;
   /** Replace this result's rows -- after loading with TIDs, or after a commit. */
   onTable: (table: TablePayload) => void;
+  /** A row to bring into view, asked for from the map. `row` is a scan
+   *  position, so it survives paging but not a server-side sort (see `locate`).
+   *  The nonce makes asking twice for the same row act twice. */
+  focus: { row: number; nonce: number } | null;
+  /** The selected tuple's scan position, or null. Highlighted, not scrolled to:
+   *  scrolling is `focus`, and clicking a row must not move the grid. */
+  selectedRow: number | null;
+  /** Select the tuple at this scan position -- the table -> map half. */
+  onSelectRow: (row: number) => void;
+  /** Show the map and fit it to this tuple's geometry. Null when the result
+   *  draws nothing, so there is no ◎ on a relation of scalars. */
+  onLocateRow: ((row: number) => void) | null;
 }
 
 type Sort = { column: number; dir: 1 | -1 } | null;
@@ -33,13 +45,29 @@ function compare(a: unknown, b: unknown): number {
   return String(a).localeCompare(String(b), undefined, { numeric: true });
 }
 
-export function TableView({ name, table, relation, onTable }: Props) {
+export function TableView({
+  name,
+  table,
+  relation,
+  onTable,
+  focus,
+  selectedRow,
+  onSelectRow,
+  onLocateRow,
+}: Props) {
   const [filter, setFilter] = useState("");
   const [sort, setSort] = useState<Sort>(null);
   const [editing, setEditing] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const edit = useTableEdit();
+  const scroll = useRef<HTMLDivElement>(null);
+  // A row asked for from the map that is not on screen yet: the page it lives
+  // on may still be loading. Cleared once it has been scrolled to.
+  const [pending, setPending] = useState<number | null>(null);
+  // Why a requested row could not be reached, said in the grid rather than
+  // silently doing nothing.
+  const [locateNote, setLocateNote] = useState<string | null>(null);
 
   const tidIndex = table.tidIndex;
   const canEdit = !!relation;
@@ -122,6 +150,64 @@ export function TableView({ name, table, relation, onTable }: Props) {
     [source, sort, pageSize, table, tidIndex, onTable]
   );
 
+  /** The offset of the page a scan position falls on. */
+  const pageOf = useCallback(
+    (row: number) => Math.floor(row / pageSize) * pageSize,
+    [pageSize]
+  );
+
+  // Act on a request from the map. The ordinal is a *scan* position, which is
+  // exactly what the pager cuts by (`addcounter … filter … head`), so reaching
+  // another page is arithmetic. Two things can get in the way:
+  //
+  //  - a server-side `sortby` reorders the whole relation, and the position
+  //    stops meaning that tuple. The request was "show me this tuple", and the
+  //    sort is the only thing preventing it, so the sort is cleared rather than
+  //    the wrong row scrolled to.
+  //  - an ad-hoc result is capped, not paged: there is no query to ask for the
+  //    rest of, so the row is genuinely unreachable and this says so.
+  useEffect(() => {
+    if (!focus) return;
+    setLocateNote(null);
+    setPending(focus.row);
+    const onPage =
+      focus.row >= table.offset && focus.row < table.offset + table.rowCount;
+    if (sort && paged) {
+      setSort(null);
+      void reload({ sort: null, offset: pageOf(focus.row) });
+    } else if (!onPage && paged) {
+      void reload({ offset: pageOf(focus.row) });
+    } else if (!onPage) {
+      // Only reachable if the table shrank between the card offering the jump
+      // and the jump arriving -- the card does not offer one it cannot land
+      // (see App.onShowRow). Said plainly rather than silently doing nothing,
+      // and *not* "press ✎ edit": a result that is capped instead of paged is
+      // a derived one, which has no relation behind it to edit.
+      setPending(null);
+      setLocateNote(
+        `Row ${(focus.row + 1).toLocaleString()} is past the ${table.rowCount.toLocaleString()}-row cap the server put on this result — narrow the query to read the rest of it.`
+      );
+    }
+    // Keyed on the nonce alone: asking twice for the same row has to act twice,
+    // and re-running because the table changed is the *other* effect's job.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focus?.nonce]);
+
+  // Scroll to a pending row once the page holding it is on screen. Centred
+  // rather than merely brought into view, so the tuples around it are visible
+  // too -- TextWindow.ensureSelectedIndexIsVisible does the same by hand.
+  useEffect(() => {
+    if (pending === null) return;
+    const i = pending - table.offset;
+    if (i < 0 || i >= table.rowCount) return;
+    const tr = scroll.current?.querySelector<HTMLTableRowElement>(
+      `tr[data-row="${pending}"]`
+    );
+    if (!tr) return; // filtered out of view; the highlight still marks it
+    tr.scrollIntoView({ block: "center" });
+    setPending(null);
+  }, [pending, table]);
+
   const toggleSort = (column: number) => {
     const next: Sort =
       sort && sort.column === column
@@ -175,6 +261,10 @@ export function TableView({ name, table, relation, onTable }: Props) {
   }, [table.relation, edit, reload]);
 
   const editable = editing && isEditable(table) && tidIndex !== null;
+  // One gutter column, two jobs: ✕/↩ while editing, ◎ otherwise. Two columns
+  // would be a second empty cell in every row for the sake of a mode that is
+  // off almost always.
+  const gutter = editable || !!onLocateRow;
 
   // Where this page sits in the relation. `totalKnown` is false only while
   // stepping pages without a fresh count, which cannot happen before one page
@@ -283,11 +373,13 @@ export function TableView({ name, table, relation, onTable }: Props) {
       )}
       {error && <div className="tv-error">{error}</div>}
 
-      <div className="tv-scroll">
+      {locateNote && <div className="tv-pending">{locateNote}</div>}
+
+      <div className="tv-scroll" ref={scroll}>
         <table className="tv-grid">
           <thead>
             <tr>
-              {editable && <th className="tv-gutter" />}
+              {gutter && <th className="tv-gutter" />}
               {table.columns.map((c, i) => (
                 <th
                   key={c.name}
@@ -309,17 +401,51 @@ export function TableView({ name, table, relation, onTable }: Props) {
               const row = table.rows[r];
               const tid = tidIndex !== null ? Number(row[tidIndex]) : -1;
               const deleted = editable && edit.isDeleted(tid);
+              // The tuple's scan position: what the map's `_row` addresses, and
+              // what survives paging. `r` is only where it sits on this page.
+              const scan = table.offset + r;
               return (
-                <tr key={tid >= 0 ? tid : r} className={deleted ? "tv-deleted" : undefined}>
-                  {editable && (
+                <tr
+                  key={tid >= 0 ? tid : r}
+                  data-row={scan}
+                  className={
+                    [deleted ? "tv-deleted" : "", selectedRow === scan ? "tv-selected" : ""]
+                      .filter(Boolean)
+                      .join(" ") || undefined
+                  }
+                  // Not while editing: there every click lands in a cell, and
+                  // selecting as a side effect of starting to type would move
+                  // the map selection out from under the user.
+                  onClick={editable ? undefined : () => onSelectRow(scan)}
+                >
+                  {gutter && (
                     <td className="tv-gutter">
-                      <button
-                        className="tv-rowbtn"
-                        onClick={() => edit.toggleDelete(tid)}
-                        title={deleted ? "Keep this tuple" : "Delete this tuple"}
-                      >
-                        {deleted ? "↩" : "✕"}
-                      </button>
+                      {editable ? (
+                        <button
+                          className="tv-rowbtn"
+                          onClick={() => edit.toggleDelete(tid)}
+                          title={deleted ? "Keep this tuple" : "Delete this tuple"}
+                        >
+                          {deleted ? "↩" : "✕"}
+                        </button>
+                      ) : (
+                        onLocateRow && (
+                          <button
+                            className="tv-rowbtn tv-locate"
+                            onClick={(e) => {
+                              // The row click would select it again anyway, but
+                              // this one also switches tabs -- let it be the
+                              // only thing that happens.
+                              e.stopPropagation();
+                              onLocateRow(scan);
+                            }}
+                            title="Show this tuple on the map"
+                            aria-label="Show this tuple on the map"
+                          >
+                            ◎
+                          </button>
+                        )
+                      )}
                     </td>
                   )}
                   {table.columns.map((c, i) => (

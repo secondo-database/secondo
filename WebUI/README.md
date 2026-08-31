@@ -447,6 +447,72 @@ the HoeseViewer treats its OSM background: automatic for datasets already in
 lon/lat, and via the BerlinMOD transform for berlintest. See **Projections**
 below.
 
+**Milestone 13 (map ↔ table selection) — done & verified end-to-end.**
+Clicking an object on the map shows its **whole tuple** and puts the matching
+**row** one click away; clicking a row highlights (and optionally frames) its
+geometry. This is the HoeseViewer's map ↔ `QueryResult` coupling, which the WebUI
+had only half of.
+
+- **What the old viewer does, and what is different here.** `QueryResult` is a
+  *flat* `JList` — one line per attribute (`"Name : Filmtheater"`), tuples
+  separated by a `"---------"` line. `SelMouseAdapter.mouseClicked` hit-tests
+  every object of every query result and then does nothing but
+  `JList.setSelectedValue(obj, true)`; a single `ListSelectionListener` owns
+  every state change from there, and `TextWindow.ensureSelectedIndexIsVisible`
+  *centres* the line so the tuple's other attributes are visible around it. The
+  tuple↔geometry link is index arithmetic:
+  `row = tupleIndex * (attrCount + 1) + attrIndex` (`QueryResult.getPick`,
+  `ViewConfig.OKBActionPerformed`) — which breaks the moment a `Dspl` class
+  emits a second line, hence the error messages policing that in
+  `Dspltuple.displayTuple`. Here the ordinal is carried explicitly instead.
+- **`_row`, the ordinal** (`app/geojson.py`). Every feature built from a
+  relation is stamped with its tuple's position in the answer's scan order.
+  It is free: `geojson.RelationFeatures` and `table.RelationRows` are fed the
+  same tuple stream in the same order out of one `Answer` (`app/convert.py`),
+  and `temporal.RelationMoving` already emitted the same key for the symbolic
+  labels. It is also what the *pager* cuts by — `addcounter … filter … head`
+  counts scan positions — so the row on screen is `_row - table.offset` and
+  reaching another page is arithmetic. A tuple with two spatial attributes
+  yields two features sharing one `_row`, told apart by `_attr`.
+- **The card is the tuple** (`table/RowCard.tsx`). The old details panel listed
+  the clicked feature's GeoJSON `properties`, and those hold only what
+  `geojson._scalar` kept — so every `region`, `mpoint` and other non-atomic
+  attribute was silently missing from it. The card reads the row out of the
+  result's own table payload instead, formatted by the grid's `formatCell`, and
+  marks the clicked geometry's line with `◆` (with two spatial attributes in a
+  tuple, that mark is the only thing saying which one is selected).
+- **The card fetches the row it needs.** A relation is served a page at a time
+  while the map draws *every* tuple, so a clicked feature is usually not on the
+  page the grid holds. Rather than show the tuple with holes in it, the card
+  asks for that one row (`/api/table/load`, `limit: 1`) — the same request the
+  pager makes — and leaves `layer.table` alone, so the grid stays on whatever
+  page the user put it on. Nothing is fetched when the page already has the row,
+  which is the common case. Because any row can be fetched, `‹ ›` walk the whole
+  relation rather than the page. The one case that cannot be repaired by asking
+  is a *derived* result: it is capped rather than paged and has no relation
+  behind it, so a row past `MAX_ROWS` was never sent. There the card names each
+  unsent attribute by its **type**, greyed, and says why — and the jump is
+  withheld, since it could only switch tabs to report the same thing.
+- **Both directions.** `▤ show row in table` opens the table, pages to the row
+  and centres it. Clicking a row selects its geometry; `◎` in the row gutter
+  also switches to the map and frames it. A **server-side sort** is the one
+  thing that breaks the ordinal — `sortby` reorders the whole relation — so
+  locating a row clears the sort rather than scrolling to the wrong tuple.
+- **Selecting on the map never moves the map.** That is HoeseViewer's
+  `isMouseSelected` guard (`makeSelectionVisible`), and without it clicking a
+  feature recentres the view out from under the click. Only `◎` moves it.
+- **The highlight is drawn last**, above every layer, as its own two-ring
+  `GeoJsonLayer` — `GraphWindow.paintChildren` redraws the selected object over
+  the whole stack for the same reason. Deliberately not deck's
+  `highlightedObjectIndex`, which turns off the `autoHighlight` the map already
+  has on hover and addresses features by array index, which a moving region's
+  face and a trip's current position have no equivalent of.
+
+Verified in a headless browser (`npm run e2e -- select-link`): clicking a
+feature marks its geometry attribute and lists the rest of the tuple, the jump
+highlights and centres the matching row, a row click moves the selection back to
+the map, `◎` reframes it, and a map click leaves the view untouched.
+
 ## Prerequisites
 
 - A built SECONDO tree with the environment sourced (`source ~/.secondorc`, which
@@ -630,7 +696,7 @@ Current checks: `animation`, `basemap-picker`, `catalog-basemap`,
 `catalog-manual-refresh`, `catalog-race`, `catalog-refresh`, `console`,
 `db-selection`, `gpx-import`, `labels`, `layer-icons`, `layer-rename`,
 `layers`, `map`, `mpoint-fit`, `mregion`, `paging`, `pending-entry`, `plots`,
-`projection`, `remove-layer`, `render-modes`, `space-flip`, `sql`,
+`projection`, `remove-layer`, `render-modes`, `select-link`, `space-flip`, `sql`,
 `symbolic-labels`, `table`, `table-intent`, `theme`, `ui-polish`, `ux`,
 `viewfit`.
 
@@ -902,8 +968,12 @@ leaves the view exactly where you put it. Use the `⤢` button to re-fit on dema
 - Remaining long-tail types (network/JNet, precise geometry, raster) still fall
   back to the textual nested-list view, as `DsplGeneric` does in the Java GUI.
 - Table view follow-ups: a load dialog for the filter/project/sort the backend
-  already accepts (`/api/table/load`), nested `nrel`/`arel` relations, and
-  linking a selected row to its geometry on the map.
+  already accepts (`/api/table/load`), and nested `nrel`/`arel` relations.
+- Clicking a stack of overlapping objects always picks the topmost. The Java
+  GUI cycles *downwards* through them on repeated clicks, keyed on
+  `layerNo + indexInLayer/layerSize` (`Layer.getObjIndex`,
+  `HoeseViewer.SelMouseAdapter.mouseClicked`); deck.gl picks one object per
+  click, and `pickMultipleObjects` would be the way to it.
 - Kernel follow-ups surfaced while wiring up SQL, all pre-existing:
   `SecondoInterfaceCS::Secondo` assigns `resolvedCmdLevel` only on its "usual
   command" branch, so after a client-intercepted `save`/`restore` it reports the

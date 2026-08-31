@@ -108,7 +108,11 @@ try {
   await new Promise((r) => setTimeout(r, 200));
   await runCmd("query Flaechen feed head[5] consume");
   await new Promise((r) => setTimeout(r, 500));
-  const target = await page.evaluate(() => {
+  // Snapshot -> click -> verify, and retry, for the reason verify-layers gives:
+  // under full-suite load the regions are not always drawn (and re-fitted)
+  // within a fixed wait, so a single look can find no pixel or an off frame and
+  // the pick misses. Re-snapshotting waits for a settled frame instead.
+  const findTarget = () => page.evaluate(() => {
     const c = document.querySelector(".mapview canvas");
     const rect = c.getBoundingClientRect();
     const gl = c.getContext("webgl2", { preserveDrawingBuffer: true }) ||
@@ -127,12 +131,16 @@ try {
     }
     return null;
   });
-  if (target) {
+
+  let keys = [];
+  for (let attempt = 0; attempt < 5 && !keys.includes("Name"); attempt++) {
+    const target = await findTarget();
+    if (!target) { await new Promise((r) => setTimeout(r, 300)); continue; }
     await page.mouse.click(target.x, target.y);
     await new Promise((r) => setTimeout(r, 300));
+    keys = await page.$$eval(".details .dk", (els) => els.map((e) => e.textContent))
+      .catch(() => []);
   }
-  const keys = await page.$$eval(".details .dk", (els) => els.map((e) => e.textContent))
-    .catch(() => []);
   check(keys.includes("Name") && !keys.includes("_attr") && !keys.includes("_layer"),
         `details hides _attr/_layer, keeps Name (keys: ${keys.join(",")})`);
 } finally {

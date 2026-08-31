@@ -59,9 +59,29 @@ export interface Layer {
 // The layer's name is deliberately *not* copied in here: it can be renamed
 // while the details panel is open, and a snapshot would go stale. Callers
 // resolve the name from `layers` by id at render time.
+//
+// One selection, whichever side started it. The Hoese viewer routes a map click
+// through `JList.setSelectedValue` so that a single ListSelectionListener owns
+// every state change (HoeseViewer.QueryListSelectionListener); this is that
+// funnel, and both the map and the grid write to it rather than to each other.
 export interface Selection {
   layerId: string;
   properties: Record<string, unknown>;
+  // The tuple's position in the result's scan order (the backend's `_row`), or
+  // null for a result that is not a relation -- `query BGrenzenLine` is one
+  // object with no row to point at. This is what addresses the table row:
+  // the grid shows scan positions `offset .. offset + rowCount`.
+  row: number | null;
+  // Which spatial or moving attribute's geometry this is (`_attr`). A tuple
+  // with two of them yields two features sharing one `row`, and the old viewer
+  // selects the clicked *attribute's* line, not just the tuple -- so the card
+  // marks which one it was.
+  attr: string | null;
+  // Where the selection came from. A selection made *on the map* must never
+  // move the map: that is the `isMouseSelected` guard around
+  // HoeseViewer.makeSelectionVisible, without which clicking a feature yanks
+  // the view out from under the click.
+  from: "map" | "table";
 }
 
 // Categorical palette, assigned in fixed order (never cycled by rank) so a
