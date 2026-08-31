@@ -305,6 +305,7 @@ export function App() {
             : undefined;
         settle(id, sent, {
           result: res.text,
+          scalar: res.scalar ?? undefined,
           hasGeometry: !!fc,
           hasMotion: !!temp,
           layerId,

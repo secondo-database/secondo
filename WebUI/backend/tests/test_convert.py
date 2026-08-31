@@ -60,14 +60,20 @@ SYMBOLIC = (
 SHAPES = [MIXED, PLAIN, POINT, COUNT, MPOINT, SYMBOLIC]
 
 
-def read(text: str, *, page=None, table_only=False, can_stream=True):
-    """One answer through the bridge and out as payloads, the way /api/query
-    does it. `nativefake.answer` applies the same rules the C++ does."""
+def arrive(text: str, *, table_only=False, can_stream=True):
+    """One answer through the bridge, left holding it. `nativefake.answer`
+    applies the same rules the C++ does."""
     a = Answer(table_only=table_only)
     raw = bridge_answer(parse(text), False, a, can_stream=can_stream)
     if not raw["streamed"]:
         a.read(raw["type"], raw["tuples"], raw["tree"])
-    return a.payloads(page=page), raw["streamed"]
+    return a, raw["streamed"]
+
+
+def read(text: str, *, page=None, table_only=False, can_stream=True):
+    """...and out as payloads, the way /api/query does it."""
+    a, streamed = arrive(text, table_only=table_only, can_stream=can_stream)
+    return a.payloads(page=page), streamed
 
 
 def whole(text: str, *, page=None):
@@ -179,3 +185,45 @@ def test_a_tuple_that_is_not_a_tuple_is_skipped():
         a.elem(tup)
     assert a.payloads()[2]["rowCount"] == 2
     assert a.payloads()[2]["totalRows"] == 3
+
+
+# The unpacked one-value result (app/scalar.py). Every atomic type, and the
+# undefined one -- which is the case that has a payload but no value.
+SCALARS = {
+    "(int 56)": {"type": "int", "value": 56},
+    "(real 1.5)": {"type": "real", "value": 1.5},
+    "(bool TRUE)": {"type": "bool", "value": True},
+    '(string "abc")': {"type": "string", "value": "abc"},
+    "(text abc)": {"type": "text", "value": "abc"},
+    "(real undefined)": {"type": "real", "value": None},
+}
+
+
+@pytest.mark.parametrize("text,expected", SCALARS.items())
+@pytest.mark.parametrize("can_stream", [True, False])
+def test_a_one_value_result_is_unpacked_however_it_arrives(text, expected, can_stream):
+    a, _ = arrive(text, can_stream=can_stream)
+    assert a.scalar() == expected
+
+
+@pytest.mark.parametrize("text", [s for s in SHAPES if s != COUNT])
+@pytest.mark.parametrize("can_stream", [True, False])
+def test_nothing_else_is_unpacked(text, can_stream):
+    """A relation, a point, an mpoint: a value of several parts has no reading
+    without its nested list, whatever its label says. COUNT is left out because
+    it *is* one -- it is the shape the case above is about."""
+    a, _ = arrive(text, can_stream=can_stream)
+    assert a.scalar() is None
+
+
+def test_an_unknown_type_keeps_its_nested_list():
+    """Only the atomic types. `(mehringdamm 5)` is not an int because it says
+    5 -- the label is the half that carries the meaning."""
+    a, _ = arrive("(nonesuch 5)")
+    assert a.scalar() is None
+
+
+def test_unpacking_a_broken_answer_does_not_raise():
+    a = Answer()
+    a._fail()
+    assert a.scalar() is None

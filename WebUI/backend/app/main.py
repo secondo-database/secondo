@@ -150,6 +150,9 @@ class QueryResponse(BaseModel):
     geojson: dict | None = None  # static spatial features (Milestone 2)
     temporal: dict | None = None  # moving-object trips + time domain (Milestone 3)
     table: dict | None = None  # relation rows + schema (Milestone 9)
+    # A result that is a single value, unpacked from its (type value) wrapper:
+    # {"type": "int", "value": 56}. Absent for everything else -- see app/scalar.
+    scalar: dict | None = None
     # The stored relation this result came from, when it can be named without
     # guessing. Only a hint for offering the table's Edit button -- the load
     # endpoint validates it against the catalog before it runs anything.
@@ -282,8 +285,10 @@ async def query(
     # here, after a `list objects` that the reading itself could not have
     # survived.
     geojson = temporal = tabular = None
+    scalar = None
     if answer is not None:
         geojson, temporal, tabular = answer.payloads(page=page)
+        scalar = answer.scalar()
     if tabular is None:
         relation = None  # the command named something that is not rows at all
     elif page is not None:
@@ -297,6 +302,7 @@ async def query(
         geojson=geojson,
         temporal=temporal,
         table=tabular,
+        scalar=scalar,
         relation=relation,
         level=result.level,
         plan=result.plan,

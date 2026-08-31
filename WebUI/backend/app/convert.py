@@ -22,6 +22,10 @@ Either way the three payload builders see the answer once, and only the ones
 that can produce something are fed -- a relation with nothing temporal in it is
 no longer walked by the temporal builder at all.
 
+``Answer.scalar`` is the fourth and smallest of them, and the only one that is
+not part of ``Payloads``: an answer that is a single value (``(int 56)``) is by
+definition not a relation, so it shares nothing with the three above.
+
 ``convert`` is the whole-tree entry point, for the text paths and the fixture
 tests.
 """
@@ -30,7 +34,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Iterable
 
-from . import geojson, table, temporal
+from . import geojson, scalar as scalar_mod, table, temporal
 from .nlparser import Node
 
 logger = logging.getLogger("secondo.webui")
@@ -148,6 +152,21 @@ class Answer:
 
     # -- the result ---------------------------------------------------------
 
+    def scalar(self) -> dict | None:
+        """The answer as one unpacked value, when it is one -- see app/scalar.py.
+
+        Kept out of ``payloads`` on purpose: that tuple is also ``convert``'s
+        contract, and a relation -- the case ``payloads`` exists for -- can
+        never be a scalar, so the two have nothing to share.
+        """
+        if self._failed or self.rows is not None:
+            return None
+        try:
+            return scalar_mod.from_tree(self._answer())
+        except Exception:  # noqa: BLE001 - a payload must not fail the command
+            logger.exception("Unpacking the result value failed")
+            return None
+
     def payloads(self, *, page: int | None = None) -> Payloads:
         if self._failed:
             return None, None, None
@@ -159,7 +178,7 @@ class Answer:
                     self.moving.payload() if self.moving is not None else None,
                     self.rows.payload(page=page),
                 )
-            tree = self._tree if self._items is None else [self._type, self._items]
+            tree = self._answer()
             if self.table_only:
                 tabular = (
                     table.first_page(tree, limit=page) if page is not None
@@ -170,6 +189,11 @@ class Answer:
         except Exception:  # noqa: BLE001 - a payload must not fail the command
             logger.exception("Building the render payloads failed")
             return None, None, None
+
+    def _answer(self) -> Node:
+        """The answer as one tree, however it arrived: whole, or as the halves
+        the reader took it apart into."""
+        return self._tree if self._items is None else [self._type, self._items]
 
     def _fail(self) -> None:
         if not self._failed:

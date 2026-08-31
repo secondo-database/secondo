@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import type { CatalogObject, OperatorInfo } from "../api/client";
+import type { CatalogObject, OperatorInfo, ScalarValue } from "../api/client";
+import { formatCell } from "../table/useTableEdit";
 import type { Theme } from "../theme";
 import {
   applyCompletion,
@@ -7,6 +8,7 @@ import {
   type Completion,
 } from "./completion";
 import { loadCommands, saveCommands } from "./history";
+import { loadPrefs, savePrefs, type ConsolePrefs } from "./prefs";
 
 /** What a one-shot Run menu item asks for; `undefined` is a plain Run.
  *
@@ -31,6 +33,9 @@ export interface Entry {
   // performance.now() when it was sent, for the stopwatch shown while pending.
   startedAt?: number;
   result?: string;
+  // The result as one value, when it is one -- `(int 56)` unpacked to 56. The
+  // nested list stays in `result`; this is what is shown instead of it.
+  scalar?: ScalarValue;
   error?: string;
   hasGeometry?: boolean;
   hasMotion?: boolean;
@@ -66,6 +71,12 @@ function fmtElapsed(ms: number): string {
  *  is "it is still going", not the measurement. */
 function fmtRunning(ms: number): string {
   return `${(ms / 1000).toFixed(1)} s`;
+}
+
+/** How big the nested list is, for the fold row that stands in for it. Bytes
+ *  below a kilobyte, so a short answer does not read as "0.0 kB". */
+function fmtSize(chars: number): string {
+  return chars < 1000 ? `${chars} B` : `${(chars / 1000).toFixed(1)} kB`;
 }
 
 interface Props {
@@ -116,6 +127,13 @@ export function Console({
   const [items, setItems] = useState<Completion[]>([]);
   const [picked, setPicked] = useState(0);
   const [moved, setMoved] = useState(false);
+  // Which of the two foldable blocks the log shows by default, remembered
+  // across reloads, and the entries that were folded open or shut by hand.
+  // The overrides are keyed by entry, so they survive the log growing under
+  // them, and are dropped whenever a switch is flipped -- a switch that left
+  // entries disagreeing with it would not be doing what it says.
+  const [prefs, setPrefs] = useState<ConsolePrefs>(loadPrefs);
+  const [folds, setFolds] = useState<Record<string, boolean>>({});
   const bottom = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const runRef = useRef<HTMLDivElement>(null);
@@ -166,6 +184,11 @@ export function Console({
     saveCommands(commands);
   }, [commands]);
 
+  // ...and so does what the log shows.
+  useEffect(() => {
+    savePrefs(prefs);
+  }, [prefs]);
+
   // The Run menu closes on Esc and on a click anywhere else, as a menu should.
   useEffect(() => {
     if (!menuOpen) return;
@@ -189,6 +212,23 @@ export function Console({
     setCommands([]);
     setHistIndex(-1);
     onClearHistory();
+  }
+
+  /** Flip one of the two switches, and let go of every entry that was folded
+   *  by hand: the switch is the answer to "show me these", so it has to win. */
+  function toggle(which: keyof ConsolePrefs) {
+    setPrefs((p) => ({ ...p, [which]: !p[which] }));
+    setFolds({});
+  }
+
+  /** Whether one entry's block is open: what it was folded to by hand, or the
+   *  default the switch sets. */
+  function isOpen(key: string, fallback: boolean): boolean {
+    return folds[key] ?? fallback;
+  }
+
+  function fold(key: string, open: boolean) {
+    setFolds((f) => ({ ...f, [key]: !open }));
   }
 
   function recall(text: string) {
@@ -369,6 +409,39 @@ export function Console({
         >
           <span className="dock-ic">{collapsed ? "▴" : "▾"}</span> history
         </button>
+        {/* What the log shows. Both are noise as often as they are the answer
+            -- the plan for anyone not tuning a query, the nested list for
+            anyone who already has the value -- so each is a switch rather than
+            a layout decision made once for everybody. Pressed means shown,
+            which is why `aria-pressed` carries the state and the label does
+            not change with it. The plan switch is left out entirely on a server
+            that has no optimizer: it could never have anything to hide. */}
+        {optimizer !== false && (
+          <button
+            className="dock-btn"
+            onClick={() => toggle("plan")}
+            aria-pressed={prefs.plan}
+            title={
+              prefs.plan
+                ? "Hide the optimized query on every entry"
+                : "Show the optimized query on every entry"
+            }
+          >
+            <span className="dock-ic">≡</span> plan
+          </button>
+        )}
+        <button
+          className="dock-btn"
+          onClick={() => toggle("result")}
+          aria-pressed={prefs.result}
+          title={
+            prefs.result
+              ? "Hide the nested-list result on every entry"
+              : "Show the nested-list result on every entry"
+          }
+        >
+          <span className="dock-ic">{"{}"}</span> result
+        </button>
         {/* The recalled commands outlive the tab, so they need a way back to
             empty; the log on screen goes with them. */}
         <button
@@ -393,7 +466,16 @@ export function Console({
           the pane. `additions` keeps it to the new entry rather than re-reading
           the whole log every time. */}
       <div className="log" role="log" aria-live="polite" aria-relevant="additions">
-        {history.map((e, i) => (
+        {history.map((e, i) => {
+          // The two foldable blocks of this entry. The nested list starts
+          // folded when the value above it already says the same thing: an
+          // entry showing 56 has no business also printing `(int 56)`. It is
+          // still one click away, which is the whole reason the fold row is
+          // there whether the block is open or not.
+          const key = String(e.id ?? i);
+          const planOpen = isOpen(`plan:${key}`, prefs.plan);
+          const nlOpen = isOpen(`nl:${key}`, prefs.result && !e.scalar);
+          return (
           <div key={e.id ?? i} className={"entry" + (e.pending ? " pending" : "")}>
             <div className="cmd">
               <span className="prompt">&gt;</span>
@@ -421,15 +503,27 @@ export function Console({
                 )
               )}
             </div>
+            {/* The plan the optimizer generated. Its label is the fold row, so
+                folding it away costs no line: the costs ride along there rather
+                than inside the block, and stay readable while it is shut.
+                Costs are only meaningful when the optimizer estimated any; the
+                Java GUI hides them otherwise too. */}
             {e.plan !== undefined && (
-              <pre className="plan">
-                {`Optimized plan: ${e.plan}` +
-                  // Costs are only meaningful when the optimizer estimated
-                  // any; the Java GUI hides them otherwise too.
-                  (e.costs !== undefined && e.costs > 0
-                    ? `\nEstimated costs: ${e.costs}`
-                    : "")}
-              </pre>
+              <>
+                <button
+                  className="fold"
+                  aria-expanded={planOpen}
+                  onClick={() => fold(`plan:${key}`, planOpen)}
+                  title={planOpen ? "Hide the optimized query" : "Show the optimized query"}
+                >
+                  <span className="fold-ic">{planOpen ? "▾" : "▸"}</span>
+                  optimized query
+                  {e.costs !== undefined && e.costs > 0 && (
+                    <span className="fold-note">· costs {e.costs}</span>
+                  )}
+                </button>
+                {planOpen && <pre className="plan">{e.plan}</pre>}
+              </>
             )}
             {e.planOnly && <div className="optnote">Plan only — not executed.</div>}
             {e.noTable && (
@@ -468,19 +562,52 @@ export function Console({
                 showOptions lays it out with leading whitespace, which is why
                 it is not trimmed anywhere along the way. */}
             {e.message !== undefined && <pre className="ok">{e.message}</pre>}
-            {e.result !== undefined &&
+            {/* A result that is one value, shown as that value. This is the
+                answer, so it is the largest thing in the entry -- the wrapper
+                it came in is longer than it is, and is a fold away below. */}
+            {e.scalar && (
+              <div className="scalar">
+                <span className="scalar-value">
+                  {e.scalar.value === null ? (
+                    <span className="scalar-undef">undefined</span>
+                  ) : (
+                    formatCell(e.scalar.value)
+                  )}
+                </span>
+                <span className="scalar-type">{e.scalar.type}</span>
+              </div>
+            )}
+            {/* An empty result is not a result: `view:"none"` never rendered
+                one, and a table opened from the catalog has its rows instead.
+                Those used to draw an empty box; now they draw nothing. */}
+            {!!e.result &&
               e.message === undefined &&
               !e.planOnly &&
               !e.executedByOptimizer && (
-                <pre className="ok">
-                  {e.result.length > 4000
-                    ? e.result.slice(0, 4000) + "\n… (truncated)"
-                    : e.result}
-                </pre>
+                <>
+                  <button
+                    className="fold"
+                    aria-expanded={nlOpen}
+                    onClick={() => fold(`nl:${key}`, nlOpen)}
+                    title={nlOpen ? "Hide the nested list" : "Show the nested list"}
+                  >
+                    <span className="fold-ic">{nlOpen ? "▾" : "▸"}</span>
+                    nested list
+                    <span className="fold-note">· {fmtSize(e.result.length)}</span>
+                  </button>
+                  {nlOpen && (
+                    <pre className="ok">
+                      {e.result.length > 4000
+                        ? e.result.slice(0, 4000) + "\n… (truncated)"
+                        : e.result}
+                    </pre>
+                  )}
+                </>
               )}
             {e.error !== undefined && <pre className="err">{e.error}</pre>}
           </div>
-        ))}
+          );
+        })}
         <div ref={bottom} />
       </div>
 

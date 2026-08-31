@@ -649,7 +649,8 @@ backend/
   native/        pybind11 wrapper (secondo_native.cpp, Makefile)
   app/           FastAPI app: config, session, main, catalog,
                  nlparser + nlwriter, geojson (static) + temporal (moving)
-                 + table (rows) + updates (relation editing) + convert
+                 + table (rows) + scalar (one value) + updates (relation
+                 editing) + convert
   tests/         parser / geojson / temporal / table / updates / API tests
                  + fixtures
 frontend/
@@ -658,6 +659,7 @@ frontend/
   src/catalog/   database + object browser
   src/console/   command console (history recall, focus retention)
                  + history.ts: recalled commands persisted in localStorage
+                 + prefs.ts: which log blocks are shown, likewise
   src/layers/    useLayers state + LayersPanel (style/reorder) + GeoJSON export
   src/map/       deck.gl MapView (Cartesian OR geographic MapLibre + basemap)
                  + projection (Berlin2WGS) + basemaps (the raster choices)
@@ -710,6 +712,28 @@ while it is written instead of scrolling sideways in a one-line slit; past
 to the server, so the log stays one line per command while `↑` brings the query
 back formatted. `↑`/`↓` recall from the first/last line, so in a multi-line query
 the arrows move the caret first.
+
+**A one-value result is shown as that value.** `query 1 + 55` answers
+`(int 56)`, in which the wrapper is longer than the answer, so the console shows
+`56` with `int` beside it and folds the nested list away — it is one click from
+coming back. Only the atomic types are unpacked (`int`, `real`, `bool`,
+`string`, `text`; `app/scalar.py`), and only when the value half really is one
+atom: `(point (9396.0 9871.0))` has no reading without its list. An undefined
+value says so rather than showing as an empty box.
+
+The unpacking is done on the backend, through the same `table.cell` rule the
+grid formats a cell with — so the same 56 reads the same way in both places.
+Doing it in the browser would mean a second implementation of the kernel's
+lexer, which is the mistake `app/nlparser.py` documents having already made
+once.
+
+**Two blocks of a log entry can be put away.** The optimizer's plan and the
+nested-list result each get a fold row that names them and carries what is worth
+knowing while they are shut — the estimated costs, and the size of the list.
+`≡ plan` and `{} result` in the console header set the default for every entry
+and are remembered in `localStorage` (`src/console/prefs.ts`); a fold row
+overrides its own entry, and flipping a switch clears those overrides so the
+switch always does what it says.
 
 **The command history survives a reload.** The last 200 typed commands are kept
 in `localStorage` (`src/console/history.ts`), so `↑`/`↓` still walks back into

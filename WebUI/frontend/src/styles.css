@@ -176,6 +176,7 @@ body {
 .rt-close,
 .cat-table,
 .tv-rowbtn,
+.fold,
 .details-head button {
   min-width: 1.5rem;
   min-height: 1.5rem;
@@ -1741,6 +1742,20 @@ body.dragging {
   cursor: default;
 }
 
+/* The two log switches. Pressed is the resting state -- everything is shown
+   until someone says otherwise -- so it is *off* that has to be visible at a
+   glance, and it is drawn as struck through rather than merely dimmed: a dim
+   button is what a disabled one looks like, and these are the opposite of
+   disabled. */
+.dock-btn[aria-pressed="false"] {
+  color: var(--faint);
+  border-style: dashed;
+}
+
+.dock-btn[aria-pressed="false"] .dock-ic {
+  text-decoration: line-through;
+}
+
 .log {
   flex: 1;
   /* Yield height to a grown query box instead of pushing it out of the pane. */
@@ -1837,6 +1852,82 @@ pre.plan {
   border-left: 3px solid var(--accent);
   color: var(--accent-soft);
   margin-bottom: 0.3rem;
+}
+
+/* The label of a foldable block, and the block itself when it is folded away.
+   One row either way, so folding never shifts what is above it and there is
+   always something to click to fold it back. Quiet: it names machinery, and
+   the answer is what should be read first. */
+.fold {
+  display: flex;
+  align-items: center;
+  /* Against the 24px hit-target group above, which centres its contents: this
+     is a full-width row, so its label belongs at the left edge. */
+  justify-content: flex-start;
+  gap: 0.3rem;
+  width: 100%;
+  background: none;
+  border: 0;
+  padding: 0.15rem 0;
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.75rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.fold:hover {
+  color: var(--text);
+}
+
+.fold-ic {
+  color: var(--accent);
+  font-size: 0.7rem;
+  line-height: 1;
+}
+
+/* The costs, and the size of the list: what the folded block is worth opening
+   for. They stay on the row so folding does not hide them too. */
+.fold-note {
+  color: var(--faint);
+  font-variant-numeric: tabular-nums;
+}
+
+/* A result that is a single value. The box is the one `pre.ok` uses -- same
+   surface, same green edge -- because it is the same thing, said shorter. */
+.scalar {
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  background: var(--surface);
+  border-left: 3px solid var(--ok);
+}
+
+/* The answer. Set larger than the entry around it: it is the one thing on the
+   line worth reading, and at log size a bare `56` disappears. */
+.scalar-value {
+  flex: 1;
+  min-width: 0;
+  color: var(--text);
+  font-size: 1.05rem;
+  word-break: break-word;
+}
+
+/* Which type it is -- the half of `(int 56)` that is not the value, and the
+   only half worth keeping. */
+.scalar-type {
+  color: var(--muted);
+  font-size: 0.72rem;
+  white-space: nowrap;
+}
+
+/* A defined value the server could not compute. Said, rather than left as an
+   empty box that reads as a bug. */
+.scalar-undef {
+  color: var(--faint);
+  font-style: italic;
 }
 
 .optnote {

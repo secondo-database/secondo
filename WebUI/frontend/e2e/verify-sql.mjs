@@ -76,7 +76,13 @@ await run("open database berlintest");
 const before = await layerCount();
 await run("select * from kinos");
 let entry = await lastEntry();
-check("plan is shown", entry.includes("Optimized plan:"), entry.slice(0, 200));
+// The plan is labelled by its fold row now, and the block below it holds the
+// plan alone -- so both halves are asserted.
+check(
+  "plan is shown",
+  entry.includes("optimized query") && entry.includes("feed"),
+  entry.slice(0, 200)
+);
 check("result rendered", (await layerCount()) > before);
 
 // 2) The "optimizer " prefix: optimize, report, do not execute.

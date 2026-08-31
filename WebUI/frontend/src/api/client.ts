@@ -101,11 +101,21 @@ export interface FeatureCollection {
   bbox?: [number, number, number, number];
 }
 
+/** A result that is a single value, unpacked from its `(type value)` wrapper
+ *  by the backend (app/scalar.py): `(int 56)` arrives as 56 with "int" beside
+ *  it. `value` is null when the value is undefined, which is a thing to say
+ *  rather than an empty box. Only the atomic types are ever unpacked. */
+export interface ScalarValue {
+  type: string;
+  value: string | number | boolean | null;
+}
+
 export interface QueryResponse {
   text: string;
   geojson: FeatureCollection | null;
   temporal: TemporalPayload | null;
   table: TablePayload | null;
+  scalar?: ScalarValue | null;
   // The stored relation this result came from, when the server could name one
   // without guessing. Only a hint for offering the table's Edit button.
   relation?: string | null;

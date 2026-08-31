@@ -275,13 +275,18 @@ if ((await page.$(".tv-error")) !== null)
 // Both are really in SECONDO, and each is on a different page of it.
 await run(`query ${REL} feed filter[.Elem = 9001] count`);
 await run(`query ${REL} feed filter[.Elem = 9002] count`);
+// `count` answers `(int 1)`, which the console shows as the value 1 with its
+// type beside it rather than as the nested list it came in.
 const answers = await page.evaluate(() =>
   [...document.querySelectorAll(".log .entry")]
     .slice(-2)
-    .map((e) => e.textContent.replace(/\s+/g, " "))
+    .map((e) => ({
+      value: e.querySelector(".scalar-value")?.textContent.trim() ?? null,
+      type: e.querySelector(".scalar-type")?.textContent.trim() ?? null,
+    }))
 );
 console.log(`counts: ${JSON.stringify(answers)}`);
-if (!answers.every((a) => a.includes("(int 1)")))
+if (!answers.every((a) => a.value === "1" && a.type === "int"))
   fail("an edit made on one of the two pages never reached SECONDO");
 
 await page.screenshot({ path: "e2e/out/paging.png" });

@@ -98,7 +98,12 @@ try {
       text: e.querySelector(".cmd-text")?.textContent.trim(),
       ms: e.querySelector(".cmd-ms")?.textContent.trim(),
       running: !!e.querySelector(".cmd-ms.running"),
-      result: e.querySelector("pre.ok")?.textContent.trim() ?? "",
+      // A count is one value, so the console shows it unpacked and folds the
+      // nested list away; either is the result being there.
+      result:
+        e.querySelector(".scalar-value")?.textContent.trim() ??
+        e.querySelector("pre.ok")?.textContent.trim() ??
+        "",
     };
   });
   check(last.text === SLOW, "the finished entry still shows the command");

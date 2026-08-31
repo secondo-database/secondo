@@ -77,6 +77,19 @@ def _page_of_ten(command: str) -> str:
     return f"((rel (tuple ((No int) (TID tid)))) ({body}))"
 
 
+# One-value results, for the unpacking /api/query does (app/scalar.py). One per
+# atomic type, plus the undefined one -- the case that has a payload but no
+# value -- and a type the backend does not know, which keeps its nested list.
+SCALAR_ANSWERS = {
+    "query 1 + 55": "(int 56)",
+    "query 1.0 / 2.0": "(real 0.5)",
+    "query 1 = 1": "(bool TRUE)",
+    'query "abc"': '(string "abc")',
+    "query 1.0 / 0.0": "(real undefined)",
+    "query nonesuch": "(nonesuch 5)",
+}
+
+
 def _fake_native(optimizer: bool = True):
     """A stand-in for the pybind11 module, without a SECONDO server."""
     fake = types.ModuleType("secondo_native")
@@ -142,6 +155,8 @@ def _fake_native(optimizer: bool = True):
                 return "()"
             if command == "query mehringdamm":
                 return "(point (9396.0 9871.0))"
+            if command in SCALAR_ANSWERS:
+                return SCALAR_ANSWERS[command]
             if command == "query ten":
                 return TEN
             if command == "query ten feed count":
@@ -930,3 +945,48 @@ def test_a_command_run_for_its_effect_ships_no_payload(client):
     assert r.status_code == 200
     assert r.json()["text"] == ""
     assert r.json()["table"] is None and r.json()["geojson"] is None
+
+
+def test_a_one_value_result_is_unpacked(client):
+    """`query 1 + 55` answers `(int 56)`; the console shows the 56. The nested
+    list is still there -- the unpacking is an addition, not a replacement."""
+    body = client.post("/api/query", json={"command": "query 1 + 55"}).json()
+    assert body["scalar"] == {"type": "int", "value": 56}
+    assert body["text"] == "(int 56)"
+
+
+@pytest.mark.parametrize(
+    "command,expected",
+    [
+        ("query 1 + 55", {"type": "int", "value": 56}),
+        ("query 1.0 / 2.0", {"type": "real", "value": 0.5}),
+        ("query 1 = 1", {"type": "bool", "value": True}),
+        ('query "abc"', {"type": "string", "value": "abc"}),
+        # Undefined: the type is known, the value is not. Both halves are said.
+        ("query 1.0 / 0.0", {"type": "real", "value": None}),
+        # Not an atomic type, so not unpacked -- the label carries the meaning.
+        ("query nonesuch", None),
+        # A value of several parts, and a relation: neither reads without its list.
+        ("query mehringdamm", None),
+        ("query ten", None),
+    ],
+)
+def test_what_is_and_is_not_unpacked(client, command, expected):
+    client.post("/api/query", json={"command": "open database berlintest"})
+    body = client.post("/api/query", json={"command": command}).json()
+    assert body["scalar"] == expected
+
+
+def test_a_directive_has_no_value_to_unpack(client):
+    body = client.post("/api/query", json={"command": "showOptions"}).json()
+    assert body["scalar"] is None
+
+
+def test_view_none_unpacks_nothing(client):
+    """Nothing was read, so there is nothing to unpack -- and asking would be
+    the walk `view:"none"` exists to avoid."""
+    body = client.post(
+        "/api/query", json={"command": "query 1 + 55", "view": "none"}
+    ).json()
+    assert body["scalar"] is None
+    assert body["text"] == ""

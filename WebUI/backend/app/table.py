@@ -103,12 +103,17 @@ def columns_of(type_expr: Node) -> list[dict] | None:
     return columns
 
 
-def _cell(type_name: str, value: Node) -> Any:
-    """One attribute value, encoded for JSON.
+def cell(type_name: str, value: Node) -> Any:
+    """One value of type ``type_name``, encoded for JSON.
 
     Atomic types become native JSON values so the grid can align and format
     them; anything else becomes its nested-list text, which is what the Java
-    GUI shows (and edits) for a point, a region or an mpoint.
+    GUI shows (and edits) for a point, a region or an mpoint. ``None`` means
+    the value is undefined, or is not of the type it is filed under.
+
+    Public because ``app/scalar.py`` unpacks a one-value result through it: a
+    ``(int 56)`` on the console has to read the same way the same 56 does in a
+    cell, and that is only guaranteed by it being the same rule.
     """
     if isinstance(value, str) and value in _UNDEF and type_name not in ("string", "text"):
         return None
@@ -186,7 +191,7 @@ def from_tree(
 
 def _row(columns: list[dict], types: list[str], tup: list) -> list[Any]:
     return [
-        _cell(types[i], tup[i]) if i < len(tup) else None
+        cell(types[i], tup[i]) if i < len(tup) else None
         for i in range(len(columns))
     ]
 
