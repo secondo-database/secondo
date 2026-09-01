@@ -49,7 +49,7 @@ cat <<-EOF > ~/.secondorc
 export SECONDO_WORK_DIR=$workdir
 export SECONDO_BUILD_DIR=/opt/secondo
 export SECONDO_CONFIG=\$HOME/SecondoConfig.ini
-export PATH="\$PATH:\$SECONDO_BUILD_DIR/Tools/pd"
+export PATH="\$PATH:\$SECONDO_BUILD_DIR/bin:\$SECONDO_BUILD_DIR/Tools/pd"
 EOF
 
 if [ $(grep secondorc ~/.bashrc | wc -l) -eq 0 ]; then

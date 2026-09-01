@@ -46,7 +46,12 @@ useradd -m -s /bin/bash "$test_user"
 # optimizer wrapper and the per-user work directory exist to solve.
 #
 # The heredoc is quoted, so it is the user's shell that expands the variables.
-runuser -l "$test_user" -s /bin/bash -c 'bash -s' <<'USER_TESTS' > /tmp/user-tests.log 2>&1
+#
+# The exit status is captured rather than left to "set -e": an abort in here
+# would otherwise kill this script before it can print the log below, which
+# hides the very output that says what went wrong.
+user_tests_rc=0
+runuser -l "$test_user" -s /bin/bash -c 'bash -s' <<'USER_TESTS' > /tmp/user-tests.log 2>&1 || user_tests_rc=$?
 set -euo pipefail
 
 # The installer asks for the database directory and the work directory; the
@@ -58,7 +63,6 @@ printf '\n\n' | /opt/secondo/bin/secondo_installer.sh
 source ~/.secondorc
 
 echo "SECONDO_BUILD_DIR=$SECONDO_BUILD_DIR"
-echo "SWI_HOME_DIR=$SWI_HOME_DIR"
 [ -f /opt/secondo/bin/javagui/Javagui.jar ] && echo "JAVAGUI=yes" || echo "JAVAGUI=no"
 
 # The kernel, Berkeley DB and the 'opt' database shipped in the package.
@@ -79,6 +83,7 @@ result() { sed -n "s/^$1=//p" /tmp/user-tests.log | tail -1; }
 
 echo
 echo "### Results"
+check "test user's session ran to completion"   "0"   "$user_tests_rc"
 check "~/.secondorc sources cleanly under set -e" "yes" \
       "$([ -n "$(result SECONDO_BUILD_DIR)" ] && echo yes || echo no)"
 check "Java GUI is shipped"                     "yes" "$(result JAVAGUI)"
