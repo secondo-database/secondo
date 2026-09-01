@@ -1,0 +1,19 @@
+Package: secondo
+Architecture: amd64
+Version: 4.4.0+build6.git20260901.f9f5b124+ubuntu2204
+Priority: optional
+Section: database
+Maintainer: Jan Nidzwetzki <jnidzwetzki@gmx.de>
+Installed-Size: 186598
+Depends: libboost-chrono1.74.0 (>= 1.74.0), libboost-log1.74.0 (>= 1.74.0), libboost-regex1.74.0-icu70, libboost-thread1.74.0 (>= 1.74.0), libc6 (>= 2.34), libdb5.3++, libgcc-s1 (>= 4.2), libgmp10 (>= 2:6.2.1+dfsg), libgsl27 (>= 2.7.1), libjpeg8 (>= 8c), libquadmath0 (>= 4.6), libreadline8 (>= 6.0), librecode0 (>= 3.6), libstdc++6 (>= 12), libxml2 (>= 2.7.4), swi-prolog-core (>= 8.4.2+dfsg), db5.3-util, default-jre | default-jdk, swi-prolog, swi-prolog-nox, swi-prolog-java, rsync
+Filename: ./secondo_4.4.0+build6.git20260901.f9f5b124+ubuntu2204_amd64.deb
+Size: 52210048
+MD5sum: d8ca604708425a03ca0ebcb1fb086d08
+SHA1: b4fc3ce227c17790e57f7f1cfe299b65647d44e9
+SHA256: bb429171cb3ca64a8e38fe38c0bc033e47d3b1e3d5d50599c95627d9de26a9be
+SHA512: 76b66febcc4849f455345f0e0bdec897f44684a7281d300527f8e64dece7820fcbd540c3aa9e95682ac69937f9f3d16419476c52d0f703695afdd176aab95935
+Homepage: https://secondo-database.github.io/
+Description: The secondo database
+ Designed at the FernUniversitaet in Hagen, Secondo is a platform for
+ implementing and experimenting with various kinds of data models.
+
