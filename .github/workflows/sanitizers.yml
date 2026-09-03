@@ -54,7 +54,7 @@ jobs:
         uses: actions/checkout@v7
 
       - name: Setup ccache
-        uses: hendrikmuhs/ccache-action@v1.2.23
+        uses: hendrikmuhs/ccache-action@v1.2.24
         with:
           # Its own key: -fsanitize=address,undefined changes every command
           # line, so these objects would never hit the build-linux cache and
