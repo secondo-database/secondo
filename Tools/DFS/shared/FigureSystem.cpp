@@ -28,6 +28,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 #include "FigureSystem.h"
 
+#include <vector>
+
 using namespace dfs;
 
 const char *figures = "0123456789abcdefghijklmnopqrstuvwxyz";
@@ -69,12 +71,12 @@ void FigureSystem::refactor() {
 }
 
 Str FigureSystem::toStr() {
-  char tmp[base];
+  std::vector<char> tmp(length);
   for (int i = 0; i < length; i++) {
     unsigned char v = (unsigned char) values[i];
     tmp[length - i - 1] = figures[v];
   }
-  return Str(tmp, length);
+  return Str(tmp.data(), length);
 }
 
 void FigureSystem::fromStr(const Str &strValue) {

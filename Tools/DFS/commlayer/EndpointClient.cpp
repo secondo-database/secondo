@@ -38,6 +38,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <netinet/in.h>
 #include <netdb.h>
 #include <iostream>
+#include <vector>
 #include <errno.h>
 #include "RemoteCommandBuilder.h"
 
@@ -120,8 +121,8 @@ Str EndpointClient::sendSyncMessage(URI uri, const Str &msg, bool doEnvelope) {
   }
 
   int ibufsize = buffersize;
-  char ibuf[ibufsize];
-  bzero(ibuf, ibufsize);
+  std::vector<char> ibufStorage(ibufsize);
+  char* ibuf = ibufStorage.data();
 
   if (canDebug) debug("Hole Serveranwort...");
   Str result;
