@@ -38,6 +38,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <netinet/in.h>
 #include <netdb.h>
 #include <iostream>
+#include <vector>
 
 using namespace std;
 
@@ -109,8 +110,8 @@ void Endpoint::listen() {
 
     if (canDebug) debug("prepare data exchange with client");
 
-    char buffer[bufsize];
-    bzero(buffer, bufsize);
+    std::vector<char> bufferStorage(bufsize);
+    char* buffer = bufferStorage.data();
     Str input;
     int totalReceived = 0;
     if (canDebug) debug("fetching data from client");

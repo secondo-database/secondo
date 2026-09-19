@@ -45,7 +45,6 @@ namespace dfs {
     const DataNode *dataNode;
     DataNodeClientHandler *handlers;
     dfs::log::Logger *logger;
-    State *nodeState;
 
     void debug(const Str &s) {
       logger->debug(s);

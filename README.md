@@ -56,7 +56,7 @@ clients concurrently.
 
 ## Quick start
 
-Tested continuously on **Ubuntu 22.04 / 24.04 / 26.04** and **macOS 15 / 26** (Intel and Apple
+Tested continuously on **Ubuntu 22.04 / 24.04 / 26.04** and **macOS 15 / 26 / 27** (Intel and Apple
 Silicon). Other Linux distributions generally work as well.
 
 On Ubuntu you can install a prebuilt package instead of building from source (replace `24.04`

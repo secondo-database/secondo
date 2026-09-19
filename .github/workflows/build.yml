@@ -5,6 +5,12 @@ on:
     branches: [main]
   pull_request:
 
+# A new push to a PR cancels its older runs. Pushes to main get a unique
+# group (the run id), so they are never cancelled or queued behind each other.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
    build-linux:
     strategy:
@@ -563,9 +569,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # macos-15-intel = Intel (x86_64, /usr/local); macos-15 / macos-26 =
+        # macos-15-intel = Intel (x86_64, /usr/local); macos-26 / macos-27 =
         # Apple Silicon (arm64, /opt/homebrew).
-        os: ['macos-15-intel', 'macos-15', 'macos-26']
+        os: ['macos-15-intel', 'macos-26', 'xcode-27' ]
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout repo

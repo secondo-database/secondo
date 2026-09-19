@@ -42,7 +42,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #if (_POSIX_C_SOURCE < 200112L) 
   int posix_fallocate(int fd, off_t offset, off_t len){
-    size_t bs = len<4096?len:4096;
+    const size_t bs = 4096;
     char buffer[bs];
     memset(buffer, 0, bs);
     size_t remaining = len;

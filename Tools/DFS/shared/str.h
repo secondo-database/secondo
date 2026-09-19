@@ -427,6 +427,7 @@ namespace dfs {
    */
   class SerializeAble {
   public:
+    virtual ~SerializeAble() {}
     virtual void serializeTo(ToStrSerializer &serializer) const = 0;
   };
 

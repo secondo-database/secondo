@@ -121,7 +121,7 @@ void WebServer::listen() {
   ::listen(sockfd, 5);
 
   clilen = sizeof(cli_addr);
-  int bufsize = 65536;
+  const int bufsize = 65536;
   char buf[bufsize];
 
   //auf clients warten
