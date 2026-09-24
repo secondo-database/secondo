@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import DeckGL from "@deck.gl/react";
+import DeckGL, { type DeckGLRef } from "@deck.gl/react";
 import {
   COORDINATE_SYSTEM,
   MapView as DeckMapView,
@@ -37,8 +37,11 @@ import {
   projectRegions,
   projectTrips,
   PROJECTION_LABEL,
+  unprojectPoint,
   type Projection,
 } from "./projection";
+import { useDraw } from "./draw/useDraw";
+import type { Shape, ShapeType } from "./draw/secondoValue";
 import { BASEMAPS, loadBasemap, saveBasemap, type BasemapId } from "./basemaps";
 
 type BBox = [number, number, number, number];
@@ -392,7 +395,17 @@ interface Props {
    *  is the `isMouseSelected` guard around HoeseViewer.makeSelectionVisible.
    *  The nonce makes asking twice for the same row act twice. */
   focus: { layerId: string; row: number | null; attr: string | null; nonce: number } | null;
+  /** A shape the user finished drawing, in the data's own coordinates. The
+   *  drawing tools are hidden when this is not given (no database open). */
+  onDrawn?: (shape: Shape) => void;
 }
+
+const DRAW_TOOLS: { type: ShapeType; glyph: string; title: string }[] = [
+  { type: "rect", glyph: "▭", title: "Draw a rectangle (rect)" },
+  { type: "region", glyph: "⬠", title: "Draw a region" },
+  { type: "line", glyph: "╱", title: "Draw a line" },
+  { type: "point", glyph: "•", title: "Draw a point" },
+];
 
 export function MapView({
   layers,
@@ -404,7 +417,31 @@ export function MapView({
   onSelect,
   selection,
   focus,
+  onDrawn,
 }: Props) {
+  // Clicks are in render coordinates; under a projection they go back to the
+  // data's own before anything is stored, so a region drawn over OSM is saved
+  // in the same BBBike units as the data it is meant to query.
+  const deckRef = useRef<DeckGLRef>(null);
+  // The draw tools stay folded behind one button until asked for, and fold
+  // away again once a shape is finished -- they are occasional, the map is not.
+  const [drawOpen, setDrawOpen] = useState(false);
+  const draw = useDraw(
+    (type, coords) => {
+      setDrawOpen(false);
+      onDrawn?.({ type, coords: coords.map((c) => unprojectPoint(c, projection)) });
+    },
+    (clientX, clientY, target) => {
+      // The map is deck's canvas and, in geographic mode, the basemap under
+      // it -- both inside the canvas's parent. The controls are siblings.
+      const deck = deckRef.current?.deck;
+      const canvas = deck?.getCanvas();
+      if (!deck || !canvas?.parentElement?.contains(target)) return null;
+      const r = canvas.getBoundingClientRect();
+      const c = deck.getViewports()[0]?.unproject([clientX - r.left, clientY - r.top]);
+      return c && Number.isFinite(c[0]) ? [c[0], c[1]] : null;
+    }
+  );
   // Apply the chosen projection to each layer's coordinates once (not per
   // frame). With "berlinmod" the local BBBike coordinates become WGS84 lon/lat.
   const layersToRender = useMemo(() => {
@@ -1007,6 +1044,9 @@ export function MapView({
   // time-dependent shapes have no equivalent of.
   selExtent.current = geomsBBox(selectedGeoms);
 
+  // The shape being drawn goes over everything, the selection included.
+  const drawLayers = draw.layers(coordinateSystem);
+
   if (selectedGeoms.length > 0) {
     deckLayers.push(
       new GeoJsonLayer({
@@ -1051,12 +1091,22 @@ export function MapView({
       data-basemap={basemap}
       data-on-light={onLight ? "true" : "false"}
       data-symbolic-labels={symbolicTexts.join("|")}
+      data-draw-mode={draw.mode ?? ""}
+      data-draw-vertices={draw.vertexCount}
+      {...draw.handlers}
     >
       <DeckGL
+        ref={deckRef}
         views={geographic ? geoView : orthoView}
         viewState={viewState}
         onViewStateChange={(e: { viewState: VState }) => setViewState(e.viewState)}
-        controller={true}
+        // While drawing, a double-click finishes the shape instead of zooming,
+        // and a rectangle's drag spans it instead of panning.
+        controller={
+          draw.mode
+            ? { doubleClickZoom: false, dragPan: draw.mode !== "rect" }
+            : true
+        }
         // deck's default resting cursor is `grab` -- an open hand, whose hot
         // spot is its middle and which covers the very feature being aimed at.
         // A plain arrow has a crisp tip, so a small point or a thin line can
@@ -1066,10 +1116,18 @@ export function MapView({
         // canvas whether there is anything under it or not. Dragging keeps
         // `grabbing`, which is what panning looks like everywhere else.
         getCursor={({ isDragging, isHovering }) =>
-          isDragging ? "grabbing" : isHovering ? "pointer" : "default"
+          draw.mode
+            ? "crosshair"
+            : isDragging
+              ? "grabbing"
+              : isHovering
+                ? "pointer"
+                : "default"
         }
-        layers={deckLayers}
+        layers={[...deckLayers, ...drawLayers]}
         onClick={(info: PickingInfo) => {
+          // While drawing, a click is a vertex (see useDraw), not a selection.
+          if (draw.mode) return;
           if (info.object && info.layer) {
             onSelect(info.layer.id.split("-")[0], info.object);
           } else {
@@ -1077,6 +1135,7 @@ export function MapView({
           }
         }}
         getTooltip={({ object }) => {
+          if (draw.mode) return null;
           const props = (object as { properties?: Record<string, unknown> })
             ?.properties;
           if (!props) return null;
@@ -1132,6 +1191,40 @@ export function MapView({
           </div>
         )}
       </div>
+      {draw.mode && (
+        <div className="draw-hint" role="status">
+          <span>{draw.hint}</span>
+          {draw.warning && <span className="draw-warn">{draw.warning}</span>}
+        </div>
+      )}
+      {onDrawn && drawOpen && (
+        <div className="draw-ctl" role="group" aria-label="Draw a query shape">
+          {DRAW_TOOLS.map((t) => (
+            <button
+              key={t.type}
+              className={draw.mode === t.type ? "active" : undefined}
+              aria-pressed={draw.mode === t.type}
+              onClick={() => draw.setMode(t.type)}
+              title={t.title}
+              aria-label={t.title}
+              data-draw={t.type}
+            >
+              {t.glyph}
+            </button>
+          ))}
+          {(draw.mode === "line" || draw.mode === "region") && (
+            <button
+              className="draw-finish"
+              disabled={!draw.canFinish}
+              onClick={draw.finish}
+              title="Finish the shape (Enter)"
+              aria-label="Finish the shape"
+            >
+              ✓
+            </button>
+          )}
+        </div>
+      )}
       <div className="zoom-ctl">
         <button onClick={() => zoomBy(0.6)} title="Zoom in" aria-label="Zoom in">
           +
@@ -1147,6 +1240,22 @@ export function MapView({
         >
           ⤢
         </button>
+        {/* Last in the column and the same size as its neighbours; the shape
+            types open in a row to its left, level with it. */}
+        {onDrawn && (
+          <button
+            className={"draw-toggle" + (drawOpen ? " active" : "")}
+            onClick={() => {
+              if (drawOpen) draw.cancel();
+              setDrawOpen(!drawOpen);
+            }}
+            title={drawOpen ? "Close the draw tools" : "Draw a query shape"}
+            aria-label={drawOpen ? "Close the draw tools" : "Draw a query shape"}
+            aria-expanded={drawOpen}
+          >
+            ✎
+          </button>
+        )}
       </div>
     </div>
   );

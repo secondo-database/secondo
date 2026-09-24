@@ -513,6 +513,51 @@ feature marks its geometry attribute and lists the rest of the tuple, the jump
 highlights and centres the matching row, a row click moves the selection back to
 the map, `◎` reframes it, and a map click leaves the view untouched.
 
+**Milestone 14 (query shapes drawn on the map) — done & verified end-to-end.**
+The WebUI counterpart of HoeseViewer's *Object Creation* menu: draw a query
+region and it becomes a database object, ready to use in a query.
+- **One ✎ button ends the zoom column**, shown only while a database is open.
+  It opens a row of four tools level with it, and closes that row again when
+  pressed a second time. The row also folds away after a shape is saved, so
+  the map stays uncluttered. The tools: ▭ `rect` (press and drag), ⬠ `region`, ╱ `line` (click the vertices;
+  double-click, Enter or ✓ finishes) and • `point` (one click). Backspace
+  removes the last vertex and Esc cancels. While a tool is active, a click adds
+  a vertex instead of selecting, a double-click does not zoom, and a `rect`
+  drag spans the rectangle instead of panning.
+- **A region edge that would cross an earlier edge is refused** where it is
+  drawn (HoeseViewer's `haveIntersections`), and so is a closing edge that
+  would cross. The server never receives a self-intersecting cycle.
+- **Saving asks for a name first.** The proposed name is the first free
+  `region1`, `rect1`, ... . A name already in the catalog is refused before
+  anything is sent. The shape is then stored with
+  `let <name> = [const <type> value ...]`, the same command HoeseViewer sends.
+  The command is shown folded in the dialog and logged in the console. The
+  catalog refreshes, and the object is queried back as an ordinary layer, so
+  what the map shows is the stored value and not the sketch.
+- **Stored in the data's own coordinates.** In flat mode a click is already in
+  SECONDO units. Under *BerlinMOD → OSM* it is lon/lat and is mapped back
+  through `wgs2berlin`, the exact inverse of `berlin2wgs`, so a region drawn
+  over the basemap queries berlintest correctly. A `rect` drawn there is stored
+  as the extent of all four unprojected corners, not only two.
+- Clicks are handled with native pointer events on the map rather than
+  deck's `onClick`. deck holds a click back to rule out a double-tap, and
+  swallows clicks it counts as one, so vertices clicked at drawing speed would
+  go missing.
+
+Not in this version: storing into a relation (HoeseViewer's *Store in
+relation*), the `points`/`pointsequence` types, and regions with holes or
+several faces.
+
+Verified in a headless browser (`npm run e2e -- draw`), which draws each type
+over berlintest `Kneipen`:
+- The catalog lists every stored object.
+- A region drawn in either direction has a positive `area`, and
+  `Kneipen feed filter[.GeoData inside …] count` runs against it.
+- The `rect` is `(minx maxx miny maxy)`.
+- A self-crossing edge and Esc are handled.
+- A `rect` drawn over OSM is stored in BBBike units and overlaps the one drawn
+  at the same spot in flat mode.
+
 ## Prerequisites
 
 - A built SECONDO tree with the environment sourced (`source ~/.secondorc`, which
@@ -694,13 +739,13 @@ Override with `CHROMIUM=`, `WEBUI_URL=`, `WEBUI_API=`.
 
 Current checks: `animation`, `basemap-picker`, `catalog-basemap`,
 `catalog-manual-refresh`, `catalog-race`, `catalog-refresh`, `console`,
-`db-selection`, `gpx-import`, `labels`, `layer-icons`, `layer-rename`,
+`db-selection`, `draw`, `gpx-import`, `labels`, `layer-icons`, `layer-rename`,
 `layers`, `map`, `mpoint-fit`, `mregion`, `paging`, `pending-entry`, `plots`,
 `projection`, `remove-layer`, `render-modes`, `select-link`, `space-flip`, `sql`,
 `symbolic-labels`, `table`, `table-intent`, `theme`, `ui-polish`, `ux`,
 `viewfit`.
 
-`table`, `paging` and `catalog-refresh` write to the database — each creates an
+`table`, `paging`, `catalog-refresh`, `gpx-import` and `draw` write to the database — each creates an
 object, works on it and deletes it again. None touches the shipped berlintest
 objects.
 
@@ -972,6 +1017,9 @@ leaves the view exactly where you put it. Use the `⤢` button to re-fit on dema
 ## Roadmap (next)
 
 - Additional projections beyond BerlinMOD as needed.
+- Drawn shapes: storing into a relation (`inserttuple` into a
+  `(Name: string, Value: <type>)` relation, as HoeseViewer's *Store in
+  relation* does), and editing a stored shape.
 - Remaining long-tail types (network/JNet, precise geometry, raster) still fall
   back to the textual nested-list view, as `DsplGeneric` does in the Java GUI.
 - Table view follow-ups: a load dialog for the filter/project/sort the backend

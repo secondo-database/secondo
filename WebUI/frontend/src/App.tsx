@@ -11,6 +11,8 @@ import { Console, type Entry, type RunIntent } from "./console/Console";
 import { Catalog } from "./catalog/Catalog";
 import { GpxImportDialog, type StepOutcome } from "./catalog/GpxImportDialog";
 import { MapView } from "./map/MapView";
+import { SaveShapeDialog } from "./map/draw/SaveShapeDialog";
+import type { Shape } from "./map/draw/secondoValue";
 import { MAP_TAB, ResultTabs } from "./table/ResultTabs";
 import { RowCard } from "./table/RowCard";
 import { attrOf, attrOfRow, featurePropertiesOfRow, rowOf } from "./layers/rows";
@@ -138,6 +140,8 @@ export function App() {
   const [refreshKey, setRefreshKey] = useState(0);
   // The GPX import in progress: the dropped file, where the bridge put it (null
   // until the upload finishes) and why it could not be stored.
+  // A shape drawn on the map, waiting for a name before it is stored.
+  const [drawnShape, setDrawnShape] = useState<Shape | null>(null);
   const [gpxImport, setGpxImport] = useState<{
     file: File;
     path: string | null;
@@ -715,6 +719,7 @@ export function App() {
           theme={theme}
           selection={selected}
           focus={mapFocus}
+          onDrawn={openDb ? setDrawnShape : undefined}
           onSelect={(layerId, object) => {
             const props =
               object &&
@@ -866,6 +871,23 @@ export function App() {
         )}
         </div>
       </div>
+
+      {drawnShape && openDb && (
+        <SaveShapeDialog
+          shape={drawnShape}
+          database={openDb}
+          existingNames={objects.map((o) => o.name)}
+          runStep={runStep}
+          onClose={(saved) => {
+            setDrawnShape(null);
+            if (!saved) return;
+            setRefreshKey((k) => k + 1);
+            // Shown the way any object is, so the layer is the stored value
+            // as the server reads it back and not the sketch.
+            void run(`query ${saved}`);
+          }}
+        />
+      )}
 
       {/* Keyed by the file so a second drop starts a clean dialog rather than
           reusing the last one's name and step states. */}

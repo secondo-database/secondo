@@ -31,10 +31,30 @@ export function berlin2wgs(x: number, y: number): [number, number] {
   return [lon, lat];
 }
 
+// The inverse: WGS84 lon/lat -> BBBike. berlin2wgs above solves exactly this
+// linear system for (lon, lat), so going back is just evaluating it.
+export function wgs2berlin(lon: number, lat: number): [number, number] {
+  return [X0 + X1 * lon + X2 * lat, Y0 + Y1 * lon + Y2 * lat];
+}
+
 const PROJECTORS: Record<Projection, ((x: number, y: number) => [number, number]) | null> = {
   none: null,
   berlinmod: berlin2wgs,
 };
+
+const UNPROJECTORS: Record<Projection, ((x: number, y: number) => [number, number]) | null> = {
+  none: null,
+  berlinmod: wgs2berlin,
+};
+
+/** A point on the drawn map back in the data's own coordinates. */
+export function unprojectPoint(
+  [x, y]: [number, number],
+  projection: Projection
+): [number, number] {
+  const fn = UNPROJECTORS[projection];
+  return fn ? fn(x, y) : [x, y];
+}
 
 // Recursively map the [x,y] leaves of a GeoJSON coordinates array.
 type Coords = number[] | Coords[];

@@ -2909,3 +2909,99 @@ pre.plan {
     padding: 0.25rem 0.3rem;
   }
 }
+
+/* --- drawing query shapes ------------------------------------------------ */
+
+/* The shape types open in a row along the bottom edge, level with the ✎
+   that ends the zoom column and the same size as it. A row, not more of the
+   column, so the column stays short and clear of the layers panel above it. */
+.draw-ctl {
+  position: absolute;
+  right: calc(0.6rem + 2rem + 0.3rem);
+  bottom: var(--bottom-inset);
+  z-index: 3;
+  display: flex;
+  gap: 0.3rem;
+}
+
+.mapview[data-geographic="true"]:not([data-basemap="none"]) .draw-ctl {
+  bottom: calc(var(--bottom-inset) + 1.6rem);
+}
+
+.draw-ctl button {
+  width: 2rem;
+  height: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--overlay-2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+  backdrop-filter: blur(4px);
+}
+
+.draw-ctl button:hover {
+  border-color: var(--accent);
+}
+
+.draw-ctl button.active,
+.zoom-ctl .draw-toggle.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.zoom-ctl .draw-toggle {
+  margin-top: 0.15rem;
+}
+
+.draw-ctl .draw-finish {
+  color: #3ecf6e;
+  font-weight: 700;
+}
+
+.draw-ctl button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+/* What the current mode wants, at the bottom middle of the map: the top edge
+   belongs to the map controls and the layers panel, and the zoom column is on
+   the right. */
+.draw-hint {
+  position: absolute;
+  bottom: calc(var(--bottom-inset) + 2.8rem);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 4;
+  max-width: min(34rem, calc(100% - 6rem));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+  background: var(--overlay);
+  border: 1px solid var(--border-strong);
+  color: var(--text);
+  padding: 0.4rem 0.9rem;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  text-align: center;
+  pointer-events: none;
+  backdrop-filter: blur(4px);
+}
+
+.draw-hint .draw-warn {
+  color: #ffb000;
+  font-weight: 600;
+}
+
+.save-shape .shape-cmd {
+  display: block;
+  margin-top: 0.3rem;
+  word-break: break-all;
+  white-space: pre-wrap;
+}
