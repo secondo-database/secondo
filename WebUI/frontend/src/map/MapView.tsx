@@ -146,13 +146,15 @@ function labelAnchor(geometry: {
 // Whether the canvas under the labels is light. In geographic mode the basemap
 // paints it, so the chosen basemap decides and the app theme does not come into
 // it -- OSM raster is light, imagery and dark-matter are not. The Cartesian
-// canvas is `--bg-deep`, which does follow the theme.
+// canvas, and the geographic one with no basemap, is `--bg-deep`, which does
+// follow the theme.
 function onLightCanvas(
   geographic: boolean,
   theme: Theme,
   basemap: BasemapId
 ): boolean {
-  return geographic ? BASEMAPS[basemap].light : theme === "light";
+  const light = geographic ? BASEMAPS[basemap].light : null;
+  return light ?? theme === "light";
 }
 
 // Ink and halo for a layer's labels.
@@ -1085,7 +1087,9 @@ export function MapView({
           return text ? { text } : null;
         }}
       >
-        {geographic && <BaseMap reuseMaps mapStyle={BASEMAPS[basemap].style} />}
+        {geographic && BASEMAPS[basemap].style && (
+          <BaseMap reuseMaps mapStyle={BASEMAPS[basemap].style} />
+        )}
       </DeckGL>
       {/* How the map is drawn, in one row. One row and not a stack: below 520px
           the layers panel becomes a full-width band immediately underneath,

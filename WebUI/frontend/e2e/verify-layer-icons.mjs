@@ -1,7 +1,8 @@
 // Verifies per-layer point icons: the default stays a circle, choosing a Maki
 // icon changes what is drawn for both static points and moving-object
 // positions, the picker previews the glyph, and clearing it returns to the
-// circle. Also asserts the atlas plumbing never falls back to deck's
+// circle; for layers with no points (region, mregion, line) the picker is
+// disabled. Also asserts the atlas plumbing never falls back to deck's
 // auto-packing, which is the one way this can degrade silently.
 import { createRequire } from "module";
 import { mkdirSync } from "fs";
@@ -323,6 +324,26 @@ try {
         `and its balloon hangs above it (ink ${pinAt.top}..${pinAt.bottom})`);
   await page.screenshot({ path: `${OUT}/icon-marker.png` });
   await setIcon("");
+
+  // --- no points, no picker ------------------------------------------------
+  // An icon only replaces the circle of a point or a moving point, so for a
+  // region, a moving region or a line the picker would change nothing. It is
+  // disabled there rather than left to look broken.
+  for (const [cmd, what] of [["query grunewald", "region"],
+                             ["query mrain", "mregion"],
+                             ["query BGrenzenLine", "line"]]) {
+    await clearLayers();
+    await runCmd(cmd);
+    await page.waitForSelector(".lp-name", { timeout: 12000 });
+    await page.click(".lp-name");
+    await page.waitForSelector(".lp-style .lp-icon", { timeout: 3000 });
+    check(await page.$eval(".lp-style .lp-icon", (b) => b.disabled),
+          `icon picker disabled for a ${what}`);
+    await page.click(".lp-style .lp-icon").catch(() => {});
+    check((await page.$(".lp-icon-grid")) === null,
+          `and clicking it opens nothing (${what})`);
+  }
+  await page.screenshot({ path: `${OUT}/icon-disabled-line.png` });
 
   check(iconErrors.length === 0,
         `no icon-atlas errors logged (${iconErrors.join(" | ") || "none"})`);

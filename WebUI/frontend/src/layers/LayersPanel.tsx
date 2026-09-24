@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { isDrawable, type Layer, type LayerStyle, type RGB, type TemporalMode } from "./useLayers";
+import { hasPointSymbols, isDrawable, type Layer, type LayerStyle, type RGB, type TemporalMode } from "./useLayers";
 import { downloadGeoJSON } from "./exportGeoJSON";
 import { labelCandidates, symbolicAttributes } from "./labels";
 import { IconPicker } from "./IconPicker";
@@ -201,6 +201,7 @@ export function LayersPanel({
                       value={layer.style.icon}
                       color={toHex(layer.style.color)}
                       onChange={(icon) => onStyle(layer.id, { icon })}
+                      disabled={!hasPointSymbols(layer)}
                     />
                   </div>
                   <label>

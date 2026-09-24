@@ -33,9 +33,11 @@ interface Props {
   // The layer's colour, as a CSS hex string.
   color: string;
   onChange: (icon: IconName | null) => void;
+  // The layer has nothing an icon would be drawn for (see hasPointSymbols).
+  disabled?: boolean;
 }
 
-export function IconPicker({ value, color, onChange }: Props) {
+export function IconPicker({ value, color, onChange, disabled }: Props) {
   const [open, setOpen] = useState(false);
   // `undefined` means "nothing hovered", which is distinct from `null` -- that
   // is the circle. The caption falls back to the current selection.
@@ -55,8 +57,13 @@ export function IconPicker({ value, color, onChange }: Props) {
       <button
         className="lp-icon"
         data-value={value ?? ""}
-        aria-expanded={open}
-        title="Choose the point symbol"
+        aria-expanded={open && !disabled}
+        disabled={disabled}
+        title={
+          disabled
+            ? "Only points and moving points are drawn with an icon"
+            : "Choose the point symbol"
+        }
         onClick={() => setOpen((o) => !o)}
       >
         <span className="lp-glyph-box" style={{ color }}>
@@ -65,7 +72,7 @@ export function IconPicker({ value, color, onChange }: Props) {
         <span className="lp-icon-name">{value ?? CIRCLE_LABEL}</span>
         <span className="lp-icon-caret">{open ? "▾" : "▸"}</span>
       </button>
-      {open && (
+      {open && !disabled && (
         <div className="lp-icon-menu">
           <div
             className="lp-icon-grid"

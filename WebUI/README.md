@@ -847,13 +847,15 @@ leaves the view exactly where you put it. Use the `⤢` button to re-fit on dema
 - **Basemap** (`map/basemaps.ts`): geographic mode draws over a raster basemap,
   and a picker beside the projection select chooses between **OSM**
   (OpenStreetMap, the default), **Satellite** (Esri World Imagery) and **Dark**
-  (Esri Dark Gray Canvas). The two selects share one row (`.map-ctl`) and never
+  (Esri Dark Gray Canvas), or **No basemap**: the data alone on the plain map
+  canvas, with no tiles fetched and label contrast following the theme as in
+  Cartesian mode. The two selects share one row (`.map-ctl`) and never
   wrap to two: below 520px the layers panel becomes a full-width band directly
   underneath, positioned to clear exactly one row of controls, and the controls
   outrank it, so a second row would put the panel's own `▾ Layers` toggle
   beyond reach. The row is bounded on the right and its selects shrink rather
   than overflow, so it survives a 320px screen.
-  All three are key-free and carry their own attribution, which
+  The three basemaps are key-free and carry their own attribution, which
   MapLibre renders; Google's layers — which the old GWT `WebGui2` offered
   through an OpenLayers `LayerSwitcher` — need an API key and terms of use, so
   they are deliberately absent. The picker only exists in geographic mode: in

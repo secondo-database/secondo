@@ -952,8 +952,8 @@ body.dragging {
 /* MapLibre puts the "© OpenStreetMap contributors" notice in this same corner,
    and it is a licence condition that it stays readable -- so when a basemap is
    drawn, the buttons step up above it. Without one there is no notice and no
-   reason for the gap. */
-.mapview[data-geographic="true"] .zoom-ctl {
+   reason for the gap -- in Cartesian mode, or with the basemap switched off. */
+.mapview[data-geographic="true"]:not([data-basemap="none"]) .zoom-ctl {
   bottom: calc(var(--bottom-inset) + 1.6rem);
 }
 
@@ -1273,8 +1273,13 @@ body.dragging {
   cursor: pointer;
 }
 
-.lp-icon:hover {
+.lp-icon:hover:not(:disabled) {
   border-color: var(--accent);
+}
+
+.lp-icon:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
 .lp-icon-name {

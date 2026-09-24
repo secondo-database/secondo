@@ -22,14 +22,17 @@ interface RasterStyle {
   layers: { id: string; type: "raster"; source: string }[];
 }
 
-export type BasemapId = "osm" | "satellite" | "dark";
+export type BasemapId = "osm" | "satellite" | "dark" | "none";
 
 export interface Basemap {
   /** Shown in the picker. */
   label: string;
-  /** Is the canvas light under the labels? Drives their ink and halo. */
-  light: boolean;
-  style: RasterStyle;
+  /** Is the canvas light under the labels? Drives their ink and halo. `null`
+   *  when there is no basemap: the canvas is then `--bg-deep`, as in Cartesian
+   *  mode, and follows the theme. */
+  light: boolean | null;
+  /** `null` draws no basemap at all. */
+  style: RasterStyle | null;
 }
 
 /** One raster source is a whole style; this spares each entry the boilerplate.
@@ -100,6 +103,13 @@ export const BASEMAPS: Record<BasemapId, Basemap> = {
       16,
       "© Esri, HERE, Garmin, © OpenStreetMap contributors"
     ),
+  },
+  // The data alone, on the plain map canvas: for when the tiles are clutter,
+  // or when there is no network to fetch them over.
+  none: {
+    label: "No basemap",
+    light: null,
+    style: null,
   },
 };
 

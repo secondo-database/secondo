@@ -1,5 +1,5 @@
 // Verifies the basemap picker: the choice of raster basemap under geographic
-// mode, that it is absent when there is no basemap to pick, that switching it
+// mode (or none at all), that it is absent when there is no basemap to pick, that switching it
 // really changes which tiles are fetched, that the label contrast follows the
 // chosen basemap rather than the mode, and that the choice survives a reload.
 //
@@ -116,12 +116,33 @@ try {
   check(tiles.darkgray > 0, `Esri dark-gray tiles loaded (${tiles.darkgray})`);
   await page.screenshot({ path: `${OUT}/basemap-dark.png` });
 
-  // 5) The choice is a display preference, so it outlives the page.
+  // 5) Switch the basemap off: the data on the plain canvas, no tiles fetched,
+  //    and label contrast back to following the theme as in Cartesian mode.
+  const before = tiles.osm + tiles.imagery + tiles.darkgray;
+  await page.select(".basemap-ctl select", "none");
+  await sleep(2000);
+
+  const noneState = await page.$eval(".mapview", (e) => ({
+    basemap: e.dataset.basemap, onLight: e.dataset.onLight,
+    geographic: e.dataset.geographic,
+  }));
+  const themeLight = await page.evaluate(() =>
+    document.documentElement.dataset.theme === "light");
+  check(noneState.basemap === "none", `switched to no basemap (${noneState.basemap})`);
+  check(noneState.geographic === "true", "still geographic without a basemap");
+  check((await page.$(".maplibregl-map")) === null, "no MapLibre map is drawn");
+  check(noneState.onLight === String(themeLight),
+        `label contrast follows the theme (${noneState.onLight})`);
+  check(tiles.osm + tiles.imagery + tiles.darkgray === before,
+        "no tiles fetched without a basemap");
+  await page.screenshot({ path: `${OUT}/basemap-none.png` });
+
+  // 6) The choice is a display preference, so it outlives the page.
   await page.reload({ waitUntil: "networkidle0" });
   await sleep(800);
   const remembered = await page.evaluate(() =>
     localStorage.getItem("secondo.webui.basemap"));
-  check(remembered === "dark", `choice remembered across a reload (${remembered})`);
+  check(remembered === "none", `choice remembered across a reload (${remembered})`);
 } finally {
   await browser.close();
 }

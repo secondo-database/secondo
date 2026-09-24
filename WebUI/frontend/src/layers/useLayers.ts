@@ -130,6 +130,20 @@ export function isDrawable(layer: Layer): boolean {
   return !!layer.geojson || !!layer.temporal;
 }
 
+/**
+ * Whether the layer's icon would show anywhere. It replaces the circle drawn
+ * for point geometry and for a moving point's current position, and nothing
+ * else: a region, mregion or line layer renders the same whatever is picked,
+ * so the layers panel disables the picker for those.
+ */
+export function hasPointSymbols(layer: Layer): boolean {
+  if (layer.temporal && layer.temporal.trips.length > 0) return true;
+  return !!layer.geojson?.features.some((f) => {
+    const t = (f as { geometry?: { type?: string } }).geometry?.type;
+    return t === "Point" || t === "MultiPoint";
+  });
+}
+
 function deriveName(command: string): string {
   const s = command.replace(/^\s*query\s+/i, "").trim();
   return s.length > 30 ? s.slice(0, 30) + "…" : s;
