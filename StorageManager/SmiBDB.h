@@ -503,6 +503,10 @@ A "catastrophic recovery" is not available in  this case.
   // Influences the initialitation of Berkeley-DB
   static u_int32_t AutoCommitFlag;
 
+  // Isolation flag for read-only accesses, see SmiFile::Implementation
+  // ::ReadFlags. Set from [BerkeleyDB] ReadIsolation at startup.
+  static u_int32_t ReadIsolationFlag;
+
 /*
 
 Are needed to support listing the names of all existing "Secondo"[3] databases.
@@ -592,6 +596,56 @@ class SmiFile::Implementation
 
   private:
     void CheckDbHandles();   // reallocate Db-Handles if necessary
+    bool IsLocked() const
+    {
+      return !isTemporaryFile && SmiEnvironment::useTransactions;
+    }
+/*
+Tells whether Berkeley DB locks this file. Temporary files, and all files
+in the ~SingleUserSimple~ mode, live in an environment without a lock
+subsystem. Berkeley DB rejects the locking flags below for them.
+
+*/
+    u_int32_t ReadFlags( const SmiFile::AccessType accessType
+                           = SmiFile::ReadOnly ) const
+    {
+      return ( IsLocked() && accessType == SmiFile::ReadOnly ) ?
+               SmiEnvironment::Implementation::ReadIsolationFlag : 0;
+    }
+/*
+Returns the isolation flags for opening a cursor on, or reading, this file
+inside the user transaction.
+
+An ~Update~ access always uses Berkeley DB's default isolation (degree 3,
+repeatable read): every read lock is kept until the transaction commits.
+For a ~ReadOnly~ access, the key ~ReadIsolation~ in section ~BerkeleyDB~ of
+the configuration file chooses:
+
+  * ~ReadCommitted~ (default): ~DB\_READ\_COMMITTED~ drops a page's read
+lock as soon as the read is done (a cursor keeps only the lock on its
+current page), so a scan needs only a few locks.
+
+  * ~RepeatableRead~: the same as for ~Update~. A scan collects one lock
+per page it reads, so large queries need a large ~MaxLocks~.
+
+  * ~ReadUncommitted~: ~DB\_READ\_UNCOMMITTED~ takes no read locks at all,
+but may return changes of other transactions that are not committed yet.
+
+*/
+    u_int32_t GetFlags( const SmiFile::AccessType accessType
+                          = SmiFile::ReadOnly ) const
+    {
+      if ( accessType == SmiFile::Update )
+        return IsLocked() ? DB_RMW : 0;
+      return ReadFlags( accessType );
+    }
+/*
+Returns the flags for a single ~get~ of a record. Like ~ReadFlags~, but an
+~Update~ access reads with ~DB\_RMW~: it takes the write lock right away
+instead of upgrading a read lock later, which avoids deadlocks between two
+transactions that read and then update the same page.
+
+*/
     DbHandleIndex bdbHandle; // Index in handle array
     Db*           bdbFile;   // Berkeley DB handle
     std::string        bdbName;

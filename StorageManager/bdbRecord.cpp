@@ -96,9 +96,8 @@ char* SmiRecord::GetData(SmiSize& length){
   } else {
     DbTxn* tid = !smiFile->impl->isTemporaryFile ? 
                  SmiEnvironment::instance.impl->usrTxn : 0;
-    u_int32_t flags = (writable 
-                       && !smiFile->impl->isTemporaryFile 
-                       && (tid!=0)) ?  DB_RMW : 0;
+    u_int32_t flags = smiFile->impl->GetFlags(
+                          writable ? SmiFile::Update : SmiFile::ReadOnly );
 
     key.set_data( (void*) recordKey.GetAddr() );
     key.set_size( recordKey.keyLength );
@@ -161,9 +160,8 @@ SmiRecord::Read( void* buffer,
     {
       DbTxn* tid = !smiFile->impl->isTemporaryFile ? 
                         SmiEnvironment::instance.impl->usrTxn : 0;
-      u_int32_t flags = (writable 
-                         && !smiFile->impl->isTemporaryFile
-                         && (tid!=0)) ?  DB_RMW : 0;
+      u_int32_t flags = smiFile->impl->GetFlags(
+                            writable ? SmiFile::Update : SmiFile::ReadOnly );
 
       key.set_data( (void*) recordKey.GetAddr() );
       key.set_size( recordKey.keyLength );

@@ -154,6 +154,8 @@ SmiEnvironment::SmiType SmiEnvironment::smiType = SmiEnvironment::SmiBerkeleyDB;
 
 u_int32_t
 SmiEnvironment::Implementation::AutoCommitFlag = DB_AUTO_COMMIT;
+u_int32_t
+SmiEnvironment::Implementation::ReadIsolationFlag = DB_READ_COMMITTED;
 
 SmiEnvironment::Implementation::Implementation(const bool log_auto_remove)
   : bdbHome( "" ), tmpHome( "" ), tmpId( 0 ), envClosed( false ),
@@ -1527,6 +1529,22 @@ bool SmiEnvironment::StartUp(const RunMode mode, const string& parmFile,
   }
   rc = dbenv->set_lk_detect(DB_LOCK_DEFAULT);
   SetBDBError(rc);
+  // --- Set the isolation of read-only accesses
+  string isolation = SmiProfile::GetParameter("BerkeleyDB", "ReadIsolation",
+                                              "ReadCommitted", configFile);
+  if (isolation == "RepeatableRead") {
+    Implementation::ReadIsolationFlag = 0;
+  } else if (isolation == "ReadUncommitted") {
+    Implementation::ReadIsolationFlag = DB_READ_UNCOMMITTED;
+  } else {
+    if (isolation != "ReadCommitted") {
+      cout << "Unknown ReadIsolation '" << isolation << "', using "
+           << "ReadCommitted." << endl;
+      isolation = "ReadCommitted";
+    }
+    Implementation::ReadIsolationFlag = DB_READ_COMMITTED;
+  }
+  cout << "Read isolation: " << isolation << endl;
 // --- Set log directory, if requested
   string logDir = SmiProfile::GetParameter("BerkeleyDB", "LogDir", "",
                                            configFile.c_str() );

@@ -80,7 +80,7 @@ SmiBtreeFile::SelectRange( const SmiKey& fromKey,
 
   if ( accessType == SmiFile::Update || !impl->isSystemCatalogFile )
   {
-    rc = impl->bdbFile->cursor( tid, &dbc, 0 );
+    rc = impl->bdbFile->cursor( tid, &dbc, impl->ReadFlags(accessType) );
   }
   else
   {
@@ -114,7 +114,7 @@ SmiBtreeFile::SelectRangePrefetched(const SmiKey& fromKey, const SmiKey& toKey)
   DbTxn* tid = !impl->isTemporaryFile ?
 	                SmiEnvironment::instance.impl->usrTxn : 0;
 
-  rc = impl->bdbFile->cursor(tid, &dbc, 0);
+  rc = impl->bdbFile->cursor(tid, &dbc, impl->ReadFlags());
   if(rc == 0)
   {
     return new PrefetchingIteratorImpl(dbc, keyDataType,
@@ -143,7 +143,7 @@ SmiBtreeFile::SelectLeftRange( const SmiKey& toKey,
 
   if ( accessType == SmiFile::Update || !impl->isSystemCatalogFile )
   {
-    rc = impl->bdbFile->cursor( tid, &dbc, 0 );
+    rc = impl->bdbFile->cursor( tid, &dbc, impl->ReadFlags(accessType) );
   }
   else
   {
@@ -176,7 +176,7 @@ SmiBtreeFile::SelectLeftRangePrefetched(const SmiKey& toKey)
   Dbc* dbc = 0;
   DbTxn* tid = !impl->isTemporaryFile ?
 	                SmiEnvironment::instance.impl->usrTxn : 0;
-  rc = impl->bdbFile->cursor(tid, &dbc, 0);
+  rc = impl->bdbFile->cursor(tid, &dbc, impl->ReadFlags());
   if(rc == 0)
   {
     return new PrefetchingIteratorImpl(dbc, keyDataType,
@@ -205,7 +205,7 @@ SmiBtreeFile::SelectRightRange( const SmiKey& fromKey,
 
   if ( accessType == SmiFile::Update || !impl->isSystemCatalogFile )
   {
-    rc = impl->bdbFile->cursor( tid, &dbc, 0 );
+    rc = impl->bdbFile->cursor( tid, &dbc, impl->ReadFlags(accessType) );
   }
   else
   {
@@ -239,7 +239,7 @@ SmiBtreeFile::SelectRightRangePrefetched(const SmiKey& fromKey)
   DbTxn* tid = !impl->isTemporaryFile ?
 	                SmiEnvironment::instance.impl->usrTxn : 0;
 
-  rc = impl->bdbFile->cursor(tid, &dbc, 0);
+  rc = impl->bdbFile->cursor(tid, &dbc, impl->ReadFlags());
   if(rc == 0)
   {
     return new PrefetchingIteratorImpl(dbc, keyDataType,
@@ -269,7 +269,7 @@ SmiBtreeFile::SelectAll( SmiKeyedFileIterator& iterator,
 
   if ( accessType == SmiFile::Update || !impl->isSystemCatalogFile )
   {
-    rc = impl->bdbFile->cursor( tid, &dbc, 0 );
+    rc = impl->bdbFile->cursor( tid, &dbc, impl->ReadFlags(accessType) );
   }
   else
   {
@@ -332,7 +332,7 @@ PrefetchingIterator* SmiBtreeFile::SelectAllPrefetched()
   DbTxn* tid = !impl->isTemporaryFile ?
                  SmiEnvironment::instance.impl->usrTxn : 0;
 
-  rc = impl->bdbFile->cursor(tid, &dbc, 0);
+  rc = impl->bdbFile->cursor(tid, &dbc, impl->ReadFlags());
   if(rc == 0)
   {
     return new PrefetchingIteratorImpl(dbc, keyDataType,

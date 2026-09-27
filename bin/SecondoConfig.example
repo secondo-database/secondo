@@ -293,6 +293,12 @@ CacheSize=65536
 MaxLockers=1000
 MaxLocks=300000
 MaxLockObjects=300000
+# Isolation of read-only accesses (updates always use RepeatableRead):
+#   ReadCommitted   - read locks are released right after the read
+#   RepeatableRead  - Berkeley DB default; read locks are kept until
+#                     commit, so a large query needs one lock per page read
+#   ReadUncommitted - no read locks; may see uncommitted changes of others
+#ReadIsolation=ReadCommitted
 
 
 # --- Context sections ---

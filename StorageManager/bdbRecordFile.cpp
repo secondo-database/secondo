@@ -96,14 +96,9 @@ SmiRecordFile::SelectRecord( const SmiRecordId recno,
 
   key.set_data( (void*) &recno );
   key.set_size( sizeof( SmiRecordId ) );
-  if ( accessType == SmiFile::Update )
+  if ( accessType == SmiFile::Update || !impl->isSystemCatalogFile )
   {
-    u_int32_t flags = (!impl->isTemporaryFile) && useTxn ? DB_RMW : 0;
-    rc = impl->bdbFile->get( tid, &key, &data, flags );
-  }
-  else if ( !impl->isSystemCatalogFile )
-  {
-    rc = impl->bdbFile->get( tid, &key, &data, 0 );
+    rc = impl->bdbFile->get( tid, &key, &data, impl->GetFlags(accessType) );
   }
   else
   {
@@ -171,7 +166,7 @@ char* SmiRecordFile::GetData(const SmiRecordId recno,
                    SmiEnvironment::instance.impl->usrTxn : 0;
  
   if ( !impl->isSystemCatalogFile ) {
-    rc = impl->bdbFile->get( tid, &key, &data, 0 );
+    rc = impl->bdbFile->get( tid, &key, &data, impl->ReadFlags() );
   }
   else {
     // Read system catalog files outside the transaction (like SelectRecord and
@@ -223,7 +218,7 @@ bool SmiRecordFile::Read(const SmiRecordId recno,
   actSize = 0;
  
   if ( !impl->isSystemCatalogFile ) {
-    rc = impl->bdbFile->get( tid, &key, &data, 0 );
+    rc = impl->bdbFile->get( tid, &key, &data, impl->ReadFlags() );
   }
   else {
     // Read system catalog files outside the transaction (like SelectRecord and
@@ -294,7 +289,7 @@ SmiRecordFile::SelectAll( SmiRecordFileIterator& iterator,
   if ( !impl->isTemporaryFile )
     tid = SmiEnvironment::instance.impl->usrTxn;
 
-  int rc = impl->bdbFile->cursor( tid, &dbc, 0 );
+  int rc = impl->bdbFile->cursor( tid, &dbc, impl->ReadFlags(accessType) );
   SmiEnvironment::SetBDBError( rc );
 
   if ( rc == 0 )
@@ -318,7 +313,7 @@ SmiRecordFile::SelectAllPrefetched()
   DbTxn* tid = !impl->isTemporaryFile ?
                 SmiEnvironment::instance.impl->usrTxn : 0;
 
-  int rc = impl->bdbFile->cursor(tid, &dbc, 0);
+  int rc = impl->bdbFile->cursor(tid, &dbc, impl->ReadFlags());
   SmiEnvironment::SetBDBError( rc );
 
   if(rc == 0)

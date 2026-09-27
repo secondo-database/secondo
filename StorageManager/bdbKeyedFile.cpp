@@ -88,7 +88,7 @@ SmiKeyedFile::SelectRecord( const SmiKey& key,
 
   if ( accessType == SmiFile::Update || !impl->isSystemCatalogFile )
   {
-    rc = impl->bdbFile->cursor( tid, &dbc, 0 );
+    rc = impl->bdbFile->cursor( tid, &dbc, impl->ReadFlags(accessType) );
   }
   else
   {
@@ -130,12 +130,13 @@ SmiKeyedFile::SelectRecord( const SmiKey& key,
 
   if ( uniqueKeys && accessType == SmiFile::Update )
   {
-    u_int32_t flags = (!impl->isTemporaryFile) && useTxn ? DB_RMW : 0;
-    rc = impl->bdbFile->get( tid, &bdbKey, &data, flags );
+    rc = impl->bdbFile->get( tid, &bdbKey, &data,
+                             impl->GetFlags(SmiFile::Update) );
   }
   else if ( !impl->isSystemCatalogFile )
   {
-    rc = impl->bdbFile->get( tid, &bdbKey, &data, 0 );
+    rc = impl->bdbFile->get( tid, &bdbKey, &data,
+                             impl->ReadFlags(accessType) );
   }
   else
   {
