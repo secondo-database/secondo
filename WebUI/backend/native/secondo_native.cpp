@@ -28,6 +28,8 @@ that into GeoJSON is done in Python, where it is easy to fixture-test.
 
 #include <pybind11/pybind11.h>
 
+#include <algorithm>
+#include <atomic>
 #include <cctype>
 #include <cstdint>
 #include <memory>
@@ -42,6 +44,7 @@ that into GeoJSON is done in Python, where it is easy to fixture-test.
 #include "SQLLanguage.h"
 #include "NestedList.h"
 #include "LogMsg.h"
+#include "Messages.h"
 
 namespace py = pybind11;
 
@@ -469,6 +472,61 @@ class SinkGuard
   SecondoInterfaceCS* si;
 };
 
+// The progress estimate of the command currently running on one connection.
+//
+// The server sends it as (progress (act total)) messages while the query runs
+// -- the ones the TTY draws its bar from (~ProgMesHandler~ in
+// UserInterfaces/cmsg.cpp): (-1 n) starts a bar of n steps, (k n) is k of them
+// done, and a total <= 0 ends it. They arrive on the thread running the
+// command, with the GIL released, and are read from another thread
+// by ~progress~ while that command is still going -- so all this keeps is
+// two atomics.
+class ProgressListener : public MessageHandler
+{
+ public:
+  bool handleMsg(NestedList* nl, ListExpr list, int)
+  {
+    if (!nl->HasMinLength(list, 2) 
+      || !nl->IsEqual(nl->First(list), "progress")) {
+      return false;
+    }
+    const ListExpr values = nl->Second(list);
+    if (!nl->HasMinLength(values, 2)
+        || nl->AtomType(nl->First(values)) != IntType
+        || nl->AtomType(nl->Second(values)) != IntType) {
+      return false;
+    }
+    const int act = nl->IntValue(nl->First(values));
+    const int all = nl->IntValue(nl->Second(values));
+    if (all <= 0) {
+      total = 0;
+    } else if (act < 0) {
+      done = 0;
+      total = all;
+    } else {
+      done = std::min(act, all);
+    }
+    return true;
+  }
+
+  void reset()
+  {
+    total = 0;
+    done = 0;
+  }
+
+  // (done, total); total 0 means there is no estimate to show.
+  std::pair<int, int> get() const
+  {
+    const int t = total;
+    return {t > 0 ? std::min<int>(done, t) : 0, t};
+  }
+
+ private:
+  std::atomic<int> done{0};
+  std::atomic<int> total{0};
+};
+
 // Connections are independent: opening, using and closing one runs alongside
 // whatever the others are doing.
 //
@@ -523,6 +581,7 @@ class Connection
         // Where this connection's list stood before it had run anything: every
         // command rolls back to here (see beginCommand).
         connected = state->nl->mark();
+        si->addMessageHandler(&progressListener);
       } else {
         // Tearing the half-built interface down again, still with the GIL
         // released: it talks to the server and frees its nested list.
@@ -693,6 +752,16 @@ class Connection
     return out;
   }
 
+  // The progress estimate of the command running on this connection, as
+  // (done, total); total is 0 when there is none. Meant to be called from
+  // another thread while that command runs -- it reads two atomics and nothing
+  // else, so it neither takes the session's lock nor releases the GIL.
+  py::tuple progress() const
+  {
+    const std::pair<int, int> p = progressListener.get();
+    return py::make_tuple(p.first, p.second);
+  }
+
   // Run an optimizer control directive (a Prolog goal such as "showOptions" or
   // "setOption(subqueries)") and return the text it printed. Never raises: a
   // server-side failure comes back as the message text.
@@ -720,6 +789,7 @@ class Connection
       // Terminate talks to the server and deleting the interface frees this
       // connection's nested list; both are this connection's own business.
       py::gil_scoped_release release;
+      si->removeMessageHandler(&progressListener);
       si->Terminate();
       delete si;
       si = nullptr;
@@ -773,6 +843,8 @@ class Connection
   // than anywhere it could drift out of step.
   void beginCommand()
   {
+    // A command that sends no estimate must not show the last one's.
+    progressListener.reset();
     ++state->generation;
     if (state->nl != 0) {
       state->nl->release(connected);
@@ -920,6 +992,7 @@ class Connection
   // below takes it out into a local named ~nl~ and uses that.
   std::shared_ptr<ListState> state = std::make_shared<ListState>();
   NestedList::Mark connected = {0, 0, 0};
+  ProgressListener progressListener;
 };
 
 PYBIND11_MODULE(secondo_native, m)
@@ -1023,5 +1096,9 @@ PYBIND11_MODULE(secondo_native, m)
       .def("optimizer_command", &Connection::optimizer_command,
            py::arg("directive"),
            "Run an optimizer control directive; return the text it printed.")
+      .def("progress", &Connection::progress,
+           "The progress estimate of the running command as (done, total); "
+           "total is 0 when there is none. Safe to call while another thread "
+           "runs a command on this connection.")
       .def("close", &Connection::close, "Close the connection.");
 }

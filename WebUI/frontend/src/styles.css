@@ -119,6 +119,10 @@ body {
     animation: none;
   }
 
+  .cmd-progress > div {
+    transition: none;
+  }
+
   .split,
   .cat-drop {
     transition: none;
@@ -1934,6 +1938,60 @@ body.dragging {
   border-left: 2px solid var(--accent);
   margin-left: -0.5rem;
   padding-left: calc(0.5rem - 2px);
+}
+
+/* Next to the running counter and as prominent: while a long query runs, how
+   far it has got is the question. */
+.cmd-eta {
+  color: var(--accent);
+  font-size: 0.72rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* The running command, shown above the input while the history is hidden. The
+   bar takes a line of its own under the command. */
+.run-strip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.4rem;
+  padding: 0.35rem 1rem 0;
+  border-left: 2px solid var(--accent);
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 0.85rem;
+  color: var(--text);
+}
+
+.run-strip .cmd-text {
+  /* Room below the baseline: the clip for the ellipsis would otherwise cut
+     underscores, and PLZ_b would read as PLZ b. */
+  line-height: 1.5;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.run-strip .cmd-progress {
+  flex-basis: 100%;
+}
+
+/* The server's progress estimate for the running command. Thick and in the
+   accent colour: while a long query runs it is the thing being watched. */
+.cmd-progress {
+  height: 6px;
+  margin: 0.2rem 0 0.35rem;
+  border-radius: 3px;
+  background: var(--border-strong);
+  overflow: hidden;
+}
+
+.cmd-progress > div {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 3px;
+  transition: width 0.4s linear;
 }
 
 .cmd-spin {

@@ -182,6 +182,18 @@ async function get<T>(path: string): Promise<T> {
   });
 }
 
+/** How far the running command has got, as the server estimates it: `done` of
+ *  `total` steps; `total` is 0 when there is no estimate (yet).
+ *
+ *  Deliberately *not* queued: it is asked while `/api/query` is still open, and
+ *  behind it in the queue it would only ever answer once the query was over.
+ *  Skipping the queue is safe because this endpoint never creates a session,
+ *  so it cannot race the cookie the queue is there to protect. */
+export async function getProgress(): Promise<{ done: number; total: number }> {
+  const res = await fetch("/api/progress", { credentials: "same-origin" });
+  return parseResponse(res);
+}
+
 /** Run a command. `view: "table"` asks the server for the rows only -- it skips
  *  the spatial and temporal conversion instead of converting payloads the
  *  caller is going to discard. `view: "none"` asks for nothing at all: the GPX

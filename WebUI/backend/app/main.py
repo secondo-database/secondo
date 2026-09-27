@@ -313,6 +313,22 @@ async def query(
     )
 
 
+@app.get("/api/progress")
+async def progress(secondo_sid: str | None = Cookie(default=None)) -> dict:
+    """How far the command running on this session has got, as the server
+    estimates it: `done` of `total` steps, `total` 0 when there is no estimate.
+
+    Polled by the UI while `/api/query` is still open, so it must not wait for
+    that query: it takes no session lock and reads two numbers the bridge keeps
+    up to date as the server's progress messages arrive. It never creates a
+    session either -- a browser with none has nothing running."""
+    session = manager.get(secondo_sid)
+    if session is None:
+        return {"done": 0, "total": 0}
+    done, total = session.conn.progress()
+    return {"done": done, "total": total}
+
+
 @app.get("/api/databases")
 async def databases(
     response: Response, secondo_sid: str | None = Cookie(default=None)

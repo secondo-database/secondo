@@ -73,6 +73,40 @@ function fmtRunning(ms: number): string {
   return `${(ms / 1000).toFixed(1)} s`;
 }
 
+/** What is left, extrapolated the way the TTY's progress bar does it: the time
+ *  so far, scaled by how much is still to go. m:ss, since a query worth a bar
+ *  runs for seconds to minutes. */
+function fmtRemaining(elapsedMs: number, fraction: number): string {
+  const s = Math.ceil(((elapsedMs / fraction) * (1 - fraction)) / 1000);
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+}
+
+/** The server's estimate beside the running counter: the percentage, and once
+ *  it has moved, the time left. */
+function Eta({ estimate, waited }: { estimate: number; waited: number }) {
+  return (
+    <span className="cmd-eta" title="The server's estimate of how far the query has got">
+      {Math.round(estimate * 100)} %
+      {estimate > 0 && ` · ~${fmtRemaining(waited, estimate)} left`}
+    </span>
+  );
+}
+
+/** The same estimate as a bar, as the TTY draws it. */
+function ProgressBar({ estimate }: { estimate: number }) {
+  return (
+    <div
+      className="cmd-progress"
+      role="progressbar"
+      aria-valuemin={0}
+      aria-valuemax={100}
+      aria-valuenow={Math.round(estimate * 100)}
+    >
+      <div style={{ width: `${estimate * 100}%` }} />
+    </div>
+  );
+}
+
 /** How big the nested list is, for the fold row that stands in for it. Bytes
  *  below a kilobyte, so a short answer does not read as "0.0 kB". */
 function fmtSize(chars: number): string {
@@ -82,6 +116,9 @@ function fmtSize(chars: number): string {
 interface Props {
   history: Entry[];
   busy: boolean;
+  /** The server's estimate for the running command, 0..1; null when there is
+   *  none. */
+  progress: number | null;
   openDb: string | null;
   // Whether this server can run SQL; null until the session state is known.
   optimizer: boolean | null;
@@ -102,6 +139,7 @@ interface Props {
 export function Console({
   history,
   busy,
+  progress,
   openDb,
   optimizer,
   collapsed,
@@ -171,7 +209,10 @@ export function Console({
   // changes while it does -- so the log has to be re-rendered on a timer. A
   // quarter second reads as live without repainting the whole log ten times a
   // second, and the interval only exists while something is actually running.
-  const running = history.some((e) => e.pending);
+  const runningEntry = history.find((e) => e.pending);
+  const running = runningEntry !== undefined;
+  const runningWaited =
+    performance.now() - (runningEntry?.startedAt ?? performance.now());
   const [, tick] = useState(0);
   useEffect(() => {
     if (!running) return;
@@ -473,6 +514,11 @@ export function Console({
           the whole log every time. */}
       <div className="log" role="log" aria-live="polite" aria-relevant="additions">
         {history.map((e, i) => {
+          // The estimate belongs to the command the server is working on, which
+          // is the oldest one still pending -- anything after it is queued.
+          const estimate =
+            e.pending && e === runningEntry && progress !== null ? progress : null;
+          const waited = performance.now() - (e.startedAt ?? performance.now());
           // The two foldable blocks of this entry. The nested list starts
           // folded when the value above it already says the same thing: an
           // entry showing 56 has no business also printing `(int 56)`. It is
@@ -491,13 +537,16 @@ export function Console({
                   and a blank pane. Afterwards it holds what it took -- the
                   first thing anyone asks of a database. */}
               {e.pending ? (
-                <span
-                  className="cmd-ms running"
-                  title="Still running — this is how long it has been waiting"
-                >
-                  <span className="cmd-spin" />
-                  {fmtRunning(performance.now() - (e.startedAt ?? performance.now()))}
-                </span>
+                <>
+                  {estimate !== null && <Eta estimate={estimate} waited={waited} />}
+                  <span
+                    className="cmd-ms running"
+                    title="Still running — this is how long it has been waiting"
+                  >
+                    <span className="cmd-spin" />
+                    {fmtRunning(waited)}
+                  </span>
+                </>
               ) : (
                 e.elapsedMs !== undefined && (
                   <span
@@ -509,6 +558,10 @@ export function Console({
                 )
               )}
             </div>
+            {/* The server's own estimate, as the TTY draws it: only for a
+                command that sends one, which is most queries that take long
+                enough to want it. */}
+            {estimate !== null && <ProgressBar estimate={estimate} />}
             {/* The plan the optimizer generated. Its label is the fold row, so
                 folding it away costs no line: the costs ride along there rather
                 than inside the block, and stay readable while it is shut.
@@ -616,6 +669,21 @@ export function Console({
         })}
         <div ref={bottom} />
       </div>
+
+      {/* With the history hidden the running entry is hidden with it, so what
+          it would say -- that something runs, for how long, how far it has
+          got -- moves up next to the input. */}
+      {collapsed && runningEntry && (
+        <div className="run-strip" role="status">
+          <span className="cmd-text">{runningEntry.command}</span>
+          {progress !== null && <Eta estimate={progress} waited={runningWaited} />}
+          <span className="cmd-ms running">
+            <span className="cmd-spin" />
+            {fmtRunning(runningWaited)}
+          </span>
+          {progress !== null && <ProgressBar estimate={progress} />}
+        </div>
+      )}
 
       <form
         className="input"

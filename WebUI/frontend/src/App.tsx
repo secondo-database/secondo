@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
+  getProgress,
   listOperators,
   loadTable,
   runQuery,
@@ -125,6 +126,9 @@ export function App() {
 
   const [history, setHistory] = useState<Entry[]>([]);
   const [busy, setBusy] = useState(false);
+  // The server's estimate of how far the running command has got, as a
+  // fraction; null while there is none (not busy, or nothing estimated yet).
+  const [progress, setProgress] = useState<number | null>(null);
   // Authoritative database state comes from the catalog (see Catalog.onState).
   const [openDb, setOpenDb] = useState<string | null>(null);
   // Whether the connected server runs SQL; null until the catalog has asked.
@@ -486,6 +490,29 @@ export function App() {
     [add, begin, settle, showResult]
   );
 
+  // Ask for the estimate twice a second while something runs. The server only
+  // revises it about ten times a second of CPU time, and a query short enough to
+  // finish between two polls has no use for a bar. An answer that arrives after
+  // the command finished is dropped rather than left on screen.
+  useEffect(() => {
+    if (!busy) {
+      setProgress(null);
+      return;
+    }
+    let live = true;
+    const poll = () =>
+      getProgress()
+        .then(({ done, total }) => {
+          if (live) setProgress(total > 0 ? done / total : null);
+        })
+        .catch(() => undefined); // a missed poll is simply the next one's job
+    const t = setInterval(poll, 500);
+    return () => {
+      live = false;
+      clearInterval(t);
+    };
+  }, [busy]);
+
   const visible = useMemo(() => layers.filter((l) => l.visible), [layers]);
 
   // What the map has to show. A table-only result is still a layer -- it holds
@@ -642,6 +669,7 @@ export function App() {
         <Console
           history={history}
           busy={busy}
+          progress={progress}
           openDb={openDb}
           optimizer={optimizer}
           collapsed={geo.consoleCollapsed}
@@ -708,6 +736,7 @@ export function App() {
           <div className="loading" role="status">
             <span className="spinner" />
             running query…
+            {progress !== null && ` ${Math.round(progress * 100)} %`}
           </div>
         )}
         <MapView

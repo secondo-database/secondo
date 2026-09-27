@@ -100,6 +100,8 @@ def _fake_native(optimizer: bool = True):
     # One entry per bridge call: whether it asked for the answer to be read
     # and thrown away as it came (see `view:"none"`).
     fake.discards = []
+    # What every connection reports as the running command's progress.
+    fake.progress = (0, 0)
 
     # A deliberately crude copy of the kernel's rule -- acceptable only because
     # this is a fake; the real code calls stripOptimizerPrefix in C++.
@@ -249,6 +251,9 @@ def _fake_native(optimizer: bool = True):
                 "costs": None,
                 "message": None,
             }
+
+        def progress(self) -> tuple[int, int]:
+            return fake.progress
 
         def close(self):
             pass
@@ -400,6 +405,22 @@ def test_query_and_session_cookie(client):
     assert r.status_code == 200
     assert r.json()["text"] == "(point (9396.0 9871.0))"
     assert "secondo_sid" in r.cookies
+
+
+def test_progress_reports_the_running_command(client):
+    client.post("/api/query", json={"command": "query mehringdamm"})
+    client.fake.progress = (17, 50)
+    r = client.get("/api/progress")
+    assert r.status_code == 200
+    assert r.json() == {"done": 17, "total": 50}
+
+
+def test_progress_without_a_session_creates_none(client):
+    """Polling is not first contact: a browser with no session has nothing
+    running, and must not be handed a SECONDO connection for asking."""
+    r = client.get("/api/progress")
+    assert r.json() == {"done": 0, "total": 0}
+    assert "secondo_sid" not in r.cookies
 
 
 def test_secondo_error_maps_to_400(client):
