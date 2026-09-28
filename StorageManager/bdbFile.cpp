@@ -112,6 +112,7 @@ the handle must be capable to survive this SmiFile instance.
 */
   isSystemCatalogFile = false;
   isTemporaryFile = false;
+  isPrivateFile = false;
 }
 
 SmiFile::Implementation::Implementation( bool isTemp )
@@ -129,6 +130,7 @@ the handle must be capable to survive this SmiFile instance.
 */
   isSystemCatalogFile = false;
   isTemporaryFile = true;
+  isPrivateFile = false;
 }
 
 SmiFile::Implementation::~Implementation()
@@ -346,14 +348,23 @@ bool SmiFile::Create(const string &name,
 
       // --- Open Berkeley DB file
 
+      // A new file of the running user transaction is private (see
+      // ~privateFiles~): only this transaction can reach it until its
+      // catalog entry is committed. A ReCreate keeps the file's mode.
+      std::set<SmiFileId>& privateFiles =
+          SmiEnvironment::instance.impl->privateFiles;
+      impl->isPrivateFile = !impl->isTemporaryFile &&
+          SmiEnvironment::instance.impl->usrTxn != 0 &&
+          context != "SecondoCatalog" &&
+          ( keepId ? privateFiles.count( fileId ) > 0 : name == "" );
+
       u_int32_t commitFlag = SmiEnvironment::Implementation::AutoCommitFlag;
       u_int32_t dirtyFlag = useTxn ? DB_DIRTY_READ : 0;
-      DbTxn* tid = !impl->isTemporaryFile ?
-                    SmiEnvironment::instance.impl->usrTxn : 0;
+      DbTxn* tid = impl->Txn();
       if(tid){
         commitFlag=0;
       }
-      u_int32_t flags = (!impl->isTemporaryFile) ?
+      u_int32_t flags = (!impl->isTemporaryFile && !impl->isPrivateFile) ?
                            DB_CREATE | dirtyFlag | commitFlag : DB_CREATE;
       rc = impl->bdbFile->open( tid, bdbName.c_str(), 0, bdbType, flags, 0 );
       if (trace)
@@ -364,6 +375,10 @@ bool SmiFile::Create(const string &name,
         ctrOpen++;
         SmiDropFilesEntry entry(fileId, false);
         SmiEnvironment::instance.impl->bdbFilesToDrop.push( entry );
+        if ( impl->isPrivateFile )
+        {
+          privateFiles.insert( fileId );
+        }
         opened      = true;
         fileName    = bdbName;
         fileContext = context;
@@ -512,12 +527,12 @@ SmiFile::Open( const string& name, const string& context /* = "Default" */ )
 
       impl->bdbName = bdbName;
       fileName = bdbName;
+      impl->isPrivateFile = false;  // named files are never private
       // --- Find out the appropriate Berkeley DB file type
       // --- and set required flags or options if necessary
       u_int32_t commitFlag = SmiEnvironment::Implementation::AutoCommitFlag;
       u_int32_t dirtyFlag = useTxn ? DB_DIRTY_READ : 0;
-      DbTxn* tid = !impl->isTemporaryFile ?
-                    SmiEnvironment::instance.impl->usrTxn : 0;
+      DbTxn* tid = impl->Txn();
       if(tid){
         commitFlag=0;
       }
@@ -702,14 +717,20 @@ SmiFile::Open( const SmiFileId fileid, const string& context /* = "Default" */ )
 
       impl->bdbName = bdbName;
       fileName = bdbName;
+      // A private file (see ~privateFiles~) is opened without a transaction,
+      // since Berkeley DB accepts accesses without one only on such a handle.
+      // The open flags below keep the two kinds of handles apart in
+      // ~FindOpen~.
+      impl->isPrivateFile = !impl->isTemporaryFile &&
+          SmiEnvironment::instance.impl->privateFiles.count( fileid ) > 0;
       u_int32_t commitFlag = SmiEnvironment::Implementation::AutoCommitFlag;
       u_int32_t dirtyFlag = useTxn ? DB_DIRTY_READ : 0;
-      DbTxn* tid = !impl->isTemporaryFile ?
-                    SmiEnvironment::instance.impl->usrTxn : 0;
+      DbTxn* tid = impl->Txn();
       if(tid){
         commitFlag=0;
       }
-      u_int32_t flags = (!impl->isTemporaryFile) ? dirtyFlag | commitFlag : 0;
+      u_int32_t flags = (!impl->isTemporaryFile && !impl->isPrivateFile) ?
+                          dirtyFlag | commitFlag : 0;
 
       int alreadyExist =
           SmiEnvironment::Implementation::FindOpen(bdbName, flags);
@@ -919,8 +940,7 @@ SmiFile::Drop()
 bool
 SmiFile::Truncate()
 {
-  DbTxn* tid = !impl->isTemporaryFile ?
-                  SmiEnvironment::instance.impl->usrTxn : 0;
+  DbTxn* tid = impl->Txn();
 
   u_int32_t countp = 0;
   int rc = impl->bdbFile->truncate( tid, &countp, 0 );
@@ -1069,8 +1089,7 @@ SmiStatResultType
       // set flags according to ~mode~
       // call bdb stats method
 #if DB_VERSION_REQUIRED(4,3)
-      DbTxn* tid = !impl->isTemporaryFile ?
-                    SmiEnvironment::instance.impl->usrTxn : 0;
+      DbTxn* tid = impl->Txn();
       getStatReturnValue = impl->bdbFile->stat(tid, &sRS, flags);
 #else
       getStatReturnValue = impl->bdbFile->stat( &sRS, flags);
@@ -1120,8 +1139,7 @@ SmiStatResultType
       // set flags according to ~mode~
       // call bdb stats method
 #if DB_VERSION_REQUIRED(4, 3)
-      DbTxn* tid = !impl->isTemporaryFile ?
-                    SmiEnvironment::instance.impl->usrTxn : 0;
+      DbTxn* tid = impl->Txn();
       getStatReturnValue = impl->bdbFile->stat(tid, &sRS, flags);
 #else
       getStatReturnValue = impl->bdbFile->stat( &sRS, flags);
@@ -1183,8 +1201,7 @@ SmiStatResultType
       SmiStatResultType result;
       // call bdb stats method
 #if DB_VERSION_REQUIRED(4, 3)
-      DbTxn* tid = !impl->isTemporaryFile ?
-                    SmiEnvironment::instance.impl->usrTxn : 0;
+      DbTxn* tid = impl->Txn();
       getStatReturnValue = impl->bdbFile->stat(tid, &sRS, flags);
 #else
       getStatReturnValue = impl->bdbFile->stat( &sRS, flags);
@@ -1239,8 +1256,7 @@ SmiStatResultType
       // set flags according to ~mode~
       // call bdb stats method
 #if DB_VERSION_REQUIRED(4, 3)
-      DbTxn* tid = !impl->isTemporaryFile ?
-                    SmiEnvironment::instance.impl->usrTxn : 0;
+      DbTxn* tid = impl->Txn();
       getStatReturnValue = impl->bdbFile->stat(tid, &sRS, flags);
 #else
       getStatReturnValue = impl->bdbFile->stat( &sRS, flags);

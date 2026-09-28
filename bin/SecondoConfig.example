@@ -289,7 +289,9 @@ CheckpointTime=5
 #LogDir=
 # Cache Size in kB
 CacheSize=65536
-# Lock System Configuration
+# Lock System Configuration. Updates of existing objects keep one lock
+# per written page until commit. Files created by a transaction (e.g. by
+# let) are not locked until the transaction is committed.
 MaxLockers=1000
 MaxLocks=300000
 MaxLockObjects=300000

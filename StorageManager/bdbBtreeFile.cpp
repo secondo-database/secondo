@@ -75,8 +75,7 @@ SmiBtreeFile::SelectRange( const SmiKey& fromKey,
 {
   int rc = 0;
   Dbc* dbc = 0;
-  DbTxn* tid = !impl->isTemporaryFile ?
-	                SmiEnvironment::instance.impl->usrTxn : 0;
+  DbTxn* tid = impl->Txn();
 
   if ( accessType == SmiFile::Update || !impl->isSystemCatalogFile )
   {
@@ -111,8 +110,7 @@ SmiBtreeFile::SelectRangePrefetched(const SmiKey& fromKey, const SmiKey& toKey)
 {
   int rc = 0;
   Dbc* dbc = 0;
-  DbTxn* tid = !impl->isTemporaryFile ?
-	                SmiEnvironment::instance.impl->usrTxn : 0;
+  DbTxn* tid = impl->Txn();
 
   rc = impl->bdbFile->cursor(tid, &dbc, impl->ReadFlags());
   if(rc == 0)
@@ -138,8 +136,7 @@ SmiBtreeFile::SelectLeftRange( const SmiKey& toKey,
 {
   int rc = 0;
   Dbc* dbc = 0;
-  DbTxn* tid = !impl->isTemporaryFile ?
-	                SmiEnvironment::instance.impl->usrTxn : 0;
+  DbTxn* tid = impl->Txn();
 
   if ( accessType == SmiFile::Update || !impl->isSystemCatalogFile )
   {
@@ -174,8 +171,7 @@ SmiBtreeFile::SelectLeftRangePrefetched(const SmiKey& toKey)
 {
   int rc = 0;
   Dbc* dbc = 0;
-  DbTxn* tid = !impl->isTemporaryFile ?
-	                SmiEnvironment::instance.impl->usrTxn : 0;
+  DbTxn* tid = impl->Txn();
   rc = impl->bdbFile->cursor(tid, &dbc, impl->ReadFlags());
   if(rc == 0)
   {
@@ -200,8 +196,7 @@ SmiBtreeFile::SelectRightRange( const SmiKey& fromKey,
 {
   int rc = 0;
   Dbc* dbc = 0;
-  DbTxn* tid = !impl->isTemporaryFile ?
-	                SmiEnvironment::instance.impl->usrTxn : 0;
+  DbTxn* tid = impl->Txn();
 
   if ( accessType == SmiFile::Update || !impl->isSystemCatalogFile )
   {
@@ -236,8 +231,7 @@ SmiBtreeFile::SelectRightRangePrefetched(const SmiKey& fromKey)
 {
   int rc = 0;
   Dbc* dbc = 0;
-  DbTxn* tid = !impl->isTemporaryFile ?
-	                SmiEnvironment::instance.impl->usrTxn : 0;
+  DbTxn* tid = impl->Txn();
 
   rc = impl->bdbFile->cursor(tid, &dbc, impl->ReadFlags());
   if(rc == 0)
@@ -264,8 +258,7 @@ SmiBtreeFile::SelectAll( SmiKeyedFileIterator& iterator,
   int rc = 0;
   Dbc* dbc = 0;
 
-  DbTxn* tid = !impl->isTemporaryFile ?
-	                SmiEnvironment::instance.impl->usrTxn : 0;
+  DbTxn* tid = impl->Txn();
 
   if ( accessType == SmiFile::Update || !impl->isSystemCatalogFile )
   {
@@ -308,8 +301,7 @@ SmiBtreeFile::KeyRange( const SmiKey& key,
     int rc = 0;
 
     Dbt bdb_key( (void *) key.GetAddr(), key.keyLength );
-    DbTxn* tid = !impl->isTemporaryFile ?
-                 SmiEnvironment::instance.impl->usrTxn : 0;
+    DbTxn* tid = impl->Txn();
 
 
     DB_KEY_RANGE bdb_kr;
@@ -329,8 +321,7 @@ PrefetchingIterator* SmiBtreeFile::SelectAllPrefetched()
 {
   int rc = 0;
   Dbc* dbc = 0;
-  DbTxn* tid = !impl->isTemporaryFile ?
-                 SmiEnvironment::instance.impl->usrTxn : 0;
+  DbTxn* tid = impl->Txn();
 
   rc = impl->bdbFile->cursor(tid, &dbc, impl->ReadFlags());
   if(rc == 0)

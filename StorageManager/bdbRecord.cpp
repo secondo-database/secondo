@@ -94,8 +94,7 @@ char* SmiRecord::GetData(SmiSize& length){
     rc = impl->bdbCursor->get( &key, &data, DB_CURRENT );
     SmiEnvironment::SetBDBError( rc );
   } else {
-    DbTxn* tid = !smiFile->impl->isTemporaryFile ? 
-                 SmiEnvironment::instance.impl->usrTxn : 0;
+    DbTxn* tid = smiFile->impl->Txn();
     u_int32_t flags = smiFile->impl->GetFlags(
                           writable ? SmiFile::Update : SmiFile::ReadOnly );
 
@@ -158,8 +157,7 @@ SmiRecord::Read( void* buffer,
     }
     else
     {
-      DbTxn* tid = !smiFile->impl->isTemporaryFile ? 
-                        SmiEnvironment::instance.impl->usrTxn : 0;
+      DbTxn* tid = smiFile->impl->Txn();
       u_int32_t flags = smiFile->impl->GetFlags(
                             writable ? SmiFile::Update : SmiFile::ReadOnly );
 
@@ -225,8 +223,7 @@ SmiRecord::Write( const void*   buffer,
     {
       TRACE("SmiRecord:.Write -> Using Db::put")	    
 
-      DbTxn* tid = !smiFile->impl->isTemporaryFile ? 
-                        SmiEnvironment::instance.impl->usrTxn : 0;
+      DbTxn* tid = smiFile->impl->Txn();
       key.set_data( (void*) recordKey.GetAddr() );
       key.set_size( recordKey.keyLength );
       SHOW((void*)recordKey.GetAddr())
@@ -300,8 +297,7 @@ bool SmiRecord::Resize(const SmiSize newSize){
       }
       else
       {
-        DbTxn* tid = !smiFile->impl->isTemporaryFile ? 
-                          SmiEnvironment::instance.impl->usrTxn : 0;
+        DbTxn* tid = smiFile->impl->Txn();
         key.set_data( (void*) recordKey.GetAddr() );
         key.set_size( recordKey.keyLength );
         rc = impl->bdbFile->put( tid, &key, &data, 0 );

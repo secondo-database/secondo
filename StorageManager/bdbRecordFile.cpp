@@ -91,8 +91,7 @@ SmiRecordFile::SelectRecord( const SmiRecordId recno,
   Dbt data;
   data.set_ulen( 0 );
   data.set_flags( DB_DBT_USERMEM );
-  DbTxn* tid = !impl->isTemporaryFile ?
-                SmiEnvironment::instance.impl->usrTxn : 0;
+  DbTxn* tid = impl->Txn();
 
   key.set_data( (void*) &recno );
   key.set_size( sizeof( SmiRecordId ) );
@@ -162,8 +161,7 @@ char* SmiRecordFile::GetData(const SmiRecordId recno,
   data.set_dlen(0);
   data.set_doff(0);
 
-  DbTxn* tid = !impl->isTemporaryFile ? 
-                   SmiEnvironment::instance.impl->usrTxn : 0;
+  DbTxn* tid = impl->Txn();
  
   if ( !impl->isSystemCatalogFile ) {
     rc = impl->bdbFile->get( tid, &key, &data, impl->ReadFlags() );
@@ -213,8 +211,7 @@ bool SmiRecordFile::Read(const SmiRecordId recno,
   data.set_flags( DB_DBT_PARTIAL | DB_DBT_USERMEM );
   data.set_dlen( length );
   data.set_doff( offset );
-  DbTxn* tid = !impl->isTemporaryFile ? 
-                   SmiEnvironment::instance.impl->usrTxn : 0;
+  DbTxn* tid = impl->Txn();
   actSize = 0;
  
   if ( !impl->isSystemCatalogFile ) {
@@ -256,8 +253,7 @@ bool SmiRecordFile::Write(const SmiRecordId recno,
   key.set_size( sizeof( SmiRecordId ) );
 
 
-  DbTxn* tid = !impl->isTemporaryFile ?
-                SmiEnvironment::instance.impl->usrTxn : 0;
+  DbTxn* tid = impl->Txn();
 
   int rc = impl->bdbFile->put( tid, &key, &data, 0 );
   if(rc){
@@ -285,9 +281,7 @@ SmiRecordFile::SelectAll( SmiRecordFileIterator& iterator,
 {
   Dbc* dbc = 0;
 
-  DbTxn* tid = 0;
-  if ( !impl->isTemporaryFile )
-    tid = SmiEnvironment::instance.impl->usrTxn;
+  DbTxn* tid = impl->Txn();
 
   int rc = impl->bdbFile->cursor( tid, &dbc, impl->ReadFlags(accessType) );
   SmiEnvironment::SetBDBError( rc );
@@ -310,8 +304,7 @@ PrefetchingIterator*
 SmiRecordFile::SelectAllPrefetched()
 {
   Dbc* dbc = 0;
-  DbTxn* tid = !impl->isTemporaryFile ?
-                SmiEnvironment::instance.impl->usrTxn : 0;
+  DbTxn* tid = impl->Txn();
 
   int rc = impl->bdbFile->cursor(tid, &dbc, impl->ReadFlags());
   SmiEnvironment::SetBDBError( rc );
@@ -336,8 +329,7 @@ SmiRecordFile::AppendRecord( SmiRecordId& recno, SmiRecord& record )
   data.set_flags( DB_DBT_PARTIAL );
   data.set_dlen( 0 );
 
-  DbTxn* tid = !impl->isTemporaryFile ?
-                SmiEnvironment::instance.impl->usrTxn : 0;
+  DbTxn* tid = impl->Txn();
 
   rc = impl->bdbFile->put( tid, &key, &data, DB_APPEND );
   SmiEnvironment::SetBDBError( rc );
@@ -371,8 +363,7 @@ bool SmiRecordFile::DeleteRecord( SmiRecordId recno )
 {
   int rc = 0;
   Dbt key( &recno, sizeof( recno ) );
-  DbTxn* tid = !impl->isTemporaryFile ?
-                 SmiEnvironment::instance.impl->usrTxn : 0;
+  DbTxn* tid = impl->Txn();
 
   rc = impl->bdbFile->del( tid, &key, 0 );
   SmiEnvironment::SetBDBError( rc );

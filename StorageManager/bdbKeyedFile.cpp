@@ -83,8 +83,7 @@ SmiKeyedFile::SelectRecord( const SmiKey& key,
 {
   int rc=0;
   Dbc* dbc = 0;
-  DbTxn* tid = !impl->isTemporaryFile ?
-               SmiEnvironment::instance.impl->usrTxn : 0;
+  DbTxn* tid = impl->Txn();
 
   if ( accessType == SmiFile::Update || !impl->isSystemCatalogFile )
   {
@@ -125,8 +124,7 @@ SmiKeyedFile::SelectRecord( const SmiKey& key,
   Dbt data;
   data.set_ulen( 0 );
   data.set_flags( DB_DBT_USERMEM );
-  DbTxn* tid = !impl->isTemporaryFile ?
-               SmiEnvironment::instance.impl->usrTxn : 0;
+  DbTxn* tid = impl->Txn();
 
   if ( uniqueKeys && accessType == SmiFile::Update )
   {
@@ -185,8 +183,7 @@ SmiKeyedFile::InsertRecord( const SmiKey& key, SmiRecord& record )
   Dbt bdbKey( (void*) key.GetAddr(), key.keyLength );
   Dbt data( &buffer, 0 );
   data.set_dlen( 0 );
-  DbTxn* tid = !impl->isTemporaryFile ?
-               SmiEnvironment::instance.impl->usrTxn : 0;
+  DbTxn* tid = impl->Txn();
 
   if ( uniqueKeys )
   {
@@ -262,8 +259,7 @@ SmiKeyedFile::DeleteRecord( const SmiKey& key,
     int rc = 0;
 
     Dbt bdbKey( (void *) key.GetAddr(), key.keyLength );
-    DbTxn* tid = !impl->isTemporaryFile ?
-                 SmiEnvironment::instance.impl->usrTxn : 0;
+    DbTxn* tid = impl->Txn();
 
     rc = impl->bdbFile->del( tid, &bdbKey, 0 );
     SmiEnvironment::SetBDBError( rc );

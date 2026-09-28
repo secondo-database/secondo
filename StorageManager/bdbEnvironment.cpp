@@ -1016,11 +1016,14 @@ SmiEnvironment::Implementation::EraseFiles( bool onCommit,
      removed[entry.fileId] = true;
      delete dbp;
       }
-      else if ( !onCommit && !entry.dropOnCommit && !useTransactions )
+      else if ( !onCommit && !entry.dropOnCommit &&
+                ( !useTransactions ||
+                  instance.impl->privateFiles.count( entry.fileId ) ) )
       {
         // Without transactions a file created during the now-aborted query was
         // already written to disk (Berkeley DB cannot roll the creation back),
-        // so the orphan must be removed here. With transactions enabled
+        // so the orphan must be removed here. The same holds for a private
+        // file, which was created outside the user transaction. Otherwise
         // Berkeley DB undoes the creation itself, so this branch is skipped.
         Db* dbp = new Db( dbenv, DB_CXX_NO_EXCEPTIONS );
         string file = ConstructFileName( entry.fileId );
@@ -1042,6 +1045,50 @@ SmiEnvironment::Implementation::EraseFiles( bool onCommit,
      //     << entry.fileId << " already removed!" << endl;
     }
     instance.impl->bdbFilesToDrop.pop();
+  }
+  return ok;
+}
+
+bool
+SmiEnvironment::Implementation::SyncPrivateFiles()
+{
+  set<SmiFileId> dropped;
+  queue<SmiDropFilesEntry> drops = instance.impl->bdbFilesToDrop;
+  for ( ; !drops.empty(); drops.pop() )
+  {
+    if ( drops.front().dropOnCommit )
+    {
+      dropped.insert( drops.front().fileId );
+    }
+  }
+
+  bool ok = true;
+  for ( SmiFileId fileId : instance.impl->privateFiles )
+  {
+    if ( dropped.count( fileId ) )
+    {
+      continue;
+    }
+    // Closing a handle flushes the cached pages of the file, including the
+    // ones written through the other handles of the file.
+    Db* dbp = new Db( instance.impl->bdbEnv, DB_CXX_NO_EXCEPTIONS );
+    string file = ConstructFileName( fileId );
+    int rc = dbp->open( 0, file.c_str(), 0, DB_UNKNOWN, 0, 0 );
+    int closeRc = dbp->close( 0 );
+    delete dbp;
+    if ( rc == ENOENT )
+    {
+      continue;  // already removed within the transaction
+    }
+    if ( rc == 0 )
+    {
+      rc = closeRc;
+    }
+    if ( rc != 0 )
+    {
+      SetBDBError( rc );
+      ok = false;
+    }
   }
   return ok;
 }
@@ -2100,9 +2147,13 @@ SmiEnvironment::CommitTransaction(bool closeDBhandles)
     // entries. Roll the whole transaction back in that case instead of
     // committing an inconsistent state.
     bool catalogOk = SmiEnvironment::Implementation::UpdateCatalog( true );
+    // The private files are not part of the transaction, so they must be on
+    // disk before the commit makes their catalog entries durable.
+    bool filesOk = catalogOk &&
+                   SmiEnvironment::Implementation::SyncPrivateFiles();
     if ( useTransactions )
     {
-      if ( instance.impl->txnMustAbort || !catalogOk )
+      if ( instance.impl->txnMustAbort || !filesOk )
       {
         forcedAbort = true;
         rc = instance.impl->usrTxn->abort();
@@ -2126,15 +2177,20 @@ SmiEnvironment::CommitTransaction(bool closeDBhandles)
            cerr << "Calling CloseDbHandles() ..." << endl;
     )
 
+    // Without closing the handles, the running query keeps its files open
+    // and continues in the next transaction. The drop requests and the
+    // private files are then kept for the end of that transaction.
     if(closeDBhandles){
        SmiEnvironment::Implementation::CloseDbHandles();
+       bool committed = rc == 0 && !forcedAbort;
        bool erased =
-           SmiEnvironment::Implementation::EraseFiles( rc == 0, rc != 0 );
-       if ( rc == 0 && !forcedAbort && !erased )
+           SmiEnvironment::Implementation::EraseFiles( committed, !committed );
+       if ( committed && !erased )
        {
          cerr << "SMI: Warning - failed to erase dropped files after a "
                  "successful commit." << endl;
        }
+       instance.impl->privateFiles.clear();
     }
 
     LOGMSG( "SMI:DbHandles",
@@ -2174,6 +2230,7 @@ SmiEnvironment::AbortTransaction()
     }
     SmiEnvironment::Implementation::CloseDbHandles();
     SmiEnvironment::Implementation::EraseFiles( false, true );
+    instance.impl->privateFiles.clear();
 
     instance.impl->txnStarted = false;
     instance.impl->txnMustAbort = false;

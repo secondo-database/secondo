@@ -139,6 +139,7 @@ All other implementation classes provide only data members.
 #include <errno.h>
 #include <queue>
 #include <map>
+#include <set>
 #include <vector>
 #include <assert.h>
 #include <string.h>
@@ -423,6 +424,13 @@ collected during the transaction. The flag ~onCommit~ tells the function
 whether the transaction is committed ("true"[4]) or aborted ("false"[4]).
 
 */
+  static bool SyncPrivateFiles();
+/*
+Writes the cached pages of all ~privateFiles~ to disk, except for files that
+are dropped on commit. Must succeed before the user transaction commits,
+since the commit only makes the catalog entries durable, not the files.
+
+*/
   static std::string ConstructFileName( SmiFileId fileId,
                                    const bool isTemporary = false );
 /*
@@ -516,6 +524,17 @@ Are needed to support listing the names of all existing "Secondo"[3] databases.
   std::queue<SmiDropFilesEntry>         bdbFilesToDrop;
   std::map<std::string,SmiCatalogFilesEntry> bdbFilesToCatalog;
 
+  std::set<SmiFileId>                   privateFiles;
+/*
+The files created by the running user transaction. No other transaction can
+reach such a file before its catalog entry is committed, so it is written
+outside the user transaction: Berkeley DB neither locks nor logs its pages.
+In return, ~SyncPrivateFiles~ flushes it before the commit, and ~EraseFiles~
+removes it on an abort. A commit that keeps the handles open (see
+~CommitTransaction~) keeps the files private for the next transaction.
+
+*/
+
 
 
   std::vector<SmiDbHandleEntry>         dbHandles;
@@ -596,14 +615,27 @@ class SmiFile::Implementation
 
   private:
     void CheckDbHandles();   // reallocate Db-Handles if necessary
+    DbTxn* Txn() const
+    {
+      return ( isTemporaryFile || isPrivateFile ) ?
+               0 : SmiEnvironment::instance.impl->usrTxn;
+    }
+/*
+Returns the transaction to access this file in. Temporary files, and the
+private files of the running transaction (see ~privateFiles~), are accessed
+without one.
+
+*/
     bool IsLocked() const
     {
-      return !isTemporaryFile && SmiEnvironment::useTransactions;
+      return !isTemporaryFile && !isPrivateFile &&
+             SmiEnvironment::useTransactions;
     }
 /*
 Tells whether Berkeley DB locks this file. Temporary files, and all files
 in the ~SingleUserSimple~ mode, live in an environment without a lock
-subsystem. Berkeley DB rejects the locking flags below for them.
+subsystem, and private files are accessed outside of the transaction.
+Berkeley DB rejects the locking flags below for them.
 
 */
     u_int32_t ReadFlags( const SmiFile::AccessType accessType
@@ -651,6 +683,7 @@ transactions that read and then update the same page.
     std::string        bdbName;
     bool          isSystemCatalogFile;
     bool          isTemporaryFile;
+    bool          isPrivateFile;   // see SmiEnvironment::...::privateFiles
     bool          noHandle;
 /*
 Flags an ~SmiFile~ as a system catalog file. This distinction is needed,
