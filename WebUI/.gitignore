@@ -13,6 +13,8 @@ frontend/node_modules/
 frontend/dist/
 frontend/e2e/out/
 frontend/.vite/
+# The incremental-build cache `tsc -b` rewrites on every build.
+frontend/*.tsbuildinfo
 
 # Local logs
 *.log
