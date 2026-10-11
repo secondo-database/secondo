@@ -2037,6 +2037,108 @@ pre.plan {
   margin-bottom: 0.3rem;
 }
 
+/* How the progress estimates moved (ProgressChart): one small chart per
+   estimate, stacked, under the same left rule as the plan. The estimate is the
+   accent line; what it should have been is the dashed one beside it. */
+.prog-chart {
+  border-left: 3px solid var(--accent);
+  padding: 0.3rem 0.6rem 0.4rem;
+  margin-bottom: 0.3rem;
+  max-width: 34rem;
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.prog-legend {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-bottom: 0.3rem;
+}
+
+.prog-key {
+  display: inline-block;
+  width: 18px;
+  margin-left: 0.6rem;
+  border-top: 2px solid var(--accent);
+}
+
+.prog-key-est {
+  margin-left: 0;
+}
+
+.prog-key-ref {
+  border-top: 2px dashed var(--muted);
+}
+
+.prog-plot {
+  margin-bottom: 0.6rem;
+}
+
+.prog-title {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  color: var(--text);
+}
+
+.prog-read {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.prog-read-ref {
+  color: var(--muted);
+  font-weight: 400;
+}
+
+.prog-frame {
+  display: flex;
+  gap: 0.4rem;
+}
+
+/* The ends of the scale, in a gutter of their own: inside the plot they sat on
+   whichever line started or ended in that corner. */
+.prog-scale {
+  flex: 0 0 4.6rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  text-align: right;
+  color: var(--faint);
+  font-size: 0.65rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.prog-svg {
+  display: block;
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 72px;
+  cursor: crosshair;
+}
+
+.prog-est {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.prog-ref {
+  fill: none;
+  stroke: var(--muted);
+  stroke-width: 1.5;
+  stroke-dasharray: 5 4;
+}
+
+.prog-x {
+  margin-left: 5rem; /* under the plots, past the scale gutter */
+  font-size: 0.68rem;
+}
+
 /* The label of a foldable block, and the block itself when it is folded away.
    One row either way, so folding never shifts what is above it and there is
    always something to click to fold it back. Quiet: it names machinery, and

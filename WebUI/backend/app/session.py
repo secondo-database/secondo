@@ -73,6 +73,9 @@ class CommandResult:
     plan_only: bool = False
     # A create/drop the optimizer carried out itself while translating.
     executed_by_optimizer: bool = False
+    # How the server's progress estimates moved while it ran, as
+    # (ms, card, time, progress) samples; None when it sent too few to chart.
+    progress: list | None = None
 
 
 @dataclass
@@ -168,6 +171,11 @@ class Session:
             sink.read(raw["type"], raw["tuples"], raw["tree"])
         return raw
 
+    def _trace(self) -> list | None:
+        """The progress trace of the command that just ran, if worth a chart."""
+        trace = self.conn.progress_trace()
+        return [list(s) for s in trace] if len(trace) >= 2 else None
+
     async def execute(
         self,
         command: str,
@@ -216,7 +224,9 @@ class Session:
                         sink,
                         discard,
                     )
-                    return CommandResult(text=raw["text"], tree=raw["tree"])
+                    return CommandResult(
+                        text=raw["text"], tree=raw["tree"], progress=self._trace()
+                    )
 
                 raw = await asyncio.to_thread(
                     self._invoke,
@@ -225,6 +235,9 @@ class Session:
                     sink,
                     discard,
                 )
+                # Read before anything else runs on the connection: the next
+                # command, the catalog update below included, starts a new trace.
+                progress = self._trace()
                 level = raw["level"]
                 plan = raw["plan"]
                 # For a create/drop the optimizer did the work itself while
@@ -247,6 +260,7 @@ class Session:
                     message=raw["message"],
                     plan_only=addressed and level == LEVEL_SQL,
                     executed_by_optimizer=executed,
+                    progress=progress,
                 )
             finally:
                 self.touch()

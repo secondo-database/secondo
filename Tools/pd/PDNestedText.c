@@ -26,7 +26,7 @@ Maximal number of characters in buffer ~text~.
 
 */
 
-#define NODESMAX 30000
+#define NODESMAX 300000
 /*
 Maximal number of nodes available from ~nodespace~.
 
@@ -35,8 +35,8 @@ Maximal number of nodes available from ~nodespace~.
 struct listexpr {
     int left;
     int right;
-    int atomstring;		/* index into array text */
-    int length;			/* no of chars in atomstring*/
+    int atomstring;             /* index into array text */
+    int length;                 /* no of chars in atomstring*/
 };
 
 /*
@@ -62,25 +62,27 @@ int atom(const char *string, int length)
 
     /* put string into text buffer: */
 
-    	if (first_free_char + length > STRINGMAX)
-	    {fprintf(stderr, "Error: too many characters.\n"); yyerror("too many characters");exit(1);}
+        if (first_free_char + length > STRINGMAX)
+            {fprintf(stderr, "Error: too many characters.\n");
+             yyerror("too many characters");exit(1);}
 
-    	for (i = 0; i< length; i++)
-	    text[first_free_char + i] = string[i];
+        for (i = 0; i< length; i++)
+            text[first_free_char + i] = string[i];
     
     /* create new node */
 
-    	newnode = first_free_node++;
-	
-    	if (first_free_node > NODESMAX)
-	    {fprintf(stderr, "Error: too many nodes!!!!.\n");show_storage(); yyerror("too many nodes"); exit(1);}
+        newnode = first_free_node++;
+        
+        if (first_free_node > NODESMAX)
+            {fprintf(stderr, "Error: too many nodes!!!!.\n");show_storage();
+             yyerror("too many nodes"); exit(1);}
 
-   	nodespace[newnode].left = NULL;
-  	nodespace[newnode].right = NULL;
-  	nodespace[newnode].atomstring = first_free_char; 
-	    first_free_char = first_free_char + length;
-	nodespace[newnode].length = length;
-    	return(newnode);
+        nodespace[newnode].left = NULL;
+        nodespace[newnode].right = NULL;
+        nodespace[newnode].atomstring = first_free_char; 
+            first_free_char = first_free_char + length;
+        nodespace[newnode].length = length;
+        return(newnode);
 }
 
 /****************************************
@@ -109,7 +111,8 @@ int concat(int list1, int list2)
     newnode = first_free_node++;
 
     if (first_free_node > NODESMAX)
-	{fprintf(stderr, "Error: too many nodes.\n"); yyerror("too many nodes");exit(1);}
+        {fprintf(stderr, "Error: too many nodes.\n");
+         yyerror("too many nodes");exit(1);}
 
     nodespace[newnode].left = list1;
     nodespace[newnode].right = list2;
@@ -142,10 +145,10 @@ void print(int list)
     int i;
 
     if (isatom(list))
-	for (i = 0; i < nodespace[list].length; i++)
-	    putchar(text[nodespace[list].atomstring + i]);
+        for (i = 0; i < nodespace[list].length; i++)
+            putchar(text[nodespace[list].atomstring + i]);
     else
-	{print(nodespace[list].left); print(nodespace[list].right);};
+        {print(nodespace[list].left); print(nodespace[list].right);};
 }
 
 /*******************************************
@@ -159,24 +162,25 @@ int copylist(int list, char *target, int lengthlimit)
 {   int i, j;
 
     if (isatom(list))
-	if (nodespace[list].length <= lengthlimit - 1)
-	    {for (i = 0; i < nodespace[list].length; i++)
-		target[i] = text[nodespace[list].atomstring + i];
-	    return nodespace[list].length;
-	    }
-	else
-	    {fprintf(stderr, "Error in copylist: too long text.\n"); print(list);
+        if (nodespace[list].length <= lengthlimit - 1)
+            {for (i = 0; i < nodespace[list].length; i++)
+                target[i] = text[nodespace[list].atomstring + i];
+            return nodespace[list].length;
+            }
+        else
+            {fprintf(stderr, "Error in copylist: too long text.\n");
+             print(list);
        yyerror("too long text");
-	    exit(1);
-	    }
+            exit(1);
+            }
     else
-	{i = copylist(nodespace[list].left, target, lengthlimit);
-	j = copylist(nodespace[list].right, &target[i], lengthlimit - i);
-	return (i+j);
-	}
+        {i = copylist(nodespace[list].left, target, lengthlimit);
+        j = copylist(nodespace[list].right, &target[i], lengthlimit - i);
+        return (i+j);
+        }
 }
 
-void copyout(int list, char *target, int lengthlimit)	
+void copyout(int list, char *target, int lengthlimit)   
 {   int i;
 
     i = copylist(list, target, lengthlimit);
@@ -202,13 +206,14 @@ Function ~show-storage~ writes the contents of the text and node buffers to stan
 
 void show_storage()
 {   int i;
-    fprintf(stderr,"first_free_char %d\n",first_free_char); 	
+    fprintf(stderr,"first_free_char %d\n",first_free_char);     
     for (i = 0; i < first_free_char; i++) putchar(text[i]);
     
-    fprintf(stderr,"first_free_node %d\n",first_free_node); 	
+    fprintf(stderr,"first_free_node %d\n",first_free_node);     
 
     for (i = 0; i < first_free_node; i++)
-	 fprintf(stderr,"node: %d, left: %d, right: %d, atomstring: %d, length: %d\n",
-		i, nodespace[i].left, nodespace[i].right, 
-		nodespace[i].atomstring, nodespace[i].length);
+         fprintf(stderr,
+                "node: %d, left: %d, right: %d, atomstring: %d, length: %d\n",
+                i, nodespace[i].left, nodespace[i].right, 
+                nodespace[i].atomstring, nodespace[i].length);
 }

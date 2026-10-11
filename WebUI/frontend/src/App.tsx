@@ -7,6 +7,7 @@ import {
   uploadGpx,
   type CatalogObject,
   type OperatorInfo,
+  type ProgressSample,
 } from "./api/client";
 import { Console, type Entry, type RunIntent } from "./console/Console";
 import { Catalog } from "./catalog/Catalog";
@@ -129,6 +130,8 @@ export function App() {
   // The server's estimate of how far the running command has got, as a
   // fraction; null while there is none (not busy, or nothing estimated yet).
   const [progress, setProgress] = useState<number | null>(null);
+  // The estimates it was made from so far, for the running entry's chart.
+  const [liveTrace, setLiveTrace] = useState<ProgressSample[]>([]);
   // Authoritative database state comes from the catalog (see Catalog.onState).
   const [openDb, setOpenDb] = useState<string | null>(null);
   // Whether the connected server runs SQL; null until the catalog has asked.
@@ -387,6 +390,7 @@ export function App() {
           rowCount: tab?.rowCount,
           plan: res.plan ?? undefined,
           costs: res.costs ?? undefined,
+          progress: res.progress ?? undefined,
           message: res.message ?? undefined,
           planOnly: res.plan_only,
           executedByOptimizer: res.executed_by_optimizer,
@@ -497,13 +501,16 @@ export function App() {
   useEffect(() => {
     if (!busy) {
       setProgress(null);
+      setLiveTrace([]);
       return;
     }
     let live = true;
     const poll = () =>
       getProgress()
-        .then(({ done, total }) => {
-          if (live) setProgress(total > 0 ? done / total : null);
+        .then(({ done, total, samples }) => {
+          if (!live) return;
+          setProgress(total > 0 ? done / total : null);
+          setLiveTrace(samples);
         })
         .catch(() => undefined); // a missed poll is simply the next one's job
     const t = setInterval(poll, 500);
@@ -670,6 +677,7 @@ export function App() {
           history={history}
           busy={busy}
           progress={progress}
+          liveTrace={liveTrace}
           openDb={openDb}
           optimizer={optimizer}
           collapsed={geo.consoleCollapsed}

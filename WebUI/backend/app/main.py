@@ -164,6 +164,9 @@ class QueryResponse(BaseModel):
     message: str | None = None  # what an optimizer directive printed
     plan_only: bool = False  # optimized but deliberately not executed
     executed_by_optimizer: bool = False  # a create/drop the optimizer did itself
+    # How the server's progress estimates moved while the command ran, as
+    # [ms, card, time, progress] samples; absent when there were too few.
+    progress: list[list[float]] | None = None
 
 
 async def _session_for(response: Response, sid: str | None) -> Session:
@@ -310,6 +313,7 @@ async def query(
         message=result.message,
         plan_only=result.plan_only,
         executed_by_optimizer=result.executed_by_optimizer,
+        progress=result.progress,
     )
 
 
@@ -317,6 +321,8 @@ async def query(
 async def progress(secondo_sid: str | None = Cookie(default=None)) -> dict:
     """How far the command running on this session has got, as the server
     estimates it: `done` of `total` steps, `total` 0 when there is no estimate.
+    `samples` are the estimates it was made from so far, for the live chart:
+    [ms, card, time, progress] each, as `QueryResponse.progress`.
 
     Polled by the UI while `/api/query` is still open, so it must not wait for
     that query: it takes no session lock and reads two numbers the bridge keeps
@@ -324,9 +330,10 @@ async def progress(secondo_sid: str | None = Cookie(default=None)) -> dict:
     session either -- a browser with none has nothing running."""
     session = manager.get(secondo_sid)
     if session is None:
-        return {"done": 0, "total": 0}
+        return {"done": 0, "total": 0, "samples": []}
     done, total = session.conn.progress()
-    return {"done": done, "total": total}
+    samples = [list(s) for s in session.conn.progress_trace()]
+    return {"done": done, "total": total, "samples": samples}
 
 
 @app.get("/api/databases")

@@ -102,6 +102,9 @@ def _fake_native(optimizer: bool = True):
     fake.discards = []
     # What every connection reports as the running command's progress.
     fake.progress = (0, 0)
+    # The progress trace a command leaves behind, by command. Like the bridge,
+    # every command starts its own, so the one after a query replaces it.
+    fake.traces = {}
 
     # A deliberately crude copy of the kernel's rule -- acceptable only because
     # this is a fake; the real code calls stripOptimizerPrefix in C++.
@@ -117,11 +120,17 @@ def _fake_native(optimizer: bool = True):
         def __init__(self, *_args, **_kwargs):
             self.db = None
             self.directives: list[str] = []
+            self.trace: list = []
+
+        def _begin(self, command: str) -> None:
+            # Connection::beginCommand: a command's trace is its own.
+            self.trace = fake.traces.get(command.strip(), [])
 
         def optimizer_available(self) -> bool:
             return optimizer
 
         def optimizer_command(self, directive: str) -> str:
+            self._begin(directive)
             self.directives.append(directive)
             fake.directives.append(directive)
             return "ok"
@@ -139,6 +148,7 @@ def _fake_native(optimizer: bool = True):
             # asks for a form it does not need shows up as a failing assertion
             # here instead of as silent work in production, and so that the
             # streamed path is the one these tests actually take.
+            self._begin(command)
             text = self._secondo_text(command)
             return {
                 "text": text if want_text else "",
@@ -196,6 +206,7 @@ def _fake_native(optimizer: bool = True):
                          sink=None, discard: bool = False):
             assert optimizer, "secondo_auto must not be used without an optimizer"
             cmd = command.strip()
+            self._begin(cmd)
 
             # Mirrors Connection::extract: the flags gate the two halves of the
             # *result*, while the plan, the costs and a directive's message are
@@ -254,6 +265,9 @@ def _fake_native(optimizer: bool = True):
 
         def progress(self) -> tuple[int, int]:
             return fake.progress
+
+        def progress_trace(self) -> list:
+            return list(self.trace)
 
         def close(self):
             pass
@@ -412,14 +426,42 @@ def test_progress_reports_the_running_command(client):
     client.fake.progress = (17, 50)
     r = client.get("/api/progress")
     assert r.status_code == 200
-    assert r.json() == {"done": 17, "total": 50}
+    assert r.json() == {"done": 17, "total": 50, "samples": []}
+
+
+TRACE = [(0.0, 900.0, 4000.0, 0.0), (100.0, 1200.0, 3000.0, 0.1),
+         (200.0, 1000.0, 2500.0, 0.3)]
+
+
+def test_progress_hands_out_the_estimates_so_far(client):
+    client.fake.traces["query mehringdamm"] = TRACE
+    client.post("/api/query", json={"command": "query mehringdamm"})
+    r = client.get("/api/progress")
+    assert r.json()["samples"] == [list(s) for s in TRACE]
+
+
+def test_a_query_answers_with_its_trace(client):
+    """The trace is read before the follow-up `list objects` that decides the
+    page size, which starts a trace of its own (an empty one)."""
+    client.post("/api/query", json={"command": "open database berlintest"})
+    client.fake.traces["query ten"] = TRACE
+    client.fake.commands.clear()
+    body = client.post("/api/query", json={"command": "query ten"}).json()
+    assert client.fake.commands == ["query ten", "list objects"]
+    assert body["progress"] == [list(s) for s in TRACE]
+
+
+def test_a_single_estimate_is_no_trace(client):
+    client.fake.traces["query mehringdamm"] = TRACE[:1]
+    body = client.post("/api/query", json={"command": "query mehringdamm"}).json()
+    assert body["progress"] is None
 
 
 def test_progress_without_a_session_creates_none(client):
     """Polling is not first contact: a browser with no session has nothing
     running, and must not be handed a SECONDO connection for asking."""
     r = client.get("/api/progress")
-    assert r.json() == {"done": 0, "total": 0}
+    assert r.json() == {"done": 0, "total": 0, "samples": []}
     assert "secondo_sid" not in r.cookies
 
 

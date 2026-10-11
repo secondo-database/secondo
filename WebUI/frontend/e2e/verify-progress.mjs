@@ -7,6 +7,10 @@
 // picks the messages up, the endpoint answers while /api/query is still open,
 // and the console draws it on the running entry -- and takes it away again.
 //
+// Next to the bar the server sends the estimates it is made from, as
+// (progressdetail ...) messages; the entry keeps them as a folded chart of how
+// they moved, live while it runs and for good once it is over.
+//
 // Needs only berlintest. The query reads Kinos and plz and creates nothing; it
 // takes a few seconds, which is long enough for several estimates.
 import { createRequire } from "module";
@@ -61,6 +65,9 @@ try {
         eta: e.querySelector(".cmd-eta")?.textContent.trim() ?? null,
         overlay: document.querySelector(".loading")?.textContent.trim() ?? "",
         strip: !!document.querySelector(".run-strip"),
+        fold: [...e.querySelectorAll(".fold")]
+          .map((f) => f.textContent.trim())
+          .find((t) => t.includes("progress estimates")) ?? null,
       };
     });
     if (s === null) break;
@@ -81,6 +88,11 @@ try {
         `the map's overlay gives the percentage too (${shown[shown.length - 1]?.overlay})`);
   check(samples.every((s) => !s.strip), "with the history shown, no second copy of it above the input");
 
+  const folds = samples.map((s) => Number(/(\d+) samples/.exec(s.fold ?? "")?.[1] ?? 0));
+  console.log(`  live trace sizes: ${folds.join(" ")}`);
+  check(folds.some((n, i) => i > 0 && n > folds[i - 1] && folds[i - 1] >= 2),
+        "the running entry's estimate chart grows while it runs");
+
   const after = await page.evaluate(() => {
     const entries = document.querySelectorAll(".log .entry");
     const last = entries[entries.length - 1];
@@ -97,6 +109,53 @@ try {
   });
   check(after.bars === 0 && after.etas === 0, "the bar goes away when the answer is back");
   check(after.result.includes("3258082"), `the result is there (${after.result})`);
+
+  // The finished entry keeps how the estimates moved, folded away.
+  const foldBtn = await page.evaluateHandle(() => {
+    const entries = document.querySelectorAll(".log .entry");
+    return [...entries[entries.length - 1].querySelectorAll(".fold")]
+      .find((f) => f.textContent.includes("progress estimates"));
+  });
+  const foldText = await foldBtn.evaluate((f) => f?.textContent.trim() ?? null);
+  check(/\d+ samples · off by up to \d+ pts/.test(foldText ?? ""),
+        `the finished entry offers its estimates, folded (${foldText})`);
+  check((await page.$$(".prog-chart")).length === 0, "and starts folded");
+  // Clicked in the page rather than at its coordinates: the log is still
+  // scrolling the finished entry into view, and the button moves under them.
+  await foldBtn.evaluate((f) => f.click());
+  await page.waitForSelector(".prog-chart", { timeout: 5000 });
+  const chart = await page.evaluate(() =>
+    [...document.querySelectorAll(".prog-plot")].map((p) => ({
+      title: p.querySelector(".prog-title span")?.textContent.trim(),
+      est: (p.querySelector(".prog-est")?.getAttribute("points") ?? "").split(" ").length,
+      ref: (p.querySelector(".prog-ref")?.getAttribute("points") ?? "").split(" ").length,
+      height: p.querySelector(".prog-svg")?.getBoundingClientRect().height ?? 0,
+    }))
+  );
+  console.log(`  charts: ${JSON.stringify(chart)}`);
+  check(chart.length === 3 &&
+        chart.map((c) => c.title).join("|") ===
+          "progress|estimated cardinality|estimated total time",
+        "unfolded, it charts progress, cardinality and time");
+  check(chart.every((c) => c.est > 2 && c.ref === c.est && c.height > 40),
+        "each with the estimate and the line it should have followed");
+
+  // One crosshair reads all three at the same instant.
+  // Once the log has stopped scrolling, or the pointer lands somewhere else.
+  const svg = await page.$(".prog-svg");
+  let box = await svg.boundingBox();
+  for (let prev = null; prev?.y !== box.y; ) {
+    prev = box;
+    await new Promise((r) => setTimeout(r, 100));
+    box = await svg.boundingBox();
+  }
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  const hovered = await page.evaluate(() => ({
+    cursors: document.querySelectorAll(".prog-chart .plot-cursor").length,
+    x: document.querySelector(".prog-x")?.textContent ?? "",
+  }));
+  check(hovered.cursors === 3 && /at \d+\.\d s/.test(hovered.x),
+        `hovering one chart puts the crosshair on all three (${hovered.x})`);
 
   // A command without an estimate must not inherit the last one's.
   const progress = await page.evaluate(async () => (await fetch("/api/progress")).json());

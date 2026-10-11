@@ -39,6 +39,9 @@ def _install_fake(monkeypatch, *, optimizer=True, probe_raises=False):
             directives.append(directive)
             return "ok"
 
+        def progress_trace(self) -> list:
+            return []
+
         def secondo(self, command: str, want_tree: bool = True,
                     want_text: bool = True, sink=None,
                     discard: bool = False) -> dict:
@@ -240,6 +243,9 @@ def test_close_waits_for_a_command_in_flight(session_mod):
         def optimizer_available(self) -> bool:
             return False
 
+        def progress_trace(self) -> list:
+            return []
+
         def secondo(self, command: str, want_tree: bool = True,
                     want_text: bool = True, sink=None,
                     discard: bool = False) -> dict:
@@ -305,6 +311,9 @@ def test_an_unstreamed_answer_is_read_before_the_next_command(session_mod):
         def optimizer_available(self) -> bool:
             return False
 
+        def progress_trace(self) -> list:
+            return []
+
         def secondo(self, command: str, want_tree: bool = True,
                     want_text: bool = True, sink=None,
                     discard: bool = False) -> dict:
@@ -360,6 +369,9 @@ def test_a_streamed_answer_needs_no_reading_afterwards(session_mod):
 
         def optimizer_available(self) -> bool:
             return False
+
+        def progress_trace(self) -> list:
+            return []
 
         def secondo(self, command: str, want_tree: bool = True,
                     want_text: bool = True, sink=None,

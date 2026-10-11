@@ -128,7 +128,15 @@ export interface QueryResponse {
   message?: string | null;
   plan_only?: boolean;
   executed_by_optimizer?: boolean;
+  // How the server's progress estimates moved while the command ran; absent
+  // when it sent too few to chart.
+  progress?: ProgressSample[] | null;
 }
+
+/** One of the server's progress estimates: server CPU ms since the query
+ *  started, the estimated result cardinality, the estimated total time in ms,
+ *  and the share done (0..1). */
+export type ProgressSample = [ms: number, card: number, time: number, progress: number];
 
 // Parse a response body defensively: a failing backend may return a non-JSON
 // body (e.g. a plain-text 500), which must surface as a readable error rather
@@ -183,13 +191,18 @@ async function get<T>(path: string): Promise<T> {
 }
 
 /** How far the running command has got, as the server estimates it: `done` of
- *  `total` steps; `total` is 0 when there is no estimate (yet).
+ *  `total` steps; `total` is 0 when there is no estimate (yet). `samples` are
+ *  the estimates so far, for the live chart.
  *
  *  Deliberately *not* queued: it is asked while `/api/query` is still open, and
  *  behind it in the queue it would only ever answer once the query was over.
  *  Skipping the queue is safe because this endpoint never creates a session,
  *  so it cannot race the cookie the queue is there to protect. */
-export async function getProgress(): Promise<{ done: number; total: number }> {
+export async function getProgress(): Promise<{
+  done: number;
+  total: number;
+  samples: ProgressSample[];
+}> {
   const res = await fetch("/api/progress", { credentials: "same-origin" });
   return parseResponse(res);
 }

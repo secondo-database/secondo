@@ -38,6 +38,7 @@ that into GeoJSON is done in Python, where it is easy to fixture-test.
 #include <string>
 #include <stdexcept>
 #include <utility>
+#include <vector>
 
 #include "SecondoInterface.h"
 #include "SecondoInterfaceCS.h"
@@ -479,15 +480,32 @@ class SinkGuard
 // UserInterfaces/cmsg.cpp): (-1 n) starts a bar of n steps, (k n) is k of them
 // done, and a total <= 0 ends it. They arrive on the thread running the
 // command, with the GIL released, and are read from another thread
-// by ~progress~ while that command is still going -- so all this keeps is
-// two atomics.
+// by ~progress~ while that command is still going -- so the bar is two
+// atomics.
+//
+// Next to each of those the server sends (progressdetail (ms card time
+// progress)), the estimates the bar is made from (include/ProgressView.h).
+// They are kept as a trace for the UI to chart how the estimates moved; that
+// is more than an atomic can hold, so it sits behind a mutex.
 class ProgressListener : public MessageHandler
 {
  public:
+  // (ms, card, time, progress): server CPU ms since the query started, the
+  // estimated result size, the estimated total time in ms and the share done.
+  struct Sample
+  {
+    double ms, card, time, progress;
+  };
+
   bool handleMsg(NestedList* nl, ListExpr list, int)
   {
-    if (!nl->HasMinLength(list, 2) 
-      || !nl->IsEqual(nl->First(list), "progress")) {
+    if (!nl->HasMinLength(list, 2)) {
+      return false;
+    }
+    if (nl->IsEqual(nl->First(list), "progressdetail")) {
+      return record(nl, nl->Second(list));
+    }
+    if (!nl->IsEqual(nl->First(list), "progress")) {
       return false;
     }
     const ListExpr values = nl->Second(list);
@@ -513,6 +531,11 @@ class ProgressListener : public MessageHandler
   {
     total = 0;
     done = 0;
+    std::lock_guard<std::mutex> guard(traceMutex);
+    trace.clear();
+    stride = 1;
+    skipped = 0;
+    hasLatest = false;
   }
 
   // (done, total); total 0 means there is no estimate to show.
@@ -522,9 +545,64 @@ class ProgressListener : public MessageHandler
     return {t > 0 ? std::min<int>(done, t) : 0, t};
   }
 
+  // The estimates so far, oldest first, always ending with the newest.
+  std::vector<Sample> getTrace() const
+  {
+    std::lock_guard<std::mutex> guard(traceMutex);
+    std::vector<Sample> out = trace;
+    if (hasLatest && (out.empty() || out.back().ms != latest.ms)) {
+      out.push_back(latest);
+    }
+    return out;
+  }
+
  private:
+  // A long query sends ten of these a second for as long as it runs. Rather
+  // than keeping them all, or only the last few, the trace thins itself out:
+  // once full, every other sample goes and from then on only every other one
+  // is taken -- so it always spans the whole query at an even spacing.
+  static constexpr std::size_t MaxSamples = 500;
+
+  bool record(NestedList* nl, ListExpr values)
+  {
+    double v[4];
+    for (double& x : v) {
+      if (nl->IsEmpty(values) || nl->AtomType(nl->First(values)) != RealType) {
+        return false;
+      }
+      x = nl->RealValue(nl->First(values));
+      values = nl->Rest(values);
+    }
+    std::lock_guard<std::mutex> guard(traceMutex);
+    latest = {v[0], v[1], v[2], v[3]};
+    hasLatest = true;
+    if (++skipped < stride) {
+      return true;
+    }
+    skipped = 0;
+    trace.push_back(latest);
+    if (trace.size() >= MaxSamples) {
+      std::size_t kept = 0;
+      for (std::size_t i = 0; i < trace.size(); i += 2) {
+        trace[kept++] = trace[i];
+      }
+      trace.resize(kept);
+      stride *= 2;
+    }
+    return true;
+  }
+
   std::atomic<int> done{0};
   std::atomic<int> total{0};
+
+  mutable std::mutex traceMutex;
+  std::vector<Sample> trace;
+  std::size_t stride = 1;
+  std::size_t skipped = 0;
+  // The newest sample, which thinning may not have kept but which the chart
+  // needs: the reference lines are drawn to it.
+  Sample latest{};
+  bool hasLatest = false;
 };
 
 // Connections are independent: opening, using and closing one runs alongside
@@ -760,6 +838,18 @@ class Connection
   {
     const std::pair<int, int> p = progressListener.get();
     return py::make_tuple(p.first, p.second);
+  }
+
+  // How the estimates of the running -- or the last -- command moved, as a
+  // list of (ms, card, time, progress). Callable from another thread like
+  // ~progress~; it takes only the listener's own mutex.
+  py::list progress_trace() const
+  {
+    py::list out;
+    for (const ProgressListener::Sample& s : progressListener.getTrace()) {
+      out.append(py::make_tuple(s.ms, s.card, s.time, s.progress));
+    }
+    return out;
   }
 
   // Run an optimizer control directive (a Prolog goal such as "showOptions" or
@@ -1100,5 +1190,8 @@ PYBIND11_MODULE(secondo_native, m)
            "The progress estimate of the running command as (done, total); "
            "total is 0 when there is none. Safe to call while another thread "
            "runs a command on this connection.")
+      .def("progress_trace", &Connection::progress_trace,
+           "How the estimates of the running or last command moved, as a list "
+           "of (ms, card, time, progress). Safe to call like progress.")
       .def("close", &Connection::close, "Close the connection.");
 }

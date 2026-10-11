@@ -146,15 +146,23 @@ class ProgressView
               NList( NList(cp), 
                      NList(PROGRESS_NORM)));
         msg->Send(nl,msgList.listExpr(),-1);
-              
+
+      uint64_t clocks = clock() - startClock;
+      // convert clocks to milliseconds
+      clocks = (clocks * 1000) / CLOCKS_PER_SEC;
+
+      // The estimates behind the bar, for clients that chart them (the
+      // WebUI): (progressdetail (ms card time progress)). A message of its
+      // own, because clients check (progress (k n)) for exactly two ints.
+      msgList = NList( NList("progressdetail"),
+              NList( NList((double) clocks),
+                     NList(progress.Card),
+                     NList(progress.Time),
+                     NList(currentProgress)));
+      msg->Send(nl,msgList.listExpr(),-1);
+
       if (DETPROT & 2)
       {
-
-       uint64_t clocks = clock() - startClock;
-       // convert clocks to milliseconds
-       clocks = (clocks * 1000) / CLOCKS_PER_SEC;
-
-
        ofs << clocks << ";" ;
 
 

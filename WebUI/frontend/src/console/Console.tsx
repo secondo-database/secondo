@@ -1,5 +1,10 @@
 import { useEffect, useRef, useState } from "react";
-import type { CatalogObject, OperatorInfo, ScalarValue } from "../api/client";
+import type {
+  CatalogObject,
+  OperatorInfo,
+  ProgressSample,
+  ScalarValue,
+} from "../api/client";
 import { formatCell } from "../table/useTableEdit";
 import type { Theme } from "../theme";
 import {
@@ -9,6 +14,7 @@ import {
 } from "./completion";
 import { loadCommands, saveCommands } from "./history";
 import { loadPrefs, savePrefs, type ConsolePrefs } from "./prefs";
+import { ProgressChart, progressGap } from "./ProgressChart";
 
 /** What a one-shot Run menu item asks for; `undefined` is a plain Run.
  *
@@ -47,6 +53,8 @@ export interface Entry {
   // thinks that plan costs.
   plan?: string;
   costs?: number;
+  // How the server's progress estimates moved while it ran, for the chart.
+  progress?: ProgressSample[];
   // What an optimizer directive (showOptions, setOption, ...) printed.
   message?: string;
   // The user wrote the "optimizer " prefix: optimized, deliberately not run.
@@ -119,6 +127,8 @@ interface Props {
   /** The server's estimate for the running command, 0..1; null when there is
    *  none. */
   progress: number | null;
+  /** The estimates behind it so far, for the running entry's chart. */
+  liveTrace: ProgressSample[];
   openDb: string | null;
   // Whether this server can run SQL; null until the session state is known.
   optimizer: boolean | null;
@@ -140,6 +150,7 @@ export function Console({
   history,
   busy,
   progress,
+  liveTrace,
   openDb,
   optimizer,
   collapsed,
@@ -527,6 +538,9 @@ export function Console({
           const key = String(e.id ?? i);
           const planOpen = isOpen(`plan:${key}`, prefs.plan);
           const nlOpen = isOpen(`nl:${key}`, prefs.result && !e.scalar);
+          // How the estimates moved: live while it runs, kept once it is done.
+          const trace = e === runningEntry ? liveTrace : e.progress;
+          const progOpen = isOpen(`prog:${key}`, false);
           return (
           <div key={e.id ?? i} className={"entry" + (e.pending ? " pending" : "")}>
             <div className="cmd">
@@ -582,6 +596,27 @@ export function Console({
                   )}
                 </button>
                 {planOpen && <pre className="plan">{e.plan}</pre>}
+              </>
+            )}
+            {/* How the server's estimates moved while it ran, as ProgressWatcher
+                charted them: each against the line it would have followed had
+                it been right from the start. Folded, since most of the time the
+                bar was all anyone wanted. */}
+            {trace !== undefined && trace.length >= 2 && (
+              <>
+                <button
+                  className="fold"
+                  aria-expanded={progOpen}
+                  onClick={() => fold(`prog:${key}`, progOpen)}
+                  title={progOpen ? "Hide the progress estimates" : "Show how the progress estimates moved"}
+                >
+                  <span className="fold-ic">{progOpen ? "▾" : "▸"}</span>
+                  progress estimates
+                  <span className="fold-note">
+                    · {trace.length} samples · off by up to {Math.round(progressGap(trace))} pts
+                  </span>
+                </button>
+                {progOpen && <ProgressChart samples={trace} />}
               </>
             )}
             {e.planOnly && <div className="optnote">Plan only — not executed.</div>}

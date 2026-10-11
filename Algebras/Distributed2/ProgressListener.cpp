@@ -47,7 +47,7 @@ ProgressListener::~ProgressListener()
 
 bool ProgressListener::handleMsg(NestedList *nl, ListExpr list, int source)
 {
-    if (!nl->HasMinLength(list, 2))
+    if (!nl->HasMinLength(list, 2) || !nl->IsEqual(nl->First(list), "progress"))
     {
         return false;
     }

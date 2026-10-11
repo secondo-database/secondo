@@ -42,7 +42,7 @@ However, for use by ~lex~ and ~yacc~ generated lexical analysers and parsers whi
 	copyout: int [->] string [x] int		\\
 	release-storage					\\
 
-The module uses two storage areas. The first is a buffer for text characters, it can take up to STRINGMAX characters, currently set to 30000. The second provides nodes for the nested list structure; currently up to NODESMAX = 30000 nodes can be created.
+The module uses two storage areas. The first is a buffer for text characters, it can take up to STRINGMAX characters, currently set to 300000. The second provides nodes for the nested list structure; currently up to NODESMAX = 300000 nodes can be created.
 
 The operations are defined as follows:
 
@@ -87,4 +87,4 @@ void print(const int list);
 void  copyout(int list, char* target, int lengthlimit);
 
 void  release_storage(); 
-void show_storage(); 		/* show_storage used only for testing */
+void show_storage();     /* show_storage used only for testing */
