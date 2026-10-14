@@ -92,7 +92,6 @@ const std::string TemporalSpecAtPeriods =
 Operator* getAtperiodsOpPtr() {
     return new Operator( "atperiods",
                             TemporalSpecAtPeriods,
-                            1,
                             temporalatperiodsmap,
                             MovingSimpleSelect,
                             MovingPeriodsTypeMapMoving
@@ -111,7 +110,7 @@ ListExpr Temporal2BBoxTypeMap( ListExpr args )
 {
   int noargs = nl->ListLength( args );
   std::string errmsg = 
-	          "Expected (M [x geoid]) OR (T), where M in {upoint, mpoint, "
+              "Expected (M [x geoid]) OR (T), where M in {upoint, mpoint, "
                   "ipoint}, T in {instant,periods}.";
   if ( (noargs<1) || (noargs>2) ){
     return listutils::typeError(errmsg);
@@ -190,7 +189,6 @@ Operator* getBBoxOpPtr() {
     return new Operator(
             "bbox",
             Temporal2SpecBBox,
-            1,
             temporal2bboxmap,
             Temporal2BBoxSelect,
             Temporal2BBoxTypeMap

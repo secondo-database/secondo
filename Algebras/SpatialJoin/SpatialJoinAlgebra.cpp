@@ -457,14 +457,14 @@ SpatialJoin2LocalInfo<dim>::SpatialJoin2LocalInfo(
   r[1].streamWord = rightStreamWord;
 
   scanStream(aiLeft, leftStream, s); p->read = r[0].card;
-	// cout << "left stream: p->read = " << p->read << endl;
+    // cout << "left stream: p->read = " << p->read << endl;
   scanStream(aiRight, rightStream, s); p->total = r[1].card;
-	// cout << "right stream: p->total = " << p->total << endl;
-	 if (r[0].card == 0 || r[1].card == 0)
-	 {
-	   //One tuple stream is empty
-	   return;
-	 }
+    // cout << "right stream: p->total = " << p->total << endl;
+     if (r[0].card == 0 || r[1].card == 0)
+     {
+       //One tuple stream is empty
+       return;
+     }
   joinBox =
       new Rectangle<dim>(r[0].MBR->Intersection(*(r[1].MBR)));
 
@@ -717,7 +717,7 @@ spatialJoinValueMapping(Word* args, Word& result, int message,
 
   SpatialJoin2LocalInfo<D> *localInfo = 0;
 
-	// cout << "message = " << message << endl;
+    // cout << "message = " << message << endl;
 
   switch(message)
   {
@@ -824,7 +824,7 @@ spatialJoinValueMapping(Word* args, Word& result, int message,
 
     case (1*FUNMSG)+REQUESTPROGRESS:{
 
-		// cout << "first parameter stream called" << endl;
+        // cout << "first parameter stream called" << endl;
 
       localInfo = li->ptr;
       if ( localInfo != 0 )
@@ -848,7 +848,7 @@ spatialJoinValueMapping(Word* args, Word& result, int message,
           q1Res->Time = (li->read + 1) * wSpatialJoin;  // must be greater 0
           q1Res->Progress = (li->readFirst + 1) * wSpatialJoin / q1Res->Time;
 
-		// cout << endl << "li->readFirst = " << li->readFirst << endl;
+        // cout << endl << "li->readFirst = " << li->readFirst << endl;
 
           q1Res->BTime = 0.01;
           q1Res->BProgress = 1.0;
@@ -861,7 +861,7 @@ spatialJoinValueMapping(Word* args, Word& result, int message,
 
 
     case (2*FUNMSG)+REQUESTPROGRESS:{
-		// cout << "second parameter stream called" << endl;
+        // cout << "second parameter stream called" << endl;
       localInfo = li->ptr;
       if ( localInfo != 0 )
       {
@@ -879,7 +879,7 @@ spatialJoinValueMapping(Word* args, Word& result, int message,
           q2Res->Time = (li->total + 1) * wSpatialJoin;  // must be greater 0
           q2Res->Progress = (li->readSecond + 1) * wSpatialJoin / q2Res->Time;
 
-		// cout << "li->readSecond = " << li->readSecond << endl;
+        // cout << "li->readSecond = " << li->readSecond << endl;
 
           q2Res->BTime = 0.01;
           q2Res->BProgress = 1.0;
@@ -1035,7 +1035,6 @@ const string spatialJoinSpec  =
 Operator spatialjoin2 (
          "spatialjoin",          // name
          spatialJoinSpec,         // specification
-         3,                       // number of overloaded functions
          spatialJoinMap,          // value mapping
          spatialJoinSelection,    // trivial selection function
          spatialJoinTypeMap       // type mapping
@@ -1531,7 +1530,7 @@ int paraJoin2ValueMap(Word* args, Word& result,
         li->SetJoinSizes(p1, p2);
         pRes->CopySizes(li);
 
-	// Cardinality
+    // Cardinality
         if ( li->returned > enoughSuccessesJoin )
           pRes->Card = ((double) li->returned + 1) * p1.Card
             /  ((double) li->readFirst + 1);   

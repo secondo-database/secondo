@@ -2444,7 +2444,6 @@ OperatorSpec gdijkstraSpec(
 Operator gdijkstraOp(
   "gdijkstra",
   gdijkstraSpec.getStr(),
-  2,
   gdijkstraVM,
   gdijkstraSelect,
   general_dijkstra::gdijkstraTM
@@ -2496,7 +2495,6 @@ int minPathCostsSelect(ListExpr args){
 Operator minPathCost1Op(
   "minPathCost1",
   minPathCost1Spec.getStr(),
-  2,
   minPathCost1VM,
   minPathCostsSelect,
   general_dijkstra::minPathCostsTM<false> 
@@ -2506,7 +2504,6 @@ Operator minPathCost1Op(
 Operator minPathCost2Op(
   "minPathCost2",
   minPathCost2Spec.getStr(),
-  2,
   minPathCost2VM,
   minPathCostsSelect,
   general_dijkstra::minPathCostsTM<true> 
@@ -2541,7 +2538,6 @@ int gbidijkstraSelect(ListExpr args){
 Operator gbidijkstraOp(
   "gbidijkstra",
   gbidijkstraSpec.getStr(),
-  2,
   gbidijkstraVM,
   gbidijkstraSelect,
   general_dijkstra::gbidijkstraTM
@@ -2585,7 +2581,6 @@ int mtMinPathCosts1Select(ListExpr args){
 Operator mtMinPathCosts1Op(
   "mtMinPathCosts1",
   mtMinPathCosts1Spec.getStr(),
-  2,
   mtMinPathCosts1VM,
   mtMinPathCosts1Select,
   general_dijkstra::mtMinPathCostsTM<false>
@@ -2625,7 +2620,6 @@ int mtMinPathCosts2Select(ListExpr args){
 Operator mtMinPathCosts2Op(
   "mtMinPathCosts2",
   mtMinPathCosts2Spec.getStr(),
-  2,
   mtMinPathCosts2VM,
   mtMinPathCosts2Select,
   general_dijkstra::mtMinPathCostsTM<true>

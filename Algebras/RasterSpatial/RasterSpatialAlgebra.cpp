@@ -1171,13 +1171,13 @@ Operator RegionToPolilyne (
   RegionBool    //type mapping
 );
 
-Operator ConvertRaster3CRS ("convertRaster3CRS", ConvertRaster3CRSSpec, 3,
+Operator ConvertRaster3CRS ("convertRaster3CRS", ConvertRaster3CRSSpec,
      convertraster3crsmap, ConvertRasterSelect, PointsLineRegionCRasterRegion);
 
 Operator ConvertRaster4CRS ("convertRaster4CRS", ConvertRaster4CRSSpec,
      ConvertRaster4CRSFun, Operator::SimpleSelect, RegionCRasterRegion);
 
-Operator rIntersects ("rIntersects", rIntersectsSpec, 9, rIntersectsmap,
+Operator rIntersects ("rIntersects", rIntersectsSpec, rIntersectsmap,
      rIntersectsSelect, CRasterRegionCRasterLineCRasterPointsBool);
 
 

@@ -164,7 +164,6 @@ Computes the bounding box from a stream of spatial attributes.
     Operator drelcollect_boxOp(
         "drelcollect_box",
         drelcollect_boxSpec.getStr( ),
-        2,
         drelcollect_boxVM,
         drelcollect_boxSelect,
         drelcollect_boxTM

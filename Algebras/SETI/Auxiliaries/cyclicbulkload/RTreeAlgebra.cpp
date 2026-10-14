@@ -70,8 +70,6 @@ relation which bounding boxes of the indexed attribute intersect the window
 #include <limits>
 #include <map>
 
-using namespace std;
-
 #include "SpatialAlgebra.h"
 #include "RelationAlgebra.h"
 #include "Algebra.h"
@@ -89,6 +87,8 @@ using namespace std;
 #include "AlmostEqual.h"
 #include "TemporalAlgebra.h"
 #include "Symbols.h"
+
+using namespace std;
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
@@ -949,7 +949,6 @@ const string CreateRTreeSpec  =
 Operator creatertree (
           "creatertree",       // name
           CreateRTreeSpec,     // specification
-          24,                  // Number of overloaded functions
           rtreecreatertreemap, // value mapping
           CreateRTreeSelect,   // trivial selection function
           CreateRTreeTypeMap   // type mapping
@@ -1333,13 +1332,13 @@ int WindowIntersects( Word* args, Word& result,
 
         pRes->CopySizes(localInfo);
 
-	if ( localInfo->completeCalls > 0 )     //called in a loopjoin
+    if ( localInfo->completeCalls > 0 )     //called in a loopjoin
         {
           pRes->Card =
             (double) localInfo->completeReturned /
             (double) localInfo->completeCalls;
         }
-        else	//single or first call
+        else    //single or first call
         {
           if (fabs(qp->GetSelectivity(s) - 0.1) < 0.000001) // default
             pRes->Card = (double) localInfo->defaultValue;
@@ -1354,7 +1353,7 @@ int WindowIntersects( Word* args, Word& result,
 
           if (pRes->Card > (double) localInfo->total) // more than all cannot be
             pRes->Card = (double) localInfo->total;
-	}
+    }
 
         pRes->Time = uSearch + pRes->Card * vResult;
 
@@ -1408,7 +1407,6 @@ const string windowintersectsSpec  =
 Operator windowintersects (
          "windowintersects",        // name
          windowintersectsSpec,      // specification
-         4,                         //number of overloaded functions
          rtreewindowintersectsmap,  // value mapping
          WindowIntersectsSelection, // trivial selection function
          WindowIntersectsTypeMap    // type mapping
@@ -1848,7 +1846,7 @@ int WindowIntersectsSStandard( Word* args, Word& result,
     {
       if( localInfo )
       {
-	localInfo->resultTupleType->DeleteIfAllowed();
+    localInfo->resultTupleType->DeleteIfAllowed();
         delete localInfo;
         local.setAddr(Address(0));
       }
@@ -1879,21 +1877,21 @@ int WindowIntersectsSStandard( Word* args, Word& result,
           localInfo->noAttrs = 1;
           localInfo->attrSize = new double[localInfo->noAttrs];
           localInfo->attrSizeExt = new double[localInfo->noAttrs];
-	  localInfo->attrSize[0] = 16;
-	  localInfo->attrSizeExt[0] = 16;
+      localInfo->attrSize[0] = 16;
+      localInfo->attrSizeExt[0] = 16;
           localInfo->sizesInitialized = true;
           localInfo->sizesChanged = true;
         }
 
         pRes->CopySizes(localInfo);
 
-	if ( localInfo->completeCalls > 0 )     //called in a loopjoin
+    if ( localInfo->completeCalls > 0 )     //called in a loopjoin
         {
           pRes->Card =
             (double) localInfo->completeReturned /
             (double) localInfo->completeCalls;
         }
-        else	//single or first call
+        else    //single or first call
         {
           if (fabs(qp->GetSelectivity(s) - 0.1) < 0.000001) // default
             pRes->Card = (double) localInfo->defaultValue;
@@ -1908,7 +1906,7 @@ int WindowIntersectsSStandard( Word* args, Word& result,
 
           if (pRes->Card > (double) localInfo->total) // more than all cannot be
             pRes->Card = (double) localInfo->total;
-	}
+    }
 
         pRes->Time = uSearch + pRes->Card * vResult;
 
@@ -2033,7 +2031,7 @@ int WindowIntersectsSDoubleLayer( Word* args, Word& result,
     {
       if( localInfo )
       {
-	localInfo->resultTupleType->DeleteIfAllowed();
+    localInfo->resultTupleType->DeleteIfAllowed();
         delete localInfo;
         local.setAddr(Address(0));
       }
@@ -2049,7 +2047,7 @@ int WindowIntersectsSDoubleLayer( Word* args, Word& result,
       //Experiments described in file Cost functions
       const double uSearch = 0.45;    //milliseconds per search
       const double vResult = 0.02;  //milliseconds per result tuple
-		// vResult to be adjusted
+        // vResult to be adjusted
 
       if (!localInfo) return CANCEL;
       else
@@ -2065,25 +2063,25 @@ int WindowIntersectsSDoubleLayer( Word* args, Word& result,
           localInfo->noAttrs = 3;
           localInfo->attrSize = new double[localInfo->noAttrs];
           localInfo->attrSizeExt = new double[localInfo->noAttrs];
-	  localInfo->attrSize[0] = 16;
-	  localInfo->attrSizeExt[0] = 16;
-	  localInfo->attrSize[1] = 5;
-	  localInfo->attrSizeExt[1] = 5;
-	  localInfo->attrSize[2] = 5;
-	  localInfo->attrSizeExt[2] = 5;
+      localInfo->attrSize[0] = 16;
+      localInfo->attrSizeExt[0] = 16;
+      localInfo->attrSize[1] = 5;
+      localInfo->attrSizeExt[1] = 5;
+      localInfo->attrSize[2] = 5;
+      localInfo->attrSizeExt[2] = 5;
           localInfo->sizesInitialized = true;
           localInfo->sizesChanged = true;
         }
 
         pRes->CopySizes(localInfo);
 
-	if ( localInfo->completeCalls > 0 )     //called in a loopjoin
+    if ( localInfo->completeCalls > 0 )     //called in a loopjoin
         {
           pRes->Card =
             (double) localInfo->completeReturned /
             (double) localInfo->completeCalls;
         }
-        else	//single or first call
+        else    //single or first call
         {
           if (fabs(qp->GetSelectivity(s) - 0.1) < 0.000001) // default
             pRes->Card = (double) localInfo->defaultValue;
@@ -2098,7 +2096,7 @@ int WindowIntersectsSDoubleLayer( Word* args, Word& result,
 
           if (pRes->Card > (double) localInfo->total) // more than all cannot be
             pRes->Card = (double) localInfo->total;
-	}
+    }
 
         pRes->Time = uSearch + pRes->Card * vResult;
 
@@ -2158,7 +2156,6 @@ const string windowintersectsSSpec  =
 Operator windowintersectsS (
          "windowintersectsS",        // name
          windowintersectsSSpec,      // specification
-         8,                         //number of overloaded functions
          rtreewindowintersectsSmap,  // value mapping
          WindowIntersectsSSelection, // trivial selection function
          WindowIntersectsSTypeMap    // type mapping
@@ -3590,7 +3587,6 @@ const string CreateRTreeBulkLoadSpec  =
 Operator bulkloadrtree(
          "bulkloadrtree",       // name
          CreateRTreeBulkLoadSpec,      // specification
-         16,
          CreateRTreeBulkLoad,          // value mapping
          CreateRTreeBulkLoadSelect,    // selection function
          CreateRTreeBulkLoadTypeMap    // type mapping
@@ -3874,7 +3870,6 @@ const string RTreeGetRootNodeSpec  =
 Operator rtreetreeheight(
                      "treeheight",          // name
                       RTreeTreeHeightSpec,  // specification
-                      8,
                       RTreeTreeHeight,      // value mapping
                       RTreeInquirySelect,   // selection function
                       RTree2IntTypeMap      // type mapping
@@ -3883,7 +3878,6 @@ Operator rtreetreeheight(
 Operator rtreenoofnodes(
                       "no_nodes",              // name
                       RTreeNoOfNodesSpec,      // specification
-                      8,
                       RTreeNoOfNodes,          // value mapping
                       RTreeInquirySelect,      // selection function
                       RTree2IntTypeMap         // type mapping
@@ -3892,7 +3886,6 @@ Operator rtreenoofnodes(
 Operator rtreenoofentries(
                       "no_entries",             // name
                       RTreeNoOfEntriesSpec,     // specification
-                      8,
                       RTreeNoOfEntries,         // value mapping
                       RTreeInquirySelect,       // selection function
                       RTree2IntTypeMap          // type mapping
@@ -3901,7 +3894,6 @@ Operator rtreenoofentries(
 Operator rtreebbox(
                       "bbox",             // name
                       RTreeBboxSpec,      // specification
-                      8,
                       RTreeBbox,          // value mapping
                       RTreeInquirySelect, // selection function
                       RTree2RectTypeMap    // type mapping
@@ -3910,7 +3902,6 @@ Operator rtreebbox(
 Operator rtreegetrootnode(
                        "getRootNode",           // name
                        RTreeGetRootNodeSpec,    // specification
-                       8,
                        RTreeGetRootNode,        // value mapping
                        RTreeInquirySelect,      // selection function
                        RTree2IntTypeMap         // type mapping
@@ -4145,7 +4136,6 @@ ValueMapping RTreeNodes [] =
 Operator rtreenodes(
          "nodes",             // name
          RTreeNodesSpec,      // specification
-         4,
          RTreeNodes,          // value mapping
          RTreeNodesSelect,    // selection function
          RTreeNodesTypeMap    // type mapping
@@ -4327,7 +4317,6 @@ ListExpr RTreeEntriesTypeMap(ListExpr args)
 Operator rtreeentries(
          "entries",             // name
          RTreeEntriesSpec,      // specification
-         4,
          RTreeEntries,          // value mapping
          RTreeEntriesSelect,    // selection function
          RTreeEntriesTypeMap    // type mapping
@@ -4427,7 +4416,6 @@ const string getFileInfoRtreeSpec  =
 Operator getfileinfortree(
          "getFileInfo",                 // name
          getFileInfoRtreeSpec,          // specification
-         8,                             // number of value mapping functions
          getFileInfoRtreeValueMapArray, // value mapping
          RTreeInquirySelect,            // selection function
          RTree2TextTypeMap              // type mapping
@@ -4766,7 +4754,6 @@ Operator updatebulkloadrtree(
         "updatebulkloadrtree",
         UpdatebulkloadrtreeSpec,
 //        UpdateBulkLoadFun,
-        4,
         VMUpdateBulkLoadFun,
 //        Operator::SimpleSelect,
         UpdateBulkLoadSelect,
@@ -5742,7 +5729,6 @@ ValueMapping RTreeGetNodeInfo [] =
 Operator rtreegetnodeinfo(
          "getNodeInfo",                       // name
          RTreeGetNodeInfoSpec,                // specification
-         4,
          RTreeGetNodeInfo,                    // value mapping
          RTreeGetInfoTypeSelect,              // selection function
          RTreeGetInfoTypeTypeMap<NODEINFO>    // type mapping
@@ -5912,7 +5898,6 @@ ValueMapping RTreeGetNodeSons [] =
 Operator rtreegetnodesons(
          "getNodeSons",                       // name
          RTreeGetNodeSonsSpec,                // specification
-         4,
          RTreeGetNodeSons,                    // value mapping
          RTreeGetInfoTypeSelect,              // selection function
          RTreeGetInfoTypeTypeMap<NODESONS>    // type mapping
@@ -6072,7 +6057,6 @@ ValueMapping RTreeGetLeafEntries [] =
 Operator rtreegetleafentries(
          "getLeafEntries",                    // name
          RTreeGetLeafEntriesSpec,             // specification
-         4,
          RTreeGetLeafEntries,                 // value mapping
          RTreeGetInfoTypeSelect,              // selection function
          RTreeGetInfoTypeTypeMap<LEAFENTRIES> // type mapping

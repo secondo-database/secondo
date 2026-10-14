@@ -2289,7 +2289,6 @@ int GetHeightSelect(ListExpr args)
 
 Operator getheight("getheight",
     SpatialSpecGetHeight,
-    2,
     GetHeightValueMapVM,
     GetHeightSelect,
     GetHeightTypeMap
@@ -2314,7 +2313,6 @@ int GetRegionSelect(ListExpr args)
 
 Operator getregion("getregion",
     SpatialSpecGetRegion,
-    2,
     GetRegionValueMapVM,
     GetRegionSelect,
     GetRegionTypeMap
@@ -2392,7 +2390,6 @@ int LengthTMSelect(ListExpr args)
 
 Operator tm_length("size",
     SpatialSpecLengthLine3D,
-    3,
     TMLengthValueMap,
     LengthTMSelect,
     LengthTMTypeMap
@@ -2416,7 +2413,6 @@ int BBox3DSelect(ListExpr args)
 
 Operator bbox3d("bbox3d",
     SpatialSpecBBox3D,
-    2,
     BBox3DValueMap,
     BBox3DSelect,
     BBox3DTypeMap
@@ -2533,7 +2529,6 @@ int GenerateMO1Select(ListExpr args)
 
 Operator generate_mo1("generate_mo1",
     SpatialSpecGenerateMO1,
-    2,
     GenerateMO1ValueMap,
     GenerateMO1Select,
     GenerateMO1TypeMap
@@ -7070,7 +7065,6 @@ ListExpr Navigation1ListTypeMap(ListExpr args)
 
 Operator ref_id("ref_id",
     SpatialSpecRefId,
-    10,
     RefIdValueMapVM,
     RefIdOpSelect,
     RefIdTypeMap
@@ -7079,7 +7073,6 @@ Operator ref_id("ref_id",
 
 Operator setref_id("ref_id",
     SpatialSpecSetMORefId,
-    3,
     SetRefIdValueMapVM,
     GenMORefIdOpSelect,
     SetRefIdTypeMap
@@ -7088,7 +7081,6 @@ Operator setref_id("ref_id",
 
 Operator tm_at("tm_at",
     SpatialSpecTMAT,
-    3,
     TMATValueMapVM,
     TMATOpSelect,
     TMATTypeMap
@@ -7096,7 +7088,6 @@ Operator tm_at("tm_at",
 
 Operator tm_at2("tm_at2",
     SpatialSpecTMAT2,
-    2,
     TMAT2ValueMapVM,
     TMAT2OpSelect,
     TMAT2TypeMap
@@ -7127,7 +7118,6 @@ Operator tm_inst("inst",
 
 Operator tm_contain("contains",
     SpatialSpecTMContain,
-    3,
     TMContainValueMapVM,
     TMContainOpSelect,
     TMContainTypeMap
@@ -7200,7 +7190,6 @@ Operator tm_plus_id("tm_plus_id",
 
 Operator tm_passes("tm_passes",
     SpatialSpecTMPass,
-    1,
     TMPassValueMapVM,
     TMPassOpSelect,
     TMPassTypeMap
@@ -7208,7 +7197,6 @@ Operator tm_passes("tm_passes",
 
 Operator tm_distance("tm_distance",
     SpatialSpecTMDistance,
-    2,
     TMDistanceValueMapVM,
     TMDistanceOpSelect,
     TMDistanceTypeMap
@@ -7224,7 +7212,6 @@ Operator tm_genloc("tm_genloc",
 
 Operator modeval("modeval",
     SpatialSpecModeVal,
-    2,
     TMModeValueMapVM,
     TMModeValOpSelect,
     ModeValTypeMap
@@ -7257,7 +7244,6 @@ ValueMapping GenMODeftimeValueMapVM[]={
 
 Operator genmodeftime("deftime", //name 
     SpatialSpecGenMODeftime,  //specification
-    2,
     GenMODeftimeValueMapVM,
     TMDeftimeOpSelect,
     GenMODeftimeTypeMap //type mapping 
@@ -7291,7 +7277,6 @@ int TMNoComponentsOpSelect(ListExpr args)
 
 Operator genmonocomponents("no_components", //name 
     SpatialSpecGenMONoComponents, //specification
-    5,
     GenMONoComponentsValueMapVM,//value mapping 
     TMNoComponentsOpSelect,
     GenMONoComponentsTypeMap //type mapping 
@@ -7950,7 +7935,6 @@ ListExpr GetInfraTypeMap(ListExpr args)
 
 Operator addinfragraph("addinfragraph",
     SpatialSpecAddInfraGraph,
-    5,
     TMAddInfraGraphValueMapVM,
     TMAddInfraGraphOpSelect,
     AddInfraGraphTypeMap
@@ -8011,7 +7995,6 @@ int PutInfraOpSelect(ListExpr args)
 
 Operator putinfra("putinfra",
     SpatialSpecPutInfra,
-    6,
     PutInfraValueMapVM,
     PutInfraOpSelect,
     PutInfraTypeMap
@@ -21055,7 +21038,6 @@ ValueMapping getcontourVM[]=
 Operator getcontour(
     "getcontour",
     OpTMGetContourSpec,
-    3,
     getcontourVM,
     GetContourSelect,
     OpTMGetContourTypeMap
@@ -21266,7 +21248,6 @@ int BSGeoDataSelect(ListExpr args)
 Operator bsgeodata(
   "bsgeodata",
   OpTMBSGeoDataSpec,
-  2, 
   OpTMBSGeoDataVM,
   BSGeoDataSelect, 
   OpTMBSGeoDataTypeMap
@@ -21300,7 +21281,6 @@ int UpDownSelect(ListExpr args)
 Operator up_down(
   "up_down",
   OpTMUpDownSpec, 
-  2,
   OpTMUpDownVM,
   UpDownSelect,
   OpTMUpDownTypeMap
@@ -21445,7 +21425,6 @@ int GetAdjNodeSelect(ListExpr args)
 Operator getadjnode(
   "getadjnode", 
   OpTMGetAdjNodeSpec,
-  7,
   OpTMGetAdjNodeVM,
   GetAdjNodeSelect,
   OpTMGetAdjNodeTypeMap

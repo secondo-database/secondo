@@ -242,7 +242,6 @@ namespace spatial3DOperatorComponents
     return new Operator(
       "components",
       ComponentsSpec.getStr(),
-      2,
       componentsValueMapping,
       ComponentsSelect,
       ComponentsTypeMapping

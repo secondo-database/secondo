@@ -1051,7 +1051,6 @@ OperatorSpec drelupdatebyidSpec(
 Operator dreldeleteOp (
     "dreldelete",                
     dreldeleteSpec.getStr( ),         
-    2,
     dreldmap2VM,           
     dreldmap2UpdSelect,      
     dreldeleteTM           
@@ -1065,7 +1064,6 @@ Operator dreldeleteOp (
 Operator drelupdateOp (
     "drelupdate",                
     drelupdateSpec.getStr( ),         
-    2,
     dreldmap2VM,           
     dreldmap2UpdSelect,      
     drelupdateTM           
@@ -1079,7 +1077,6 @@ Operator drelupdateOp (
 Operator dreldeletebyidOp (
     "dreldeletebyid",                
     dreldeletebyidSpec.getStr( ),         
-    2,
     dreldmap2VM,           
     dreldmap2UpdSelect,     
     dreldeletebyidTM           
@@ -1093,7 +1090,6 @@ Operator dreldeletebyidOp (
 Operator drelupdatebyidOp (
     "drelupdatebyid",                
     drelupdatebyidSpec.getStr( ),         
-    2,
     dreldmap2VM,           
     dreldmap2UpdSelect,     
     drelupdatebyidTM           
@@ -1445,7 +1441,6 @@ OperatorSpec drelupdatebtreeSpec(
 Operator drelinsertrtreeOp (
     "drelinsertrtree",                
     drelinsertrtreeSpec.getStr( ),         
-    2,
     dreldmap2IVM,           
     dreldmap2IUpdSelect,   
     drelinsertrtreeTM           
@@ -1459,7 +1454,6 @@ Operator drelinsertrtreeOp (
 Operator dreldeletertreeOp (
     "dreldeletertree",                
     dreldeletertreeSpec.getStr( ),         
-    2,
     dreldmap2IVM,           
     dreldmap2IUpdSelect,    
     dreldeletertreeTM           
@@ -1473,7 +1467,6 @@ Operator dreldeletertreeOp (
 Operator drelupdatertreeOp (
     "drelupdatertree",                
     drelupdatertreeSpec.getStr( ),         
-    2,
     dreldmap2IVM,           
     dreldmap2IUpdSelect,      
     drelupdatertreeTM           
@@ -1487,7 +1480,6 @@ Operator drelupdatertreeOp (
 Operator drelinsertbtreeOp (
     "drelinsertbtree",                
     drelinsertbtreeSpec.getStr( ),         
-    2,
     dreldmap2IVM,           
     dreldmap2IUpdSelect,    
     drelinsertbtreeTM           
@@ -1501,7 +1493,6 @@ Operator drelinsertbtreeOp (
 Operator dreldeletebtreeOp (
     "dreldeletebtree",                
     dreldeletebtreeSpec.getStr( ),         
-    2,
     dreldmap2IVM,           
     dreldmap2IUpdSelect,    
     dreldeletebtreeTM           
@@ -1515,7 +1506,6 @@ Operator dreldeletebtreeOp (
 Operator drelupdatebtreeOp (
     "drelupdatebtree",                
     drelupdatebtreeSpec.getStr( ),
-    2,
     dreldmap2IVM,           
     dreldmap2IUpdSelect,     
     drelupdatebtreeTM           
@@ -1934,7 +1924,6 @@ OperatorSpec drelfilterupdateSpec(
 Operator dreladdidOp (
     "dreladdid",                
     dreladdidSpec.getStr( ),
-    2,
     dreldmapVM,           
     dreldmapUpdSelect,     
     dreladdidTM           
@@ -1948,7 +1937,6 @@ Operator dreladdidOp (
 Operator drelfilteraddidOp (
     "drelfilteraddid",                
     drelfilteraddidSpec.getStr( ),
-    2,
     dreldmapVM,           
     dreldmapUpdSelect,     
     drelfilteraddidTM           
@@ -1962,7 +1950,6 @@ Operator drelfilteraddidOp (
 Operator drelfilterdeleteOp (
     "drelfilterdelete",                
     drelfilterdeleteSpec.getStr( ),
-    2,
     dreldmapVM,           
     dreldmapUpdSelect,     
     drelfilterdeleteTM           
@@ -1976,7 +1963,6 @@ Operator drelfilterdeleteOp (
 Operator drelfilterupdateOp (
     "drelfilterupdate",                
     drelfilterupdateSpec.getStr( ),
-    2,
     dreldmapVM,           
     dreldmapUpdSelect,     
     drelfilterupdateTM           
@@ -2194,7 +2180,6 @@ OperatorSpec drelwindowintersectsSSpec(
 Operator drelexactmatchSOp (
     "drelexactmatchS",                
     drelexactmatchSSpec.getStr( ),
-    2,
     dreldmapSVM,           
     dreldmapSUpdSelect,     
     drelindexquerySTM<3>           
@@ -2208,7 +2193,6 @@ Operator drelexactmatchSOp (
 Operator drelrangeSOp (
     "drelrangeS",                
     drelrangeSSpec.getStr( ),
-    2,
     dreldmapSVM,           
     dreldmapSUpdSelect,     
     drelindexquerySTM<2>             
@@ -2222,7 +2206,6 @@ Operator drelrangeSOp (
 Operator drelwindowintersectsSOp (
     "drelwindowintersectsS",                
     drelwindowintersectsSSpec.getStr( ),
-    2,
     dreldmapSVM,           
     dreldmapSUpdSelect,     
     drelwindowintersectsSTM           

@@ -7693,7 +7693,6 @@ int lossycompareSelect(ListExpr args){
 Operator reservoirOp(
   "reservoir",
   reservoirSpec.getStr(),
-  2,
   reservoirVM,
   reservoirSelect,
   reservoirTM
@@ -7702,7 +7701,6 @@ Operator reservoirOp(
 Operator tiltedtimeOp(
   "tiltedtime",
   tiltedtimeSpec.getStr(),
-  2,
   tiltedtimeVM,
   tiltedtimeSelect, 
   tiltedtimeTM
@@ -7759,7 +7757,6 @@ Operator amsestimateOp(
 Operator createlossycounterOp(
   "createlossycounter",
   createlossycounterSpec.getStr(),
-  4,
   createlossycounterVM,
   createlossycounterSelect,
   createlossycounterTM
@@ -7769,7 +7766,6 @@ Operator createlossycounterOp(
 Operator lcfrequentOp(
   "lcfrequent",
   lcfrequentSpec.getStr(),
-  4,
   lcfrequentVM,
   lcfrequentSelect,
   lcfrequentTM
@@ -7779,7 +7775,6 @@ Operator lcfrequentOp(
 Operator outlierOp(
   "outlier",
   outlierSpec.getStr(),
-  2,
   outlierVM,
   outlierSelect,
   outlierTM
@@ -7828,7 +7823,6 @@ Operator realgenOp(
 Operator massquerybloomOp(
   "massquerybloom",
   massquerybloomSpec.getStr(),
-  5,
   massquerybloomVM,
   massquerybloomSelect,
   massquerybloomTM
@@ -7893,7 +7887,6 @@ Operator normaldistrealOp(
 Operator distinctcountOp(
   "distinctcount",
   distinctcountSpec.getStr(),
-  4,
   distinctcountVM,
   distinctcountSelect,
   distinctcountTM
@@ -7902,7 +7895,6 @@ Operator distinctcountOp(
 Operator cmsoverreportOp(
   "cmsoverreport",
   cmsoverreportSpec.getStr(),
-  4,
   cmsoverreportVM,
   cmsoverreportSelect,
   cmsoverreportTM
@@ -7928,7 +7920,6 @@ Operator samplegenOp(
 Operator lossycompareOp(
   "lossycompare",
   lossycompareSpec.getStr(),
-  4,
   lossycompareVM, 
   lossycompareSelect,
   lossycompareTM

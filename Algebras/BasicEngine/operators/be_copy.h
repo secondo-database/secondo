@@ -135,7 +135,7 @@ int be_copySelect(ListExpr args) {
 1.7.6 Operator instance
 
 */
-Operator be_copyOp("be_copy", be_copyVMSpec.getStr(), sizeof(be_copyVM),
+Operator be_copyOp("be_copy", be_copyVMSpec.getStr(),
                    be_copyVM, be_copySelect, be_copyTM);
 
 } // namespace BasicEngine

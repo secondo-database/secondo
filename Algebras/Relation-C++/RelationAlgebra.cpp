@@ -2287,7 +2287,6 @@ ValueMapping countmap[] = {TCountStream, TCountRel };
 Operator relalgcount (
          "count",           // name
          TCountSpec,        // specification
-         2,                 // number of value mapping functions
          countmap,          // value mapping functions
          TCountSelect,      // selection function
          TCountTypeMap      // type mapping
@@ -2300,7 +2299,6 @@ CreateCostEstimation createCostEstimationList[] = {
 Operator relalgcount (
          "count",           // name
          TCountSpec,        // specification
-         2,                 // number of value mapping functions
          countmap,          // value mapping functions
          TCountSelect,      // selection function
          TCountTypeMap,     // type mapping
@@ -2470,7 +2468,6 @@ ValueMapping roottuplesizemap[] = {RootTupleSizeStream,
 Operator relalgroottuplesize (
          "roottuplesize",           // name
          RootTupleSizeSpec,         // specification
-         3,                     // number of value mapping functions
          roottuplesizemap,          // value mapping functions
          roottuplesizeSelect,          // selection function
          RootTupleSizeTypeMap       // type mapping
@@ -2618,7 +2615,6 @@ ValueMapping exttuplesizemap[] = {ExtTupleSizeStream,
 Operator relalgexttuplesize (
          "exttuplesize",           // name
          ExtTupleSizeSpec,         // specification
-         3,                     // number of value mapping functions
          exttuplesizemap,          // value mapping functions
          exttuplesizeSelect,          // selection function
          ExtTupleSizeTypeMap       // type mapping
@@ -2766,7 +2762,6 @@ ValueMapping tuplesizemap[] = {TupleSizeStream, TupleSizeRel, TupleSizeTuple };
 Operator relalgtuplesize (
          "tuplesize",           // name
          TupleSizeSpec,         // specification
-         3,                     // number of value mapping functions
          tuplesizemap,          // value mapping functions
          tuplesizeSelect,          // selection function
          TupleSizeTypeMap       // type mapping
@@ -3022,7 +3017,6 @@ ValueMapping rootattrsizemap[] = {RootAttrSizeStream,
 Operator relalgrootattrsize (
          "rootattrsize",           // name
          RootAttrSizeSpec,         // specification
-         2,                     // number of value mapping functions
          rootattrsizemap,          // value mapping functions
          TCountSelect,          // selection function
          RootAttrSizeTypeMap       // type mapping
@@ -3168,7 +3162,6 @@ ValueMapping extattrsizemap[] = {ExtAttrSizeStream,
 Operator relalgextattrsize (
          "extattrsize",           // name
          ExtAttrSizeSpec,         // specification
-         2,                     // number of value mapping functions
          extattrsizemap,          // value mapping functions
          TCountSelect,          // selection function
          ExtAttrSizeTypeMap       // type mapping
@@ -3315,7 +3308,6 @@ ValueMapping attrsizemap[] = {AttrSizeStream,
 Operator relalgattrsize (
          "attrsize",           // name
          AttrSizeSpec,         // specification
-         2,                     // number of value mapping functions
          attrsizemap,          // value mapping functions
          TCountSelect,          // selection function
          AttrSizeTypeMap       // type mapping
@@ -4340,7 +4332,6 @@ const string BufferSpec2  =
 Operator relalgbuffer (
          "!",                 // name
          BufferSpec,             // specification
-         2,
          BufferVM,                 // value mapping
          BufferSelect,     // trivial selection function
          BufferTypeMap           // type mapping
@@ -4363,7 +4354,6 @@ CreateCostEstimation bufferCostEstimationList[]
 Operator relalgbuffer (
          "!",                     // name
          BufferSpec,              // specification
-         2,                       // overloaded function
          BufferVM,                // value mapping
          BufferSelect,            // trivial selection function
          BufferTypeMap,           // type mapping
@@ -4864,10 +4854,10 @@ const string CCSpecRelcount2  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
 ValueMapping ccoprelcountmap[] = { RelcountFun };
 ValueMapping ccoprelcountmap2[] = { RelcountFun2 };
 
-Operator ccoprelcount( "relcount", CCSpecRelcount, 1, ccoprelcountmap,
+Operator ccoprelcount( "relcount", CCSpecRelcount, ccoprelcountmap,
                        Operator::SimpleSelect, relcountTM );
 
-Operator ccoprelcount2( "relcount2", CCSpecRelcount2, 1, ccoprelcountmap2,
+Operator ccoprelcount2( "relcount2", CCSpecRelcount2, ccoprelcountmap2,
                         Operator::SimpleSelect, relcountTM );
 
 

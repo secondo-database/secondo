@@ -99,7 +99,7 @@ int be_mquerySelect(ListExpr args) {
 1.8.6 Operator instance
 
 */
-Operator be_mqueryOp("be_mquery", be_mqueryVMSpec.getStr(), sizeof(be_mqueryVM),
+Operator be_mqueryOp("be_mquery", be_mqueryVMSpec.getStr(),
                      be_mqueryVM, be_mquerySelect, be_mqueryTM);
 
 } // namespace BasicEngine

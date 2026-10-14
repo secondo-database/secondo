@@ -3222,98 +3222,84 @@ const string RectangleSpecToprightclass  =
 */
 Operator rectangleisempty( "isempty",
                            RectangleSpecIsEmpty,
-                           4,
                            rectangleisemptymap,
                            RectangleUnarySelect,
                            RectTypeMapBool );
 
 Operator rectangleequal( "=",
                          RectangleSpecEqual,
-                         4,
                          rectangleequalmap,
                          RectangleBinarySelect,
                          RectRectTypeMapBool );
 
 Operator rectanglenotequal( "#",
                             RectangleSpecNotEqual,
-                            4,
                             rectanglenotequalmap,
                             RectangleBinarySelect,
                             RectRectTypeMapBool );
 
 Operator rectangleintersects( "intersects",
                               RectangleSpecIntersects,
-                              4,
                               rectangleintersectsmap,
                               RectangleBinarySelect,
                               RectRectTypeMapBool );
 
 Operator rectangleinside( "inside",
                           RectangleSpecInside,
-                          4,
                           rectangleinsidemap,
                           RectangleBinarySelect,
                           RectRectTypeMapBool );
 
 Operator rectangleunion( "union",
                           RectangleSpecUnion,
-                          4,
                           rectangleunionmap,
                           RectangleBinarySelect,
                           RectRectTypeMapRect );
 
 Operator rectangleintersection( "intersection",
                                 RectangleSpecIntersection,
-                                4,
                                 rectangleintersectionmap,
                                 RectangleBinarySelect,
                                 RectRectTypeMapRect );
 
 Operator rectangletranslate( "translate",
                              RectangleSpecTranslate,
-                             3,
                              rectangletranslatemap,
                              RectangleUnarySelect,
                              TranslateTypeMap );
 
 Operator rectanglerectangle1( "rectangle1",
                              RectangleSpecRectangle1,
-                             2,
                              rectanglerectangle1map,
                              RectangleSelect<1>,
                              RectangleTypeMap<1> );
 
 Operator rectanglerectangle2( "rectangle2",
                              RectangleSpecRectangle2,
-                             2,
                              rectanglerectangle2map,
                              RectangleSelect<2>,
                              RectangleTypeMap<2> );
 
 Operator rectanglerectangle3( "rectangle3",
                              RectangleSpecRectangle3,
-                             2,
                              rectanglerectangle3map,
                              RectangleSelect<3>,
                              RectangleTypeMap<3> );
 
 Operator rectanglerectangle4( "rectangle4",
                              RectangleSpecRectangle4,
-                             2,
                              rectanglerectangle4map,
                              RectangleSelect<4>,
                              RectangleTypeMap<4> );
 
 Operator rectanglerectangle8( "rectangle8",
                              RectangleSpecRectangle8,
-                             2,
                              rectanglerectangle8map,
                              Rectangle8Select<8>,
                              Rectangle8TypeMap<8> );
 
 Operator rectangledistance( "distance",
                           RectangleSpecDistance,
-                          4,
                           rectangledistancemap,
                           RectangleBinarySelect,
                           RectRectTypeMapReal );
@@ -3321,7 +3307,6 @@ Operator rectangledistance( "distance",
 
 Operator rectangletoprightclass( "toprightclass",
                           RectangleSpecToprightclass,
-                          4,
                           rectangletoprightclassmap,
                           RectangleBinarySelect,
                           RectRectTypeMapInt );
@@ -3338,56 +3323,48 @@ Operator rectangletoprightclass( "toprightclass",
 
 Operator rectanglerectproject( "rectproject",
                           RectangleSpecRectproject,
-                          4,
                           rectanglerectprojectmap,
                           RectangleUnarySelect,
                           RectProjectTypeMap );
 
 Operator rectangleminD( "minD",
                          RectangleSpecMinD,
-                         5,
                          rectangleMinDmap,
                          RectangleMinMaxDSelect,
                          RectangleMinMaxTypeMap );
 
 Operator rectanglemaxD( "maxD",
                         RectangleSpecMaxD,
-                        4,
                         rectangleMaxDmap,
                         RectangleMinMaxDSelect,
                         RectangleMinMaxTypeMap );
 
 Operator rectanglebbox( "bbox",
                         RectangleSpecBbox,
-                        4,
                         rectangleBboxmap,
                         RectangleUnarySelect,
                         RectangleTypeMapRectRect );
 
 Operator rectangleextendrect( "enlargeRect",
                         RectangleSpecEnlargeRect,
-                        4,
                         rectangleEnlargeRectmap,
                         RectangleUnarySelect,
                         RectangleTypeMapEnlargeRect );
 
 Operator rectanglesize( "size",
                         RectangleSpecSize,
-                        4,
                         rectangleSizemap,
                         RectangleUnarySelect,
                         RectTypeMapReal );
 
 Operator scalerect( "scalerect",
                      scalerectSpec,
-                     4,
                      scalerectMap,
                      RectangleUnarySelect,
                      scalerectTypeMap );
 
 Operator rectanglebboxintersects( "bboxintersects",
                               RectangleSpecBboxIntersects,
-                              16,
                               rectanglebboxintersectsmap,
                               RectangleBinarySelect1,
                               RectangleTypeMapBool2 );
@@ -3845,7 +3822,6 @@ OperatorSpec extendGeoSpec(
 Operator extendGeoOp(
   "extendGeo",
   extendGeoSpec.getStr(),
-  6,
   extendGeoVM,
   extendGeoSelect,
   extendGeoTM
@@ -3977,7 +3953,6 @@ OperatorSpec scaleSpec(
 Operator scaleOp(
   "scale",
   scaleSpec.getStr(),
-  10,
   scaleVM,
   scaleSelect,
   scaleTM

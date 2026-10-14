@@ -2349,7 +2349,6 @@ Operator specification of the windowintersects2 operator.
     Operator drelfilterOp(
         "drelfilter",
         drelfilterSpec.getStr( ),
-        2,
         dreldmapNewVM,
         dreldmapSelect,
         drelfilterTM
@@ -2362,7 +2361,6 @@ Operator specification of the windowintersects2 operator.
     Operator projectOp(
         "project",
         projectSpec.getStr( ),
-        2,
         dreldmapNewVM,
         dreldmapSelect,
         projectTM
@@ -2375,7 +2373,6 @@ Operator specification of the windowintersects2 operator.
     Operator drelprojectextendOp(
         "drelprojectextend",
         drelprojectextendSpec.getStr( ),
-        2,
         dreldmapNewVM,
         dreldmapSelect,
         drelprojectextendTM
@@ -2388,7 +2385,6 @@ Operator specification of the windowintersects2 operator.
     Operator drelextendOp(
         "drelextend",
         drelextendSpec.getStr( ),
-        2,
         dreldmapNewVM,
         dreldmapSelect,
         drelextendTM
@@ -2401,7 +2397,6 @@ Operator specification of the windowintersects2 operator.
     Operator headOp(
         "head",
         headSpec.getStr( ),
-        2,
         dreldmapNewVM,
         dreldmapSelect,
         headTM
@@ -2414,7 +2409,6 @@ Operator specification of the windowintersects2 operator.
     Operator renameOp(
         "rename",
         renameSpec.getStr( ),
-        2,
         dreldmapNewVM,
         dreldmapSelect,
         renameTM
@@ -2427,7 +2421,6 @@ Operator specification of the windowintersects2 operator.
     Operator lrdupOp(
         "lrdup",
         lrdupSpec.getStr( ),
-        2,
         dreldmapNewVM,
         dreldmapSelect,
         lrdupTM
@@ -2440,7 +2433,6 @@ Operator specification of the windowintersects2 operator.
     Operator lsortOp(
         "lsort",
         lsortSpec.getStr( ),
-        2,
         dreldmapNewVM,
         dreldmapSelect,
         lsortTM
@@ -2453,7 +2445,6 @@ Operator specification of the windowintersects2 operator.
     Operator drellgroupbyOp(
         "drellgroupby",
         drellgroupbySpec.getStr( ),
-        2,
         dreldmapNewVM,
         dreldmapSelect,
         drellgroupbyTM<false>
@@ -2466,7 +2457,6 @@ Operator specification of the windowintersects2 operator.
     Operator lsortbyOp(
         "lsortby",
         lsortbySpec.getStr( ),
-        2,
         dreldmapNewVM,
         dreldmapSelect,
         lsortbyTM
@@ -2479,7 +2469,6 @@ Operator specification of the windowintersects2 operator.
     Operator windowintersectsOp(
         "windowintersects",
         windowintersectsSpec.getStr( ),
-        2,
         dreldmapNew2VM,
         dreldmap2Select,
         windowintersectsTM
@@ -2492,7 +2481,6 @@ Operator specification of the windowintersects2 operator.
     Operator rangeOp(
         "range",
         rangeSpec.getStr( ),
-        2,
         dreldmapNew2VM,
         dreldmap2Select,
         rangeTM
@@ -2505,7 +2493,6 @@ Operator specification of the windowintersects2 operator.
     Operator exactmatchOp(
         "exactmatch",
         exactmatchSpec.getStr( ),
-        2,
         dreldmapNew2VM,
         dreldmap2Select,
         exactmatchTM
@@ -2518,7 +2505,6 @@ Operator specification of the windowintersects2 operator.
     Operator inloopjoinOp(
         "inloopjoin",
         inloopjoinSpec.getStr( ),
-        4,
         dreldmapNew3VM,
         dreldmap3Select,
         inloopjoinTM
@@ -2531,7 +2517,6 @@ Operator specification of the windowintersects2 operator.
     Operator windowintersects2Op(
         "windowintersects2",
         windowintersects2Spec.getStr( ),
-        2,
         dreldmapNew2VM,
         dreldmap2Select,
         windowintersects2TM

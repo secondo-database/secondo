@@ -301,7 +301,6 @@ Creates a d[f]rel.
     Operator darray2drelOp(
         "darray2drel",
         darray2drelSpec.getStr( ),
-        4,
         darray2drelVM,
         darray2drelSelect,
         darray2drelTM

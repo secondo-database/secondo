@@ -391,7 +391,6 @@ extern void initHistogram();
 
 extern ListExpr PictureColordistTypeMap(ListExpr args);
 extern ListExpr PictureEqualsTypeMap(ListExpr args);
-extern ListExpr PictureLikeTypeMap(ListExpr args);
 
 extern int PictureColordistValueMap(Word* args,
                                     Word& result,
@@ -411,9 +410,7 @@ extern int PictureContainsValueMap(Word* args,
                                  Supplier s);
 
 
-extern ValueMapping pictureLikeValueMap[];
-
-extern int PictureLikeSelect(ListExpr args);
+extern Operator* createPictureLikeOperator(const string& spec);
 
 
 /*
@@ -464,7 +461,8 @@ static int SimpleSelect(ListExpr args) {
 /*
 
 The creation of the actual operators follows. Operator ~like~
-is overloaded.
+is overloaded and therefore built in PictureAlgebra\_histops.cpp, next to
+its value mappings.
 
 */
 
@@ -556,15 +554,6 @@ static Operator containsOp(
     PictureSimpleEqualsTypeMap             //type mapping
 );
 
-
-static Operator like(
-    "like",                                //name
-    pictureLikeSpec,                       //specification
-    2,                                     //number of overloaded functions
-    pictureLikeValueMap,                   //value mapping
-    PictureLikeSelect,                     //value mapping selection function
-    PictureLikeTypeMap                     //type mapping
-);
 
 static Operator scale(
     "scale",                               //name
@@ -763,7 +752,6 @@ OperatorSpec distanceSpec(
 Operator distanceOp(
   "distance",
   distanceSpec.getStr(),
-  7,
   distanceVM,
   distanceSelect,
   distanceTM
@@ -1229,7 +1217,7 @@ public:
         AddOperator(&equals);
         AddOperator(&containsOp);
         AddOperator(&simpleequals);
-        AddOperator(&like);
+        AddOperator(createPictureLikeOperator(pictureLikeSpec), true);
         AddOperator(&scale);
         AddOperator(&cut);
         AddOperator(&flipleft);
@@ -1253,9 +1241,9 @@ public:
 
     ~PictureAlgebra() {
          if(pictureLabOffsetTable != nullptr) {
-         	delete[] pictureLabOffsetTable;
-		pictureLabOffsetTable = nullptr;
-	 }
+             delete[] pictureLabOffsetTable;
+        pictureLabOffsetTable = nullptr;
+     }
      }
 };
 

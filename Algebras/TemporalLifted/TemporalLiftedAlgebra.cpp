@@ -8652,105 +8652,90 @@ const string TemporalLiftSpecABS
 
 static Operator temporalmequal( "=",
                             TemporalLiftSpecMEqual,
-                            18,
                             temporalmequalmap,
                             MovingEqualSelect,
                             MovingEqualTypeMapMBool );
 
 static Operator temporalmnotequal( "#",
                             TemporalLiftSpecMNotEqual,
-                            18,
                             temporalmnotequalmap,
                             MovingEqualSelect,
                             MovingEqualTypeMapMBool );
 
 static Operator temporalmless ( "<",
                             TemporalLiftSpecLT,
-                            12,
                             temporalmlessmap,
                             MovingCompareSelect,
                             MovingCompareTypeMapMBool );
 
 static Operator temporalmlessequal ( "<=",
                             TemporalLiftSpecLE,
-                            12,
                             temporalmlessequalmap,
                             MovingCompareSelect,
                             MovingCompareTypeMapMBool );
 
 static Operator temporalmgreater ( ">",
                             TemporalLiftSpecGT,
-                            12,
                             temporalmgreatermap,
                             MovingCompareSelect,
                             MovingCompareTypeMapMBool );
 
 static Operator temporalmgreaterequal ( ">=",
                             TemporalLiftSpecGE,
-                            12,
                             temporalmgreaterequalmap,
                             MovingCompareSelect,
                             MovingCompareTypeMapMBool );
 
 static Operator temporalsubtract ( "-",
                             TemporalLiftSpecSubtract,
-                            12,
                             temporalsubtractmap,
                             MovingAddSelect,
                             MovingAddTypeMap);
 
 static Operator temporaladd ( "+",
                             TemporalLiftSpecAdd,
-                            12,
                             temporaladdmap,
                             MovingAddSelect,
                             MovingAddTypeMap);
 
 static Operator temporalmultiply ( "*",
                             TemporalLiftSpecMultiply,
-                            11,
                             temporalmultiplymap,
                             MovingMultiplySelect,
                             MovingMultiplyTypeMap);
 
 static Operator temporaldivide ( "/",
                             TemporalLiftSpecDivide,
-                            8,
                             temporaldividemap,
                             MovingDivideSelect,
                             MovingDivideTypeMap);
 
 static Operator isempty("isempty",
                             temporalliftisemptyspec,
-                            7,
                             temporalliftisemptyvaluemap,
                             TemporalLiftIsemptySelect,
                             TemporalLiftIsemptyTypeMap);
 
 static Operator temporalminside( "inside",
                             TemporalLiftSpecInside,
-                            4,
                             temporalliftinsidemap,
                             InsideSelect,
                             InsideTypeMapMBool );
 
 static Operator temporalmintersection( "intersection",
                             TemporalLiftSpecIntersection,
-                            17,
                             temporalliftintersectionmap,
                             MovingIntersectionSelect,
                             MovingIntersectionTypeMap );
 
 static Operator munion("union",
                             unionspec,
-                            3,
                             unionvaluemap,
                             UnionSelect,
                             UnionTypeMap);
 
 static Operator temporalmminus( "minus",
                             TemporalLiftSpecMinus,
-                            20,
                             temporalliftminusmap,
                             MovingMinusSelect,
                             MovingMinusTypeMap );
@@ -8781,28 +8766,24 @@ static Operator area("area",
 
 static Operator temporalmdistance( "distance",
                             TemporalLiftSpecDistance,
-                            7,
                             temporaldistancemap,
                             MovingDistanceSelect,
                             MovingDistanceTypeMapMReal );
 
 static Operator temporalfrechetdistance("frechetdistance",
                             TemporalLiftSpecFrechetDistance,
-                            2,
                             temporalfrechetdistancemap,
                             FrechetDistanceSelect,
                             MPointMPointMapReal );
 
 static Operator temporaland( "and",
                             TemporalLiftSpecAnd,
-                            3,
                             temporalandmap,
                             MovingAndOrSelect,
                             AndOrTypeMapMBool );
 
 static Operator temporalor( "or",
                             TemporalLiftSpecOr,
-                            3,
                             temporalormap,
                             MovingAndOrSelect,
                             AndOrTypeMapMBool );

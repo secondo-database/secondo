@@ -242,7 +242,6 @@ Reads a file and create a drel.
     Operator file2streamOp(
         "file2stream",
         file2streamSpec.getStr( ),
-        2,
         file2streamVM,
         file2streamSelect,
         file2streamTM

@@ -349,7 +349,6 @@ OperatorSpec pbufferSpec(
 Operator pbufferOp(
   "pbuffer",
   pbufferSpec.getStr(),
-  2,
   pbufferVM,
   pbufferSelect,
   pbufferTM
@@ -480,7 +479,6 @@ OperatorSpec pbuffer1Spec(
 Operator pbuffer1Op(
   "pbuffer1",
   pbuffer1Spec.getStr(),
-  2,
   pbuffer1VM,
   pbuffer1Select,
   pbuffer1TM
@@ -617,7 +615,6 @@ OperatorSpec pbufferUSpec(
 Operator pbufferUOp(
   "pbufferU",
   pbufferUSpec.getStr(),
-  2,
   pbufferUVM,
   pbufferUSelect,
   pbufferUTM

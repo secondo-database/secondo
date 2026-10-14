@@ -503,7 +503,6 @@ const string Within2Spec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
 Operator within (
          "within",               // name
          WithinSpec,             // specification
-         2,                      // the number of overloaded functions
          withinmap,              // value mapping function array
          WithinSelect,           // the selection function
          WithinTypeMap           // type mapping
@@ -512,7 +511,6 @@ Operator within (
 Operator within2 (
     "within2",               // name
      Within2Spec,            // specification
-     2,                      // the number of overloaded functions
      within2map,             // value mapping function array
      WithinSelect,           // the selection function
      WithinTypeMap           // type mapping

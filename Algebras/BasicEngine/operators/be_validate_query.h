@@ -99,7 +99,7 @@ int be_validateQuerySelect(ListExpr args) {
 
 */
 Operator be_validateQueryOp("be_validate_query", be_validateQuerySpec.getStr(),
-                            sizeof(be_validateQueryVM), be_validateQueryVM,
+                            be_validateQueryVM,
                             be_validateQuerySelect, be_validateQueryTM);
 
 } // namespace BasicEngine

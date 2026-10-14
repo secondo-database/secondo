@@ -403,7 +403,6 @@ Expect a d[f]rel and a bool as argument.
     Operator lcountOp(
         "lcount",
         lcountSpec.getStr( ),
-        2,
         lcountVM,
         countSelect,
         lcountTM
@@ -428,7 +427,6 @@ Expect a d[f]rel and a bool as argument.
     Operator countOp(
         "count",
         countSpec.getStr( ),
-        2,
         countVM,
         countSelect,
         countTM

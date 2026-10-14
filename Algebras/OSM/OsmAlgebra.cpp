@@ -1202,7 +1202,6 @@ ValueMapping fullosmimportVMs[] = {fullosmimportValueMap<2>,
 */
 Operator fullosmimport( "fullosmimport",
                 fullosmimportSpec,
-                2,
                 fullosmimportVMs,
                 fullosmimportSelect,
                 fullosmimportTypeMap);

@@ -256,7 +256,6 @@ Operator geoid_create_geoid
 (
   "create_geoid",
   geoid_create_geoid_SPEC,
-  5,
   geoid_create_geoid_vm,
   geoid_create_geoid_SELECT,
   geoid_create_geoid_TM

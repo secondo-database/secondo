@@ -99,7 +99,7 @@ int be_structSelect(ListExpr args) {
 1.11.6 Operator instance
 
 */
-Operator be_structOp("be_struct", be_structVMSpec.getStr(), sizeof(be_structVM),
+Operator be_structOp("be_struct", be_structVMSpec.getStr(),
                      be_structVM, be_structSelect, be_structTM);
 
 } // namespace BasicEngine

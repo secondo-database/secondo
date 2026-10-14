@@ -103,7 +103,7 @@ int be_gridDeleteSelect(ListExpr args) {
 
 */
 Operator be_gridDeleteOp("be_grid_delete", be_gridDeleteSpec.getStr(),
-                         sizeof(be_gridDeleteVM), be_gridDeleteVM,
+                         be_gridDeleteVM,
                          be_gridDeleteSelect, be_gridDeleteTM);
 
 } // namespace BasicEngine

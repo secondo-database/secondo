@@ -3784,7 +3784,6 @@ Operator op_add
 (
  "add",                 //name
  add_spec,                  //specification ....
- 3,                     // number of functions
  AddMap,                //value mapping
  fuzzySelect,                //selection function
  FOiFOiFOi                //type mapping
@@ -3794,7 +3793,6 @@ Operator op_setsf
 (
   "set_sf",
   setsf_spec,
-  3,
   setSFMap,
   fuzzySelect,
   FOiRealFOi
@@ -3804,7 +3802,6 @@ Operator op_alphacut
 (
  "alphacut",         //name
  alphacut_spec,        //specification ....
- 3,
  AlphaCutMap,        //value mapping
  fuzzySelect,        //trivial selection function
  FOiRealBoolFOi        //type mapping
@@ -3886,7 +3883,6 @@ Operator op_basicsimilar
 (
  "basicsimilar",         //name
  basicsimilar_spec,          //specification ....
- 3,                        // number of fucntions
  BasicSimilarMap,        //value mapping
  fuzzySelect,                //trivial selection function
  FOiFOiReal                //type mapping
@@ -3896,7 +3892,6 @@ Operator op_boundary
 (
  "boundary",                 //name
  boundary_spec,          //specification ....
- 2,
  BoundaryMap,                //value mapping
  RLSelect,                //trivial selection function
  BoundaryTypeMap        //type mapping
@@ -3924,7 +3919,6 @@ Operator op_commonpoints
 (
  "commonpoints",         //name
  commonpoints_spec,          //specification ....
- 2,
  CommonPointsMap,        //value mapping
  RLSelect,                //trivial selection function
  CommonPointsTypeMap        //type mapping
@@ -3934,7 +3928,6 @@ Operator op_difference
 (
  "difference",                 //name
  difference_spec,          //specification ....
- 3,
  DifferenceMap,                //value mapping
  fuzzySelect,                //trivial selection function
  FOiFOiFOi                //type mapping
@@ -3944,7 +3937,6 @@ Operator op_scalefactor
 (
  "scalefactor",         //name
  getscalefactor_spec,          //specification ....
- 3,
  ScaleFactorMap,        //value mapping
  fuzzySelect,                //trivial selection function
  FOReal                        //type mapping
@@ -3963,7 +3955,6 @@ Operator op_intersection
 (
  "fuzzy_intersection",         //name
  intersection_spec,          //specification ....
-  3,
  IntersectionMap,        //value mapping
  fuzzySelect,                //trivial selection function
  FOiFOiFOi                //type mapping
@@ -3973,7 +3964,6 @@ Operator op_isempty
 (
  "isempty",                 //name
  isempty_spec,          //specification ....
- 3,
  IsEmptyMap,                //value mapping
  fuzzySelect,                //trivial selection function
  FOBool                        //type mapping
@@ -3983,7 +3973,6 @@ Operator op_maxv
 (
  "maxvalue",                 //name
  maxz_spec,                  //specification ....
- 3,
  MaxValueMap,                //value mapping
  fuzzySelect,                //trivial selection function
  FOReal                        //type mapping
@@ -3993,7 +3982,6 @@ Operator op_minv
 (
  "minvalue",                 //name
  minz_spec,                  //specification ....
- 3,
  MinValueMap,                //value mapping
  fuzzySelect,                //trivial selection function
  FOReal                        //type mapping
@@ -4003,7 +3991,6 @@ Operator op_max_value_at
 (
  "max_value_at",         //name
  maxzfkt_spec,          //specification ....
- 3,
  MaxValueAtMap,                //value mapping
  fuzzySelect,                //trivial selection function
  FORealRealReal                //type mapping
@@ -4013,7 +4000,6 @@ Operator op_mid_value_at
 (
  "mid_value_at",         //name
  midzfkt_spec,          //specification ....
- 3,
  MidValueAtMap,                //value mapping
  fuzzySelect,                //trivial selection function
  FORealRealReal                //type mapping
@@ -4023,7 +4009,6 @@ Operator op_min_value_at
 (
  "min_value_at",         //name
  minzfkt_spec,          //specification ....
- 3,
  MinValueAtMap,                //value mapping
  fuzzySelect,                //trivial selection function
  FORealRealReal                //type mapping
@@ -4033,7 +4018,6 @@ Operator op_scaled_add
 (
  "scaled_add",                 //name
  scaledadd_spec,          //specification ....
- 3,
  ScaledAddMap,                //value mapping
  fuzzySelect,                //trivial selection function
  FOiFOiFOi                //type mapping
@@ -4043,7 +4027,6 @@ Operator op_scaled_difference
 (
  "scaled_difference",         //name
  scaleddifference_spec, //specification ....
- 3,
  ScaledDifferenceMap,        //value mapping
  fuzzySelect,                //trivial selection function
  FOiFOiFOi                //type mapping
@@ -4053,7 +4036,6 @@ Operator op_scaled_intersection
 (
  "scaled_intersection",         //name
  scaledintersection_spec,        //specification ....
- 3,
  ScaledIntersectionMap,                //value mapping
  fuzzySelect,                        //trivial selection function
  FOiFOiFOi                        //type mapping
@@ -4063,7 +4045,6 @@ Operator op_scaled_union
 (
  "scaled_union",                         //name
  scaledunion_spec,                  //specification ....
- 3,
  ScaledUnionMap,                        //value mapping
  fuzzySelect,                        //trivial selection function
  FOiFOiFOi                //type mapping
@@ -4073,7 +4054,6 @@ Operator op_union
 (
  "fuzzy_union",                         //name
  union_spec,                  //specification ....
- 3,
  UnionMap,                        //value mapping
  fuzzySelect,                        //trivial selection function
  FOiFOiFOi                //type mapping
@@ -4083,7 +4063,6 @@ Operator op_sharp
 (
  "sharp",                         //name
  sharp_spec,                  //specification ....
- 3,
  SharpMap,                        //value mapping
  fuzzySelect,                        //trivial selection function
  FOiFOi                //type mapping
@@ -4093,7 +4072,6 @@ Operator op_similar
 (
  "similar",                         //name
  similar_spec,                  //specification ....
- 3,
  SimilarMap,                        //value mapping
  fuzzySelect,                        //trivial selection function
  FOiFOiReal                //type mapping

@@ -5261,30 +5261,30 @@ Operator instance definitions
 
 */
 
-Operator ccplus( "+", CCSpecAdd, 13, ccplusmap,
+Operator ccplus( "+", CCSpecAdd, ccplusmap,
                  CcPlusSelectCompute, CcPlusTypeMap );
 
-Operator ccminus( "-", CCSpecSub, 12, ccminusmap,
+Operator ccminus( "-", CCSpecSub, ccminusmap,
                   CcMathSelectCompute, CcMathTypeMap );
 
-Operator ccproduct( "*", CCSpecMul, 12, ccproductmap,
+Operator ccproduct( "*", CCSpecMul, ccproductmap,
                     CcMathSelectCompute, CcMathTypeMap );
 
-Operator ccdivision( "/", CCSpecDiv, 12, ccdivisionmap,
+Operator ccdivision( "/", CCSpecDiv, ccdivisionmap,
                      CcMathSelectCompute, CcMathTypeMapdiv );
 
 
 
-Operator ccmod( "mod", CCSpecMod, 1, ccmodmap,
+Operator ccmod( "mod", CCSpecMod, ccmodmap,
                 Operator::SimpleSelect, CcMathTypeMap1 );
 
 Operator ccdiv( "div", 
-                CCSpecDiv2, 4, 
+                CCSpecDiv2, 
                 ccdivmap,
                 ccdivSelect, 
                 divTM );
 
-Operator ccsqrt( "sqrt", CCSpecSqrt, 1, ccsqrtmap,
+Operator ccsqrt( "sqrt", CCSpecSqrt, ccsqrtmap,
                 Operator::SimpleSelect, RealReal );
 
 Operator ccrandint( "randint", CCSpecRandInt, RandInt,
@@ -5305,67 +5305,67 @@ Operator ccseqnext( "seqnext", CCSpecNextSeq, NextSeq,
 Operator cclog( "log", CCSpecLog, LogFun,
                 Operator::SimpleSelect, IntInt );
 
-Operator ccless( "<", CCSpecLT, 11, cclessmap,
+Operator ccless( "<", CCSpecLT, cclessmap,
                  CcMathSelectCompare, CompareTypeMap);
 
-Operator cclessequal( "<=", CCSpecLE, 11, cclessequalmap,
+Operator cclessequal( "<=", CCSpecLE, cclessequalmap,
                       CcMathSelectCompare, CompareTypeMap );
 
-Operator ccgreater( ">", CCSpecGT, 11, ccgreatermap,
+Operator ccgreater( ">", CCSpecGT, ccgreatermap,
                     CcMathSelectCompare, CompareTypeMap );
 
-Operator ccgreaterequal( ">=", CCSpecGE, 11, ccgreaterequalmap,
+Operator ccgreaterequal( ">=", CCSpecGE, ccgreaterequalmap,
                          CcMathSelectCompare, CompareTypeMap );
 
-Operator ccequal( "=", CCSpecEQ, 11, ccequalmap,
+Operator ccequal( "=", CCSpecEQ, ccequalmap,
                   CcMathSelectCompare, CompareTypeMap );
 
-Operator ccdiff( "#", CCSpecNE, 11, ccdiffmap,
+Operator ccdiff( "#", CCSpecNE, ccdiffmap,
                  CcMathSelectCompare, CompareTypeMap );
 
 
-Operator cccontains( "contains", CCSpecCon, 1, cccontainsmap,
+Operator cccontains( "contains", CCSpecCon, cccontainsmap,
                      Operator::SimpleSelect, CcMathTypeMapBool3 );
 
 Operator ccsubstr( "substr", CCSpecSubStr, SubStrFun,
                    Operator::SimpleSelect, SubStrTypeMap );
 
-Operator ccnot( "not", CCSpecNot, 1, ccnotmap,
+Operator ccnot( "not", CCSpecNot, ccnotmap,
                 Operator::SimpleSelect, CcMathTypeMapBool1 );
 
-Operator ccand( "and", CCSpecAnd, 1, ccandmap,
+Operator ccand( "and", CCSpecAnd, ccandmap,
                 Operator::SimpleSelect, CcMathTypeMapBool2 );
 
-Operator ccandS( "sand", CCSpecAndS, 1, ccandSmap,
+Operator ccandS( "sand", CCSpecAndS, ccandSmap,
                 Operator::SimpleSelect, CcMathTypeMapBool2 );
 
-Operator ccor( "or", CCSpecOr, 1, ccormap,
+Operator ccor( "or", CCSpecOr, ccormap,
                Operator::SimpleSelect, CcMathTypeMapBool2 );
 
-Operator ccorS( "sor", CCSpecOrS, 1, ccorSmap,
+Operator ccorS( "sor", CCSpecOrS, ccorSmap,
                Operator::SimpleSelect, CcMathTypeMapBool2 );
 
-Operator ccisempty( "isempty", CCSpecIsEmpty, 4, ccisemptymap,
+Operator ccisempty( "isempty", CCSpecIsEmpty, ccisemptymap,
                     CcMathSelectIsEmpty, CcMathTypeMapBool4 );
 
 Operator ccplusplus( "++", CCSpecPlusPlus, PlusPlusFun,
                  Operator::SimpleSelect, CcStringMapCcString );
 
-Operator ccsetintersection( "intersection", CCSpecSetIntersection, 4,
+Operator ccsetintersection( "intersection", CCSpecSetIntersection,
                 ccsetintersectionmap, CcMathSelectSet, CcMathTypeMap2 );
 
-Operator ccsetminus( "minus", CCSpecSetMinus, 4, ccsetminusmap,
+Operator ccsetminus( "minus", CCSpecSetMinus, ccsetminusmap,
                      CcMathSelectSet, CcMathTypeMap2 );
 
 
-Operator ccopkeywords( "keywords", CCSpecKeywords, 1, cckeywordsmap,
+Operator ccopkeywords( "keywords", CCSpecKeywords, cckeywordsmap,
                        Operator::SimpleSelect, keywordsType );
 
-Operator ccopifthenelse( "ifthenelse", CCSpecIfthenelse, 2, ifthenelseVM,
+Operator ccopifthenelse( "ifthenelse", CCSpecIfthenelse, ifthenelseVM,
                          ifthenelseSelect, ifthenelseType );
 
 
-Operator ccbetween( "between", CCSpecBetween, 10, ccbetweenmap,
+Operator ccbetween( "between", CCSpecBetween, ccbetweenmap,
                     CcBetweenSelect, CcBetweenTypeMap );
 
 Operator ccelapsedtime( "elapsedtime", CCSpecElapsed, ccelapsedfun,
@@ -5377,34 +5377,34 @@ Operator ccldistance( "ldistance", CCLDistSpec, DistanceStrStrFun,
 //Operator cchashvalue( "hashvalue", CCHashValueSpec, 4, cchashvaluemap,
                  //CcHashValueSelect, CcHashValueTypeMap);
 
-Operator cchashvalue( "hashvalue", CCHashValueSpec, 1, cchashvaluemap,
+Operator cchashvalue( "hashvalue", CCHashValueSpec, cchashvaluemap,
                  Operator::SimpleSelect, CcHashValueTypeMap);
 
-Operator ccround( "round", CCRoundSpec, 2, roundVM,
+Operator ccround( "round", CCRoundSpec, roundVM,
                  roundSelect, CcRoundTypeMap);
 
-Operator ccint2real( "int2real", CCint2realSpec, 1, ccint2realvaluemap,
+Operator ccint2real( "int2real", CCint2realSpec, ccint2realvaluemap,
                  Operator::SimpleSelect, IntReal);
 
-Operator ccreal2int( "real2int", CCreal2intSpec, 1, ccreal2intvaluemap,
+Operator ccreal2int( "real2int", CCreal2intSpec, ccreal2intvaluemap,
                  Operator::SimpleSelect, RealInt);
 
-Operator ccint2bool( "int2bool", CCint2boolSpec, 1, ccint2boolvaluemap,
+Operator ccint2bool( "int2bool", CCint2boolSpec, ccint2boolvaluemap,
                  Operator::SimpleSelect, IntBool);
 
-Operator ccbool2int( "bool2int", CCbool2intSpec, 1, ccbool2intvaluemap,
+Operator ccbool2int( "bool2int", CCbool2intSpec, ccbool2intvaluemap,
                  Operator::SimpleSelect, BoolInt);
 
-Operator ccceil( "ceil", CCceilSpec, 1, ccceilvaluemap,
+Operator ccceil( "ceil", CCceilSpec, ccceilvaluemap,
                  Operator::SimpleSelect, RealReal);
 
-Operator ccfloor( "floor", CCfloorSpec, 1, ccfloorvaluemap,
+Operator ccfloor( "floor", CCfloorSpec, ccfloorvaluemap,
                  Operator::SimpleSelect, RealReal);
 
-Operator ccnum2string( "num2string", CCnum2stringSpec, 6, ccnum2stringvaluemap,
+Operator ccnum2string( "num2string", CCnum2stringSpec, ccnum2stringvaluemap,
                  ccnum2stringSelect, NumStringTypeMap);
 
-Operator ccchar( "char", CCcharSpec, 1, cccharvaluemap,
+Operator ccchar( "char", CCcharSpec, cccharvaluemap,
                  Operator::SimpleSelect, IntString);
 
 Operator ccisdefined( "isdefined", CCisdefinedSpec, CCisdefinedValueMap,
@@ -5430,36 +5430,36 @@ Trigonometric functions
 
 */
 
-Operator ccsin( "sin", CCsinSpec, 2, CCsinVM, CcNumRealSelect,
+Operator ccsin( "sin", CCsinSpec, CCsinVM, CcNumRealSelect,
                 CcTypeMapNumReal);
-Operator cccos( "cos", CCcosSpec, 2, CCcosVM, CcNumRealSelect,
+Operator cccos( "cos", CCcosSpec, CCcosVM, CcNumRealSelect,
                 CcTypeMapNumReal);
-Operator cctan( "tan", CCtanSpec, 2, CCtanVM, CcNumRealSelect,
+Operator cctan( "tan", CCtanSpec, CCtanVM, CcNumRealSelect,
                 CcTypeMapNumReal);
-Operator ccarcsin( "arcsin", CCarcsinSpec, 2, CCarcsinVM, CcNumRealSelect,
+Operator ccarcsin( "arcsin", CCarcsinSpec, CCarcsinVM, CcNumRealSelect,
                    CcTypeMapNumReal);
-Operator ccarccos( "arccos", CCarccosSpec, 2, CCarccosVM, CcNumRealSelect,
+Operator ccarccos( "arccos", CCarccosSpec, CCarccosVM, CcNumRealSelect,
                    CcTypeMapNumReal);
-Operator ccarctan( "arctan", CCarctanSpec, 2, CCarctanVM, CcNumRealSelect,
+Operator ccarctan( "arctan", CCarctanSpec, CCarctanVM, CcNumRealSelect,
                    CcTypeMapNumReal);
 Operator ccarctan2( "arctan2", CCarctan2Spec, CCArctan2VM,
                     Operator::SimpleSelect, CcTypeMapRealRealReal);
 Operator ccpi( "const_pi", CCpiSpec, CcPi, Operator::SimpleSelect,
                CcTypeMapEmptyReal);
-Operator ccdeg2rad( "deg2rad", CCdeg2radSpec, 2, CCdeg2radVM, CcNumRealSelect,
+Operator ccdeg2rad( "deg2rad", CCdeg2radSpec, CCdeg2radVM, CcNumRealSelect,
                               CcTypeMapNumReal);
-Operator ccrad2deg( "rad2deg", CCrad2degSpec, 2, CCrad2degVM, CcNumRealSelect,
+Operator ccrad2deg( "rad2deg", CCrad2degSpec, CCrad2degVM, CcNumRealSelect,
                                CcTypeMapNumReal);
 
 Operator cce( "const_e", CCeSpec, CcE, Operator::SimpleSelect,
                                CcTypeMapEmptyReal);
-Operator cclogb("logB", CClogBSpec, 4, CClogBmap, CcNumNumRealSelect,
+Operator cclogb("logB", CClogBSpec, CClogBmap, CcNumNumRealSelect,
                                                CcTypeMapNumNumReal);
 
-Operator ccpow("pow", CCpowSpec, 4, CCpowmap, CcNumNumRealSelect,
+Operator ccpow("pow", CCpowSpec, CCpowmap, CcNumNumRealSelect,
                         CcTypeMapNumNumReal);
 
-Operator ccdms2deg("dms2deg", CCdms2degSpec, 8, CCdms2degmap,
+Operator ccdms2deg("dms2deg", CCdms2degSpec, CCdms2degmap,
                    CcNumNumNumRealSelect, CcTypeMapNumNumOptNumOptBoolReal);
 
 /*
@@ -5665,7 +5665,6 @@ OperatorSpec switchSpec(
 Operator switchOp(
    "switch",
    switchSpec.getStr(),
-   2,
    switchVM,
    switchSelect,
    switchTM);
@@ -5860,7 +5859,6 @@ OperatorSpec ratSpec(
 Operator rat(
    "rat",
    ratSpec.getStr(),
-   7, 
    ratVM,
    ratSelect,
    ratTM);

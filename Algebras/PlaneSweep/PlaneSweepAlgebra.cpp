@@ -5740,7 +5740,7 @@ int realmSelectCompute ( ListExpr args) {
 }
 
 Operator realm
-        ( "realm", RealmSpec, 4, RealmMap,
+        ( "realm", RealmSpec, RealmMap,
           realmSelectCompute, realmMap);
 
 /*
@@ -5966,7 +5966,7 @@ int InterSelectCompute ( ListExpr args) {
 }
 
 Operator Intersectionrr
-   ( "intersection_new", InterSpec, 4, InterValueMap,
+   ( "intersection_new", InterSpec, InterValueMap,
      InterSelectCompute, InterMap );
 
 /*
@@ -6189,7 +6189,7 @@ int IntersectsSelectCompute ( ListExpr args) {
 }
 
 Operator Intersectsrr
-   ( "intersects_new", IntersectsSpec, 4, IntersectsValueMap,
+   ( "intersects_new", IntersectsSpec, IntersectsValueMap,
      IntersectsSelectCompute, IntersectsMap );
 
 /*
@@ -6361,7 +6361,7 @@ int unionSelectCompute ( ListExpr args) {
 }
 
 Operator Unionrr
-   ( "union_new", UnionSpec, 4, UnionValueMap,
+   ( "union_new", UnionSpec, UnionValueMap,
    unionSelectCompute, unionMap );
 
 
@@ -6569,7 +6569,7 @@ int minusSelectCompute ( ListExpr args) {
 }
 
 Operator Minusrr
-   ( "minus_new", MinusSpec, 4, MinusValueMap,
+   ( "minus_new", MinusSpec, MinusValueMap,
    minusSelectCompute, minusMap );
 
 
@@ -6754,7 +6754,7 @@ ValueMapping p_IntersectsValueMap[] =
    {p_inter_ll, p_inter_lr, p_inter_rl, p_inter_rr };
 
 Operator pIntersects
-   ( "p_intersects", p_IntersectsSpec, 4, p_IntersectsValueMap,
+   ( "p_intersects", p_IntersectsSpec, p_IntersectsValueMap,
      IntersectsSelectCompute, IntersectsMap);
 
 

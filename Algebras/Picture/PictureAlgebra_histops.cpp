@@ -650,3 +650,17 @@ int PictureLikeSelect(ListExpr args) {
 
     return nl->IsEqual(arg2, CcInt::BasicType() ) ? 0 : 1;
 }
+
+/*
+
+7 Operator instance
+
+Built here because ~pictureLikeValueMap~ has to be a complete array where the
+operator is constructed.
+
+*/
+
+Operator* createPictureLikeOperator(const string& spec) {
+    return new Operator("like", spec, pictureLikeValueMap,
+                        PictureLikeSelect, PictureLikeTypeMap);
+}

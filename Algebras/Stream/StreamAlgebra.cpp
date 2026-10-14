@@ -419,7 +419,6 @@ int StreamfeedSelect( ListExpr args )
 */
 Operator streamfeed( "feed",
                      StreamSpecfeed,
-                     3,
                      streamfeedmap,
                      StreamfeedSelect,
                      TypeMapStreamfeed);
@@ -1783,7 +1782,6 @@ streamUse2Select( ListExpr args )
 
 Operator streamuse( "use",
                            StreamSpecUse,
-                           4,
                            streamusemap,
                            streamUseSelect,
                            TypeMapUse);
@@ -1791,7 +1789,6 @@ Operator streamuse( "use",
 
 Operator streamuse2( "use2",
                             StreamSpecUse2,
-                            4,
                             streamuse2map,
                             streamUse2Select,
                             TypeMapUse2);
@@ -2056,7 +2053,6 @@ int streamaggregateSelect( ListExpr args )
 
 Operator streamaggregateS( "aggregateS",
                                  StreamaggregateSpec,
-                                 1,
                                  streamaggregatemap,
                                  streamaggregateSelect,
                                  StreamaggregateTypeMap);
@@ -2464,7 +2460,6 @@ int streamTransformstreamSelect( ListExpr args )
 
 Operator streamtransformstream( "transformstream",
                       StreamTransformstreamSpec,
-                      2,
                       streamtransformstreammap,
                       streamTransformstreamSelect,
                       StreamTransformstreamTypeMap);
@@ -2749,7 +2744,6 @@ const string EchoSpec =
 
 Operator echo( "echo",
                EchoSpec,
-               2,
                echovm,
                EchoSelect,
                EchoTypeMap);
@@ -3121,7 +3115,6 @@ ValueMapping streamprintstreammap[] = {
 Operator streamprintstream (
   "printstream",           //name
   streamPrintstreamSpec,   //specification
-  2,
   streamprintstreammap,    //value mapping
   streamPrintstreamSelect, //own selection function
   streamPrintstreamType    //type mapping
@@ -3242,7 +3235,6 @@ int printstream2Select(ListExpr args){
 Operator printstream2Op(
   "printstream2",
   printstream2Spec.getStr(),
-  2,
   printstream2VM,
   printstream2Select,
   printstream2TM
@@ -4649,7 +4641,6 @@ const string StreamSpecTail  =
 
 Operator streamtail( "tail",
                      StreamSpecTail,
-                     2,
                      streamtailmap,
                      streamTailSelect,
                      streamTypeMapTail);
@@ -5153,7 +5144,6 @@ OperatorSpec sbufferSpec(
 Operator sbufferOp(
    "sbuffer",
     sbufferSpec.getStr(),
-    2,
     sbufferVM,
     sbufferSelect,
     sbufferTM
@@ -5919,7 +5909,6 @@ int avgsumSelect(ListExpr args){
 Operator avgattrOp(
   "avgattr",
    avgSpec.getStr(),
-   3,
    avgVM,
    avgsumSelect,
    avgTM
@@ -5928,7 +5917,6 @@ Operator avgattrOp(
 Operator sumattrOp(
   "sumattr",
    sumSpec.getStr(),
-   3,
    sumVM,
    avgsumSelect,
    sumTM
@@ -6368,7 +6356,6 @@ OperatorSpec streamfunSpec(
 Operator streamfunOp(
   "streamfun",
   streamfunSpec.getStr(),
-  2,
   streamfunVM,
   streamfunSelect,
   streamfunTM
@@ -6460,7 +6447,6 @@ OperatorSpec progSpec(
 Operator progOp(
   "prog",
   progSpec.getStr(),
-  2,
   progVM,
   progSelect,
   progTM
@@ -6962,7 +6948,6 @@ OperatorSpec someSpec(
 Operator someOp(
   "some",
   someSpec.getStr(),
-  2,
   someVM,
   someSelect,
   someTM

@@ -194,7 +194,6 @@ const std::string relFromTupleBinStrOpSpec =
 Operator relFromTupleBinStr_Op(
     "relFromTupleBinStr",
     relFromTupleBinStrOpSpec,
-    1,
     relFromTupleBinStr,
     relFromTupleBinStr_Select,
     relFromTupleBinStr_TM

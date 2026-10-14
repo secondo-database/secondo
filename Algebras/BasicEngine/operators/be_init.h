@@ -160,7 +160,7 @@ int be_init_select(ListExpr args) {
 1.1.6 Operator instance
 
 */
-Operator be_init_op("be_init", init_be_spec.getStr(), sizeof(be_init_vm),
+Operator be_init_op("be_init", init_be_spec.getStr(),
                     be_init_vm, be_init_select, be_init_tm);
 
 } // namespace BasicEngine

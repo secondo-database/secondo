@@ -321,7 +321,6 @@ attribute.
     Operator drelpartitionOp(
         "drelpartition",
         drelpartitionSpec.getStr( ),
-        4,
         drelpartitionVM,
         drelpartitionSelect,
         drelpartitionTM

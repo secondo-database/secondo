@@ -298,7 +298,6 @@ Selects all elements of the d[f]rel from the workers.
     Operator dsummarizeOp(
         "dsummarize",
         dsummarizeSpec.getStr( ),
-        4,
         dsummarizeVM,
         dsummarizeSelect,
         dsummarizeTM

@@ -139,7 +139,6 @@ same disttype.
     Operator compareDistTypeOp(
         "comparedisttype",
         compareDistTypeSpec.getStr( ),
-        4,
         compareDistTypeVM,
         compareDistTypeSelect,
         compareDistTypeTM

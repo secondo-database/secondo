@@ -37,7 +37,6 @@ class getentry2 {
 
   static Operator def;
   static ValueMapping valueMappings[];
-  static int numberOfValueMappings;
 };
 
 } // end namespace Operators

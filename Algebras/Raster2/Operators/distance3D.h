@@ -216,7 +216,6 @@ OperatorSpec distance3DSpec(
 Operator distance3D(
    "distance3D",
    distance3DSpec.getStr(),
-   2,
    distance3DVM,
    distance3DSelect,
    distance3DTM 
@@ -321,7 +320,6 @@ OperatorSpec length3DSpec(
 Operator length3D(
    "length3D",
    length3DSpec.getStr(),
-   2,
    length3DVM,
    length3DSelect,
    length3DTM 

@@ -147,7 +147,6 @@ OperatorSpec connectDFSSpec(
 Operator connectDFSOp(
    "connectDFS",
    connectDFSSpec.getStr(),
-   2,
    connectDFSVM,
    connectDFSSelect,
    connectDFSTM
@@ -260,7 +259,6 @@ OperatorSpec deleteDFSFileSpec(
 Operator deleteDFSFileOp(
    "deleteDFSFile",
    deleteDFSFileSpec.getStr(),
-   2,
    deleteDFSFileVM,
    deleteDFSFileSelect,
    deleteDFSFileTM
@@ -355,7 +353,6 @@ OperatorSpec storeTextAsDFSFileSpec(
 Operator storeTextAsDFSFileOp(
   "storeTextAsDFSFile",
   storeTextAsDFSFileSpec.getStr(),
-  2,
   storeTextAsDFSFileVM,
   storeTextAsDFSFileSelect,
   storeTextAsDFSFileTM
@@ -462,7 +459,6 @@ OperatorSpec storeLocalFileToDFSSpec(
 Operator storeLocalFileToDFSOp(
   "storeLocalFileToDFS",
    storeLocalFileToDFSSpec.getStr(),
-   4,
    storeLocalFileToDFSVM,
    storeLocalFileToDFSSelect,
    storeLocalFileToDFSTM
@@ -586,7 +582,6 @@ OperatorSpec storeDFSFile2Spec(
 Operator storeDFSFileOp(
   "storeDFSFile",
   storeDFSFileSpec.getStr(),
-  4,
   storeDFSFileVM,
   storeDFSFileSelect,
   storeDFSFileTM
@@ -595,7 +590,6 @@ Operator storeDFSFileOp(
 Operator storeDFSFile2Op(
   "storeDFSFile2",
   storeDFSFile2Spec.getStr(),
-  4,
   storeDFSFile2VM,
   storeDFSFileSelect,
   storeDFSFileTM
@@ -661,7 +655,6 @@ OperatorSpec isDFSFileSpec(
 Operator isDFSFileOp(
   "isDFSFile",
   isDFSFileSpec.getStr(),
-  2,
   isDFSFileVM,
   isDFSFileSelect,
   isDFSFileTM
@@ -727,7 +720,6 @@ OperatorSpec nextDFSWritePositionSpec(
 Operator nextDFSWritePositionOp(
   "nextDFSWritePosition",
   nextDFSWritePositionSpec.getStr(),
-  2,
   nextDFSWritePositionVM,
   nextDFSWritePositionSelect,
   nextDFSWritePositionTM
@@ -825,7 +817,6 @@ OperatorSpec getDFSFileAsTextSpec(
 Operator getDFSFileAsTextOp(
   "getDFSFileAsText",
   getDFSFileAsTextSpec.getStr(),
-  2,
   getDFSFileAsTextVM,
   getDFSFileAsTextSelect,
   getDFSFileAsTextTM
@@ -1085,7 +1076,6 @@ OperatorSpec dfsFileSizeSpec(
 Operator dfsFileSizeOp(
   "dfsFileSize",
   dfsFileSizeSpec.getStr(),
-  2,
   dfsFileSizeVM,
   dfsFileSizeSelect,
   dfsFileSizeTM
@@ -1304,7 +1294,6 @@ OperatorSpec registerDFSDataNodeSpec(
 Operator registerDFSDataNodeOp(
   "registerDFSDataNode",
   registerDFSDataNodeSpec.getStr(),
-  2,
   registerDFSDataNodeVM,
   registerDFSDataNodeSelect,
   registerDFSDataNodeTM

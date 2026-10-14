@@ -11793,21 +11793,18 @@ static const string transformspec =
 
 static Operator atinstant("atinstant",
                           atinstantspec,
-                          2,
                           atinstantvaluemap,
                           AtInstantSelect,
                           AtInstantTypeMap);
 
 static Operator initial("initial",
                         initialspec,
-                        1,
                         initialvaluemap,
                         MRegion2Select,
                         MRegion2ToIRegion2TypeMap);
 
 static Operator final("final",
                       finalspec,
-                      1,
                       finalvaluemap,
                       MRegion2Select,
                       MRegion2ToIRegion2TypeMap);

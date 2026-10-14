@@ -2956,7 +2956,6 @@ static int TopRelEqualsSelect(ListExpr args){
 Operator toprel_equals(
          "=",     // name
          TopRelEqualsSpec,   // specification
-         3,               // number of functions
          TopRelEqualsMap,    // array of value mappings
          TopRelEqualsSelect,
          TopRelEqualsTM);
@@ -2964,7 +2963,6 @@ Operator toprel_equals(
 Operator transpose(
          "transpose",     // name
          TransposeSpec,   // specification
-         2,               // number of functions
          TransposeMap,    // array of value mappings
          TransposeSelect,
          TransposeTM);
@@ -2972,7 +2970,6 @@ Operator transpose(
 Operator union_op(
          "union",     // name
          UnionSpec,   // specification
-         2,               // number of functions
          UnionMap,    // array of value mappings
          SetOpsSelect,
          SetOpsTM);
@@ -2980,7 +2977,6 @@ Operator union_op(
 Operator multiintersection(
          "multiintersection",     // name
          MultiIntersectionSpec,   // specification
-         2,               // number of functions
          MultiIntersectionMap,    // array of value mappings
          SetOpsSelect,
          MultiSetOpsTM);
@@ -2988,7 +2984,6 @@ Operator multiintersection(
 Operator intersection(
          "intersection",     // name
          IntersectionSpec,   // specification
-         2,               // number of functions
          IntersectionMap,    // array of value mappings
          SetOpsSelect,
          SetOpsTM);
@@ -2996,7 +2991,6 @@ Operator intersection(
 Operator invert(
          "invert",     // name
         InvertSpec,   // specification
-         2,               // number of functions
          InvertMap,    // array of value mappings
          InvertSelect,
          InvertTM);
@@ -3004,7 +2998,6 @@ Operator invert(
 Operator sizeof_op(
          "size",     // name
          SizeOf_Spec,   // specification
-         2,               // number of functions
          SizeOfMap,    // array of value mappings
          SizeOfSelect,
          SizeOfTM);
@@ -3012,7 +3005,6 @@ Operator sizeof_op(
 Operator restrict_op(
          "restrict",     // name
          Restrict_Spec,   // specification
-         2,               // number of functions
          RestrictMap,    // array of value mappings
          RestrictSelect,
          RestrictRelaxTM);
@@ -3020,7 +3012,6 @@ Operator restrict_op(
 Operator relax_op(
          "relax",     // name
          Relax_Spec,   // specification
-         2,               // number of functions
          RelaxMap,    // array of value mappings
          RelaxSelect,
          RestrictRelaxTM);
@@ -3028,7 +3019,6 @@ Operator relax_op(
 Operator createcluster(
          "createcluster",     // name
          CreateCluster_Spec,   // specification
-         2,               // number of functions
          CreateClusterMap,    // array of value mappings
          CreateClusterSelect,
          CreateClusterTM);

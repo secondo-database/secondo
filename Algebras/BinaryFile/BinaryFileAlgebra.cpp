@@ -803,7 +803,6 @@ const string SaveToSpec  =
 Operator saveto (
         "saveto",               //name
         SaveToSpec,             //specification
-        4,
         saveToVM,              //value mapping
         saveToSelect,
         saveToTypeMap           //type mapping
@@ -910,7 +909,6 @@ OperatorSpec readDocSpec(
 Operator readDocOp (
         "readDoc",               //name
         readDocSpec.getStr(),   //specification
-        2,
         readDocVM,              //value mapping
         readDocSelect,
         readDocTM           //type mapping
@@ -967,7 +965,6 @@ OperatorSpec sizeSpec(
 Operator sizeOp(
   "size",
   sizeSpec.getStr(),
-  2,
   sizeVM,
   sizeSelect,
   sizeTM

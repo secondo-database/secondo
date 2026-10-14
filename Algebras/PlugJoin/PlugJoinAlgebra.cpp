@@ -1937,7 +1937,6 @@ const string spatialjoinSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\""
 Operator spatialjoin (
          "spatialjoin0",             // name
          spatialjoinSpec,           // specification
-         3,                         // number of overloaded functions
          spatialjoinMap,            // value mapping
          spatialjoinSelection,      // trivial selection function
          spatialjoinTypeMap         // type mapping

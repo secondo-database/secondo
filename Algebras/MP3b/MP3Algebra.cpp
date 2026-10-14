@@ -2936,7 +2936,6 @@ ValueMapping savemp3toVM[]= {
 Operator savemp3to (
     "savemp3to",
     SaveMP3ToSpec,
-    2,
     savemp3toVM,
     savemp3toSelect,
     SaveMP3ToTypeMap
@@ -4880,7 +4879,6 @@ static const string LoadMP3fromSpec  =
 
 static Operator loadmp3from("loadmp3from",
                         LoadMP3fromSpec,
-                        2,
                         LoadMP3fromValueMap,
                         LoadMP3fromSelect,
                         LoadMP3fromTypeMap);

@@ -3290,7 +3290,6 @@ In this section instances of the algebra operators are built.
 Operator optoprel(
         "toprel",     // name
          TopRelSpec,   // specification
-         sizeof(TopRelMap)/sizeof(ValueMapping),  // number of functions
          TopRelMap,    // array of value mappings
          TopOpsSelect,
          TopRelTypeMap
@@ -3300,7 +3299,6 @@ Operator optoprel(
 Operator toppred(
         "toppred",     // name
          TopPredSpec,   // specification
-         sizeof(TopPredMap)/sizeof(ValueMapping),  // number of functions
          TopPredMap,    // array of value mappings
          TopOpsSelect,
          TopPredTypeMap
@@ -3309,7 +3307,6 @@ Operator toppred(
 Operator trAdjacent(
         "tradjacent",     // name
          TrAdjacentSpec,   // specification
-         sizeof(AdjacentMap)/sizeof(ValueMapping),  // number of functions
          AdjacentMap,    // array of value mappings
          TopOpsSelect,
          StdPredTypeMap
@@ -3318,7 +3315,6 @@ Operator trAdjacent(
 Operator trContains(
         "trcontains",     // name
          TrContainsSpec,   // specification
-         sizeof(ContainsMap)/sizeof(ValueMapping),  // number of functions
          ContainsMap,    // array of value mappings
          TopOpsSelect,
          StdPredTypeMap
@@ -3327,7 +3323,6 @@ Operator trContains(
 Operator trOverlap(
         "troverlaps",     // name
          TrOverlapSpec,   // specification
-         sizeof(OverlapMap)/sizeof(ValueMapping),  // number of functions
          OverlapMap,    // array of value mappings
          TopOpsSelect,
          StdPredTypeMap
@@ -3336,7 +3331,6 @@ Operator trOverlap(
 Operator trDisjoint(
         "trdisjoint",     // name
          TrDisjointSpec,   // specification
-         sizeof(DisjointMap)/sizeof(ValueMapping),  // number of functions
          DisjointMap,    // array of value mappings
          TopOpsSelect,
          StdPredTypeMap
@@ -3345,7 +3339,6 @@ Operator trDisjoint(
 Operator trEqual(
         "trequal",     // name
          TrEqualSpec,   // specification
-         sizeof(EqualMap)/sizeof(ValueMapping),  // number of functions
          EqualMap,    // array of value mappings
          TopOpsSelect,
          StdPredTypeMap
@@ -3354,7 +3347,6 @@ Operator trEqual(
 Operator trCoveredBy(
         "trcoveredby",     // name
          TrCoveredBySpec,   // specification
-         sizeof(CoveredByMap)/sizeof(ValueMapping),  // number of functions
          CoveredByMap,    // array of value mappings
          TopOpsSelect,
          StdPredTypeMap
@@ -3363,7 +3355,6 @@ Operator trCoveredBy(
 Operator trCovers(
         "trcovers",     // name
          TrCoversSpec,   // specification
-         sizeof(CoversMap)/sizeof(ValueMapping),  // number of functions
          CoversMap,    // array of value mappings
          TopOpsSelect,
          StdPredTypeMap
@@ -3372,7 +3363,6 @@ Operator trCovers(
 Operator trInside(
         "trinside",     // name
          TrInsideSpec,   // specification
-         sizeof(InsideMap)/sizeof(ValueMapping),  // number of functions
          InsideMap,    // array of value mappings
          TopOpsSelect,
          StdPredTypeMap

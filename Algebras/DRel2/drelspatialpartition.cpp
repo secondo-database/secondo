@@ -414,7 +414,6 @@ attribute.
     Operator drelspatialpartitionOp(
         "drelspatialpartition",
         drelspatialpartitionSpec.getStr( ),
-        8,
         drelspatialpartitionVM,
         drelspatialpartitionSelect,
         drelspatialpartitionTM

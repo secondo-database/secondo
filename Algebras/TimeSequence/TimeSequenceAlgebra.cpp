@@ -214,7 +214,6 @@ int TWEDSelect( ListExpr args )
 
 Operator twed( "twed",
                TWEDInfo,
-               2,
                TWEDValueMaps,
                TWEDSelect,
                ConstTemporalConstTemporalTypeMapReal );

@@ -380,7 +380,6 @@ Provide Operator Pointers for embedding in Algebra
     return new Operator(
       "union",
       unionSpec.getStr(),
-      2,
       unionVM,
       setOpsSelect,
       setOpsTM
@@ -391,7 +390,6 @@ Provide Operator Pointers for embedding in Algebra
     return new Operator(
       "intersection",
       intersectionSpec.getStr(),
-      2,
       intersectionVM,
       setOpsSelect,
       setOpsTM
@@ -402,7 +400,6 @@ Provide Operator Pointers for embedding in Algebra
     return new Operator(
       "minus",
       minusSpec.getStr(),
-      2,
       minusVM,
       setOpsSelect,
       setOpsTM

@@ -275,7 +275,6 @@ const std::string TestOpSpec =
 Operator testop_Op(
     "testop",
     TestOpSpec,
-    2,
     testopVM,
     testopNSelect,
     TestOp_TM

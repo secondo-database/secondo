@@ -1278,7 +1278,6 @@ OperatorSpec partitiondmapSpec(
 Operator partitiondmapOp(
   "partitiondmap",
   partitiondmapSpec.getStr(),
-  2,
   partitiondmapVM,
   partitiondmapSelect,
   partitiondmapTM
@@ -1320,7 +1319,6 @@ OperatorSpec dmapPdmapSpec(
 Operator dmapPdmapOp(
   "dmapPdmap",
   dmapPdmapSpec.getStr(),
-  2,
   dmapPdmapVM,
   dmapPdmapSelect,
   dmapPdmapTM

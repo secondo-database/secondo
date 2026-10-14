@@ -4573,7 +4573,6 @@ static const string LoadMP3fromSpec  =
 
 static Operator loadmp3from("loadmp3from",
                         LoadMP3fromSpec,
-                        2,
                         LoadMP3fromValueMap,
                         LoadMP3fromSelect,
                         LoadMP3fromTypeMap);

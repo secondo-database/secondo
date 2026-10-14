@@ -2105,7 +2105,6 @@ ValueMapping ccrelcountmap[] = {CcCountStream, CcCountRel };
 Operator ccrelcount (
          "count",           // name
          CcCountSpec,         // specification
-         2,                  // number of value mapping functions
          ccrelcountmap,          // value mapping functions
          CcCountSelect,       // trivial selection function
          CcCountTypeMap       // type mapping

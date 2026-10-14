@@ -270,28 +270,24 @@ const string irg2dcellToRectSpec  =
 */
 Operator createirgrid2d( "create_irgrid2d",
     createIrGrid2dSpec,
-    1,
     irgdrid2dCreateMap,
     IrGrid2dCreateSelect,
     IrGrid2dCreateTypeMap );
 
 Operator feedirgrid2d( "feed",
     feedIrGrid2dSpec,
-    1,
     irgdrid2dFeedMap,
     IrGrid2dFeedSelect,
     IrregularGrid2D::IrGrid2dFeedTypeMap );
 
 Operator cellnosirgrid2d( "cellnos_ir",
     cellnosIrGrid2dSpec,
-    1,
     irgdrid2dCellnosMap,
     IrGrid2dCellnosSelect,
     IrregularGrid2D::IrGrid2dCellnosTypeMap );
 
 Operator irg2dcellToRect( "irg2d_cellToRect",
     irg2dcellToRectSpec,
-    1,
     irgdrid2dcellToRectMap,
     IrGrid2dcellToRectSelect,
     IrregularGrid2D::IrGrid2dcellToRectTypeMap );

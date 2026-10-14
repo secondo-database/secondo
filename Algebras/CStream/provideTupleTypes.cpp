@@ -348,7 +348,6 @@ const std::string provideTupleTypesOpSpec =
 Operator provideTupleTypes_Op(
     "provideTupleTypes",
     provideTupleTypesOpSpec,
-    2,
     provideTupleTypes,
     provideTupleTypes_Select,
     provideTupleTypes_TM

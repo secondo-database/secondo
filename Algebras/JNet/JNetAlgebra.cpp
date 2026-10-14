@@ -505,7 +505,6 @@ const string createrlocSpec =
 Operator createrlocJNet(
   "createrloc",
   createrlocSpec,
-  1,
   createrlocMap,
   createrlocSelect,
   createrlocTM
@@ -581,7 +580,7 @@ const string createrintSpec =
   "and the side value.</text--->"
   "<text>query createrint(rid, spos, epos, side)</text--->))";
 
-Operator createrintJNet( "createrint", createrintSpec, 1, createrintMap,
+Operator createrintJNet( "createrint", createrintSpec, createrintMap,
                          createrintSelect, createrintTM);
 
 /*
@@ -659,7 +658,7 @@ const string createndgSpec =
   "<text>query createndg(sourcejid, targetjid, nextjid, nextsectid, netdist)"+
   "</text--->))";
 
-Operator createndgJNet("createndg", createndgSpec, 1, createndgMap,
+Operator createndgJNet("createndg", createndgSpec, createndgMap,
                        createndgSelect, createndgTM);
 
 /*
@@ -887,7 +886,7 @@ const string createjpointSpec =
   "<text>query createjpoint(testjnet, createrloc(1, 0.0, [const jdirection " +
   " value(\"Both\")]) </text--->))";
 
-Operator createjpointJNet("createjpoint", createjpointSpec, 1, createjpointMap,
+Operator createjpointJNet("createjpoint", createjpointSpec, createjpointMap,
                           createjpointSelect, createjpointTM);
 
 /*
@@ -952,7 +951,7 @@ const string createjlineSpec =
   "</text--->"
   "<text>query createjline(testjnet, testlistjrint) </text--->))";
 
-Operator createjlineJNet("createjline", createjlineSpec, 1, createjlineMap,
+Operator createjlineJNet("createjline", createjlineSpec, createjlineMap,
                          createjlineSelect, createjlineTM);
 
 /*
@@ -1016,7 +1015,7 @@ const string createjpointsSpec =
   "undefined." +"</text--->"
   "<text>query createjpoints(testjnet, testlistrloc) </text--->))";
 
-Operator createjpointsJNet("createjpoints", createjpointsSpec, 1,
+Operator createjpointsJNet("createjpoints", createjpointsSpec,
                            createjpointsMap, createjpointsSelect,
                            createjpointsTM);
 
@@ -1078,7 +1077,7 @@ const string createijpointSpec =
   "<text>query createijpoint(createjpoint(testjnet, createrloc(1, 0.0, " +
   "[const jdirection value(\"Both\")])), createinstant(0.5)) </text--->))";
 
-Operator createijpointJNet("createijpoint", createijpointSpec, 1,
+Operator createijpointJNet("createijpoint", createijpointSpec,
                            createijpointMap, createijpointSelect,
                            createijpointTM);
 
@@ -1161,7 +1160,7 @@ const string createujpointSpec =
   "[const jdirection value(Up)]), createinstant(0.5), createinstant(0.6)," +
   " TRUE, FALSE) </text--->))";
 
-Operator createujpointJNet("createujpoint", createujpointSpec, 1,
+Operator createujpointJNet("createujpoint", createujpointSpec,
                            createujpointMap, createujpointSelect,
                            createujpointTM);
 
@@ -1224,7 +1223,7 @@ const string createmjpointSpec =
   " [const jdirection value(Up)]), createinstant(0.5), createinstant(0.6)," +
   " TRUE, FALSE)) </text--->))";
 
-Operator createmjpointJNet("createmjpoint", createmjpointSpec, 1,
+Operator createmjpointJNet("createmjpoint", createmjpointSpec,
                            createmjpointMap, createmjpointSelect,
                            createmjpointTM);
 
@@ -1362,7 +1361,7 @@ const string createlistSpec =
   "of the corresponding list data type.</text--->"
   "<text>query createstream(testlistint) createlist</text--->))";
 
-Operator createlistJNet("createlist", createlistSpec, 8, createlistMap,
+Operator createlistJNet("createlist", createlistSpec, createlistMap,
                       createlistSelect, createlistTM);
 
 /*
@@ -1517,7 +1516,7 @@ const string createstreamSpec =
   "from the list.</text--->"
   "<text>query createstream(testlistint) createlist</text--->))";
 
-Operator createstreamJNet("createstream", createstreamSpec, 4, createstreamMap,
+Operator createstreamJNet("createstream", createstreamSpec, createstreamMap,
                          createstreamSelect, createstreamTM);
 
 /*
@@ -1712,7 +1711,7 @@ const string unitsSpec =
   "<text>Returns the components of the input value as stream.</text--->"
   "<text>query units(testmjp)</text--->))";
 
-  Operator unitsJNet("units", unitsSpec, 2, unitsMap, unitsSelect, unitsTM);
+  Operator unitsJNet("units", unitsSpec, unitsMap, unitsSelect, unitsTM);
 
 /*
 1.1.1 ~altrlocs~
@@ -1841,7 +1840,7 @@ const string altrlocsSpec =
   " representation.</text--->"
   "<text>query altrlocs(testjp) transformstream consume</text--->))";
 
-Operator altrlocsJNet("altrlocs", altrlocsSpec, 1, altrlocsMap, altrlocsSelect,
+Operator altrlocsJNet("altrlocs", altrlocsSpec, altrlocsMap, altrlocsSelect,
                       altrlocsTM);
 
 
@@ -1947,7 +1946,7 @@ const string eqSpec =
   "<text>Returns TRUE if x and y are equal, false otherwise.</text--->"
   "<text>query x = x</text--->))";
 
-  Operator eqJNet("=", eqSpec, 10, eqMap, compareSelect, compareTM);
+  Operator eqJNet("=", eqSpec, eqMap, compareSelect, compareTM);
 
 /*
 1.1.1 ~lt~
@@ -1996,7 +1995,7 @@ const string ltSpec =
   "<text>Returns TRUE if x is lower than y, false otherwise.</text--->"
   "<text>query x < y</text--->))";
 
-Operator ltJNet("<", ltSpec, 10, ltMap, compareSelect, compareTM);
+Operator ltJNet("<", ltSpec, ltMap, compareSelect, compareTM);
 
 /*
 1.1.1 ~gt~
@@ -2045,7 +2044,7 @@ const string gtSpec =
   "<text>Returns TRUE if x is greater than y, false otherwise.</text--->"
   "<text>query x > y</text--->))";
 
-Operator gtJNet(">", gtSpec, 10, gtMap, compareSelect, compareTM);
+Operator gtJNet(">", gtSpec, gtMap, compareSelect, compareTM);
 
 /*
 1.1.1 ~le~
@@ -2095,7 +2094,7 @@ const string leSpec =
   "</text--->"
   "<text>query x <= y</text--->))";
 
-Operator leJNet("<=", leSpec, 10, leMap, compareSelect, compareTM);
+Operator leJNet("<=", leSpec, leMap, compareSelect, compareTM);
 
 /*
 1.1.1 ~ge~
@@ -2145,7 +2144,7 @@ const string geSpec =
   "</text--->"
   "<text>query x >= y</text--->))";
 
-  Operator geJNet(">=", geSpec, 10, geMap, compareSelect, compareTM);
+  Operator geJNet(">=", geSpec, geMap, compareSelect, compareTM);
 
 /*
 1.1.1 ~ne~
@@ -2194,7 +2193,7 @@ const string neSpec =
   "<text>Returns TRUE if x not equals y, false otherwise.</text--->"
   "<text>query x # y</text--->))";
 
-Operator neJNet("#", neSpec, 10, neMap, compareSelect, compareTM);
+Operator neJNet("#", neSpec, neMap, compareSelect, compareTM);
 
 /*
 1.1 Bounding Boxes
@@ -2313,7 +2312,7 @@ const string netboxSpec =
   "on this route, and y2 by the end position on this route.</text--->"
   "<text>query netbox(testjunit)</text--->))";
 
-Operator netboxJNet("netbox", netboxSpec, 3, netboxMap, netboxSelect, netboxTM);
+Operator netboxJNet("netbox", netboxSpec, netboxMap, netboxSelect, netboxTM);
 
 /*
 1.1.1 ~bbox~
@@ -2372,7 +2371,7 @@ const string bboxSpec =
    " temporal bounding box of the in value.</text--->"
    "<text>query bbox(testmjp)</text--->))";
 
-Operator bboxJNet( "bbox", bboxSpec, 2, bboxMap, bboxSelect, bboxTM);
+Operator bboxJNet( "bbox", bboxSpec, bboxMap, bboxSelect, bboxTM);
 /*
 1.1. Extend Datatypes
 
@@ -2436,7 +2435,7 @@ const string unionSpec =
    " if possible. Otherwise an undefined value is returned.</text--->"
    "<text>query testmjp union testmjp1</text--->))";
 
-Operator unionJNet( "union", unionSpec, 2, unionMap, unionSelect, unionTM);
+Operator unionJNet( "union", unionSpec, unionMap, unionSelect, unionTM);
 
 /*
 1.1 Restrict Data Types
@@ -2535,7 +2534,7 @@ const string minusSpec =
   "<text>Returns x without y.</text--->"
   "<text>query x - y</text--->))";
 
-Operator minusJNet("-", minusSpec, 8, minusMap, updateListsSelect,
+Operator minusJNet("-", minusSpec, minusMap, updateListsSelect,
                    updateListsTM);
 
 /*
@@ -2586,7 +2585,7 @@ const string restrictSpec =
   "<text>Returns only the elements of x which are also in y.</text--->"
   "<text>query restrict (x,y)</text--->))";
 
-Operator restrictJNet("restrict", restrictSpec, 8, restrictMap,
+Operator restrictJNet("restrict", restrictSpec, restrictMap,
                       updateListsSelect, updateListsTM);
 
 /*
@@ -2642,7 +2641,7 @@ const string initialSpec =
    + UJPoint::BasicType() + ".</text--->"
    "<text>query initial(testmjp)</text--->))";
 
-Operator initialJNet("initial", initialSpec, 2, initialVMs, finalInitialSelect,
+Operator initialJNet("initial", initialSpec, initialVMs, finalInitialSelect,
                      finalInitialTM);
 
 /*
@@ -2678,7 +2677,7 @@ const string finalSpec =
    + ".</text--->"
    "<text>query initial(testmjp)</text--->))";
 
-Operator finalJNet("final", finalSpec, 2, finalVMs, finalInitialSelect,
+Operator finalJNet("final", finalSpec, finalVMs, finalInitialSelect,
                    finalInitialTM);
 
 /*
@@ -2737,7 +2736,7 @@ const string atinstantSpec =
    "</text--->"
    "<text>query testmjp atinstant create_instant(0.5)</text--->))";
 
-Operator atinstantJNet( "atinstant", atinstantSpec, 1, atinstantMap,
+Operator atinstantJNet( "atinstant", atinstantSpec, atinstantMap,
                         atinstantSelect, atinstantTM);
 
 /*
@@ -2799,7 +2798,7 @@ const string atperiodsSpec =
    temporalalgebra::Periods::BasicType()  + ".</text--->"
    "<text>query testmjp atperiods testperiod </text--->))";
 
-Operator atperiodsJNet( "atperiods", atperiodsSpec, 1, atperiodsMap,
+Operator atperiodsJNet( "atperiods", atperiodsSpec, atperiodsMap,
                         atperiodsSelect, atperiodsTM);
 
 /*
@@ -2865,7 +2864,7 @@ const string atSpec =
   "</text--->"
   "<text>query testmjp at testjp</text--->))";
 
-Operator atJNet( "at", atSpec, 2, atMap, atSelect, atTM);
+Operator atJNet( "at", atSpec, atMap, atSelect, atTM);
 
 /*
 1.1 Access to parts of data types
@@ -2919,7 +2918,7 @@ const string lengthSpec =
    ".</text--->"
    "<text>query length(testmjp) </text--->))";
 
-Operator lengthJNet( "length", lengthSpec, 1, lengthMap, lengthSelect,
+Operator lengthJNet( "length", lengthSpec, lengthMap, lengthSelect,
                      lengthTM);
 
 /*
@@ -3312,7 +3311,7 @@ const string valSpec =
       IJPoint::BasicType() + " value.</text--->"
       "<text>query val(testijp)</text--->))";
 
-Operator valJNet( "val", valSpec, 1, valMap, valSelect, valTM);
+Operator valJNet( "val", valSpec, valMap, valSelect, valTM);
 
 /*
 1.1.1.1 ~inst~
@@ -3365,7 +3364,7 @@ IJPoint::BasicType() + " -> " +  Instant::BasicType() +
 "</text--->"
 "<text>query inst(testijp)</text--->))";
 
-Operator instJNet( "inst", instSpec, 1, instMap, instSelect, instTM);
+Operator instJNet( "inst", instSpec, instMap, instSelect, instTM);
 
 /*
 1.1 Check Properties of Data Types
@@ -3423,7 +3422,7 @@ const string isemptySpec =
       "<text>Returns true if the inserted value is empty.</text--->"
       "<text>query isempty(testmjp)</text--->))";
 
-Operator isemptyJNet( "isempty", isemptySpec, 2, isemptyMap, isemptySelect,
+Operator isemptyJNet( "isempty", isemptySpec, isemptyMap, isemptySelect,
                       isemptyTM);
 
 /*
@@ -3486,7 +3485,7 @@ const string passesSpec =
   "elsewhere.</text--->"
   "<text>query testmjp passes testjp </text--->))";
 
-Operator passesJNet("passes", passesSpec, 2, passesMap, passesSelect, passesTM);
+Operator passesJNet("passes", passesSpec, passesMap, passesSelect, passesTM);
 
 /*
 
@@ -3543,7 +3542,7 @@ const string intersectsSpec =
   " at the same place at the same time, false otherwise.</text--->"
   "<text>query testmjp intersects testmjp </text--->))";
 
-Operator intersectsJNet("intersects", intersectsSpec, 1, intersectsMap,
+Operator intersectsJNet("intersects", intersectsSpec, intersectsMap,
                         intersectsSelect, intersectsTM);
 
 /*
@@ -3608,7 +3607,7 @@ const string presentSpec =
    " at the given time instant, false elsewhere.</text--->"
   "<text>query testmjp present testperiod </text--->))";
 
-Operator presentJNet("present", presentSpec, 2, presentMap, presentSelect,
+Operator presentJNet("present", presentSpec, presentMap, presentSelect,
                      presentTM);
 
 /*
@@ -3664,7 +3663,7 @@ const string insideSpec =
   + JLine::BasicType()+ ", false otherwise.</text--->"
   "<text>query testmjp present testjp </text--->))";
 
-Operator insideJNet("inside", insideSpec, 1, insideMap, insideSelect,
+Operator insideJNet("inside", insideSpec, insideMap, insideSelect,
                     insideTM);
 
 /*
@@ -3745,7 +3744,7 @@ const string adjacentSpec =
   "sections adjacent to sectionId in direction.</text--->"
   "<text>query getAdjacentSections(testjnet, 13, Up) </text--->))";
 
-Operator adjacentJNet("getAdjacentSections", adjacentSpec, 1, adjacentMap,
+Operator adjacentJNet("getAdjacentSections", adjacentSpec, adjacentMap,
                       adjacentSelect, adjacentTM);
 
 /*
@@ -3775,7 +3774,7 @@ const string reverseAdjacentSpec =
   "<text>query getReverseAdjacentSections(testjnet, 13, Up) </text--->))";
 
 Operator reverseAdjacentJNet("getReverseAdjacentSections", reverseAdjacentSpec,
-                             1, reverseAdjacentMap, adjacentSelect, adjacentTM);
+                             reverseAdjacentMap, adjacentSelect, adjacentTM);
 
 /*
 1.1.1 ~getBGP~
@@ -3828,7 +3827,7 @@ const string getBGPSpec =
   " reach the interior of the given value.</text--->"
   "<text>query getBGP(testjl)</text--->))";
 
-Operator getBGPJNet("getBGP", getBGPSpec, 1, getBGPMap, getBGPSelect, getBGPTM);
+Operator getBGPJNet("getBGP", getBGPSpec, getBGPMap, getBGPSelect, getBGPTM);
 
 /*
 1.1.1 ~shortestpathtree~
@@ -3980,7 +3979,7 @@ const string shortestpathtreeSpec =
   "to the junction. </text--->"
   "<text>query shortestpathtree(src)</text--->))";
 
-Operator shortestpathtreeJNet("shortestpathtree", shortestpathtreeSpec, 1,
+Operator shortestpathtreeJNet("shortestpathtree", shortestpathtreeSpec,
                           shortestpathtreeMap, shortestpathtreeSelect,
                           shortestpathtreeTM);
 
@@ -4011,7 +4010,7 @@ const string reverseshortestpathtreeSpec =
   " the given jpoint. </text--->"
   "<text>query reverseshortestpathtree(tgt)</text--->))";
 Operator reverseshortestpathtreeJNet("reverseshortestpathtree",
-                                     reverseshortestpathtreeSpec, 1,
+                                     reverseshortestpathtreeSpec,
                                      reverseshortestpathtreeMap,
                                      shortestpathtreeSelect,
                                      shortestpathtreeTM);
@@ -4102,7 +4101,7 @@ const string shortestpathSpec =
   "<text>Returns the shortest path from the source to the target. </text--->"
   "<text>query shortest_path(src, tgt)</text--->))";
 
-Operator shortestpathJNet("shortest_path", shortestpathSpec, 9, shortestpathMap,
+Operator shortestpathJNet("shortest_path", shortestpathSpec, shortestpathMap,
                           shortestpathSelect, shortestpathTM);
 
 
@@ -4193,7 +4192,7 @@ const string netdistanceSpec =
   "from the source to the target. </text--->"
   "<text>query netdistance(src, tgt)</text--->))";
 
-Operator netdistanceJNet("netdistance", netdistanceSpec, 9, netdistanceMap,
+Operator netdistanceJNet("netdistance", netdistanceSpec, netdistanceMap,
                           netdistanceSelect, netdistanceTM);
 
 
@@ -4277,7 +4276,7 @@ const string incircleSpec =
   "given network distance. </text--->"
   "<text>query incircle(testjp, 0.004)</text--->))";
 
-Operator incircleJNet("incircle", incircleSpec, 1, incircleMap, circleSelect,
+Operator incircleJNet("incircle", incircleSpec, incircleMap, circleSelect,
                       circleTM);
 
 /*
@@ -4303,7 +4302,7 @@ const string outcircleSpec =
   "given network distance. </text--->"
   "<text>query outcircle(testjp, 0.004)</text--->))";
 
-Operator outcircleJNet("outcircle", outcircleSpec, 1, outcircleMap,
+Operator outcircleJNet("outcircle", outcircleSpec, outcircleMap,
                        circleSelect, circleTM);
 
 /*
@@ -4340,7 +4339,7 @@ const string circleSpec =
   "be reached from jp within the given network distance. </text--->"
   "<text>query circle(testjp, 0.004)</text--->))";
 
-Operator circleJNet("circle", circleSpec, 1, circleMap, circleSelect, circleTM);
+Operator circleJNet("circle", circleSpec, circleMap, circleSelect, circleTM);
 
 /*
 
@@ -4412,7 +4411,7 @@ const string tonetworkSpec =
   "10:02:01.000\" \"2007-01-01-10:02:03.000\" TRUE FALSE)(8209.0 8769.0 " +
   " 8293.0 8768.0)))]) </text--->))";
 
-Operator tonetworkJNet("tonetwork", tonetworkSpec, 3, tonetworkMap,
+Operator tonetworkJNet("tonetwork", tonetworkSpec, tonetworkMap,
                        tonetworkSelect, tonetworkTM);
 
 /*
@@ -4473,7 +4472,7 @@ const string fromnetworkSpec =
   " spatiotemporal object.</text--->"
   "<text>query fromnetwork(testjp) </text--->))";
 
-Operator fromnetworkJNet("fromnetwork", fromnetworkSpec, 3, fromnetworkMap,
+Operator fromnetworkJNet("fromnetwork", fromnetworkSpec, fromnetworkMap,
                          fromnetworkSelect, fromnetworkTM);
 
 /*
@@ -4525,7 +4524,7 @@ const string tojlineSpec =
   JLine::BasicType() +".</text--->"
   "<text>query tojline(testjpath) </text--->))";
 
-Operator tojlineJNet("tojline", tojlineSpec, 1, tojlineMap, tojlineSelect,
+Operator tojlineJNet("tojline", tojlineSpec, tojlineMap, tojlineSelect,
                      tojlineTM);
 
 } // end of namespace jnetwork

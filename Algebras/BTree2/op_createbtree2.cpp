@@ -665,7 +665,6 @@ string createbtree2::Specification2() {
          " ) )";
 }
 
-int createbtree2::numberOfValueMappings = 3;
 ValueMapping createbtree2::valueMappings[] = {
                   createbtree2::ValueMapping_Rel,
                   createbtree2::ValueMapping_Stream_Tid,
@@ -675,7 +674,6 @@ ValueMapping createbtree2::valueMappings[] = {
 Operator createbtree2::def1 (
           "createbtree",                     // name
           createbtree2::Specification1(),      // specification
-          createbtree2::numberOfValueMappings,// number of overloaded functions
           createbtree2::valueMappings,        // value mapping
           createbtree2::Select,               // trivial selection function
           createbtree2::TypeMapping           // type mapping
@@ -684,7 +682,6 @@ Operator createbtree2::def1 (
 Operator createbtree2::def2 (
           "createbtree2",                     // name
           createbtree2::Specification2(),      // specification
-          createbtree2::numberOfValueMappings,// number of overloaded functions
           createbtree2::valueMappings,        // value mapping
           createbtree2::Select,               // trivial selection function
           createbtree2::TypeMapping           // type mapping

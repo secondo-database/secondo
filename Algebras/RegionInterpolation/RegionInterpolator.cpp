@@ -157,7 +157,6 @@ static const string movespec =
 
 static Operator interpolate("interpolate",
                      movespec,
-                     2,
                      interpolateValueMap,
                      interpolateSelect,
                      interpolateTypeMap);

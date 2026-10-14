@@ -127,7 +127,6 @@ string getentry2::Specification() {
          " ) )";
 }
 
-int getentry2::numberOfValueMappings = 2;
 ValueMapping getentry2::valueMappings[] = {
                   getentry2::ValueMappingEx,
                   getentry2::ValueMappingExAll,
@@ -136,7 +135,6 @@ ValueMapping getentry2::valueMappings[] = {
 Operator getentry2::def (
           "getentry2",                     // name
           getentry2::Specification(),      // specification
-          getentry2::numberOfValueMappings,// number of overloaded functions
           getentry2::valueMappings,        // value mapping
           getentry2::Select,               // trivial selection function
           getentry2::TypeMapping           // type mapping

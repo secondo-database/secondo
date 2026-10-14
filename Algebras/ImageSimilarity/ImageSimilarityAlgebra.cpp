@@ -417,7 +417,6 @@ static const std::string readSignatureFromFileSpec  =
 static Operator readSignatureFromFileOp(
                         "readSignatureFromFile",
                         readSignatureFromFileSpec,
-                        2,
                         readSignatureFromFileVM,
                         readSignatureFromFileSelect,
                         readSignatureFromFileTM);

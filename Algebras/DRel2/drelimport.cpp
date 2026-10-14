@@ -307,7 +307,6 @@ Reads a file and create a drel.
     Operator drelimportOp(
         "drelimport",
         drelimportSpec.getStr( ),
-        8,
         drelimportVM,
         drelimportSelect,
         drelimportTM

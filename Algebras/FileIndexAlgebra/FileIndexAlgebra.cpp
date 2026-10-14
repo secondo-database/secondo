@@ -937,7 +937,6 @@ OperatorSpec rebuildfrtreeSpec(
 Operator createfrtreeOp(
   "createfrtree",
   createfrtreeSpec.getStr(),
-5,
   createfrtreeVM,
   createfrtreeSelect,
   createfrtreeTM
@@ -946,7 +945,6 @@ Operator createfrtreeOp(
 Operator insertfrtreeOp(
   "insertfrtree",
   insertfrtreeSpec.getStr(),
-5,
   insertfrtreeVM,
   createfrtreeSelect,
   InsertfrtreeTM
@@ -956,7 +954,6 @@ Operator insertfrtreeOp(
 Operator deletefrtreeOp(
   "deletefrtree",
   deletefrtreeSpec.getStr(),
-5,
   deletefrtreeVM,
   createfrtreeSelect,
   deletefrtreeTM
@@ -1013,7 +1010,6 @@ int fWindowIntersectSelect (ListExpr args){
 Operator fWindowIntersectOp(
   "fwindowintersects",
   fWindowIntersectSpec.getStr(),
-5,
   fWindowIntersectVMA,
   fWindowIntersectSelect,
   fWindowIntersectTM
@@ -1313,7 +1309,6 @@ OperatorSpec bulkloadfrtreeOperatorSpec(
 Operator bulkloadfrtreeOp(
   "bulkloadfrtree",
   bulkloadfrtreeOperatorSpec.getStr(),
-  5,
   bulkloadfrtreeVMA,     // value mapping array
   bulkloadfrtreeSelect,  // select function
   bulkloadfrtreeTM       // type mapping

@@ -331,7 +331,6 @@ const string AtInstantSpec =
 
 Operator temporalatinstant( "atinstant",
                              AtInstantSpec,
-                             1,
                              AtInstantMap,
                              atInstantSimpleSelect,
                              atInstantTypeMapping );
@@ -552,7 +551,6 @@ ValueMapping AtPeriodsMap[] = {ArelAtPeriod };
 
 Operator temporalatperiods( "atperiods",
                              AtPeriodSpec,
-                             1,
                              AtPeriodsMap,
                              atPeriodsSimpleSelect,
                              AtPeriodsTypeMapping );

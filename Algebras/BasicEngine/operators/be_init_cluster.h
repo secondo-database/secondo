@@ -179,7 +179,7 @@ int be_init_cluster_select(ListExpr args) {
 
 */
 Operator be_init_cluster_op("be_init_cluster", be_init_cluster_spec.getStr(),
-                            sizeof(be_init_cluster_vm), be_init_cluster_vm,
+                            be_init_cluster_vm,
                             be_init_cluster_select, be_init_cluster_tm);
 
 } // namespace BasicEngine

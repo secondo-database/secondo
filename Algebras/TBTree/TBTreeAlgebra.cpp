@@ -1410,7 +1410,6 @@ ValueMapping windowintersectsSVM[] = {
 Operator windowintersectsS (
        "windowintersectsS",            // name
         windowintersectsSSpec,          // specification
-        2,
         windowintersectsSVM,           // value mapping
         windowintersectsSSelect,
         windowintersectsSTM);
@@ -1681,7 +1680,6 @@ ValueMapping windowintersectsVM[] = {
 Operator windowintersects (
        "windowintersects",            // name
         windowintersectsSpec,          // specification
-        2,
         windowintersectsVM,           // value mapping
         windowintersectsSelect,
         windowintersectsTM);

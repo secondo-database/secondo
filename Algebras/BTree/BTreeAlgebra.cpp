@@ -626,7 +626,6 @@ ValueMapping createbtreemap[] = { CreateBTreeValueMapping_Rel,
 Operator createbtree (
           "createbtree",             // name
           CreateBTreeSpec,           // specification
-          2,                         // number of overloaded functions
           createbtreemap,            // value mapping
           CreateBTreeSelect,         // trivial selection function
           CreateBTreeTypeMap         // type mapping

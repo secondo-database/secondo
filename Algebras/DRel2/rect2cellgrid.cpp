@@ -227,7 +227,6 @@ Creates a cellgrid2d or a cellgrid3d.
     Operator rect2cellgridOp(
         "rect2cellgrid",
         rect2cellgrid.getStr( ),
-        2,
         rect2cellgridVM,
         rect2cellgridSelect,
         rect2cellgridTM

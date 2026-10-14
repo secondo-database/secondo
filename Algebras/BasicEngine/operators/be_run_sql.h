@@ -95,7 +95,7 @@ int be_runsqlSelect(ListExpr args) {
 1.13.6 Operator instance
 
 */
-Operator be_runsqlOp("be_runsql", be_runsqlSpec.getStr(), sizeof(be_runsqlVM),
+Operator be_runsqlOp("be_runsql", be_runsqlSpec.getStr(),
                      be_runsqlVM, be_runsqlSelect, be_runsqlTM);
 
 } // namespace BasicEngine

@@ -1737,7 +1737,6 @@ Operator op_equals
 (
  "=",                      //name
  equals_spec,              //specification ....
- 2,                        // number of functions
  EqualsMap,                //value mapping
  EqualsSelect,             //selection function
  OiOiBool                  //type mapping
@@ -1773,7 +1772,6 @@ Operator op_junion
 (
  "union",                  //name
  union_spec,               //specification ....
- 3,                        // number of functions
  JUnionMap,                //value mapping
  UnionSelect,              //selection function
  UnionTypeMap              //type mapping

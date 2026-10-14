@@ -912,7 +912,6 @@ OperatorSpec mfeedSpec(
 Operator mfeedOp (
     "mfeed",
     mfeedSpec.getStr(),
-    2,
     mfeedVM,
     mfeedSelect,
     mfeedTypeMap
@@ -1044,7 +1043,6 @@ OperatorSpec gettuplesSpec(
 Operator gettuplesOp(
   "gettuples",
   gettuplesSpec.getStr(),
-  2,
   gettuplesVM,
   gettuplesSelect,
   gettuplesTM
@@ -1394,7 +1392,6 @@ int memobjectSelect(ListExpr args){
 Operator memobjectOp (
     "memobject",
     memobjectSpec.getStr(),
-    2,
     memobjectVM,
     memobjectSelect,
     memobjectTypeMap
@@ -1943,7 +1940,6 @@ OperatorSpec memupdateSpec(
 Operator memupdateOp (
     "memupdate",
     memupdateSpec.getStr(),
-    2,
     memupdateVM,
     memupdateSelect,
     memupdateTypeMap
@@ -2203,7 +2199,6 @@ OperatorSpec mcreateRtreeSpec(
 Operator mcreateRtreeOp (
     "mcreateRtree",             //operator's name
     mcreateRtreeSpec.getStr(),  //specification
-    2,
     mcreateRtreeValMap,         // value mapping array
     mcreateRtreeSelect,    //selection function
     mcreateRtreeTypeMap         //type mapping
@@ -2402,7 +2397,6 @@ OperatorSpec mcreateRtree2Spec(
 Operator mcreateRtree2Op (
     "mcreateRtree2",             //operator's name
     mcreateRtree2Spec.getStr(),  //specification
-    4,
     mcreateRtree2ValMap,         // value mapping array
     mcreateRtree2Select,    //selection function
     mcreateRtree2TypeMap         //type mapping
@@ -2700,7 +2694,6 @@ OperatorSpec minsertSpec(
 Operator minsertOp (
     "minsert",
     minsertSpec.getStr(),
-    2,
     minsertVM,
     minsertSelect,
     minsertTypeMap
@@ -2939,7 +2932,6 @@ OperatorSpec mwindowintersectsSpec(
 Operator mwindowintersectsOp (
     "mwindowintersects",
     mwindowintersectsSpec.getStr(),
-    16,
     mwindowintersectsValMap,
     mwindowintersectsSelect,
     mwindowintersectsTypeMap
@@ -3070,7 +3062,6 @@ OperatorSpec mwindowintersectsSSpec(
 Operator mwindowintersectsSOp(
    "mwindowintersectsS",
    mwindowintersectsSSpec.getStr(),
-   8,
    mwindowintersectsSVM,
    mwindowintersectsSSelect,
    mwindowintersectsSTM
@@ -3371,7 +3362,6 @@ OperatorSpec mcreateAVLtreeSpec(
 Operator mcreateAVLtreeOp (
     "mcreateAVLtree",
     mcreateAVLtreeSpec.getStr(),
-    2,
     mcreateAVLtreeValMap,
     mcreateAVLtreeSelect,
     mcreateAVLtreeTypeMap
@@ -3763,7 +3753,6 @@ OperatorSpec mexactmatchSpec(
 Operator mexactmatchOp (
     "mexactmatch",
     mexactmatchSpec.getStr(),
-    4,
     mexactmatchVM,
     mexactmatchSelect,
     mexactmatchTypeMap
@@ -3789,7 +3778,6 @@ OperatorSpec matchbelowSpec(
 Operator matchbelowOp (
     "matchbelow",
     matchbelowSpec.getStr(),
-    4,
     matchbelowVM,
     mexactmatchSelect,
     mexactmatchTypeMap
@@ -3947,7 +3935,6 @@ OperatorSpec mrangeSpec(
 Operator mrangeOp (
     "mrange",
     mrangeSpec.getStr(),
-    4,
     mrangeVM,
     mrangeSelect,
     mrangeTypeMap
@@ -4108,7 +4095,6 @@ OperatorSpec mrangeSSpec(
 Operator mexactmatchSOp(
   "mexactmatchS",
   mexactmatchSpec.getStr(),
-  2,
   mrangeSVM,
   mrangeSSelect,
   mexactmatchSTM
@@ -4117,7 +4103,6 @@ Operator mexactmatchSOp(
 Operator mrangeSOp(
   "mrangeS",
   mrangeSpec.getStr(),
-  2,
   mrangeSVM,
   mrangeSSelect,
   mrangeSTM
@@ -4209,7 +4194,6 @@ OperatorSpec matchbelowSSpec(
 Operator matchbelowSOp(
   "matchbelowS",
   matchbelowSSpec.getStr(),
-  2,
   matchbelowSVM,
   matchbelowSSelect,
   matchbelowSTM
@@ -4423,7 +4407,6 @@ OperatorSpec mcreateMtree2Spec(
 Operator mcreateMtree2Op(
    "mcreateMtree2",
    mcreateMtree2Spec.getStr(),
-   11,
    mcreateMtree2VM,
    mcreateMtree2Select,
    mcreateMtree2TM
@@ -4580,7 +4563,6 @@ OperatorSpec mdistRange2Spec(
 Operator mdistRange2Op(
    "mdistRange2",
    mdistRange2Spec.getStr(),
-   20,
    mdistRange2VM,
    mdistRange2Select,
    mdistRange2TM
@@ -4719,7 +4701,6 @@ OperatorSpec mdistScan2Spec(
 Operator mdistScan2Op(
    "mdistScan2",
    mdistScan2Spec.getStr(),
-   20,
    mdistScan2VM,
    mdistScan2Select,
    mdistScan2TM
@@ -5193,7 +5174,6 @@ OperatorSpec mdistRangeSpec(
 Operator mdistRangeOp(
    "mdistRange",
    mdistRangeSpec.getStr(),
-   40,
    mdistRangeVM,
    mdistRangeSelect,
    mdistRangeTM
@@ -5378,7 +5358,6 @@ OperatorSpec mdistScanSpec(
 Operator mdistScanOp(
    "mdistScan",
    mdistScanSpec.getStr(),
-   40,
    mdistScanVM,
    mdistScanSelect,
    mdistScanTM

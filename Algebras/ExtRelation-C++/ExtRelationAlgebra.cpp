@@ -11390,7 +11390,6 @@ int AddCounterSelect(ListExpr args){
 Operator extreladdcounter (
          "addcounter",           // name
          AddCounterSpec,         // specification
-         2,
          AddCounterVM,      // value mapping
          AddCounterSelect,  // trivial selection function
          AddCounterTypeMap       // type mapping
@@ -13070,7 +13069,6 @@ OperatorSpec equalStreamsSpec(
 Operator equalStreams(
      "=",
      equalStreamsSpec.getStr(),
-     2,
      equalStreamsVM,
      equalStreamsSelect,
      equalStreamsTM
@@ -13942,7 +13940,6 @@ OperatorSpec feedSSpec(
 Operator feedSOp(
   "feedS",
   feedSSpec.getStr(),
-  2,
   feedSVM,
   feedSSelect,
   feedSTM
@@ -14284,7 +14281,6 @@ const string nthSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
  Operator extrelexist (
           "exist",                     // name
           ExistSpec,                   // specification
-          2,
           ExistVM,                      // value mapping
           ExistSelect,     // trivial selection function
           ExistTypeMap                 // type mapping
@@ -14579,7 +14575,6 @@ OperatorSpec obojoinDSpec(
 Operator obojoinDOP(
   "obojoinD",
   obojoinDSpec.getStr(),
-  4,
   obojoinDVM,
   obojoinDSelect,
   obojoinDTM
@@ -15054,7 +15049,6 @@ OperatorSpec noRefsSpec(
 Operator noRefsOp(
   "noRefs",
   noRefsSpec.getStr(),
-  2,
   noRefsVM,
   noRefsSelect,
   noRefsTM

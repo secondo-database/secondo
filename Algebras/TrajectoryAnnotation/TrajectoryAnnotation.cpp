@@ -500,7 +500,6 @@ const string geocodeSpec  =
 Operator geocodeOp(
  "geocode", // Name des Operators
 geocodeSpec, // Spezifikation
- 3, // Anzahl ValueMappings
 geocodeVM, // Array von ValueMappings
 geocodeSelect, // Selection Funktion
 geocodeTM // TypeMapping

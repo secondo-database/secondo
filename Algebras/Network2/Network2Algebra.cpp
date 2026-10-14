@@ -9151,7 +9151,6 @@ const string OpNetNetdistanceSpec  =
 Operator networknetdistance (
     "netdistance",               // name
     OpNetNetdistanceSpec,          // specification
-    2,
     OpNetNetdistancemap,  // value mapping
     OpNetNetdistanceselect,        // selection function
     OpNetNetdistanceTypeMap        // type mapping
@@ -9558,7 +9557,6 @@ const string OpNetEqualSpec  =
 Operator netgpequal (
     "=",               // name
     OpNetEqualSpec,          // specification
-    2,
     OpNetEqualmap,  // value mapping
     OpNetEqualselect,        // selection function
     OpNetEqualTypeMap        // type mapping
@@ -10619,7 +10617,6 @@ const string OpNetDistanceSpec  =
 Operator networkdistance (
     "distance",               // name
     OpNetDistanceSpec,          // specification
-    2,
     OpNetDistancemap,  // value mapping
     OpNetDistanceselect,        // selection function
     OpNetDistanceTypeMap        // type mapping
@@ -10763,7 +10760,6 @@ const string OpUpdateSectionCostSpec  =
 Operator update_sectioncost (
     "update_sectioncost",       // name
     OpUpdateSectionCostSpec,    // specification
-    2,
     OpUpdateSectionCostMap,     // value mapping
     OpUpdateSectionCostSelect,  // selection function
     OpUpdateSectionCostTypeMap  // type mapping
@@ -10905,7 +10901,6 @@ const string OpUpdateSectionDurationSpec  =
 Operator update_sectionduration (
     "update_sectionduration",       // name
     OpUpdateSectionDurationSpec,    // specification
-    2,
     OpUpdateSectionDurationMap,     // value mapping
     OpUpdateSectionDurationSelect,  // selection function
     OpUpdateSectionDurationTypeMap  // type mapping

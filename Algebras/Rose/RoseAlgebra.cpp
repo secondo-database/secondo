@@ -6677,7 +6677,6 @@ const string chooseTriangulatorSpec =
 Operator ROSEequal (
                     "=",                  //name
                     equalSpec,            //specification
-                    3,                    //number of functions
                     equalMap,             //value mapping
                     equalSelect,          //selection function
                     equalTypeMap);        //type mapping function
@@ -6685,7 +6684,6 @@ Operator ROSEequal (
 Operator ROSEunequal (
                       "#",                //name
                       unequalSpec,        //specification
-                      3,                  //number of functions
                       unequalMap,         //value mapping
                       unequalSelect,       //selection function
                       unequalTypeMap);    //type mapping function
@@ -6693,7 +6691,6 @@ Operator ROSEunequal (
 Operator ROSEdisjoint (
                        "disjoint",           //name
                        disjointSpec,         //specification
-                       3,                    //number of functions
                        disjointMap,          //value mapping
                        disjointSelect,       //selection function
                        disjointTypeMap);     //type mapping function
@@ -6701,7 +6698,6 @@ Operator ROSEdisjoint (
 Operator ROSEinside (
                        "inside",             //name
                        insideSpec,           //specification
-                       3,                    //number of functions
                        insideMap,            //value mapping
                        insideSelect,         //selection function
                        insideTypeMap);       //type mapping function
@@ -6737,7 +6733,6 @@ Operator ROSEvertex_inside (
 Operator ROSEintersects (
                          "intersects",         //name
                          intersectsSpec,       //specification
-                         4,                    //number of functions
                          intersectsMap,        //value mapping
                          intersectsSelect,     //selection function
                          intersectsTypeMap);   //type mapping function
@@ -6745,7 +6740,6 @@ Operator ROSEintersects (
 Operator ROSEmeets (
                     "meets",         //name
                     meetsSpec,       //specification
-                    4,               //number of functions
                     meetsMap,        //value mapping
                     meetsSelect,     //selection function
                     meetsTypeMap);   //type mapping function
@@ -6753,7 +6747,6 @@ Operator ROSEmeets (
 Operator ROSEborderInCommon (
                              "border_in_common",        //name
                              borderInCommonSpec,        //specification
-                             4,                         //number of functions
                              borderInCommonMap,         //value mapping
                              borderInCommonSelect,      //selection function
                              borderInCommonTypeMap);    //type mapping function
@@ -6761,7 +6754,6 @@ Operator ROSEborderInCommon (
 Operator ROSEonBorderOf (
                          "on_border_of",        //name
                          onBorderOfSpec,        //specification
-                         2,                     //number of functions
                          onBorderOfMap,         //value mapping
                          onBorderOfSelect,      //selection function
                          onBorderOfTypeMap);    //type mapping function
@@ -6769,7 +6761,6 @@ Operator ROSEonBorderOf (
 Operator ROSEintersection (
                            "intersection",        //name
                            intersectionSpec,      //specification
-                           4,                     //number of functions
                            intersectionMap,       //value mapping
                            intersectionSelect,    //selection function
                            intersectionTypeMap);  //type mapping function
@@ -6777,7 +6768,6 @@ Operator ROSEintersection (
 Operator ROSEplus (
                    "plus",           //name
                    plusSpec,         //specification
-                   3,                //number of functions
                    plusMap,          //value mapping
                    plusSelect,       //selection function
                    plusTypeMap);     //type mapping function
@@ -6785,7 +6775,6 @@ Operator ROSEplus (
 Operator ROSEminus (
                    "minus",           //name
                    minusSpec,         //specification
-                   3,                 //number of functions
                    minusMap,          //value mapping
                    minusSelect,       //selection function
                    minusTypeMap);     //type mapping function
@@ -6793,7 +6782,6 @@ Operator ROSEminus (
 Operator ROSEcommonBorder (
                    "common_border",     //name
                    commonBorderSpec,    //specification
-                   4,                   //number of functions
                    commonBorderMap,     //value mapping
                    commonBorderSelect,  //selection function
                    commonBorderTypeMap);//type mapping function
@@ -6801,7 +6789,6 @@ Operator ROSEcommonBorder (
 Operator ROSEvertices (
                        "vertices",        //name
                        verticesSpec,      //specification
-                       2,                 //number of functions
                        verticesMap,       //value mapping
                        verticesSelect,    //selection function
                        verticesTypeMap);  //type mapping function
@@ -6809,7 +6796,6 @@ Operator ROSEvertices (
 Operator ROSEnoOfComponents (
                              "no_of_components",     //name
                              noOfComponentsSpec,     //specification
-                             3,                      //number of functions
                              noOfComponentsMap,      //value mapping
                              noOfComponentsSelect,   //selection function
                              noOfComponentsTypeMap); //type mapping function
@@ -6817,7 +6803,6 @@ Operator ROSEnoOfComponents (
 Operator ROSEdist (
                    "dist",           //name
                    distSpec,         //specification
-                   9,                //number of functions
                    distMap,          //value mapping
                    distSelect,       //selection function
                    distTypeMap);     //type mapping function
@@ -6882,7 +6867,6 @@ Operator ROSEperimeter (
 Operator ROSEdiameter (
                        "diameter",         //name
                        diameterSpec,       //specification ...
-                       3,                  //number of functions
                        diameterMap,        //value mapping
                        diameterSelect,     //selection function
                        diameterTypeMap);   //type mapping function

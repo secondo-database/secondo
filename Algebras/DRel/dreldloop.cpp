@@ -386,7 +386,6 @@ Used by the operators with only a drel input.
     Operator drelcreatebtreeOp(
         "drelcreatebtree",
         drelcreatebtreeSpec.getStr( ),
-        2,
         dreldloopVM,
         dreldloopSelect,
         drelcreatebtreeTM
@@ -399,7 +398,6 @@ Used by the operators with only a drel input.
     Operator drelbulkloadrtreeOp(
         "drelbulkloadrtree",
         drelbulkloadrtreeSpec.getStr( ),
-        2,
         dreldloopVM,
         dreldloopSelect,
         drelbulkloadrtreeTM

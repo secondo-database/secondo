@@ -16509,7 +16509,6 @@ int hlContractMmGraphSelect(ListExpr args){
 Operator hlContractMmGraphOp(
     "hlContractMmGraph",             // name of the operator
     hlContractMmGraphSpec.getStr(),  // specification
-    4,
     hlContractMmGraphVM,             // value mapping
     hlContractMmGraphSelect,             // selection function
     hlContractMmGraphTM              // type mapping

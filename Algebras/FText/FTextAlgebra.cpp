@@ -7182,7 +7182,6 @@ Operator contains
 (
   "contains",           //name
   containsSpec,         //specification
-  4,                    //no. of value mappings
   FText_VMMap_Contains, //value mapping
   SelectFun_TextString_TextString,   //selection function
   TypeMap_TextString_TextString__Bool   //type mapping
@@ -7254,7 +7253,6 @@ Operator ftextfind
     (
     "find",
     FTextfindSpec,
-    4,
     FText_VMMap_Find,
     SelectFun_TextString_TextString,
     TypeMap_textstring_textstring__intstream
@@ -7273,7 +7271,6 @@ Operator ftexttrim
     (
     "trim",
     FTexttrimSpec,
-    2,
     trimVM,
     trimSelect,
     trimTM
@@ -7283,7 +7280,6 @@ Operator ftextplus
     (
     "+",
     FTextplusSpec,
-    3,
     FText_VMMap_Plus,
     FTextSelectFunPlus,
     FTextTypeMapPlus
@@ -7297,7 +7293,6 @@ Operator ftextless
     (
     "<",
     FTextLessSpec,
-    3,
     FText_VMMap_Less,
     FTextSelectFunComparePred,
     FTextTypeMapComparePred
@@ -7307,7 +7302,6 @@ Operator ftextlesseq
     (
     "<=",
     FTextLessEqSpec,
-    3,
     FText_VMMap_LessEq,
     FTextSelectFunComparePred,
     FTextTypeMapComparePred
@@ -7317,7 +7311,6 @@ Operator ftexteq
     (
     "=",
     FTextEqSpec,
-    3,
     FText_VMMap_Eq,
     FTextSelectFunComparePred,
     FTextTypeMapComparePred
@@ -7327,7 +7320,6 @@ Operator ftextbiggereq
     (
     ">=",
     FTextBiggerEqSpec,
-    3,
     FText_VMMap_BiggerEq,
     FTextSelectFunComparePred,
     FTextTypeMapComparePred
@@ -7337,7 +7329,6 @@ Operator ftextbigger
     (
     ">",
     FTextBiggerSpec,
-    3,
     FText_VMMap_Bigger,
     FTextSelectFunComparePred,
     FTextTypeMapComparePred
@@ -7347,7 +7338,6 @@ Operator ftextneq
     (
     "#",
     FTextNeqSpec,
-    3,
     FText_VMMap_Neq,
     FTextSelectFunComparePred,
     FTextTypeMapComparePred
@@ -7370,7 +7360,6 @@ Operator ftextreplace
     (
     "replace",
     FTextReplaceSpec,
-    12,
     FText_VMMap_Replace,
     FTextSelectFunReplace,
     FTextTypeReplace
@@ -7398,7 +7387,6 @@ Operator getValueNL
     (
     "getValueNL",
     FTextGetValueNLSpec,
-    3,
     FText_VMMap_GetValueNL,
     FTextSelectFunGetValueNL,
     FTextTypeMapGetValueNL
@@ -7408,7 +7396,6 @@ Operator ftexttoobject
     (
     "toObject",
     FTextToObjectSpec,
-    2,
     FText_VMMap_ToObject,
     FTextSelectFunToObject,
     toObjectTM 
@@ -7431,7 +7418,6 @@ Operator ftexttoupper
     (
     "toupper",
     FTextToUpperSpec,
-    2,
     toUpperVM,
     changeCaseSelect, 
     changeCaseTM
@@ -7442,7 +7428,6 @@ Operator ftexttolower
     (
     "tolower",
     FTextToLowerSpec,
-    2,
     toLowerVM,
     changeCaseSelect, 
     changeCaseTM
@@ -7475,7 +7460,6 @@ Operator ftsendtextUDP
     (
     "sendtextUDP",
     FTextSendTextUDPSpec,
-    32,
     FText_VMMap_MapSendTextUDP,
     FTextSelectSendTextUDP,
     FTextTypeSendTextUDP
@@ -7485,7 +7469,6 @@ Operator ftreceivetextUDP
     (
     "receivetextUDP",
     FTextReceiveTextUDPSpec,
-    4,
     FText_VMMap_MapReceiveTextUDP,
     FTextSelectReceiveTextUDP,
     FTextTypeReceiveTextUDP
@@ -7495,7 +7478,6 @@ Operator ftreceivetextstreamUDP
     (
     "receivetextstreamUDP",
     FTextReceiveTextStreamUDPSpec,
-    4,
     FText_VMMap_MapReceiveTextStreamUDP,
     FTextSelectReceiveTextUDP,
     FTextTypeReceiveTextStreamUDP
@@ -7531,7 +7513,6 @@ Operator crypt
     (
     "crypt",
     cryptSpec,
-    6,
     cryptvm,
     cryptSelect,
     cryptTM
@@ -7541,7 +7522,6 @@ Operator checkpw
     (
     "checkpw",
     checkpwSpec,
-    4,
     checkpwvm,
     checkpwSelect,
     checkpwTM
@@ -7551,18 +7531,17 @@ Operator md5
     (
     "md5",
     md5Spec,
-    6,
     md5vm,
     md5Select,
     md5TM
     );
 
 Operator blowfish_encode ( "blowfish_encode", blowfish_encodeSpec,
-                           4, blowfish_encodevm, blowfish_encodeSelect,
+                           blowfish_encodevm, blowfish_encodeSelect,
                            blowfish_encodeTM
     );
 Operator blowfish_decode ( "blowfish_decode", blowfish_decodeSpec,
-                           4, blowfish_decodevm, blowfish_decodeSelect,
+                           blowfish_decodevm, blowfish_decodeSelect,
                            blowfish_decodeTM
     );
 
@@ -7571,17 +7550,17 @@ More subquery support
 
 */
 Operator ftextletObject ( "letObject", ftextletObjectSpec,
-                           4, ftextletobject_vm, blowfish_encodeSelect,
+                           ftextletobject_vm, blowfish_encodeSelect,
                            StringtypeStringtypeBool2TextTM
     );
 
 Operator ftextdeleteObject ( "deleteObject", ftextdeleteObjectSpec,
-                           2, ftextdeleteobject_vm, ftextdeleteobjectselect,
+                           ftextdeleteobject_vm, ftextdeleteobjectselect,
                            TypeMap_textstring__text
     );
 
 Operator ftextcreateObject ( "createObject", ftextcreateObjectSpec,
-                           4, ftextcreateobject_vm, blowfish_encodeSelect,
+                           ftextcreateobject_vm, blowfish_encodeSelect,
                            StringtypeStringtypeBool2TextTM
     );
 
@@ -7596,12 +7575,12 @@ Operator ftextcreateObject ( "createObject", ftextcreateObjectSpec,
 //     );
 
 Operator ftextgetObjectTypeNL ( "getObjectTypeNL", ftextgetObjectTypeNLSpec,
-                           2, ftextgetObjectTypeNL_vm, ftextdeleteobjectselect,
+                           ftextgetObjectTypeNL_vm, ftextdeleteobjectselect,
                            TypeMap_textstring__text
     );
 
 Operator ftextgetObjectValueNL ("getObjectValueNL",ftextgetObjectValueNLSpec,
-                           2,ftextgetObjectValueNL_vm, ftextdeleteobjectselect,
+                           ftextgetObjectValueNL_vm, ftextdeleteobjectselect,
                            TypeMap_textstring__text
     );
 
@@ -7641,7 +7620,6 @@ Operator sysgetMatchingOperators
 (
   "sys_getMatchingOperators",              //name
   sysgetMatchingOperatorsSpec,             //specification
-  3,                                       // no of VM-functions
   sysgetMatchingOperators_vm,              //value mapping
   sysgetMatchingOperators_select,          //trivial selection function
   sysgetMatchingOperatorsTM                //type mapping
@@ -7661,7 +7639,6 @@ Operator sysgetAlgebraId
 (
 "sys_getAlgebraId",             //name
  sys_getAlgebraIdSpec,         //specification
- 2,                           // no of VM functions
  sys_getAlgebraId_vm,        //value mapping
  sys_getAlgebraId_select,   //trivial selection function
  stringORtext2intTM        //type mapping
@@ -7689,7 +7666,6 @@ Operator checkOperatorTypeMap
 Operator checkOperatorTypeMap2 (
    "checkOperatorTypeMap2",          //name
    CheckOperatorTypeMap2Spec,        //specification
-   2,
    CheckOperatorTypeMap_vm,
    CheckOperatorTypeMapSelect,             //type mapping
    CheckOperatorTypeMap2TM              //type mapping
@@ -7699,7 +7675,6 @@ Operator checkOperatorTypeMap2 (
 Operator strequal (
    "strequal",          //name
    strequalSpec,        //specification
-   4,
    strequal_vm,
    strequal_select,             //type mapping
    strequalTM              //type mapping
@@ -7737,7 +7712,6 @@ Operator sendtextstreamTCP
 (
  "sendtextstreamTCP",
  sendtextstreamTCP_Spec,
- 32,
  sendtextstream_vm,
  sendtextstream_Select,
  sendtextstreamTCP_TM
@@ -7774,7 +7748,6 @@ Operator trimAll
 (
  "trimAll",
  trimAllSpec,
- 3,
  trimAllVM,
  trimAllSelect,
  trimAllTM
@@ -7784,7 +7757,6 @@ Operator trimAllUndef
 (
  "trimAllUndef",
  trimAllUndefSpec,
- 3,
  trimAllUndefVM,
  trimAllSelect,
  trimAllTM
@@ -7925,7 +7897,6 @@ Operator cn2en
 (
 "cn2en",             //name
  cn2enSpec,         //specification
- 2,                           // no of VM functions
  cn2enVM,        //value mapping
  cn2enSelect,   //trivial selection function
  cn2enTM        //type mapping
@@ -8029,7 +8000,6 @@ Operator str2real
 (
 "str2real",             //name
  str2realSpec,         //specification
- 2,                           // no of VM functions
  str2realVM,        //value mapping
  str2realSelect,   //trivial selection function
  str2realTM        //type mapping
@@ -8131,7 +8101,6 @@ Operator str2int
 (
 "str2int",             //name
  str2intSpec,         //specification
- 2,                           // no of VM functions
  str2intVM,        //value mapping
  str2intSelect,   //trivial selection function
  str2intTM        //type mapping
@@ -8256,7 +8225,6 @@ Specification
   (
   "recode",             //name
    recodeSpec,         //specification
-   2,                           // no of VM functions
    recodeVM,        //value mapping
    recodeSelect,   //trivial selection function
    recodeTM        //type mapping
@@ -8394,7 +8362,6 @@ ListExpr starts_ends_WithTM(ListExpr args){
   (
   "endsWith",             //name
    endsWithSpec,         //specification
-   4,                           // no of VM functions
    endsWithVM,        //value mapping
    starts_ends_WithSelect,   
    starts_ends_WithTM        //type mapping
@@ -8404,7 +8371,6 @@ ListExpr starts_ends_WithTM(ListExpr args){
   (
   "startsWith",             //name
    startsWithSpec,         //specification
-   4,                           // no of VM functions
    startsWithVM,        //value mapping
    starts_ends_WithSelect,   
    starts_ends_WithTM        //type mapping
@@ -8414,7 +8380,6 @@ ListExpr starts_ends_WithTM(ListExpr args){
   (
   "starts",             //name
    startsSpec,         //specification
-   4,                           // no of VM functions
    startsWithVM,        //value mapping
    starts_ends_WithSelect,   
    starts_ends_WithTM        //type mapping
@@ -9165,7 +9130,6 @@ OperatorSpec regexmatchSpec(
 Operator regexmatches(
     "regexmatches",
     regexmatchSpec.getStr(),
-    4,
     regexmatchVMs,
     regexmatchSelect,
     regexmatchTM 
@@ -9256,7 +9220,6 @@ OperatorSpec startsRegSpec(
 Operator startsReg(
     "startsreg",
     startsRegSpec.getStr(),
-    4,
     startsRegVMs,
     startsRegSelect,
     startsRegTM 
@@ -9468,7 +9431,6 @@ OperatorSpec findPatternSpec(
 Operator findPattern(
     "findPattern",
     findPatternSpec.getStr(),
-    4,
     findPatternVMs,
     findPatternSelect,
     findPatternTM 
@@ -9555,7 +9517,6 @@ OperatorSpec createRegEx2Spec(
 Operator createRegEx(
     "createRegEx",
     createRegExSpec.getStr(),
-    2,
     createRegExVMs,
     createRegExSelect,
     createRegExTM<false> 
@@ -9564,7 +9525,6 @@ Operator createRegEx(
 Operator createRegEx2(
     "createRegEx2",
     createRegEx2Spec.getStr(),
-    2,
     createRegEx2VMs,
     createRegExSelect,
     createRegExTM<true> 
@@ -10209,7 +10169,6 @@ ValueMapping tmcheckVM[]={tmcheckVM1,tmcheckVM2};
 Operator tmcheckOp(
     "tmcheck",
     tmcheckSpec.getStr(),
-    2,
     tmcheckVM, 
     tmcheckSelect,
     tmcheckTM 
@@ -10370,7 +10329,6 @@ OperatorSpec getObjectSpec(
 Operator getObjectOP(
   "getObject",
   getObjectSpec.getStr(),
-  2,
   getObjectVM,
   getObjectSelect,
   getObjectTM
@@ -10852,7 +10810,6 @@ OperatorSpec charCodesSpec(
 Operator charCodesOP(
   "charCodes",
   charCodesSpec.getStr(),
-  2,
   charCodesVM,
   charCodesSelect,
   charCodesTM
@@ -11205,7 +11162,6 @@ OperatorSpec morseWavSpec(
 Operator morseWavOP(
   "morseWav",
   morseWavSpec.getStr(),
-  2,
   morseWavVM,
   morseWavSelect,
   morseWavTM
@@ -11284,7 +11240,6 @@ OperatorSpec computeRegExSpec(
 Operator computeRegExOP(
   "computeRegEx",
   computeRegExSpec.getStr(),
-  2,
   computeRegExVM,
   computeRegExSelect,
   computeRegExTM
@@ -11410,7 +11365,6 @@ OperatorSpec letObject2Spec(
 Operator letObject2OP(
   "letObject2",
   letObject2Spec.getStr(),
-  2,
   letObject2VM,
   letObject2Select,
   letObject2TM
@@ -11589,7 +11543,6 @@ OperatorSpec fileExtensionSpec(
 Operator fileExtensionOP(
   "fileExtension",
   fileExtensionSpec.getStr(),
-  2,
   fileExtensionVM,
   fileExtensionSelect,
   fileExtensionTM
@@ -11664,7 +11617,6 @@ OperatorSpec maskBackslashSpec(
 Operator maskBackslashOP(
   "maskBackslash",
   maskBackslashSpec.getStr(),
-  2,
   maskBackslashVM,
   maskBackslashSelect,
   maskBackslashTM
@@ -11869,7 +11821,6 @@ OperatorSpec simpleMessageSpec(
 Operator simpleMessageOP(
   "simpleMessage",
   simpleMessageSpec.getStr(),
-  3,
   simpleMessageVM,
   simpleMessageSelect,
   simpleMessageTM
@@ -12210,7 +12161,6 @@ OperatorSpec substrwSpec(
 Operator substrwOP(
   "substrw",
   substrwSpec.getStr(),
-  2,
   substrwVM,
   substrwSelect,
   substrwTM
@@ -12357,7 +12307,6 @@ OperatorSpec getParamSpec(
 Operator getParamOP(
   "getParam",
   getParamSpec.getStr(),
-  16,
   getParamVM,
   getParamSelect,
   getParamTM
@@ -12487,7 +12436,6 @@ int savetoSelect(ListExpr args){
 Operator savetoOp(
   "saveto",
   savetoSpec.getStr(),
-  8,
   savetoVM,
   savetoSelect,
   savetoTM
@@ -13324,7 +13272,6 @@ OperatorSpec executeScriptSpec(
 Operator executeScriptOP(
    "executeScript",
    executeScriptSpec.getStr(),
-   2,
    executeScriptVM,
    executeScriptSelect,
    executeScriptTM
@@ -13469,7 +13416,6 @@ OperatorSpec like2regexSpec(
 Operator like2regexOp(
   "like2regex",
   like2regexSpec.getStr(),
-  4,
   like2regexVM,
   like2regexSelect,
   like2regexTM
@@ -13713,7 +13659,6 @@ ValueMapping findFirstVM[] = {
 Operator findFirstOp(
   "findFirst",
   findFirstSpec.getStr(),
-  4,
   findFirstVM,
   findPosSelect,
   findPosTM
@@ -13747,7 +13692,6 @@ ValueMapping findLastVM[] = {
 Operator findLastOp(
   "findLast",
   findLastSpec.getStr(),
-  4,
   findLastVM,
   findPosSelect,
   findPosTM
@@ -13780,7 +13724,6 @@ ValueMapping findFirstOfVM[] = {
 Operator findFirstOfOp(
   "findFirstOf",
   findFirstOfSpec.getStr(),
-  4,
   findFirstOfVM,
   findPosSelect,
   findPosTM
@@ -13815,7 +13758,6 @@ ValueMapping findLastOfVM[] = {
 Operator findLastOfOp(
   "findLastOf",
   findLastOfSpec.getStr(),
-  4,
   findLastOfVM,
   findPosSelect,
   findPosTM
@@ -13849,7 +13791,6 @@ ValueMapping findFirstNotOfVM[] = {
 Operator findFirstNotOfOp(
   "findFirstNotOf",
   findFirstNotOfSpec.getStr(),
-  4,
   findFirstNotOfVM,
   findPosSelect,
   findPosTM
@@ -13884,7 +13825,6 @@ ValueMapping findLastNotOfVM[] = {
 Operator findLastNotOfOp(
   "findLastNotOf",
   findLastNotOfSpec.getStr(),
-  4,
   findLastNotOfVM,
   findPosSelect,
   findPosTM

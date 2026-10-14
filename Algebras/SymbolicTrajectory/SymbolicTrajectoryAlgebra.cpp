@@ -542,7 +542,7 @@ ValueMapping sethybriddistanceparamVMs[] = {sethybriddistanceparamVM<FText>,
                                             sethybriddistanceparamVM<CcString>};
 
 Operator sethybriddistanceparam("sethybriddistanceparam", 
-                       sethybriddistanceparamSpec, 2, sethybriddistanceparamVMs,
+                       sethybriddistanceparamSpec, sethybriddistanceparamVMs,
                        sethybriddistanceparamSelect, sethybriddistanceparamTM);
 
 /*
@@ -985,7 +985,7 @@ ValueMapping matchesVMs[] = {matchesVM<MLabel, FText>, matchesVM<MPlace, FText>,
   matchesVM<MLabel, PatPersistent>, matchesVM<MPlace, PatPersistent>,
   matchesVM<MLabels, PatPersistent>, matchesVM<MPlaces, PatPersistent>};
 
-Operator matches("matches", matchesSpec, 8, matchesVMs, matchesSelect,
+Operator matches("matches", matchesSpec, matchesVMs, matchesSelect,
                  matchesTM);
 
 /*
@@ -1324,7 +1324,7 @@ const string tmatchesSpec =
 
 ValueMapping tmatchesVMs[] = {tmatchesVM<FText>, tmatchesVM<PatPersistent>};
 
-Operator tmatches("tmatches", tmatchesSpec, 2, tmatchesVMs, tmatchesSelect,
+Operator tmatches("tmatches", tmatchesSpec, tmatchesVMs, tmatchesSelect,
                   tmatchesTM);
 
 
@@ -1462,7 +1462,7 @@ const string indextmatchesSpec =
 ValueMapping indextmatchesVMs[] = {indextmatchesVM<FText>, 
                                    indextmatchesVM<PatPersistent>};
 
-Operator indextmatches("indextmatches", indextmatchesSpec, 2, indextmatchesVMs,
+Operator indextmatches("indextmatches", indextmatchesSpec, indextmatchesVMs,
                        indextmatchesSelect, indextmatchesTM);
 
 /*
@@ -1576,7 +1576,7 @@ const string indextmatches2Spec =
 ValueMapping indextmatches2VMs[] = {indextmatches2VM<FText>, 
                                    indextmatches2VM<PatPersistent>};
 
-Operator indextmatches2("indextmatches2", indextmatches2Spec, 2, 
+Operator indextmatches2("indextmatches2", indextmatches2Spec, 
                      indextmatches2VMs, indextmatches2Select, indextmatches2TM);
 
 
@@ -3688,7 +3688,7 @@ const string getlabelsSpec =
   "<text> Collects and outputs all labels into the stream.</text--->"
   "<text> query getlabels(Dotraj feed extract[Trajectory])</text--->) )";
 
-Operator getlabels("getlabels", getlabelsSpec, 4, getlabelsVMs,
+Operator getlabels("getlabels", getlabelsSpec, getlabelsVMs,
                    distancesymSelect, getlabelsTM);
 
 /*

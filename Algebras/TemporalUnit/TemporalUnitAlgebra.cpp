@@ -623,7 +623,6 @@ ValueMapping temporalspeedmap[] = { MPointSpeed,
 */
 Operator temporalspeed( "speed",
                       TemporalSpecSpeed,
-                      2,
                       temporalspeedmap,
                       SpeedSelect,
                       TypeMapSpeed);
@@ -1554,14 +1553,12 @@ ValueMapping the_mvalue2VM[] = {
 */
 Operator temporalunitmakemvalue( "makemvalue",
                         TemporalSpecMakemvalue,
-                        6,
                         temporalmakemvaluemap,
                         MakemvalueSelect,
                         MovingTypeMapMakemvalue );
 
 Operator temporalunitthemvalue( "the_mvalue",
                         TemporalSpecThemvalue,
-                        6,
                         temporalthemvaluemap,
                         ThemvalueSelect,
                         TU_TM_themvalue );
@@ -1569,7 +1566,6 @@ Operator temporalunitthemvalue( "the_mvalue",
 
 Operator the_mvalue2( "the_mvalue2",
                       the_mvalue2Spec,
-                      5,
                       the_mvalue2VM,
                       the_mvalue2Select,
                       the_mvalue2TM);
@@ -1731,7 +1727,6 @@ ValueMapping temporalunitdeftimemap[] = { MappingUnitDefTime<UBool>,
 
 Operator temporalunitdeftime( "deftime",
                           TemporalSpecDefTime,
-                          6,
                           temporalunitdeftimemap,
                           UnitSimpleSelect,
                           UnitTypeMapPeriods );
@@ -1837,7 +1832,6 @@ ValueMapping temporalunitatinstantmap[] =
 */
 Operator temporalunitatinstant( "atinstant",
                             TemporalSpecAtInstant,
-                            6,
                             temporalunitatinstantmap,
                             UnitSimpleSelect,
                             UnitInstantTypeMapIntime );
@@ -2259,7 +2253,6 @@ ValueMapping temporalunitatperiodsmap[] =
 */
 Operator temporalunitatperiods( "atperiods",
                             TemporalSpecAtPeriods,
-                            12,
                             temporalunitatperiodsmap,
                             UnitCombinedUnitStreamSelect,
                             UnitPeriodsTypeMap );
@@ -2521,7 +2514,6 @@ Operator temporalunitinitial
 (
  "initial",
  TemporalSpecInitial,
- 12,
  temporalunitinitialmap,
  UnitCombinedUnitStreamSelect,
  UnitTypeMapIntime );
@@ -2530,7 +2522,6 @@ Operator temporalunitfinal
 (
  "final",
  TemporalSpecFinal,
- 12,
  temporalunitfinalmap,
  UnitCombinedUnitStreamSelect,
  UnitTypeMapIntime );
@@ -2716,7 +2707,6 @@ ValueMapping temporalunitpresentmap[] = { MappingUnitPresent_i<UBool>,
 */
 Operator temporalunitpresent( "present",
                           TemporalSpecPresent,
-                          12,
                           temporalunitpresentmap,
                           UnitInstantPeriodsSelect,
                           UnitInstantPeriodsTypeMapBool);
@@ -2860,7 +2850,6 @@ ValueMapping temporalunitpassesmap[] = {
 */
 Operator temporalunitpasses( "passes",
                          TemporalSpecPasses,
-                         8,
                          temporalunitpassesmap,
                          TUPassesSelect,
                          UnitBaseTypeMapBool);
@@ -2961,7 +2950,6 @@ ValueMapping temporalvelocitymap[] = { MPointVelocity,
 */
 Operator temporalvelocity( "velocity",
                            TemporalSpecVelocity,
-                           2,
                            temporalvelocitymap,
                            VelocitySelect,
                            TypeMapVelocity);
@@ -3105,7 +3093,6 @@ ValueMapping temporalderivablemap[] = { MPointDerivable,
 
 Operator temporalderivable( "derivable",
                             TemporalSpecDerivable,
-                            2,
                             temporalderivablemap,
                             DerivableSelect,
                             TypeMapDerivable);
@@ -3237,7 +3224,6 @@ ValueMapping temporalderivativemap[] = { MPointDerivative,
 */
 Operator temporalderivative( "derivative",
                              TemporalSpecDerivative,
-                             2,
                              temporalderivativemap,
                              DerivableSelect,
                              TypeMapDerivative);
@@ -3857,7 +3843,6 @@ int temporalunitDistanceSelect( ListExpr args )
 
 Operator temporalunitdistance( "distance",
                                TemporalSpecDistance,
-                               6,
                                temporalunitdistancemap,
                                temporalunitDistanceSelect,
                                TypeMapTemporalUnitDistance);
@@ -4058,7 +4043,6 @@ int temporalunitAtmaxSelect( ListExpr args )
 
 Operator temporalunitatmax( "atmax",
                             TemporalSpecAtmax,
-                            4,
                             temporalunitatmaxmap,
                             temporalunitAtmaxSelect,
                             UnitBaseTypeMapAtmax);
@@ -4215,7 +4199,6 @@ ValueMapping temporalunitatminmap[] =
 */
 Operator temporalunitatmin( "atmin",
                             TemporalSpecAtmin,
-                            4,
                             temporalunitatminmap,
                             temporalunitAtmaxSelect,
                             UnitBaseTypeMapAtmax);
@@ -4429,7 +4412,6 @@ ValueMapping temporalunit_abs_map[] = { TU_VM_Abs_UInt, TU_VM_Abs_UReal };
 */
   Operator temporalunitabs( "abs",
                           TU_Spec_Abs,
-                          2,
                           temporalunit_abs_map,
                           TU_Select_Abs,
                           TU_TM_Abs);
@@ -6480,7 +6462,6 @@ int temporalunitIntersectionSelect( ListExpr args )
 
 Operator temporalunitintersection( "intersection",
                                    TemporalUnitIntersectionSpec,
-                                   21,
                                    temporalunitintersectionmap,
                                    temporalunitIntersectionSelect,
                                    TemporalUnitIntersectionTypeMap);
@@ -6663,7 +6644,6 @@ ValueMapping temporalunitatmap[] = {
 */
 Operator temporalunitat( "at",
                      TemporalSpecAt,
-                     8,
                      temporalunitatmap,
                      TUSelectAt,
                      TemporalUnitAtTypeMapUnit );
@@ -6769,7 +6749,6 @@ Operator temporalunitnocomponents
 (
  "no_components",
  TUNoComponentsSpec,
- 6,
  temporalunitNoComponentsvaluemap,
  UnitSimpleSelect,
  TUNoComponentsTypeMap
@@ -6856,7 +6835,6 @@ Operator temporalunitisempty
 (
  "isempty",
  TUIsemptySpec,
- 1,
  temporalunitIsemptyvaluemap,
  Operator::SimpleSelect,
  TUIsemptyTypeMap
@@ -6944,7 +6922,6 @@ Operator temporalunitnot
 (
  "not",
  TUNotSpec,
- 1,
  temporalunitNotvaluemap,
  Operator::SimpleSelect,
  TUNotTypeMap
@@ -7199,7 +7176,6 @@ Operator temporalunitand
 (
  "and",
  TUAndSpec,
- 3,
  temporalunitAndValuemap,
  TUBinaryBoolFuncSelect,
  TUBinaryBoolFuncTypeMap
@@ -7209,7 +7185,6 @@ Operator temporalunitor
 (
  "or",
  TUOrSpec,
- 3,
  temporalunitOrValuemap,
  TUBinaryBoolFuncSelect,
  TUBinaryBoolFuncTypeMap
@@ -7864,7 +7839,6 @@ int temporalunitInsideSelect( ListExpr args )
 */
 Operator temporalunitinside( "inside",
                              TemporalUnitInsideSpec,
-                             4,
                              temporalunitinsidemap,
                              temporalunitInsideSelect,
                              TemporalUnitInsideTypeMap);
@@ -8000,7 +7974,6 @@ ValueMapping TemporalUnitSometimesMap[] = {
 */
 Operator temporalunitsometimes( "sometimes",
                                 TemporalUnitSometimesSpec,
-                                2,
                                 TemporalUnitSometimesMap,
                                 TemporalUnitBoolAggrSelect,
                                 TemporalUnitBoolAggrTypeMap);
@@ -8100,7 +8073,6 @@ ValueMapping TemporalUnitNeverMap[] = {
 */
 Operator temporalunitnever( "never",
                             TemporalUnitNeverSpec,
-                            2,
                             TemporalUnitNeverMap,
                             TemporalUnitBoolAggrSelect,
                             TemporalUnitBoolAggrTypeMap);
@@ -8199,7 +8171,6 @@ ValueMapping TemporalUnitAlwaysMap[] = {
 */
 Operator temporalunitalways( "always",
                              TemporalUnitAlwaysSpec,
-                             2,
                              TemporalUnitAlwaysMap,
                              TemporalUnitBoolAggrSelect,
                              TemporalUnitBoolAggrTypeMap);
@@ -8680,7 +8651,6 @@ ValueMapping TU_VMMap_TheUnit[] =
 */
 Operator temporalunittheupoint( "the_unit",
                             TU_Spec_TheUnit,
-                            14,
                             TU_VMMap_TheUnit,
                             TU_Select_TheUnit,
                             TU_TM_TheUnit);
@@ -8808,7 +8778,6 @@ ValueMapping TU_VMMap_TheIvalue[] =
 */
 Operator temporalunittheivalue( "the_ivalue",
                             TU_Spec_TheIvalue,
-                            6,
                             TU_VMMap_TheIvalue,
                             TU_Select_TheIvalue,
                             TU_TM_TheIvalue);
@@ -9859,7 +9828,6 @@ Operator temporalunitvalisequal
 (
  "=",
  TUEqVSpec,
- 80,
  TU_VMMap_ComparePredicateValue,
  TU_Select_ComparePredicateValue<0>,
  TUCompareValueEqPredicatesTypeMap
@@ -9869,7 +9837,6 @@ Operator temporalunitvalisnotequal
 (
  "#",
  TUNEqVSpec,
- 80,
  TU_VMMap_ComparePredicateValue,
  TU_Select_ComparePredicateValue<1>,
  TUCompareValueEqPredicatesTypeMap
@@ -9879,7 +9846,6 @@ Operator temporalunitvalsmaller
 (
  "<",
  TULtVSpec,
- 80,
  TU_VMMap_ComparePredicateValue,
  TU_Select_ComparePredicateValue<2>,
  TUCompareValuePredicatesTypeMap
@@ -9889,7 +9855,6 @@ Operator temporalunitvalbigger
 (
  ">",
  TUBtVSpec,
- 80,
  TU_VMMap_ComparePredicateValue,
  TU_Select_ComparePredicateValue<3>,
  TUCompareValuePredicatesTypeMap
@@ -9899,7 +9864,6 @@ Operator temporalunitvalsmallereq
 (
  "<=",
  TULtEqVSpec,
- 80,
  TU_VMMap_ComparePredicateValue,
  TU_Select_ComparePredicateValue<4>,
  TUCompareValuePredicatesTypeMap
@@ -9909,7 +9873,6 @@ Operator temporalunitvalbiggereq
 (
  ">=",
  TUBtEqVSpec,
- 80,
  TU_VMMap_ComparePredicateValue,
  TU_Select_ComparePredicateValue<5>,
  TUCompareValuePredicatesTypeMap
@@ -10680,7 +10643,6 @@ WhenSelect( ListExpr args )
 */
 Operator temporalunitwhen( "when",
                             TemporalSpecWhen,
-                            10,
                             temporalunitwhenmap,
                             WhenSelect,
                             UnitWhenTypeMap );
@@ -11024,7 +10986,6 @@ int containsSelect(ListExpr args) {
 */
 Operator temporalcontains("contains",
                           ContainsSpec,
-                          4,
                           containsvm,
                           containsSelect,
                           containsTM);
@@ -11244,7 +11205,6 @@ OperatorSpec getIntervalSpec(
 Operator getIntervalOp(
   "getInterval",
   getIntervalSpec.getStr(),
-  13,
   getIntervalVM,
   getIntervalSelect,
   getIntervalTM

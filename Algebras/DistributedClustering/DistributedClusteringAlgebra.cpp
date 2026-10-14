@@ -415,7 +415,6 @@ OperatorSpec dbDacScanSpec(
 */
   Operator dbDacScanOp("dbdacscan",
                        dbDacScanSpec.getStr(),
-                       4,
                        dbDacScanVM,
                        dbDacScanSel,
                        dbDacScanTM

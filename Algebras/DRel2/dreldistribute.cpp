@@ -1486,7 +1486,6 @@ Value mapping of the distribute operator to distribute by consistent hash.
     Operator drelfdistributeOp(
         "drelfdistribute",
         drelfdistributeSpec.getStr( ),
-        28,
         drelfdistributeVM,
         distributeSelect,
         distributeTM<DFRel, DFArray>
@@ -1560,7 +1559,6 @@ Value mapping of the distribute operator to distribute by consistent hash.
     Operator dreldistributeOp(
         "dreldistribute",
         dreldistributeSpec.getStr( ),
-        28,
         dreldistributeVM,
         distributeSelect,
         distributeTM<DRel, DArray>

@@ -997,154 +997,132 @@ const string getcellKDTree3dSpec  =
 */
 Operator createirgrid2d( "create_irgrid2d",
     createIrGrid2dSpec,
-    1,
     irgdrid2dCreateMap,
     IrGrid2dCreateSelect,
     IrGrid2dCreateTypeMap );
 
 Operator feedirgrid2d( "feed",
     feedIrGrid2dSpec,
-    1,
     irgdrid2dFeedMap,
     IrGrid2dFeedSelect,
     IrregularGrid2D::IrGrid2dFeedTypeMap );
 
 Operator cellnosirgrid2d( "cellnos_ir",
     cellnosIrGrid2dSpec,
-    1,
     irgdrid2dCellnosMap,
     IrGrid2dCellnosSelect,
     IrregularGrid2D::IrGrid2dCellnosTypeMap );
 
 Operator sccirgrid2d( "scc_ir2d",
     sccIrGrid2dSpec,
-    1,
     irgrid2dSCCMap,
     IrGrid2dSCCSelect,
     IrregularGrid2D::IrGrid2dSCCTypeMap );
 
 Operator getcellirgrid2d( "getcell_ir2d",
     getcellIrGrid2dSpec,
-    1,
     irgrid2dGetCellMap,
     IrGrid2dGetCellSelect,
     IrregularGrid2D::IrGrid2dGetCellTypeMap );
 
 Operator bboxirgrid2d( "bbox_grid",
     bboxIrGrid2dSpec,
-    1,
     irgrid2dBBoxMap,
     IrGrid2dBBoxSelect,
     IrregularGrid3D::IrGrid2dBBoxTypeMap );
 
 Operator createirgrid3d( "create_irgrid3d",
     createIrGrid3dSpec,
-    1,
     irgdrid3dCreateMap,
     IrGrid3dCreateSelect,
     IrGrid3dCreateTypeMap );
 
 Operator feedirgrid3d( "feed",
     feedIrGrid3dSpec,
-    1,
     irgdrid3dFeedMap,
     IrGrid3dFeedSelect,
     IrregularGrid3D::IrGrid3dFeedTypeMap );
 
 Operator cellnosirgrid3d( "cellnos_ir",
     cellnosIrGrid3dSpec,
-    1,
     irgdrid3dCellnosMap,
     IrGrid3dCellnosSelect,
     IrregularGrid3D::IrGrid3dCellnosTypeMap );
 
 Operator sccirgrid3d( "scc_ir3d",
     sccIrGrid3dSpec,
-    1,
     irgrid3dSCCMap,
     IrGrid3dSCCSelect,
     IrregularGrid3D::IrGrid3dSCCTypeMap );
 
 Operator getcellirgrid3d( "getcell_ir3d",
     getcellIrGrid3dSpec,
-    1,
     irgrid3dGetCellMap,
     IrGrid3dGetCellSelect,
     IrregularGrid3D::IrGrid3dGetCellTypeMap );
 
 Operator bboxirgrid3d( "bbox_grid3d",
     bboxIrGrid3dSpec,
-    1,
     irgrid3dBBoxMap,
     IrGrid3dBBoxSelect,
     IrregularGrid3D::IrGrid3dBBoxTypeMap );
 
 Operator create2dtree( "create_2dtree",
     create2DTreeSpec,
-    1,
     kdtree2dCreateMap,
     KDTree2DCreateSelect,
     KDTree2DCreateTypeMap );
 
 Operator cellnoskdtree2d( "cellnos_kd",
     cellnosKDTree2dSpec,
-    1,
     kdtree2dCellnosMap,
     KDTree2dCellnosSelect,
     KDTree2D::Kdtree2dCellnosTypeMap );
 
 Operator scckdtree2d( "scc_kd",
     sccKDTree2dSpec,
-    1,
     kdtree2dSCCMap,
     KDTree2dSCCSelect,
     KDTree2D::Kdtree2dSCCTypeMap );
 
 Operator getcellkdtree2d( "getcell_kd",
     getcellKDTree2dSpec,
-    1,
     kdtree2dGetCellMap,
     KDTree2dGetCellSelect,
     KDTree2D::Kdtree2dGetCellTypeMap );
     
 Operator feedkdtree2d( "feed",
     feedKDTree2dSpec,
-    1,
     kdtree2dFeedMap,
     KDTree2dFeedSelect,
     KDTree2D::KdTree2dFeedTypeMap );
 
 Operator create3dtree( "create_3dtree",
     create3DTreeSpec,
-    1,
     kdtree3dCreateMap,
     KDTree3DCreateSelect,
     KDTree3DCreateTypeMap );
 
 Operator cellnoskdtree3d( "cellnos_kd",
     cellnosKDTree3dSpec,
-    1,
     kdtree3dCellnosMap,
     KDTree3dCellnosSelect,
     KDTree3D::Kdtree3dCellnosTypeMap );
     
 Operator feedkdtree3d( "feed",
     feedKDTree3dSpec,
-    1,
     kdtree3dFeedMap,
     KDTree3dFeedSelect,
     KDTree3D::KdTree3dFeedTypeMap );  
 
 Operator scckdtree3d( "scc_3d",
     sccKDTree3dSpec,
-    1,
     kdtree3dSCCMap,
     KDTree3dSCCSelect,
     KDTree3D::Kdtree3dSCCTypeMap );   
 
 Operator getcellkdtree3d( "getcell_3d",
     getcellKDTree3dSpec,
-    1,
     kdtree3dGetCellMap,
     KDTree3dGetCellSelect,
     KDTree3D::Kdtree3dGetCellTypeMap );     

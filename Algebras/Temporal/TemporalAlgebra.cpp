@@ -18708,35 +18708,30 @@ OperatorInfo GridCellEventsOperatorInfo( "gridcellevents",
 */
 Operator temporalisempty( "isempty",
                           TemporalSpecIsEmpty,
-                          12,
                           temporalisemptymap,
                           TemporalSimpleSelect,
                           TemporalTypeMapBool );
 
 Operator temporalequal( "=",
                         TemporalSpecEQ,
-                        8,
                         temporalequalmap,
                         TemporalDualSelect,
                         TemporalTemporalTypeMapBool );
 
 Operator temporalequal2( "equal",
                         TemporalSpecEQ2,
-                        4,
                         temporalequalmap2,
                         TemporalDualSelect2,
                         TemporalTemporalTypeMapBool2 );
 
 Operator temporalnotequal( "#",
                            TemporalSpecNE,
-                           8,
                            temporalnotequalmap,
                            TemporalDualSelect,
                            TemporalTemporalTypeMapBool );
 
 Operator temporalnotequal2( "nonequal",
                            TemporalSpecNE2,
-                           4,
                            temporalnotequalmap2,
                            TemporalDualSelect2,
                            TemporalTemporalTypeMapBool2 );
@@ -18767,70 +18762,60 @@ Operator temporalgreaterequal( ">=",
 
 Operator temporalintersects( "intersects",
                              TemporalSpecIntersects,
-                             3,
                              temporalintersectsmap,
                              RangeDualSelect,
                              RangeRangeTypeMapBool );
 
 Operator temporalinside( "inside",
                          TemporalSpecInside,
-                         6,
                          temporalinsidemap,
                          RangeDualSelect,
                          RangeBaseTypeMapBool1 );
 
 Operator temporalbefore( "before",
                          TemporalSpecBefore,
-                         9,
                          temporalbeforemap,
                          RangeDualSelect,
                          RangeBaseTypeMapBool2 );
 
 Operator temporalintersection( "intersection",
                                TemporalSpecIntersection,
-                               3,
                                temporalintersectionmap,
                                RangeDualSelect,
                                RangeRangeTypeMapRange );
 
 Operator temporalunion( "union",
                         TemporalSpecUnion,
-                        3,
                         temporalunionmap,
                         RangeDualSelect,
                         RangeRangeTypeMapRange );
 
 Operator temporalminus( "minus",
                         TemporalSpecMinus,
-                        3,
                         temporalminusmap,
                         RangeDualSelect,
                         RangeRangeTypeMapRange );
 
 Operator temporalmin( "minimum",
                       TemporalSpecMinimum,
-                      3,
                       temporalminmap,
                       RangeSimpleSelect,
                       RangeTypeMapBase );
 
 Operator temporalmax( "maximum",
                       TemporalSpecMaximum,
-                      3,
                       temporalmaxmap,
                       RangeSimpleSelect,
                       RangeTypeMapBase );
 
 Operator temporalnocomponents( "no_components",
                                TemporalSpecNoComponents,
-                               8,
                                temporalnocomponentsmap,
                                TemporalSetValueSelect,
                                TemporalSetValueTypeMapInt );
 
 Operator temporalinst( "inst",
                        TemporalSpecInst,
-                       5,
                        temporalinstmap,
                        IntimeSimpleSelect,
                        IntimeTypeMapInstant );
@@ -18840,35 +18825,30 @@ More operator specifications...
 */
 Operator temporalval( "val",
                       TemporalSpecVal,
-                      5,
                       temporalvalmap,
                       IntimeSimpleSelect,
                       IntimeTypeMapBase );
 
 Operator temporalatinstant( "atinstant",
                             TemporalSpecAtInstant,
-                            5,
                             temporalatinstantmap,
                             MovingSimpleSelect,
                             MovingInstantTypeMapIntime );
 
 Operator temporalatperiods( "atperiods",
                             TemporalSpecAtPeriods,
-                            5,
                             temporalatperiodsmap,
                             MovingSimpleSelect,
                             MovingPeriodsTypeMapMoving );
 
 Operator temporalwhen( "when",
                             TemporalSpecWhen,
-                            4,
                             temporalwhenmap,
                             MovingSimpleSelect,
                             WhenTM );
 
 Operator temporaldeftime( "deftime",
                           TemporalSpecDefTime,
-                          5,
                           temporaldeftimemap,
                           MovingSimpleSelect,
                           MovingTypeMapPeriods );
@@ -18881,42 +18861,36 @@ Operator temporaltrajectory( "trajectory",
 
 Operator temporalpresent( "present",
                           TemporalSpecPresent,
-                          8,
                           temporalpresentmap,
                           MovingInstantPeriodsSelect,
                           MovingInstantPeriodsTypeMapBool);
 
 Operator temporalpasses( "passes",
                          TemporalSpecPasses,
-                         6,
                          temporalpassesmap,
                          MovingBaseSelect,
                          MovingBaseTypeMapBool);
 
 Operator temporalinitial( "initial",
                           TemporalSpecInitial,
-                          5,
                           temporalinitialmap,
                           MovingSimpleSelect,
                           MovingTypeMapIntime );
 
 Operator temporalfinal( "final",
                         TemporalSpecFinal,
-                        5,
                         temporalfinalmap,
                         MovingSimpleSelect,
                         MovingTypeMapIntime );
 
 Operator temporalat( "at",
                      TemporalSpecAt,
-                     4,
                      temporalatmap,
                      MovingBaseSelect,
                      MovingBaseTypeMapMoving );
 
 Operator temporalbox3d( "box3d",
                         Box3dSpec,
-                        5,
                         temporalbox3dmap,
                         Box3dSelect,
                         Box3dTypeMap );
@@ -18924,7 +18898,6 @@ Operator temporalbox3d( "box3d",
 
 Operator temporalsamplempoint("samplempoint",
                        SampleMPointSpec,
-                       3,
                        samplempointmap,
                        SampleMPointSelect,
                        SampleMPointTypeMap );
@@ -18937,28 +18910,24 @@ Operator temporaldistance( "distance",
 
 Operator temporaldistanceavg( "distanceAvg",
                            TemporalSpecDistanceAvg,
-                           2,
                            DistanceAvgMaps,
                            DistanceAvgSelect,
                            DistanceAvgTypeMap);
 
 Operator temporaldistanceavglb( "distanceAvgLB",
                            TemporalSpecDistanceAvgLB,
-                           4,
                            DistanceAvgLBMaps,
                            DistanceAvgLBUBSelect,
                            DistanceAvgLBUBTypeMap);
 
 Operator temporaldistanceavgub( "distanceAvgUB",
                            TemporalSpecDistanceAvgUB,
-                           4,
                            DistanceAvgUBMaps,
                            DistanceAvgLBUBSelect,
                            DistanceAvgLBUBTypeMap);
 
 Operator temporalsquareddistance( "squareddistance",
                            TemporalSpecSquaredDistance,
-                           3,
                            mpointsquareddistancemap,
                            SquaredDistanceSelect,
                            SquaredDistanceTypeMap );
@@ -18983,49 +18952,42 @@ Operator temporallength( "length",
 
 Operator temporalsimplify( "simplify",
                            TemporalSpecSimplify,
-                           3,
                            simplifymap,
                            SimplifySelect,
                            MovingTypeMapSimplify );
 
 Operator temporalintegrate( "integrate",
                            TemporalSpecIntegrate,
-                           2,
                            integratemap,
                            IntegrateSelect,
                            TypeMapIntegrate );
 
 Operator temporallinearize( "linearize",
                            TemporalSpecLinearize,
-                           2,
                            linearizemap,
                            LinearizeSelect,
                            TypeMapLinearize );
 
 Operator temporallinearize2( "linearize2",
                            TemporalSpecLinearize2,
-                           2,
                            linearize2map,
                            LinearizeSelect,
                            TypeMapLinearize2 );
 
 Operator temporalapproximate( "approximate",
                            TemporalSpecApproximate,
-                           6,
                            approximatemap,
                            ApproximateSelect,
                            TypeMapApproximate );
 
 Operator temporalminimum( "minimum",
                            TemporalSpecMin,
-                           3,
                            minmap,
                            MinMaxSelect,
                            TypeMapMinMax );
 
 Operator temporalmaximum( "maximum",
                            TemporalSpecMax,
-                           3,
                            maxmap,
                            MinMaxSelect,
                            TypeMapMinMax );
@@ -19044,7 +19006,6 @@ Operator breaks( "breaks",
 
 Operator temporalgk( "gk",
                      TemporalSpecgk,
-                     2,
                      gkVM,
                      gkSelect,
                      MovingTypeMapgk );
@@ -19057,49 +19018,42 @@ Operator temporalvertices( "vertices",
 
 Operator temporalunits( "units",
                         TemporalSpecUnits,
-                        5,
                         temporalunitsmap,
                         MovingSimpleSelect,
                         MovingTypeMapUnits );
 
 Operator temporalgetunit( "getunit",
                         TemporalSpecGetUnit,
-                        5,
                         temporalgetunitmap,
                         MovingSimpleSelect,
                         MovingTypeMapGetUnit );
 
 Operator temporalgetposition( "getPosition",
                         TemporalSpecGetPosition,
-                        7,
                         temporalgetpositionmap,
                         TemporalGetPositionSelect,
                         TemporalGetPositionTypeMap );
 
 Operator temporalbbox( "bbox",
                        TemporalSpecBBox,
-                       7,
                        temporalbboxmap,
                        TemporalBBoxSelect,
                        TemporalBBoxTypeMap );
 
 Operator temporalmbrange( "mbrange",
                        TemporalSpecMBRange,
-                       5,
                        temporalmbrangemap,
                        TemporalMBRangeSelect,
                        TemporalMBRangeTypeMap );
 
 Operator temporalbbox2d( "bbox2d",
                          TemporalSpecBBox2d,
-                         5,
                          temporalbbox2dmap,
                          TemporalBBox2dSelect,
                          TemporalBBox2dTypeMap );
 
 Operator temporalbboxold( "bboxold",
                           TemporalSpecBBoxOld,
-                          6,
                           temporalbboxoldmap,
                           TemporalBBoxSelect,
                           TemporalBBoxTypeMap );
@@ -19154,7 +19108,6 @@ Operator temporaltheperiod( "theperiod",
 
 Operator temporalbox2d( "box2d",
                          TemporalBox2dSpec,
-                         4,
                          temporalbox2dmap,
                          TemporalBox2dSelect,
                          Box2dTypeMap );
@@ -19179,7 +19132,6 @@ Operator mint2mreal( "mint2mreal",
 
 Operator extdeftime( "extdeftime",
                       TemporalExtDeftimeSpec,
-                      2,
                       extdeftimemap,
                       ExtDeftimeSelect,
                       ExtDeftimeTypeMap );
@@ -19190,7 +19142,6 @@ More operator specifications...
 */
 Operator temporaltherange( "theRange",
                      TemporalTheRangeSpec,
-                     5,
                      temporaltherangemap,
                      TemporalTheRangeSelect,
                      TemporalTheRangeTM );
@@ -19227,7 +19178,6 @@ Operator hat( "hat",
 
 Operator restrict( "restrict",
                     restrictSpec,
-                    2,
                     restrictVM,
                     restrictSelect,
                     restrictTM );
@@ -19252,7 +19202,6 @@ Operator submove( "submove",
 
 Operator temporaluval( "uval",
                       TemporalSpecUVal,
-                      1,
                       temporaluvalmap,
                       UIntimeSimpleSelect,
                       UIntimeTypeMapBase );
@@ -19281,7 +19230,6 @@ Operator turns( TurnsOperatorInfo,
 
 Operator mappingtimeshift( "timeshift",
                          MappingTimeShiftSpec,
-                         4,
                          MappingTimeShiftMap,
                          MovingSimpleSelect,
                          MappingTimeShiftTM );
@@ -19442,7 +19390,6 @@ Operator createCellGrid2D(
               "If (x0, y0) is not given, then the origin is set "
               "as (0.0, 0.0) by default. ",
               "query createCellgrid2D(1.0, 1.0, 3.0, 3.0, 5)"),
-          getCreateCellGrid2DCTM().getVMCount(),
           createCellGrid2DValueMap,
           createCellGrid2DSelect,
           createCellGrid2DTypeMap);
@@ -19950,7 +19897,6 @@ Operator createCellGrid3D(
               " the number of cells in x and y direction. "
               "If the origin is not set, it is (0.0, 0.0, 0.0) by default. ",
               "query createCellgrid2D(1.0, 1.0, 1.0, 3.0, 3.0, 3.0, 5, 5)"),
-          getCreateCellGrid3DCTM().getVMCount(),
           createCellGrid3DValueMap,
           createCellGrid3DSelect,
           createCellGrid3DTypeMap);
@@ -20628,7 +20574,6 @@ OperatorInfo forceToDurationOperatorInfo(
 Operator forcetoduration(
   "forceToDuration",
   forceToDurationOperatorInfo.str(),
-  2,
   forceToDurationVMs,
   forceToDurationSelect,
   forceToDurationTM
@@ -20793,7 +20738,6 @@ const std::string moveToSpec =
 Operator moveTo(
           "moveTo",
           moveToSpec,
-          4,
           moveToVM,
           moveToSelect,
           moveToTM);
@@ -20975,7 +20919,6 @@ const std::string fillGapsSpec =
 Operator fillGaps(
            "fillGaps",
            fillGapsSpec,
-           2,
            fillGapsVM,
            fillGapsSelect,
            fillGapsTM);
@@ -21320,7 +21263,6 @@ const std::string componentsSpec =
 Operator components(
            "components",
            componentsSpec,
-           2,
            componentsVM,
            componentsSelect,
            componentsTM);
@@ -21535,7 +21477,6 @@ Operator instance
 Operator createPeriodsOp(
    "createPeriods",
    createPeriodsSpec,
-   2,
    createPeriodsVM,
    createPeriodsSelect,
    createPeriodsTM 
@@ -21691,7 +21632,6 @@ OperatorSpec replaceSpec(
 Operator replaceOp(
    "replace",
    replaceSpec.getStr(),
-   2,
    replaceVM,
    replaceSelect,
    replaceTM 
@@ -21791,7 +21731,6 @@ OperatorSpec removeSpec(
 Operator removeOp(
   "removePeriods",
   removeSpec.getStr(),
-  6,
   removeVM,
   removeSelect,
   removeTM
@@ -21858,7 +21797,6 @@ OperatorSpec getGKZoneSpec(
 Operator getGKZoneOp(
   "getGKZone",
    getGKZoneSpec.getStr(),
-   2,
    getGKZoneVM,
    getGKZoneSelect,
    getGKZoneTM
@@ -22027,7 +21965,6 @@ OperatorSpec cbboxSpec(
 Operator cbbox(
   "cbbox",
   cbboxSpec.getStr(),
-  3,
   cbboxVMs,
   cbboxSelect,
   cbboxTM   
@@ -22275,7 +22212,6 @@ OperatorSpec mpoint2cmpointSpec(
 Operator mpoint2cmpoint(
   "mpoint2cmpoint",
   mpoint2cmpointSpec.getStr(),
-  2,
   mpoint2cmpointVMs,
   mpoint2cmpointSelect,
   mpoint2cmpointTM
@@ -22330,7 +22266,6 @@ OperatorSpec traversedSpec(
 Operator traversed(
   "traversed",
   traversedSpec.getStr(),
-  2,
   traversedVMs,
   traversedSelect,
   traversedTM
@@ -22338,7 +22273,6 @@ Operator traversed(
 
 Operator stretch( "stretch",
                     stretchSpec,
-                    2,
                     StretchVMs,
                     forceToDurationSelect,
                     StretchTypeMap);

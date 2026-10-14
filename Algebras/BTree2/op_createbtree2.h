@@ -42,7 +42,6 @@ class createbtree2 {
   static Operator def1;
   static Operator def2;
   static ValueMapping valueMappings[];
-  static int numberOfValueMappings;
   static void AppendString(BTree2* inBtree, int attrIndex, 
                    GenericRelationIterator* iter);
   static void AppendInt(BTree2* btree, int attrIndex, 

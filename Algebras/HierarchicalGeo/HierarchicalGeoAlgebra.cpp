@@ -12158,49 +12158,42 @@ Operators
 
 Operator uncertainepsilon( "epsilon",
                               UncertainSpecEpsilon,
-                              3,
                               uncertainepsilonmap,
                               UncertainSimpleSelect,
                               UncertainTypeMapReal );
 
 Operator hierarchicalnocomponents( "no_components",
                               HierarchicalSpecNoComponents,
-                              3,
                               hierarchicalnocomponentsmap,
                               HierarchicalSimpleSelect,
                               HierarchicalTypeMapInt );
 
 Operator uncertaintrajectory( "trajectory",
                               UncertainMovingSpecTrajectory,
-                              4,
                               uncertaintrajectorymap,
                               UncertainTemporalSelect,
                               UncertainMovingTypeMapSpatial);
 
 Operator uncertaintemporaldeftime( "deftime",
                               TemporalSpecDefTime,
-                              3,
                               hierarchicaldeftimemap,
                               HierarchicalSimpleSelect,
                               UncertainMovingTypeMapPeriods );
 
 Operator uncertaintemporalpresent( "present",
                               UncertainTemporalSpecPresent,
-                              6,
                               uncertaintemporalpresentmap,
                               UncertainMovingInstantPeriodsSelect,
                               UncertainMovingInstantPeriodsTypeMapBool);
 
 Operator uncertaintemporalatinstant( "atinstant",
                               UncertainTemporalSpecAtInstant,
-                              4,
                               uncertaintemporalatinstantmap,
                               UncertainTemporalAtTimeSelect,
                               UncertainMovingInstantTypeMapIntime );
 
 Operator uncertaintemporalatperiods( "atperiods",
                               UncertainTemporalSpecAtPeriods,
-                              3,
                               hierarchicaltemporalatperiodsmap,
                               HierarchicalSimpleSelect,
                               UncertainMovingPeriodsTypeMapMoving );
@@ -12213,56 +12206,48 @@ Operator uncertaintemporalunits( "units",
 
 Operator uncertaintemporaldpasses( "d_passes",
                               UncertainTemporalSpecDPasses,
-                              8,
                               uncertaindpassesmap,
                               UncertainPassesSelect,
                               UncertainDPassesTypeMapBool );
 
 Operator hierarchicaltemporalpasses( "passes",
                               HierarchicalTemporalSpecPasses,
-                              2,
                               hierarchicalpassesmap,
                               HierarchicalPassesSelect,
                               HierarchicalPassesTypeMapBool );
 
 Operator uncertaintemporalppasses( "p_passes",
                               UncertainTemporalSpecPPasses,
-                              6,
                               uncertainppassesmap,
                               UncertainPassesSelect,
                               UncertainPPassesTypeMapBool );
 
 Operator uncertaintemporaldat( "d_at",
                               UncertainTemporalSpecDAt,
-                              8,
                               uncertaindatmap,
                               UncertainPassesSelect,
                               UncertainDAtTypeMapMoving );
 
 Operator hierarchicaltemporalat( "at",
                               HierarchicalTemporalSpecAt,
-                              2,
                               hierarchicalatmap,
                               HierarchicalPassesSelect,
                               HierarchicalAtTypeMapMoving );
 
 Operator uncertaintemporalpat( "p_at",
                               UncertainTemporalSpecPAt,
-                              6,
                               uncertainpatmap,
                               UncertainPassesSelect,
                               UncertainPAtTypeMapMoving );
 
 Operator temporaltouncertain( "touncertain",
                               TemporalSpecToUncertain,
-                              2,
                               temporaltouncertainmap,
                               TemporalToUncertainSelect,
                               UncertainTypeMapBaseToUncertain );
 
 Operator movingpointgeneralize( "generalize",
                               MovingSpecGeneralize,
-                              2,
                               generalizemap,
                               TemporalToHierarchySelect,
                               MovingTypeMapHierarchy );
@@ -12275,7 +12260,6 @@ Operator hierarchicalmovingpointgetmpoint( "getmpoint",
 
 Operator hierarchicalmovingpointgetcmpoint( "getcmpoint",
                               HierarchicalMovingSpecGetCMPoint,
-                              2,
                               hierarchicalgetcmpointmap,
                               HierarchicalToUncertainSelect,
                               HierarchicalMovingTypeMapUncertainMoving );

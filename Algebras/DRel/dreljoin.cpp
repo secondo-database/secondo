@@ -600,7 +600,6 @@ Operator specification of the sortmergejoin operator.
     Operator sortmergejoinOp(
         "sortmergejoin",
         sortmergejoinSpec.getStr( ),
-        4,
         sortmergejoinVM,
         drelsimpleJoinSelect,
         drelsimpleJoinTM<0>
@@ -609,7 +608,6 @@ Operator specification of the sortmergejoin operator.
     Operator itHashJoinOp(
         "itHashJoin",
         itHashJoinSpec.getStr( ),
-        4,
         itHashJoinVM,
         drelsimpleJoinSelect,
         drelsimpleJoinTM<1>

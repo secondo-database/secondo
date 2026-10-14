@@ -97,7 +97,7 @@ int be_shareSelect(ListExpr args) {
 1.3.6 Operator instance
 
 */
-Operator be_shareOp("be_share", be_shareSpec.getStr(), sizeof(be_shareVM),
+Operator be_shareOp("be_share", be_shareSpec.getStr(),
                     be_shareVM, be_shareSelect, be_shareTM);
 
 } // namespace BasicEngine

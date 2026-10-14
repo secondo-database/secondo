@@ -109,7 +109,7 @@ int be_partRRSelect(ListExpr args) {
 1.2.6 Operator instance
 
 */
-Operator be_partRROp("be_part_rr", be_partRRSpec.getStr(), sizeof(be_partRRVM),
+Operator be_partRROp("be_part_rr", be_partRRSpec.getStr(),
                      be_partRRVM, be_partRRSelect, be_partRRTM);
 
 } // namespace BasicEngine

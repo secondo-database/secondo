@@ -14602,35 +14602,30 @@ static const string translatespec =
 
 static Operator atinstant("atinstant",
                           atinstantspec,
-                          2,
                           atinstantvaluemap,
                           AtInstantSelect,
                           AtInstantTypeMap);
 
 static Operator initial("initial",
                         initialspec,
-                        2,
                         initialvaluemap,
                         InitialFinalSelect,
                         InitialFinalTypeMap);
 
 static Operator final("final",
                       finalspec,
-                      2,
                       finalvaluemap,
                       InitialFinalSelect,
                       InitialFinalTypeMap);
 
 static Operator inst("inst",
                       instspec,
-                      1,
                       instvaluemap,
                       IRegion2Select,
                       IRegion2ToInstantTypeMap);
 
 static Operator val("val",
                       valspec,
-                      1,
                       valvaluemap,
                       IRegion2Select,
                       IRegion2ToRegion2TypeMap);
@@ -14649,21 +14644,18 @@ static Operator uregiontouregion2("uregiontouregion2",
 
 static Operator scale("scale",
                 scalespec,
-                2,
                 scalevaluemap,
                 ScaleSelect,
                 ScaleTypeMap);
 
 static Operator scale2("scale2",
                 scale2spec,
-                2,
                 scale2valuemap,
                 Scale2Select,
                 Scale2TypeMap);
 
 static Operator mr3translate("translate",
                 translatespec,
-                2,
                 translatevaluemap,
                 TranslateSelect,
                 TranslateTypeMap);
@@ -14802,7 +14794,6 @@ static const string setscalespec =
 
 static Operator setscale("setscalefactor",
                 setscalespec,
-                3,
                 SetScaleValueMap,
                 SetScaleSelect,
                 SetScaleTypeMap);
@@ -14916,7 +14907,6 @@ const string timeshiftspec =
 
 Operator mr3timeshift("timeshift",
          timeshiftspec,
-         2,
          MR3timeshiftValueMap,
          MR3timeshiftSelect,
          MR3timeshiftTypeMap);
@@ -15184,14 +15174,12 @@ static const string presentspec =
 
 static Operator deftime("deftime",
                         deftimespec,
-                        1,
                         deftimevaluemap,
                         deftimeSelect,
                         deftimeTypeMap);
 
 static Operator present("present",
                         presentspec,
-                        2,
                         presentvaluemap,
                         PresentSelect,
                         PresentTypeMap);

@@ -94,7 +94,7 @@ int be_unionSelect(ListExpr args) {
 1.10.6 Operator instance
 
 */
-Operator be_unionOp("be_union", be_unionVMSpec.getStr(), sizeof(be_unionVM),
+Operator be_unionOp("be_union", be_unionVMSpec.getStr(),
                     be_unionVM, be_unionSelect, be_unionTM);
 
 } // namespace BasicEngine

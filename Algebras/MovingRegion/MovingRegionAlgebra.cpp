@@ -9699,70 +9699,60 @@ namespace movingregionops{
 
 static Operator atinstant("atinstant",
                           atinstantspec,
-                          2,
                           atinstantvaluemap,
                           AtInstantSelect,
                           AtInstantTypeMap);
 
 static Operator initial("initial",
                         initialspec,
-                        1,
                         initialvaluemap,
                         MRegionSelect,
                         MRegionToIRegionTypeMap);
 
 static Operator final("final",
                       finalspec,
-                      1,
                       finalvaluemap,
                       MRegionSelect,
                       MRegionToIRegionTypeMap);
 
 static Operator inst("inst",
                      instspec,
-                     1,
                      instvaluemap,
                      IRegionSelect,
                      IRegionToInstantTypeMap);
 
 static Operator val("val",
                     valspec,
-                    1,
                     valvaluemap,
                     IRegionSelect,
                     IRegionToRegionTypeMap);
 
 static Operator deftime("deftime",
                         deftimespec,
-                        1,
                         deftimevaluemap,
                         MRegionSelect,
                         MRegionToPeriodsTypeMap);
 
 static Operator present("present",
                         presentspec,
-                        2,
                         presentvaluemap,
                         PresentSelect,
                         PresentTypeMap);
 
 static Operator intersection("intersection",
                              intersectionspec,
-                             1,
                              intersectionvaluemap,
                              MPointMRegionSelect,
                              MPointMRegionToMPointTypeMap);
 
 static Operator inside("inside",
                        insidespec,
-                       1,
                        insidevaluemap,
                        MPointMRegionSelect,
                        MPointMRegionToMBoolTypeMap);
 
 static Operator at("at",
                    atspec,
-                   2,
                    atvaluemap,
                    AtSelect,
                    AtTypeMap);
@@ -9782,7 +9772,6 @@ static Operator Union("union",
 #ifdef MRA_TRAVERSED
 static Operator traversed("traversed",
                           traversedspec,
-                          1,
                           traversedvaluemap,
                           MRegionSelect,
                           MRegionToRegionTypeMap);
@@ -9798,14 +9787,12 @@ static Operator mraprec("mraprec",
 
 static Operator bbox("bbox",
                      bboxspec,
-                     3,
                      BboxValueMap,
                      BBoxSelect,
                      BboxTypeMap);
 
 static Operator bbox2d("bbox2d",
                        bbox2dspec,
-                       3,
                        Bbox2dValueMap,
                        BBoxSelect,
                        Bbox2dTypeMap);
@@ -9818,7 +9805,6 @@ static Operator move("move",
 
 static Operator vertextrajectory("vertextrajectory",
                    verttrajectoryspec,
-                   2,
                    verttrajectoryvaluemap,
                    VertTrajectorySelect,
                    VertTrajectoryTypeMap);

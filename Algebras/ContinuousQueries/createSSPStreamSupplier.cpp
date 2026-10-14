@@ -241,7 +241,6 @@ const std::string createSSPStreamSupplierOpSpec =
 Operator createSSPStreamSupplier_Op(
     "createSSPStreamSupplier",
     createSSPStreamSupplierOpSpec,
-    1,
     createSSPStreamSupplier,
     createSSPStreamSupplier_Select,
     createSSPStreamSupplier_TM

@@ -147,7 +147,6 @@ string get_maxvaluesize::Specification() {
          " ) )";
 }
 
-int get_maxvaluesize::numberOfValueMappings = 2;
 ValueMapping get_maxvaluesize::valueMappings[] = {
                   get_maxvaluesize::ValueMapping_Default,
                   get_maxvaluesize::ValueMapping_BTree,
@@ -156,7 +155,6 @@ ValueMapping get_maxvaluesize::valueMappings[] = {
 Operator get_maxvaluesize::def (
           "get_maxvaluesize",                     // name
           get_maxvaluesize::Specification(),      // specification
-          get_maxvaluesize::numberOfValueMappings,// number of functions
           get_maxvaluesize::valueMappings,        // value mapping
           get_maxvaluesize::Select,               // trivial selection function
           get_maxvaluesize::TypeMapping           // type mapping

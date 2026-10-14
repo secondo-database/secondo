@@ -644,7 +644,6 @@ const string searchWordSpec =
 Operator searchWord (
          "searchWord" ,           // name
           searchWordSpec,          // specification
-          2,
           searchWordVMs,           // value mapping
           searchWordSelect,       // selection function
           searchWordTM);
@@ -1298,7 +1297,6 @@ OperatorSpec containsPrefixSpec(
 Operator containsWordOp(
      "containsWord",                // operator's name
      containsWordSpec.getStr(),    // specification
-     4,                     // number of Value Mappings
      containsWordVM,               // value mapping array
      containsWordOrPrefixSelect,           // selection function
      containsWordOrPrefixTM                // type mapping
@@ -1307,7 +1305,6 @@ Operator containsWordOp(
 Operator containsPrefixOp(
      "containsPrefix",                // operator's name
      containsPrefixSpec.getStr(),    // specification
-     4,                     // number of Value Mappings
      containsPrefixVM,               // value mapping array
      containsWordOrPrefixSelect,           // selection function
      containsWordOrPrefixTM                // type mapping

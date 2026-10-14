@@ -34,7 +34,6 @@ class get_statistics {
 
   static Operator def;
   static ValueMapping valueMappings[];
-  static int numberOfValueMappings;
 };
 
 } // end namespace Operators

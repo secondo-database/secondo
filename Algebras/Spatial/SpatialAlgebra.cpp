@@ -9161,7 +9161,6 @@ const string SpatialSpecTranslate  =
 Operator spatialtranslate (
   "translate",
   SpatialSpecTranslate,
-  5,
   spatialtranslatemap,
   SpatialSelectTranslate,
   SpatialTranslateMap );
@@ -9279,7 +9278,6 @@ const string SpatialSpecRotate  =
 Operator spatialrotate (
   "rotate",
   SpatialSpecRotate,
-  10,
   spatialrotatemap,
   SpatialSelectRotate,
   SpatialRotateMap );
@@ -9396,7 +9394,6 @@ const string SpatialSpecScale  =
 Operator spatialscale (
   "scale",
   SpatialSpecScale,
-  10,
   spatialscalemap,
   SpatialSelectScale,
   SpatialScaleMap
@@ -12112,7 +12109,6 @@ const string SpatialSpecCreateSline  =
 Operator spatialisempty (
   "isempty",
   SpatialSpecIsEmpty,
-  5,
   spatialisemptymap,
   SpatialSelectIsEmpty,
   SpatialTypeMapBool1 );
@@ -12120,7 +12116,6 @@ Operator spatialisempty (
 Operator spatialequal (
   "=",
   SpatialSpecEqual,
-  7,
   spatialequalmap,
   SpatialSelectEqual,
   SpatialTypeMapEqual );
@@ -12128,7 +12123,6 @@ Operator spatialequal (
 Operator spatialisless (
   "<",
   SpatialSpecIsLess,
-  1,
   spatialislessmap,
   SpatialSelectIsLess,
   SpatialTypeMapIsLess );
@@ -12136,7 +12130,6 @@ Operator spatialisless (
 Operator spatialnotequal (
   "#",
   SpatialSpecNotEqual,
-  5,
   spatialnotequalmap,
   SpatialSelectCompare,
   SpatialTypeMapCompare );
@@ -12144,7 +12137,6 @@ Operator spatialnotequal (
 Operator spatialintersects (
   "intersects1",
   SpatialSpecIntersects,
-  10,
   spatialintersectsmap,
   SpatialSelectIntersects,
   IntersectsTM );
@@ -12152,7 +12144,6 @@ Operator spatialintersects (
 Operator spatialinside (
   "inside",
   SpatialSpecInside,
-  11,
   spatialinsidemap,
   SpatialSelectInside,
   InsideTypeMap );
@@ -12160,7 +12151,6 @@ Operator spatialinside (
 Operator spatialadjacent (
   "adjacent",
   SpatialSpecAdjacent,
-  5,
   spatialadjacentmap,
   SpatialSelectAdjacent,
   AdjacentTypeMap );
@@ -12190,7 +12180,6 @@ Operator spatialininterior (
 Operator spatialintersection (
   "intersection1",
   SpatialIntersectionSpec,
-  25,
   spatialintersectionVM,
   SpatialSetOpSelect,
   SpatialIntersectionTypeMap );
@@ -12198,7 +12187,6 @@ Operator spatialintersection (
 Operator spatialminus (
   "minus1",
   SpatialMinusSpec,
-  25,
   spatialminusVM,
   SpatialSetOpSelect,
   SpatialMinusTypeMap );
@@ -12206,7 +12194,6 @@ Operator spatialminus (
 Operator spatialunion (
   "union1",
   SpatialUnionSpec,
-  25,
   spatialunionVM,
   SpatialSetOpSelect,
   SpatialUnionTypeMap );
@@ -12214,7 +12201,6 @@ Operator spatialunion (
 Operator spatialcrossings (
   "crossings1",
   SpatialSpecCrossings,
-  3,
   SpatialCrossingsMap,
   SpatialSelectCrossings,
   SpatialCrossingsTM );
@@ -12229,7 +12215,6 @@ Operator spatialsingle (
 Operator spatialdistance (
   "distance",
   SpatialSpecDistance,
-  36,
   spatialdistancemap,
   SpatialSelectDistance,
   SpatialDistanceMap );
@@ -12259,7 +12244,6 @@ Operator spatialheading (
 Operator spatialnocomponents (
   "no_components",
   SpatialSpecNocomponents,
-  3,
   spatialnocomponentsmap,
   SpatialSelectNoComponents,
   SpatialNoComponentsMap );
@@ -12267,7 +12251,6 @@ Operator spatialnocomponents (
 Operator spatialnosegments (
   "no_segments",
   SpatialSpecNoSegments,
-  4,
   spatialnosegmentsmap,
   SpatialSelectNoSegments,
   SpatialNoSegmentsMap );
@@ -12275,7 +12258,6 @@ Operator spatialnosegments (
 Operator spatialbbox (
   "bbox",
   SpatialSpecBbox,
-  7,
   spatialbboxmap,
   SpatialSelectBBox,
   SpatialBBoxMap );
@@ -12283,7 +12265,6 @@ Operator spatialbbox (
 Operator spatialsize (
   "size",
   SpatialSpecSize,
-  3,
   spatialsizemap,
   SpatialSelectSize,
   SpatialSizeMap );
@@ -12291,7 +12272,6 @@ Operator spatialsize (
 Operator spatialtouchpoints (
   "touchpoints",
   SpatialSpecTouchpoints,
-  3,
   spatialtouchpointsmap,
   SpatialSelectTouchPoints,
   SpatialTouchPointsMap );
@@ -12309,7 +12289,6 @@ Operator spatialcommonborder (
 Operator spatialcenter (
   "center",
   SpatialSpecCenter,
-  2,
   SpatialCenter,
   SpatialCenter_Select,
   SpatialCenterMap );
@@ -12324,7 +12303,6 @@ Operator spatialconvexhull (
 Operator spatialadd (
   "+",
   SpatialSpecAdd,
-  1,
   spatialaddmap,
   Operator::SimpleSelect,
   SpatialAddTypeMap );
@@ -12332,7 +12310,6 @@ Operator spatialadd (
 Operator spatialwindowclippingin (
   "windowclippingin",
   SpatialSpecWindowClippingIn,
-  2,
   spatialwindowclippinginmap,
   SpatialSelectWindowClipping,
   SpatialWindowClippingMap );
@@ -12340,7 +12317,6 @@ Operator spatialwindowclippingin (
 Operator spatialwindowclippingout (
   "windowclippingout",
   SpatialSpecWindowClippingOut,
-  2,
   spatialwindowclippingoutmap,
   SpatialSelectWindowClipping,
   SpatialWindowClippingMap );
@@ -12349,7 +12325,6 @@ Operator spatialwindowclippingout (
 Operator spatialcomponents (
   "components",
   SpatialSpecComponents,
-  3,
   spatialcomponentsmap,
   SpatialComponentsSelect,
   SpatialComponentsMap );
@@ -12357,7 +12332,6 @@ Operator spatialcomponents (
 Operator spatialvertices (
   "vertices",
   SpatialSpecVertices,
-  2,
   spatialverticesmap,
   SpatialVerticesSelect,
   SpatialVerticesMap);
@@ -12365,7 +12339,6 @@ Operator spatialvertices (
 Operator spatialboundary (
   "boundary",
   SpatialSpecBoundary,
-  2,
   spatialboundarymap,
   SpatialBoundarySelect,
   SpatialBoundaryMap);
@@ -12373,7 +12346,6 @@ Operator spatialboundary (
 Operator spatialsimplify (
   "simplify",
   SpatialSpecSimplify,
-  2,
   spatialsimplifymap,
   SpatialSimplifySelect,
   SimplifyTypeMap );
@@ -12381,7 +12353,6 @@ Operator spatialsimplify (
 Operator spatialatpoint (
   "atpoint",
   SpatialSpecAtPoint,
-  2,
   SpatialAtPointMap,
   SpatialAtPointSelect,
   SpatialAtPointTypeMap );
@@ -12389,7 +12360,6 @@ Operator spatialatpoint (
 Operator spatialatposition (
   "atposition",
   SpatialSpecAtPosition,
-  2,
   SpatialAtPositionMap,
   SpatialAtPositionSelect,
   SpatialAtPositionTypeMap );
@@ -12404,7 +12374,6 @@ Operator spatialsubline (
 Operator spatialgetx (
   "getx",
   SpatialSpecGetX,
-  1,
   spatialgetxmap,
   Operator::SimpleSelect,
   SpatialGetXYMap );
@@ -12412,7 +12381,6 @@ Operator spatialgetx (
 Operator spatialgety (
   "gety",
   SpatialSpecGetY,
-  1,
   spatialgetymap,
   Operator::SimpleSelect,
   SpatialGetXYMap );
@@ -12463,7 +12431,6 @@ Operator spatialpolylinesC (
 Operator spatialsegments (
   "segments",
   SpatialSpecSegments,
-  2,
   SpatialSegmentsVM,
   SpatialSegmentsSelect,
   SegmentsTypeMap );
@@ -12518,7 +12485,6 @@ Operator spatialtoline (
 Operator spatialfromline (
   "fromline",
   SpatialSpecFromLine,
-  2,
   fromLineVM,
   fromLineSelect,
   fromLineTypeMap );
@@ -12535,7 +12501,6 @@ Operator spatialiscycle (
 Operator utmOp (
   "utm",
    utmSpec,
-   2,
    utmVM,
    utmSelect,
    utmTypeMap );
@@ -12543,7 +12508,6 @@ Operator utmOp (
 Operator gkOp (
   "gk",
    gkSpec,
-   6,
    gkVM,
    gkSelect,
    gkTypeMap );
@@ -12551,7 +12515,6 @@ Operator gkOp (
 Operator reverseGkOp (
   "reverseGk",
    reverseGkSpec,
-   4,
    reverseGKVM,
    reverseGkSelect,
    reverseGkTypeMap );
@@ -12563,7 +12526,6 @@ Creating lines and slines
 Operator spatialcollect_line (
   "collect_line",
   SpatialSpecCollectLine,
-  3,
   spatialCollectLineMap,
   SpatialCollectLineSelect,
   SpatialCollectLineTypeMap);
@@ -12571,7 +12533,6 @@ Operator spatialcollect_line (
 Operator spatialcollect_sline (
   "collect_sline",
   SpatialSpecCollectSLine,
-  3,
   spatialCollectSLineMap,
   SpatialCollectLineSelect,
   SpatialCollectSLineTypeMap);
@@ -12579,7 +12540,6 @@ Operator spatialcollect_sline (
 Operator spatialcollect_points (
   "collect_points",
   SpatialSpecCollectPoints,
-  2,
   spatialCollectPointsMap,
   SpatialCollectPointsSelect,
   SpatialCollectPointsTM);
@@ -12686,7 +12646,6 @@ Not necessary.
 */
 Operator spatialmakepoint( "makepoint",
                             SpatialSpecMakePoint,
-                            4,
                             VM_MakePoint,
                             SelectMakepoint,
                             TypeMapMakepoint);
@@ -12856,7 +12815,6 @@ halfSegmentsSpec =
 Operator halfSegmentsOp (
   "halfSegments",
    halfSegmentsSpec,
-   2,
    halfSegmentsvm,
    halfSegmentsSelect,
    halfSegmentsTM );
@@ -15318,7 +15276,6 @@ OperatorSpec collect_boxSpec (
 Operator collect_box(
    "collect_box",
    collect_boxSpec.getStr(),
-   5,
    collect_boxVMs,
    collect_boxSelect,
    collect_boxTM
@@ -15422,7 +15379,6 @@ OperatorSpec intersection_robSpec (
 */
 Operator spatialintersection_rob( "intersection_rob",
                             intersection_robSpec.getStr(),
-                            3,
                             intersection_robVM,
                             intersection_robSelect,
                             intersection_robTM);
@@ -16792,7 +16748,6 @@ Operator instance
 Operator collectDline(
    "collectDline",
    collectDlineSpec.getStr(),
-   3,
    collectDlineVM,
    collectDlineSelect,
    collectDlineTM);
@@ -17354,7 +17309,6 @@ ValueMapping berlin2wgsVMs[] = {
 Operator berlin2wgs(
   "berlin2wgs",
   berlin2wgsSpec.getStr(),
-  5,
   berlin2wgsVMs,
   berlin2wgsSelect,
   berlin2wgsTM
@@ -17518,7 +17472,6 @@ OperatorSpec twistSpec(
 Operator twistOp(
   "twist",
   twistSpec.getStr(),
-  2,
   twistVM,
   twistSelect,
   twistTM
@@ -18038,7 +17991,6 @@ int contour2Select(ListExpr args){
 Operator contour2Op(
      "contour2",
      contour2Spec.getStr(),
-     4,
      contour2VM,
      contour2Select,
      contour2TM
@@ -18277,7 +18229,6 @@ OperatorSpec twist3Spec(
 Operator twist3Op(
    "twist3",
    twist3Spec.getStr(),
-   2,
    twist3VM,
    twist3Select,
    twist3TM
@@ -18541,7 +18492,6 @@ OperatorSpec simpleProjectSpec(
 Operator simpleProject(
    "simpleProject",
    simpleProjectSpec.getStr(),
-   3,
    simpleProjectVM,
    simpleProjectSelect,
    simpleProjectTM
@@ -18609,7 +18559,6 @@ OperatorSpec todlineSpec(
 Operator todlineOp(
    "todline",
    todlineSpec.getStr(),
-   2,
    todlineVM,
    todlineSelect,
    todlineTM
@@ -18781,7 +18730,6 @@ OperatorSpec distanceWithinSpec(
 Operator distanceWithinOp(
   "distanceWithin",
   distanceWithinSpec.getStr(),
-  6,
   distanceWithinVM,
   distanceWithinSelect,
   distanceWithinTM

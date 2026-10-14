@@ -203,7 +203,6 @@ const std::string createSSPCoordinatorOpSpec =
 Operator createSSPCoordinator_Op(
     "createSSPCoordinator",
     createSSPCoordinatorOpSpec,
-    1,
     createSSPCoordinator,
     createSSPCoordinator_Select,
     createSSPCoordinator_TM

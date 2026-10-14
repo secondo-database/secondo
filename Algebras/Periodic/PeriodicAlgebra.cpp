@@ -114,7 +114,6 @@ Operator pequals(
            "_ = _ ",
            "Check for equality of the arguments",
            "query a = b"),
-       getEqualsCTM().getVMCount(),
        EqualsValueMap,
        EqualsSelect,
        EqualsTypeMap);
@@ -174,7 +173,6 @@ Operator pat(
          "_ atinstant _",
          "returns the value of the first argument for a given instant",
          "query pm atinstant i"),
-       getAtCTM().getVMCount(),
        AtValueMap,
        AtSelect,
        AtTypeMap);
@@ -494,7 +492,6 @@ Operator pcontains(
          "_ contains _ ",
          "check for containedness",
          "query a contains b"),
-        getContainsCTM().getVMCount(),
         ContainsValueMap,
         ContainsSelect,
         ContainsTypeMap);
@@ -543,7 +540,6 @@ Operator pintersects(
           " Check for a common element",
           " query a intersects b "
         ),
-        getIntersectsCTM().getVMCount(),
         IntersectsValueMap,
         IntersectsSelect,
         IntersectsTypeMap);
@@ -602,7 +598,6 @@ Operator pinitial(
           "initial( _ )",
           "the first defined vavlue of the argument",
           "qiery initial(pm1)"),
-       getInitialCTM().getVMCount(),
        InitialValueMap,
        InitialSelect,
        InitialTypeMap);
@@ -662,7 +657,6 @@ Operator pfinal(
          "final ( _ )",
          "returns the last defined value of the argument",
          "query last(pm1)"),              // specification
-       getFinalCTM().getVMCount(),
        FinalValueMap,
        FinalSelect,
        FinalTypeMap);
@@ -760,7 +754,6 @@ const string BreakpointsSpec =
 Operator pbreakpoints(
        "breakpoints",               // name
        BreakpointsSpec,              // specification
-       2,                         // number of functions
        BreakpointsValueMap,
        BreakpointsSelect,
        BreakpointsTypeMap);
@@ -820,7 +813,6 @@ Operator ptoprel(
         "computes the topologicial relationship between the arguments",
         "query toprel( a, b)"
        ),           // specification
-       getTopRelCTM().getVMCount(),                    // number of functions
        ToprelValueMap,
        ToprelSelect,
        ToprelTypeMap);
@@ -861,7 +853,6 @@ Operator pintersection(
         " _ intersection _ ",
         "computes the common part of the arguments",
         " query b1 intersection b2"),
-       getIntersectionCTM().getVMCount(),
        IntersectionValueMap,
        IntersectionSelect,
        IntersectionTypeMap);
@@ -907,7 +898,6 @@ Operator pdistance(
          "distance(_, _",
          "computes the distance of the arguments",
          "query distance(pm1, p1)"),           // specification
-       getDistanceCTM().getVMCount(),                    // number of functions
        DistanceValueMap,
        DistanceSelect,
        DistanceTypeMap);
@@ -950,7 +940,6 @@ Operator pnumberOfNodes(
          "numberOfNodes( _ )",
          "number of nodes within the repetition tree",
          "query numberOfNodes(pm1)"),
-       getNumberOfNodesCTM().getVMCount(),
        NumberOfNodesValueMap,
        NumberOfNodesSelect,
        NumberOfNodesTypeMap);
@@ -992,7 +981,6 @@ Operator pnumberOfCNodes(
          "numberOfCNodes( _ )",
          "number of composite nodes within the repetition tree",
          "query numberOfCNodes(pm1)"),
-       getNumberOfCNodesCTM().getVMCount(),
        NumberOfCompositeNodesValueMap,
        NumberOfCNodesSelect,
        NumberOfCNodesTypeMap);
@@ -1034,7 +1022,6 @@ Operator pnumberOfPNodes(
          "numberOfPNodes( _ )",
          "number of periodic nodes within the repetition tree",
          "query numberOfPNodes(pm1)"),
-       getNumberOfPNodesCTM().getVMCount(),
        NumberOfPeriodicNodesValueMap,
        NumberOfPNodesSelect,
        NumberOfPNodesTypeMap);
@@ -1075,7 +1062,6 @@ Operator pnumberOfUnits(
          "numberOfUnits( _ )",
          "number of units within the repetition tree",
          "query numberUnits(pm1)"),
-        getNumberOfUnitsCTM().getVMCount(),
        NumberOfUnitsValueMap,
        NumberOfUnitsSelect,
        NumberOfUnitsTypeMap);
@@ -1116,7 +1102,6 @@ Operator pnumberOfFlatUnits(
          "numberOfFlatUnits( _ )",
          "number of units when the argument would be expanded",
          "query numberFlastUnits(pm1)"),
-        getNumberOfFlatUnitsCTM().getVMCount(),
         NumberOfFlatUnitsValueMap,
         NumberOfFlatUnitsSelect,
         NumberOfFlatUnitsTypeMap);
@@ -1164,7 +1149,6 @@ Operator ptranslate(
          " _ ptranslate [ _ ]",
          " translates the first argument in time",
          " query pm1 ptranslate [ d1 ] "),
-       getTranslateCTM().getVMCount(),
        TranslateValueMap,
        TranslateSelect,
        TranslateTypeMap);

@@ -955,7 +955,6 @@ const string CreateRTreeSpec  =
 Operator creatertree (
           "creatertree",       // name
           CreateRTreeSpec,     // specification
-          30,                  // Number of overloaded functions
           rtreecreatertreemap, // value mapping
           CreateRTreeSelect,   // trivial selection function
           CreateRTreeTypeMap   // type mapping
@@ -1426,7 +1425,6 @@ const string windowintersectsSpec  =
 Operator windowintersects (
          "windowintersects",        // name
          windowintersectsSpec,      // specification
-         5,                         //number of overloaded functions
          rtreewindowintersectsmap,  // value mapping
          WindowIntersectsSelection, // trivial selection function
          WindowIntersectsTypeMap    // type mapping
@@ -2188,7 +2186,6 @@ const string windowintersectsSSpec  =
 Operator windowintersectsS (
          "windowintersectsS",        // name
          windowintersectsSSpec,      // specification
-         10,                         //number of overloaded functions
          rtreewindowintersectsSmap,  // value mapping
          WindowIntersectsSSelection, // trivial selection function
          WindowIntersectsSTypeMap    // type mapping
@@ -3700,7 +3697,6 @@ const string CreateRTreeBulkLoadSpec  =
 Operator bulkloadrtree(
          "bulkloadrtree",       // name
          CreateRTreeBulkLoadSpec,      // specification
-         20,
          CreateRTreeBulkLoad,          // value mapping
          CreateRTreeBulkLoadSelect,    // selection function
          CreateRTreeBulkLoadTypeMap    // type mapping
@@ -3984,7 +3980,6 @@ const string RTreeGetRootNodeSpec  =
 Operator rtreetreeheight(
                      "treeheight",          // name
                       RTreeTreeHeightSpec,  // specification
-                      8,
                       RTreeTreeHeight,      // value mapping
                       RTreeInquirySelect,   // selection function
                       RTree2IntTypeMap      // type mapping
@@ -3993,7 +3988,6 @@ Operator rtreetreeheight(
 Operator rtreenoofnodes(
                       "no_nodes",              // name
                       RTreeNoOfNodesSpec,      // specification
-                      8,
                       RTreeNoOfNodes,          // value mapping
                       RTreeInquirySelect,      // selection function
                       RTree2IntTypeMap         // type mapping
@@ -4002,7 +3996,6 @@ Operator rtreenoofnodes(
 Operator rtreenoofentries(
                       "no_entries",             // name
                       RTreeNoOfEntriesSpec,     // specification
-                      8,
                       RTreeNoOfEntries,         // value mapping
                       RTreeInquirySelect,       // selection function
                       RTree2IntTypeMap          // type mapping
@@ -4011,7 +4004,6 @@ Operator rtreenoofentries(
 Operator rtreebbox(
                       "bbox",             // name
                       RTreeBboxSpec,      // specification
-                      8,
                       RTreeBbox,          // value mapping
                       RTreeInquirySelect, // selection function
                       RTree2RectTypeMap    // type mapping
@@ -4020,7 +4012,6 @@ Operator rtreebbox(
 Operator rtreegetrootnode(
                        "getRootNode",           // name
                        RTreeGetRootNodeSpec,    // specification
-                       8,
                        RTreeGetRootNode,        // value mapping
                        RTreeInquirySelect,      // selection function
                        RTree2IntTypeMap         // type mapping
@@ -4261,7 +4252,6 @@ ValueMapping RTreeNodes [] =
 Operator rtreenodes(
          "nodes",             // name
          RTreeNodesSpec,      // specification
-         5,
          RTreeNodes,          // value mapping
          RTreeNodesSelect,    // selection function
          RTreeNodesTypeMap    // type mapping
@@ -4449,7 +4439,6 @@ ListExpr RTreeEntriesTypeMap(ListExpr args)
 Operator rtreeentries(
          "entries",             // name
          RTreeEntriesSpec,      // specification
-         5,
          RTreeEntries,          // value mapping
          RTreeEntriesSelect,    // selection function
          RTreeEntriesTypeMap    // type mapping
@@ -4549,7 +4538,6 @@ const string getFileInfoRtreeSpec  =
 Operator getfileinfortree(
          "getFileInfo",                 // name
          getFileInfoRtreeSpec,          // specification
-         8,                             // number of value mapping functions
          getFileInfoRtreeValueMapArray, // value mapping
          RTreeInquirySelect,            // selection function
          RTree2TextTypeMap              // type mapping
@@ -4895,7 +4883,6 @@ int UpdateBulkLoadSelect (ListExpr args)
 Operator updatebulkloadrtree(
         "updatebulkloadrtree",
         UpdatebulkloadrtreeSpec,
-        5,
         VMUpdateBulkLoadFun,
         UpdateBulkLoadSelect,
         UpdateBulkLoadTypeMap
@@ -5874,7 +5861,6 @@ ValueMapping RTreeGetNodeInfo [] =
 Operator rtreegetnodeinfo(
          "getNodeInfo",                       // name
          RTreeGetNodeInfoSpec,                // specification
-         5,
          RTreeGetNodeInfo,                    // value mapping
          RTreeGetInfoTypeSelect,              // selection function
          RTreeGetInfoTypeTypeMap<NODEINFO>    // type mapping
@@ -6044,7 +6030,6 @@ ValueMapping RTreeGetNodeSons [] =
 Operator rtreegetnodesons(
          "getNodeSons",                       // name
          RTreeGetNodeSonsSpec,                // specification
-         4,
          RTreeGetNodeSons,                    // value mapping
          RTreeGetInfoTypeSelect,              // selection function
          RTreeGetInfoTypeTypeMap<NODESONS>    // type mapping
@@ -6204,7 +6189,6 @@ ValueMapping RTreeGetLeafEntries [] =
 Operator rtreegetleafentries(
          "getLeafEntries",                    // name
          RTreeGetLeafEntriesSpec,             // specification
-         4,
          RTreeGetLeafEntries,                 // value mapping
          RTreeGetInfoTypeSelect,              // selection function
          RTreeGetInfoTypeTypeMap<LEAFENTRIES> // type mapping
@@ -6790,7 +6774,6 @@ const string dspatialJoinSpec  =
 Operator dspatialJoin(
          "dspatialJoin",                    // name
          dspatialJoinSpec,             // specification
-         4,
          dspatialJoinVM,                 // value mapping
          dspatialJoinSelect,              // selection function
          dspatialJoinTM // type mapping

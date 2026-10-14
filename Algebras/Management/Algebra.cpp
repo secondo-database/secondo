@@ -154,8 +154,8 @@ ostream& operator<<(ostream& o, const OperatorInfo& oi){
 
 Operator::Operator( const string& nm,
                     const string& specStr,
-                    const int noF,
                     ValueMapping vms[],
+                    int noF,
                     SelectFunction sf,
                     TypeMapping tm,
                     CreateCostEstimation* createCE)

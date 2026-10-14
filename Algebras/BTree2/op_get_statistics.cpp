@@ -203,7 +203,6 @@ string get_statistics::Specification() {
          " ) )";
 }
 
-int get_statistics::numberOfValueMappings = 1;
 ValueMapping get_statistics::valueMappings[] = {
                   get_statistics::ValueMappingEx,
                 };
@@ -211,7 +210,6 @@ ValueMapping get_statistics::valueMappings[] = {
 Operator get_statistics::def (
           "get_statistics",                     // name
           get_statistics::Specification(),      // specification
-          get_statistics::numberOfValueMappings,// number of functions
           get_statistics::valueMappings,        // value mapping
           get_statistics::Select,               // trivial selection function
           get_statistics::TypeMapping           // type mapping

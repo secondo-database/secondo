@@ -136,7 +136,6 @@ int getboundarySelect( ListExpr args ) {
     Operator getboundaryOp(
         "getboundary",
         getboundary.getStr( ),
-        2,
         getboundaryVM,
         getboundarySelect,
         getboundaryTM

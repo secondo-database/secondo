@@ -163,7 +163,7 @@ int be_partGridSelect(ListExpr args) {
 
 */
 Operator be_partGridOp("be_part_grid", be_partGridSpec.getStr(),
-                       sizeof(be_partGridVM), be_partGridVM, be_partGridSelect,
+                       be_partGridVM, be_partGridSelect,
                        be_partGridTM);
 
 } // namespace BasicEngine

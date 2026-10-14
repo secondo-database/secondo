@@ -148,7 +148,6 @@ OperatorSpec tminitSpec(
 Operator tminitOP(
    "tminit",
    tminitSpec.getStr(),
-   2,
    tminitVM,
    tminitSelect,
    tminitTM
@@ -234,7 +233,6 @@ OperatorSpec getOpSigSpec(
 Operator getOpSigOP(
    "tmgetOpSig",
    getOpSigSpec.getStr(),
-   2,
    getOpSigVM,
    getOpSigSelect,
    getOpSigTM

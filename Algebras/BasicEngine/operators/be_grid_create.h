@@ -120,7 +120,7 @@ int be_gridCreateSelect(ListExpr args) {
 
 */
 Operator be_gridCreateOp("be_grid_create", be_gridCreateSpec.getStr(),
-                         sizeof(be_gridCreateVM), be_gridCreateVM,
+                         be_gridCreateVM,
                          be_gridCreateSelect, be_gridCreateTM);
 
 } // namespace BasicEngine

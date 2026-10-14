@@ -138,7 +138,7 @@ int be_partFunSelect(ListExpr args) {
 
 */
 Operator be_partFunOp("be_part_fun", be_partFunSpec.getStr(),
-                      sizeof(be_partFunVM), be_partFunVM, be_partFunSelect,
+                      be_partFunVM, be_partFunSelect,
                       be_partFunTM);
 
 } // namespace BasicEngine

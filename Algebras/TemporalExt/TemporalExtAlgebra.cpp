@@ -5676,7 +5676,6 @@ struct EverNearerThanInfo : OperatorInfo {
 Operator temporalatinstantext(
     "atinstant",
     TemporalSpecAtInstantExt,
-    1,
     temporalatinstantextmap,
     MovingExtSimpleSelect,
     MovingInstantExtTypeMapIntime );
@@ -5684,7 +5683,6 @@ Operator temporalatinstantext(
 Operator temporalatperiodsext(
     "atperiods",
     TemporalSpecAtPeriodsExt,
-    2,
     temporalatperiodsextmap,
     MovingPeriodsSelect,
     MovingPeriodsExtTypeMapMoving );
@@ -5692,7 +5690,6 @@ Operator temporalatperiodsext(
 Operator temporalinitialext(
     "initial",
     TemporalSpecInitialExt,
-    1,
     temporalinitialextmap,
     MovingExtSimpleSelect,
     MovingExtTypeMapIntime );
@@ -5700,7 +5697,6 @@ Operator temporalinitialext(
 Operator temporalfinalext(
     "final",
     TemporalSpecFinalExt,
-    1,
     temporalfinalextmap,
     MovingExtSimpleSelect,
     MovingExtTypeMapIntime );
@@ -5708,7 +5704,6 @@ Operator temporalfinalext(
 Operator temporalpresentext(
     "present",
     TemporalSpecPresentExt,
-    2,
     temporalpresentextmap,
     MovingExtInstantPeriodsSelect,
     MovingInstantPeriodsExtTypeMapBool);
@@ -5716,7 +5711,6 @@ Operator temporalpresentext(
 Operator temporalatext(
     "at",
     TemporalSpecAtExt,
-    9,
     temporalatextmap,
     MovingExtBaseRangeSelect,
     MovingBaseExtTypeMapMoving );
@@ -5724,7 +5718,6 @@ Operator temporalatext(
 Operator temporalpassesext(
     "passes",
     TemporalSpecPassesExt,
-    6,
     temporalpassesextmap,
     MovingExtBaseSelect,
     MovingBaseExtTypeMapBool);
@@ -5732,7 +5725,6 @@ Operator temporalpassesext(
 Operator temporaldeftimeext(
     "deftime",
     TemporalSpecDefTimeExt,
-    1,
     temporaldeftimeextmap,
     MovingExtSimpleSelect,
     MovingExtTypeMapPeriods );
@@ -5740,7 +5732,6 @@ Operator temporaldeftimeext(
 Operator temporalinstext(
     "inst",
     TemporalSpecInstExt,
-    2,
     temporalinstextmap,
     IntimeExtSimpleSelect,
     IntimeExtTypeMapInstant );
@@ -5748,7 +5739,6 @@ Operator temporalinstext(
 Operator temporalvalext(
     "val",
     TemporalSpecValExt,
-    2,
     temporalvalextmap,
     IntimeExtSimpleSelect,
     IntimeExtTypeMapBase );
@@ -5756,7 +5746,6 @@ Operator temporalvalext(
 Operator temporalderivativeext(
     "derivative_new",
     TemporalSpecDerivativeExt,
-    1,
     temporalderivativeextmap,
     Operator::SimpleSelect,
     MovingRExtTypeMapMovingR);
@@ -5764,7 +5753,6 @@ Operator temporalderivativeext(
 Operator temporalderivableext(
     "derivable_new",
     TemporalSpecDerivableExt,
-    1,
     temporalderivableextmap,
     Operator::SimpleSelect,
     MovingRExtTypeMapBool);
@@ -5772,7 +5760,6 @@ Operator temporalderivableext(
 Operator temporalspeedext(
     "speed_new",
     TemporalSpecSpeedExt,
-    1,
     temporalspeedextmap,
     Operator::SimpleSelect,
     MPointOptGeoid2MReal_TM);
@@ -5780,7 +5767,6 @@ Operator temporalspeedext(
 Operator rangerangevaluesext(
     "rangevalues",
     RangeSpecRangevaluesExt,
-    4,
     rangerangevaluesextmap,
     RangeRangevaluesExtBaseSelect,
     RangeRangevaluesExtTypeMapRange );
@@ -5788,7 +5774,6 @@ Operator rangerangevaluesext(
 Operator sometimesext(
     "sometimes",
     BoolSpecSometimesExt,
-    1,
     temporalsometimesextmap,
     Operator::SimpleSelect,
     MovingSANExtTypeMap );
@@ -5796,7 +5781,6 @@ Operator sometimesext(
 Operator alwaysext(
     "always",
     BoolSpecAlwaysExt,
-    1,
     temporalalwaysextmap,
     Operator::SimpleSelect,
     MovingSANExtTypeMap );
@@ -5804,7 +5788,6 @@ Operator alwaysext(
 Operator neverext(
     "never",
     BoolSpecNeverExt,
-    1,
     temporalneverextmap,
     Operator::SimpleSelect,
     MovingSANExtTypeMap );
@@ -5812,7 +5795,6 @@ Operator neverext(
 Operator setunitoftimeext(
     "setunitoftime",
     GlobalSpecUnitOfTimeExt,
-    1,
     globalunitoftimeextmap,
     Operator::SimpleSelect,
     RealPhysicalUnitsExtTypeMap );
@@ -5820,7 +5802,6 @@ Operator setunitoftimeext(
 Operator setunitofdistanceext(
     "setunitofdistance",
     GlobalSpecUnitOfDistanceExt,
-    1,
     globalunitofdistanceextmap,
     Operator::SimpleSelect,
     RealPhysicalUnitsExtTypeMap );
@@ -5828,7 +5809,6 @@ Operator setunitofdistanceext(
 Operator temporalvelocityext(
     "velocity_new",
     TemporalSpecVelocityExt,
-    1,
     temporalvelocityextmap,
     Operator::SimpleSelect,
     MPointExtTypeMapMPoint);
@@ -5836,7 +5816,6 @@ Operator temporalvelocityext(
 Operator temporaldirectionext(
     "direction",
     TemporalSpecMDirectionExt,
-    1,
     temporalmdirectionextmap,
     Operator::SimpleSelect,
     MovingPointExtTypeMapMReal);
@@ -5844,7 +5823,6 @@ Operator temporaldirectionext(
 Operator temporalheadingext(
     "heading",
     TemporalSpecMHeadingExt,
-    1,
     temporalmheadingextmap,
     Operator::SimpleSelect,
     MovingPointExtTypeMapMReal);
@@ -5852,7 +5830,6 @@ Operator temporalheadingext(
 Operator temporallocationsext(
     "locations",
     TemporalSpecLocationsExt,
-    1,
     temporallocationsextmap,
     Operator::SimpleSelect,
     MovingPointExtTypeMapPoints);
@@ -5860,7 +5837,6 @@ Operator temporallocationsext(
 Operator temporalatminext(
     "atmin",
     TemporalSpecAtminExt,
-    4,
     temporalatminextmap,
     MovingAtMinMaxSelect,
     MovingExtTypeMapMoving);
@@ -5868,7 +5844,6 @@ Operator temporalatminext(
 Operator temporalatmaxext(
     "atmax",
     TemporalSpecAtmaxExt,
-    4,
     temporalatmaxextmap,
     MovingAtMinMaxSelect,
     MovingExtTypeMapMoving);
@@ -5896,7 +5871,6 @@ Operator inside( "inside",
 Operator berlin2wgs_lifted(
     "berlin2wgs",
     berlin2wgsSpec_lifted,
-    3,
     berlin2wgsVMs_lifted,
     berlin2wgsSelect_lifted,
     berlin2wgsTM_lifted);
@@ -5904,7 +5878,6 @@ Operator berlin2wgs_lifted(
 Operator splitatgaps(
     "splitAtGaps",
     splitatgapsSpec,
-    10,
     splitatgapsVMs,
     splitatgapsSelect,
     splitatgapsTM);

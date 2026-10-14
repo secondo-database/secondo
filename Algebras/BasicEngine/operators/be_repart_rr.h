@@ -123,7 +123,7 @@ int be_repartRRSelect(ListExpr args) {
 
 */
 Operator be_repartRROp("be_repart_rr", be_repartRRSpec.getStr(),
-                       sizeof(be_repartRRVM), be_repartRRVM, be_repartRRSelect,
+                       be_repartRRVM, be_repartRRSelect,
                        be_repartRRTM);
 
 } // namespace BasicEngine

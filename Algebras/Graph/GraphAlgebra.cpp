@@ -1679,7 +1679,6 @@ Operator circle (
 Operator shortestPath (
   "shortestpath",
   SpecShortestPath,
-  4,
   shortestPathValueMap,
   shortestPathSelect,
   shortestPathMap
@@ -1688,7 +1687,6 @@ Operator shortestPath (
 Operator edges (
   "edges",
   SpecEdges,
-  2,
   edgesValueMap,
   edgesVerticesSelect,
   edgesMap
@@ -1697,7 +1695,6 @@ Operator edges (
 Operator vertices (
   "vertices",
   SpecVertices,
-  2,
   verticesValueMap,
   edgesVerticesSelect,
   verticesMap
@@ -1759,7 +1756,6 @@ Operator equalway(
 Operator equalop (
   "=",
   EqualSpec,
-  2,
   EqualValueMap,
   EqualSelect,
   EqualTypeMap

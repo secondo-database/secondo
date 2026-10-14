@@ -774,7 +774,7 @@ const string IntersectsRasterSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
 //12 Definition of Operators
 
 
-Operator Calc3CRS (  "calc3CRS",  Calc3CRSSpec, 3, calc3CRSmap,
+Operator Calc3CRS (  "calc3CRS",  Calc3CRSSpec, calc3CRSmap,
            calc3CRSSelect, RegionLinePointsRaster4CRS);
 
 Operator Calc4CRS (

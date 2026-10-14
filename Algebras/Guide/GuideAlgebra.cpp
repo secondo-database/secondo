@@ -1184,7 +1184,6 @@ For an overloaded operator, another ~Operator~ constructor is used.
 Operator distNOp(
      "distN",                // operator's name
       distNSpec.getStr(),    // specification
-      2,                     // number of Value Mappings
       distNVM,               // value mapping array
       distNSelect,           // selection function
       distNTM                // type mapping

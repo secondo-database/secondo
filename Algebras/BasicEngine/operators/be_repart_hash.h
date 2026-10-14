@@ -132,7 +132,7 @@ int be_repartHashSelect(ListExpr args) {
 
 */
 Operator be_repartHashOp("be_repart_hash", be_repartHashSpec.getStr(),
-                         sizeof(be_repartHashVM), be_repartHashVM,
+                         be_repartHashVM,
                          be_repartHashSelect, be_repartHashTM);
 
 } // namespace BasicEngine

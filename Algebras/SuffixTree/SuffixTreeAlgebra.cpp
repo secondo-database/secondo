@@ -2816,7 +2816,6 @@ Operator patternFilter
   (
   "patternFilter",             //name
   patternFilterSpec.getStr(),         //specification
-  12,                           // no of VM functions
   patternFilterVM,        //value mapping
   patternFilterSelect,   //trivial selection function
   patternFilterTM        //type mapping

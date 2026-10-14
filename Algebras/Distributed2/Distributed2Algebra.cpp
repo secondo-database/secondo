@@ -1334,7 +1334,6 @@ int connectSelect(ListExpr args) {
 */
 Operator connectOp("connect",            // name
                    connectSpec.getStr(), // specification
-                   4,
                    connectVM,     // value mapping
                    connectSelect, // trivial selection function
                    connectTM      // type mapping
@@ -1574,7 +1573,6 @@ OperatorSpec rcmdSpec(
 */
 Operator rcmdOp("rcmd",            // name
                 rcmdSpec.getStr(), // specification
-                2,
                 rcmdVM,     // value mapping
                 rcmdSelect, // trivial selection function
                 rcmdTM      // type mapping
@@ -1898,7 +1896,6 @@ OperatorSpec
 */
 Operator rqueryOp("rquery",            // name
                   rquerySpec.getStr(), // specification
-                  2,
                   rqueryVM,     // value mapping
                   rquerySelect, // trivial selection function
                   rqueryTM      // type mapping
@@ -2238,7 +2235,6 @@ OperatorSpec prcmdSpec(
 */
 Operator prcmdOp("prcmd",            // name
                  prcmdSpec.getStr(), // specification
-                 2,
                  prcmdVM,     // value mapping
                  prcmdSelect, // trivial selection function
                  prcmdTM      // type mapping
@@ -2360,7 +2356,6 @@ int sendFileSelect(ListExpr args) {
 
 Operator sendFileOp("sendFile",            // name
                     sendFileSpec.getStr(), // specification
-                    4,
                     sendFileVM,     // value mapping
                     sendFileSelect, // trivial selection function
                     sendFileTM      // type mapping
@@ -2478,7 +2473,6 @@ int requestFileSelect(ListExpr args) {
 
 Operator requestFileOp("requestFile",            // name
                        requestFileSpec.getStr(), // specification
-                       4,
                        requestFileVM,     // value mapping
                        requestFileSelect, // trivial selection function
                        requestFileTM      // type mapping
@@ -3234,7 +3228,6 @@ int ptransferFileSelect(ListExpr args) {
 
 Operator psendFileOp("psendFile",            // name
                      psendFileSpec.getStr(), // specification
-                     4,
                      psendFileVM,         // value mapping
                      ptransferFileSelect, // trivial selection function
                      ptransferFileTM      // type mapping
@@ -3242,7 +3235,6 @@ Operator psendFileOp("psendFile",            // name
 
 Operator prequestFileOp("prequestFile",            // name
                         prequestFileSpec.getStr(), // specification
-                        4,
                         prequestFileVM,      // value mapping
                         ptransferFileSelect, // trivial selection function
                         ptransferFileTM      // type mapping
@@ -3788,7 +3780,6 @@ OperatorSpec pconnectSpec(
 
 Operator pconnectOp("pconnect",            // name
                     pconnectSpec.getStr(), // specification
-                    4,
                     pconnectVM,     // value mapping
                     pconnectSelect, // trivial selection function
                     pconnectTM      // type mapping
@@ -4170,7 +4161,6 @@ Operator instance
 */
 Operator prqueryOp("prquery",            // name
                    prquerySpec.getStr(), // specification
-                   2,
                    prqueryVM,     // value mapping
                    prquerySelect, // trivial selection function
                    prqueryTM      // type mapping
@@ -4583,7 +4573,6 @@ Operator instance
 */
 Operator prquery2Op("prquery2",            // name
                     prquery2Spec.getStr(), // specification
-                    2,
                     prquery2VM,    // value mapping
                     prquerySelect, // trivial selection function
                     prquery2TM     // type mapping
@@ -5046,7 +5035,7 @@ int putSelect(ListExpr args) {
 
 */
 
-Operator putOp("put", putSpec.getStr(), 3, putVM, putSelect, putTM);
+Operator putOp("put", putSpec.getStr(), putVM, putSelect, putTM);
 
 /*
 3.2 Operator get
@@ -5252,7 +5241,7 @@ int getSelect(ListExpr args) {
   return -1;
 }
 
-Operator getOp("get", getSpec.getStr(), 3, getVM, getSelect, getTM);
+Operator getOp("get", getSpec.getStr(), getVM, getSelect, getTM);
 
 /*
 3.4.4 Operator size
@@ -5311,7 +5300,7 @@ int sizeSelect(ListExpr args) {
 ValueMapping sizeVM[] = {sizeVMT<DArray>, sizeVMT<DFArray>, sizeVMT<DFMatrix>,
                          sizeVMT<SDArray>};
 
-Operator sizeOp("size", sizeSpec.getStr(), 4, sizeVM, sizeSelect, sizeTM);
+Operator sizeOp("size", sizeSpec.getStr(), sizeVM, sizeSelect, sizeTM);
 
 /*
 Operator getWorkers
@@ -5427,7 +5416,7 @@ int getWorkersSelect(ListExpr args) {
   return -1;
 }
 
-Operator getWorkersOp("getWorkers", getWorkersSpec.getStr(), 3, getWorkersVM,
+Operator getWorkersOp("getWorkers", getWorkersSpec.getStr(), getWorkersVM,
                       getWorkersSelect, getWorkersTM);
 
 /*
@@ -5612,7 +5601,7 @@ OperatorSpec fconsume5Spec(
 1.4.6 Instance
 
 */
-Operator fconsume5Op("fconsume5", fconsume5Spec.getStr(), 2, fconsume5VM,
+Operator fconsume5Op("fconsume5", fconsume5Spec.getStr(), fconsume5VM,
                      fconsume5Select, fconsume5TM);
 
 /*
@@ -5892,10 +5881,10 @@ OperatorSpec feedSpec(
 1.4.6 Instance
 
 */
-Operator ffeed5Op("ffeed5", ffeed5Spec.getStr(), 4, ffeed5VM, ffeed5Select,
+Operator ffeed5Op("ffeed5", ffeed5Spec.getStr(), ffeed5VM, ffeed5Select,
                   ffeed5TM);
 
-Operator feedOp("feed", feedSpec.getStr(), 4, ffeed5VM, ffeed5Select, ffeed5TM);
+Operator feedOp("feed", feedSpec.getStr(), ffeed5VM, ffeed5Select, ffeed5TM);
 
 /*
 1.5 Operator ~fcount5~
@@ -5957,7 +5946,7 @@ OperatorSpec fcount5Spec("{string,text,frel} -> int", "_ fcount5 ",
                          "file containing a relation. ",
                          "query 'testrel.bin' fcount5");
 
-Operator fcount5Op("fcount5", fcount5Spec.getStr(), 3, fcount5VM, fcount5Select,
+Operator fcount5Op("fcount5", fcount5Spec.getStr(), fcount5VM, fcount5Select,
                    fcount5TM);
 
 /*
@@ -6306,7 +6295,7 @@ OperatorSpec createDArraySpec(
 1.4.7 Operator instance
 
 */
-Operator createDArrayOp("createDArray", createDArraySpec.getStr(), 4,
+Operator createDArrayOp("createDArray", createDArraySpec.getStr(),
                         createDArrayVM, createDArraySelect, createDArrayTM);
 
 /*
@@ -6509,7 +6498,7 @@ OperatorSpec pputSpec(" [s]darray(T) x (int x T)+ -> darray ",
 
 */
 
-Operator pputOp("pput", pputSpec.getStr(), 1, pputVM, pputSelect, pputTM);
+Operator pputOp("pput", pputSpec.getStr(), pputVM, pputSelect, pputTM);
 
 /*
 1.6 Operator ddistribute2
@@ -6935,7 +6924,7 @@ int distribute2Select(ListExpr args) {
 1.6.5 Operator instance
 
 */
-Operator ddistribute2Op("ddistribute2", ddistribute2Spec.getStr(), 4,
+Operator ddistribute2Op("ddistribute2", ddistribute2Spec.getStr(),
                         ddistribute2VM, distribute2Select,
                         ddistribute2TMT<DArray>);
 
@@ -7170,7 +7159,7 @@ int distribute3Select(ListExpr args) {
   return n1 + n2;
 }
 
-Operator ddistribute3Op("ddistribute3", ddistribute3Spec.getStr(), 4,
+Operator ddistribute3Op("ddistribute3", ddistribute3Spec.getStr(),
                         ddistribute3VM, distribute3Select,
                         distribute3TM<DArray>);
 
@@ -7368,7 +7357,7 @@ ValueMapping ddistribute4VM[] = {
 
 */
 
-Operator ddistribute4Op("ddistribute4", ddistribute4Spec.getStr(), 4,
+Operator ddistribute4Op("ddistribute4", ddistribute4Spec.getStr(),
                         ddistribute4VM, distribute4Select,
                         distribute4TMT<DArray>);
 
@@ -7607,7 +7596,7 @@ ValueMapping ddistribute5VM[] = {
     distribute5VMT<DArray, RelFileRestorer, FText, FText>,
 };
 
-Operator ddistribute5Op("ddistribute5", ddistribute5Spec.getStr(), 4,
+Operator ddistribute5Op("ddistribute5", ddistribute5Spec.getStr(),
                         ddistribute5VM, distribute5Select,
                         distribute5TMT<DArray>);
 
@@ -7625,7 +7614,7 @@ ValueMapping dfdistribute5VM[] = {
     distribute5VMT<DFArray, FRelCopy, FText, CcString>,
     distribute5VMT<DFArray, FRelCopy, FText, FText>};
 
-Operator dfdistribute5Op("dfdistribute5", dfdistribute5Spec.getStr(), 4,
+Operator dfdistribute5Op("dfdistribute5", dfdistribute5Spec.getStr(),
                          dfdistribute5VM, distribute5Select,
                          distribute5TMT<DFArray>);
 
@@ -7793,7 +7782,7 @@ OperatorSpec fdistribute5Spec(
 1.7.5 Operator Instance
 
 */
-Operator fdistribute5Op("fdistribute5", fdistribute5Spec.getStr(), 2,
+Operator fdistribute5Op("fdistribute5", fdistribute5Spec.getStr(),
                         fdistribute5VM, fdistribute5Select, fdistribute5TM);
 
 /*
@@ -7869,7 +7858,7 @@ OperatorSpec
                      ", or connections of a specified darray instance.",
                      " query closeWorkerConnections()  ");
 
-Operator closeWorkersOp("closeWorkers", closeWorkersSpec.getStr(), 3,
+Operator closeWorkersOp("closeWorkers", closeWorkersSpec.getStr(),
                         closeWorkersVM, closeWorkersSelect, closeWorkersTM);
 
 /*
@@ -8036,7 +8025,7 @@ int showWorkersSelect(ListExpr args) {
   return -1;
 }
 
-Operator showWorkersOp("showWorkers", showWorkersSpec.getStr(), 3,
+Operator showWorkersOp("showWorkers", showWorkersSpec.getStr(),
                        showWorkersVM, showWorkersSelect, showWorkersTM);
 
 /*
@@ -8265,7 +8254,7 @@ OperatorSpec dloopSpec(
     " is undefined or an empty string, a name is generated automatically.",
     "query da2 dloop[\"da3\", . count");
 
-Operator dloopOp("dloop", dloopSpec.getStr(), 2, dloopVM, dloopSelect, dloopTM);
+Operator dloopOp("dloop", dloopSpec.getStr(), dloopVM, dloopSelect, dloopTM);
 
 ListExpr DARRAYELEMTM(ListExpr args) {
 
@@ -8729,7 +8718,7 @@ OperatorSpec dsummarizeSpec(
 
 */
 
-Operator dsummarizeOp("dsummarize", dsummarizeSpec.getStr(), 9, dsummarizeVM,
+Operator dsummarizeOp("dsummarize", dsummarizeSpec.getStr(), dsummarizeVM,
                       dsummarizeSelect, dsummarizeTM);
 
 /*
@@ -8963,7 +8952,7 @@ OperatorSpec getValueSpec("{darray(T),dfarray(T), sdarray(T)} -> array(T)",
                           "Converts a distributed array into a normal one.",
                           "query da2 getValue");
 
-Operator getValueOp("getValue", getValueSpec.getStr(), 3, getValueVM,
+Operator getValueOp("getValue", getValueSpec.getStr(), getValueVM,
                     getValueSelect, getValueTM);
 
 /*
@@ -9116,7 +9105,7 @@ OperatorSpec
                   "Unused slots arr filled up with the given defaultValue",
                   "query pda23 getValue[0]");
 
-Operator getValuePOp("getValueP", getValuePSpec.getStr(), 2, getValuePVM,
+Operator getValuePOp("getValueP", getValuePSpec.getStr(), getValuePVM,
                      getValuePSelect, getValuePTM);
 
 /*
@@ -9501,7 +9490,7 @@ OperatorSpec
 11.5 Operator instance
 
 */
-Operator fdistribute6Op("fdistribute6", fdistribute6Spec.getStr(), 2,
+Operator fdistribute6Op("fdistribute6", fdistribute6Spec.getStr(),
                         fdistribute6VM, fdistribute6Select, fdistribute6TM);
 
 /*
@@ -9676,7 +9665,7 @@ OperatorSpec fdistribute7Spec(
     "query strassen feed fdistribute7['strassen',hashvalue(.Name), 12, "
     "TRUE] count");
 
-Operator fdistribute7Op("fdistribute7", fdistribute7Spec.getStr(), 2,
+Operator fdistribute7Op("fdistribute7", fdistribute7Spec.getStr(),
                         fdistribute7VM, fdistribute7Select, fdistribute7TM);
 
 /*
@@ -10024,7 +10013,7 @@ int deleteRemoteObjectsSelect(ListExpr args) {
 }
 
 Operator deleteRemoteObjectsOp("deleteRemoteObjects",
-                               deleteRemoteObjectsSpec.getStr(), 4,
+                               deleteRemoteObjectsSpec.getStr(),
                                deleteRemoteObjectsVM, deleteRemoteObjectsSelect,
                                deleteRemoteObjectsTM);
 
@@ -10042,7 +10031,7 @@ ValueMapping killRemoteObjectsVM[] = {
     deleteRemoteObjectsVM_Matrix, deleteRemoteObjectsVMT<SDArray, true>};
 
 Operator killRemoteObjectsOp("killRemoteObjects",
-                             killRemoteObjectsSpec.getStr(), 4,
+                             killRemoteObjectsSpec.getStr(),
                              killRemoteObjectsVM, deleteRemoteObjectsSelect,
                              deleteRemoteObjectsTM);
 
@@ -10226,7 +10215,7 @@ int cloneSelect(ListExpr args) {
 12.5 Operator instance
 
 */
-Operator cloneOp("clone", cloneSpec.getStr(), 2, cloneVM, cloneSelect, cloneTM);
+Operator cloneOp("clone", cloneSpec.getStr(), cloneVM, cloneSelect, cloneTM);
 
 /*
 13 Operator ~share~
@@ -10635,13 +10624,13 @@ ValueMapping share2VM[] = {shareVMT<DArray, false>, shareVMT<DFArray, false>};
 12.5 Operator instance
 
 */
-Operator shareOp("share", shareSpec.getStr(), 2, shareVM, shareSelect, shareTM);
+Operator shareOp("share", shareSpec.getStr(), shareVM, shareSelect, shareTM);
 
 /*
 12.5 Operator instance
 
 */
-Operator share2Op("share2", share2Spec.getStr(), 2, share2VM, share2Select,
+Operator share2Op("share2", share2Spec.getStr(), share2VM, share2Select,
                   share2TM);
 
 /*
@@ -10751,7 +10740,7 @@ ValueMapping cleanUpVM[] = {cleanUpVMT<DArray>, cleanUpVMT<DFArray>,
 
 */
 
-Operator cleanUpOp("cleanUp", cleanUpSpec.getStr(), 3, cleanUpVM, cleanUpSelect,
+Operator cleanUpOp("cleanUp", cleanUpSpec.getStr(), cleanUpVM, cleanUpSelect,
                    cleanUpTM);
 
 /*
@@ -10789,7 +10778,7 @@ ValueMapping fdistribute2VM[] = {
     ddistribute2VMT<DFArray, FRelCopy, FText, CcString>,
     ddistribute2VMT<DFArray, FRelCopy, FText, FText>};
 
-Operator dfdistribute2Op("dfdistribute2", dfdistribute2Spec.getStr(), 4,
+Operator dfdistribute2Op("dfdistribute2", dfdistribute2Spec.getStr(),
                          fdistribute2VM, distribute2Select,
                          ddistribute2TMT<DFArray>);
 
@@ -10822,7 +10811,7 @@ ValueMapping dfdistribute3VM[] = {
     distribute3VMT<DFArray, FRelCopy, FText, CcString>,
     distribute3VMT<DFArray, FRelCopy, FText, FText>};
 
-Operator dfdistribute3Op("dfdistribute3", dfdistribute3Spec.getStr(), 4,
+Operator dfdistribute3Op("dfdistribute3", dfdistribute3Spec.getStr(),
                          dfdistribute3VM, distribute3Select,
                          distribute3TM<DFArray>);
 
@@ -10843,7 +10832,7 @@ ValueMapping dfdistribute4VM[] = {
     distribute4VMT<DFArray, FRelCopy, FText, CcString>,
     distribute4VMT<DFArray, FRelCopy, FText, FText>};
 
-Operator dfdistribute4Op("dfdistribute4", dfdistribute4Spec.getStr(), 4,
+Operator dfdistribute4Op("dfdistribute4", dfdistribute4Spec.getStr(),
                          dfdistribute4VM, distribute4Select,
                          distribute4TMT<DFArray>);
 
@@ -11001,7 +10990,7 @@ OperatorSpec
                       "slots of the argument are not.",
                       "query convertdarray(da8) ");
 
-Operator convertdarrayOp("convertdarray", convertdarraySpec.getStr(), 2,
+Operator convertdarrayOp("convertdarray", convertdarraySpec.getStr(),
                          convertdarrayVM, convertdarraySelect, convertdarrayTM);
 
 /*
@@ -11198,7 +11187,7 @@ OperatorSpec
                   "Retrieves tuples from a binary relation file.",
                   "query tree exactmatch[3] 'file' gettuples consume");
 
-Operator gettuplesOp("gettuples", gettuplesSpec.getStr(), 2, gettuplesVM,
+Operator gettuplesOp("gettuples", gettuplesSpec.getStr(), gettuplesVM,
                      gettuplesSelect, gettuplesTM);
 
 /*
@@ -11963,7 +11952,7 @@ OperatorSpec
              "otherwise the result is a darray.",
              "query dfa8 dmap[\"\", . head[23]] ");
 
-Operator dmapOp("dmap", dmapSpec.getStr(), 3, dmapVM, dmapSelect,
+Operator dmapOp("dmap", dmapSpec.getStr(), dmapVM, dmapSelect,
                 dmapTM<false>);
 
 ValueMapping pdmapVM[] = {pdmapVMT<DArray>, pdmapVMT<DFArray>,
@@ -11993,7 +11982,7 @@ OperatorSpec
               "query intstream(1,10) filter[ (. mod 2) = 0 ]dfa8 dmap[\"\", . "
               "head[23]] ");
 
-Operator pdmapOp("pdmap", pdmapSpec.getStr(), 3, pdmapVM, pdmapSelect,
+Operator pdmapOp("pdmap", pdmapSpec.getStr(), pdmapVM, pdmapSelect,
                  dmapTM<true>);
 
 /*
@@ -14112,7 +14101,7 @@ OperatorSpec dproductSpec(
     "between workers.",
     "query dplz1 dplz2[ \"\", . .. hashjoin[P1,P2] , 1238] ");
 
-Operator dproductOp("dproduct", dproductSpec.getStr(), 8, dproductVM,
+Operator dproductOp("dproduct", dproductSpec.getStr(), dproductVM,
                     dproductSelect, dproductTM);
 
 /*
@@ -14471,7 +14460,7 @@ OperatorSpec receiveFileClientSpec(
     "query recieveFileClient('server', 1238,'remote.txt', 'local.txt')");
 
 Operator recieveFileClientOP("receiveFileClient",
-                             receiveFileClientSpec.getStr(), 8,
+                             receiveFileClientSpec.getStr(),
                              receiveFileClientVM, receiveFileClientSelect,
                              receiveFileClientTM);
 
@@ -14673,7 +14662,7 @@ OperatorSpec transferFileSpec(
     "connected before using connect or similar.",
     "query transferFile(0,1,1238,'Staedte.txt','Staedte3.txt')");
 
-Operator transferFileOP("transferFile", transferFileSpec.getStr(), 4,
+Operator transferFileOP("transferFile", transferFileSpec.getStr(),
                         transferFileVM, transferFileSelect, transferFileTM);
 
 /*
@@ -15370,7 +15359,7 @@ OperatorSpec putFileTCPSpec(
     "the transfer.",
     "query putFileTCP('berlintest', Host, 1239, TRUE, 'berlintestCopy')");
 
-Operator putFileTCPOp("putFileTCP", putFileTCPSpec.getStr(), 8, putFileTCPVM,
+Operator putFileTCPOp("putFileTCP", putFileTCPSpec.getStr(), putFileTCPVM,
                       putOrGetFileTCPSelect, putOrGetFileTCPTM);
 
 ValueMapping getFileTCPVM[] = {
@@ -15391,7 +15380,7 @@ OperatorSpec getFileTCPSpec(
     "the transfer.",
     "query getFileTCP('berlintest_copy3', Host, 1239, TRUE, 'berlintest')");
 
-Operator getFileTCPOp("getFileTCP", getFileTCPSpec.getStr(), 8, getFileTCPVM,
+Operator getFileTCPOp("getFileTCP", getFileTCPSpec.getStr(), getFileTCPVM,
                       putOrGetFileTCPSelect, putOrGetFileTCPTM);
 
 /*
@@ -15556,7 +15545,7 @@ OperatorSpec fsfeed5Spec(
     "query getDirectory(\".\") filter[ . startsWith 'strassen_'] "
     "fsfeed5[strassen] count");
 
-Operator fsfeed5Op("fsfeed5", fsfeed5Spec.getStr(), 2, fsfeed5VM, fsfeed5Select,
+Operator fsfeed5Op("fsfeed5", fsfeed5Spec.getStr(), fsfeed5VM, fsfeed5Select,
                    fsfeed5TM);
 
 /*
@@ -15977,7 +15966,7 @@ int partitionSelect(ListExpr args) {
 
 ValueMapping partitionVM[] = {partitionVMT<DFArray>, partitionVMT<DArray>};
 
-Operator partitionOp("partition", partitionSpec.getStr(), 2, partitionVM,
+Operator partitionOp("partition", partitionSpec.getStr(), partitionVM,
                      partitionSelect, partitionTM);
 
 /*
@@ -16212,7 +16201,7 @@ function.
 
 */
 
-Operator partitionFOp("partitionF", partitionFSpec.getStr(), 2, partitionVM,
+Operator partitionFOp("partitionF", partitionFSpec.getStr(), partitionVM,
                       partitionSelect, partitionFTM);
 
 /*
@@ -17092,7 +17081,7 @@ int areduceSelect(ListExpr args) {
   return 1;
 }
 
-Operator areduceOp("areduce", areduceSpec.getStr(), 2, areduceVM, areduceSelect,
+Operator areduceOp("areduce", areduceSpec.getStr(), areduceVM, areduceSelect,
                    areduceTM);
 
 /*
@@ -17232,7 +17221,7 @@ OperatorSpec areduce2Spec(
     "The integer specifies a port for transferring files between the workers. ",
     "query dfm1 dfm2 areduce2[ \"molly\", . feed  .. feed product , 1236]");
 
-Operator areduce2Op("areduce2", areduce2Spec.getStr(), 2, areduceVM,
+Operator areduce2Op("areduce2", areduce2Spec.getStr(), areduceVM,
                     areduceSelect, areduce2TM);
 
 OperatorSpec areduce2FSpec(
@@ -17247,7 +17236,7 @@ OperatorSpec areduce2FSpec(
     "function results.",
     "query dfm1 dfm2 areduce2[ \"molly\", . feed  .. feed product , 1236, "
     "   fun(x1 : int, x2 : int) x1 * x2]");
-Operator areduce2FOp("areduce2F", areduce2FSpec.getStr(), 2, areduceVM,
+Operator areduce2FOp("areduce2F", areduce2FSpec.getStr(), areduceVM,
                      areduceSelect, areduce2TM);
 
 /*
@@ -17911,7 +17900,7 @@ OperatorSpec saveAttrSpec("DATA x {string,text} -> bool", " _ saveAttr[_] ",
                           "to a file",
                           "query 6 saveAttr['six.bin']");
 
-Operator saveAttrOp("saveAttr", saveAttrSpec.getStr(), 2, saveAttrVM,
+Operator saveAttrOp("saveAttr", saveAttrSpec.getStr(), saveAttrVM,
                     saveAttrSelect, saveAttrTM
 
 );
@@ -17987,7 +17976,7 @@ OperatorSpec loadAttrSpec("{string,text} -> DATA ", "loadAttr(_)",
                           "loads an attribute from a binary file",
                           "query loadAttribute('six.bin')");
 
-Operator loadAttrOp("loadAttr", loadAttrSpec.getStr(), 2, loadAttrVM,
+Operator loadAttrOp("loadAttr", loadAttrSpec.getStr(), loadAttrVM,
                     loadAttrSelect, loadAttrTM);
 
 /*
@@ -18113,7 +18102,7 @@ OperatorSpec createFrelSpec(
     "existing file should be overwritten.",
     " query createFrel('ten.bin', ten, TRUE)");
 
-Operator createFrelOP("createFrel", createFrelSpec.getStr(), 2, createFrelVM,
+Operator createFrelOP("createFrel", createFrelSpec.getStr(), createFrelVM,
                       createFrelSelect, createFrelTM);
 
 /*
@@ -18173,7 +18162,7 @@ OperatorSpec createFSrelSpec(
     "result. There is no duplicate elemination.",
     " query names feed namedtransformstream[File] createfsrel[ten]");
 
-Operator createFSrelOP("createFSrel", createFSrelSpec.getStr(), 2,
+Operator createFSrelOP("createFSrel", createFSrelSpec.getStr(),
                        createFSrelVM, createFrelSelect, createFSrelTM);
 
 /*
@@ -18292,7 +18281,7 @@ OperatorSpec
                          "query strassen saveObjectToFile['strassen.bin']");
 
 Operator saveObjectToFileOp("saveObjectToFile", saveObjectToFileSpec.getStr(),
-                            2, saveObjectToFileVM, saveObjectToFileSelect,
+                            saveObjectToFileVM, saveObjectToFileSelect,
                             saveObjectToFileTM);
 
 /*
@@ -18517,7 +18506,7 @@ OperatorSpec
                           " query \"strassen.bin\" getObjectFromFile count");
 
 Operator getObjectFromFileOp("getObjectFromFile",
-                             getObjectFromFileSpec.getStr(), 3,
+                             getObjectFromFileSpec.getStr(),
                              getObjectFromFileVM, getObjectFromFileSelect,
                              getObjectFromFileTM);
 
@@ -18757,7 +18746,7 @@ OperatorSpec ddistribute8Spec(
     "query plz feed ddistribute8[\"plzd8\", .PLZ, hashvalue(.Ort,58], "
     "4, 12 ,workers] ");
 
-Operator ddistribute8Op("ddistribute8", ddistribute8Spec.getStr(), 4,
+Operator ddistribute8Op("ddistribute8", ddistribute8Spec.getStr(),
                         ddistribute8VM, ddistribute8Select, ddistribute8TM);
 
 ValueMapping dfdistribute8VM[] = {
@@ -18778,7 +18767,7 @@ OperatorSpec dfdistribute8Spec(
     "query plz feed ddistribute8[\"plzd8\", .PLZ, hashvalue(.Ort,58], "
     "4, 12 ,workers] ");
 
-Operator dfdistribute8Op("dfdistribute8", dfdistribute8Spec.getStr(), 4,
+Operator dfdistribute8Op("dfdistribute8", dfdistribute8Spec.getStr(),
                          dfdistribute8VM, ddistribute8Select, ddistribute8TM);
 
 /*
@@ -19338,7 +19327,7 @@ OperatorSpec partitionF8Spec(
     "query array partitionF8[\"mynewname\",  . feed addcouunter[B, 16],"
     " .PLZ , .B , 8, 16]");
 
-Operator partitionF8Op("partitionF8", partitionF8Spec.getStr(), 2,
+Operator partitionF8Op("partitionF8", partitionF8Spec.getStr(),
                        partitionF8VM, partitionF8Select, partitionP8TM);
 
 /*
@@ -19743,7 +19732,7 @@ OperatorSpec deleteRemoteDatabasesSpec(
     "query deleteRemoteDatabases(\"berlintest\", workers) consume");
 
 Operator deleteRemoteDatabasesOp("deleteRemoteDatabases",
-                                 deleteRemoteDatabasesSpec.getStr(), 4,
+                                 deleteRemoteDatabasesSpec.getStr(),
                                  deleteRemoteDatabasesVM,
                                  deleteRemoteDatabasesSelect,
                                  deleteRemoteDatabasesTM);
@@ -19791,7 +19780,7 @@ OperatorSpec writeRelSpec("rel x {string,text} -> bool", "_ op[_]",
                           "binary file specified by the second arg",
                           "query ten writeRel['ten.bin']");
 
-Operator writeRelOp("writeRel", writeRelSpec.getStr(), 2, writeRelVM,
+Operator writeRelOp("writeRel", writeRelSpec.getStr(), writeRelVM,
                     writeRelSelect, writeRelTM);
 
 /*
@@ -20024,7 +20013,7 @@ OperatorSpec db2LogToFileSpec(
     "is sedn to the file named by this argument.",
     "query db2LogToFile('DB2.log')");
 
-Operator db2LogToFileOp("db2LogToFile", db2LogToFileSpec.getStr(), 2,
+Operator db2LogToFileOp("db2LogToFile", db2LogToFileSpec.getStr(),
                         db2LogToFileVM, db2LogToFileSelect, db2LogToFileTM);
 
 /*
@@ -20105,7 +20094,7 @@ OperatorSpec
                     "host and port, the result will be false.",
                     "query enableDFSFT('localhost',4444)");
 
-Operator enableDFSFTOp("enableDFSFT", enableDFSFTSpec.getStr(), 2,
+Operator enableDFSFTOp("enableDFSFT", enableDFSFTSpec.getStr(),
                        enableDFSFTVM, enableDFSFTSelect, enableDFSFTTM);
 
 /*
@@ -20378,7 +20367,7 @@ OperatorSpec createintdarraySpec(
     "The slot content corresponds to the slot number.",
     "query createintdarray(\"controlArray\", workers, 27)");
 
-Operator createintdarrayOp("createintdarray", createintdarraySpec.getStr(), 4,
+Operator createintdarrayOp("createintdarray", createintdarraySpec.getStr(),
                            createintdarrayVM, createintdarraySelect,
                            createintdarrayTM);
 
@@ -20600,7 +20589,7 @@ OperatorSpec
                  " shared objects",
                  " query array1 dcommand['let x = 23']");
 
-Operator dcommandOp("dcommand", dcommandSpec.getStr(), 6, dcommandVM,
+Operator dcommandOp("dcommand", dcommandSpec.getStr(), dcommandVM,
                     dcommandSelect, dcommandTM);
 
 ListExpr dcommand2TM(ListExpr args) {
@@ -20655,7 +20644,7 @@ OperatorSpec
                   " shared objects. The result is the first argument.",
                   " query array1 dcommand2['let x = 23']");
 
-Operator dcommand2Op("dcommand2", dcommand2Spec.getStr(), 6, dcommand2VM,
+Operator dcommand2Op("dcommand2", dcommand2Spec.getStr(), dcommand2VM,
                      dcommandSelect, dcommand2TM);
 
 /*
@@ -20914,7 +20903,7 @@ OperatorSpec dletSpec(
     " in array and at the local machine. ",
     " query array1 dlet['let x = 23']");
 
-Operator dletOp("dlet", dletSpec.getStr(), 6, dletVM, dletSelect, dletTM);
+Operator dletOp("dlet", dletSpec.getStr(), dletVM, dletSelect, dletTM);
 
 /*
 Operator ~makeSimple~
@@ -21406,7 +21395,7 @@ OperatorSpec makeShortSpec(
 
 );
 
-Operator makeShortOp("makeShort", makeShortSpec.getStr(), 2, makeShortVM,
+Operator makeShortOp("makeShort", makeShortSpec.getStr(), makeShortVM,
                      makeShortSelect, makeShortTM);
 
 /*
@@ -21662,7 +21651,7 @@ OperatorSpec
                       "Creates an SDarray from existing objects on workers",
                       "query makeSDArray(\"obj\",workers)");
 
-Operator createSDArrayOp("createSDArray", createSDArraySpec.getStr(), 4,
+Operator createSDArrayOp("createSDArray", createSDArraySpec.getStr(),
                          createSDArrayVM, createSDArraySelect, createSDArrayTM);
 
 /*
@@ -21923,7 +21912,7 @@ int fileSizesSelect(ListExpr args) {
   return Stream<CcString>::checkType(nl->First(args)) ? 0 : 1;
 }
 
-Operator fileSizesOp("fileSizes", fileSizesSpec.getStr(), 2, fileSizesVM,
+Operator fileSizesOp("fileSizes", fileSizesSpec.getStr(), fileSizesVM,
                      fileSizesSelect, fileSizesTM);
 
 
@@ -22071,7 +22060,7 @@ int getWorkersForHostSelect(ListExpr args){
 
 Operator getWorkersForHostOp("getWorkersForHost", 
                  getWorkersForHostSpec.getStr(), 
-                 12, getWorkersForHostVM,
+                 getWorkersForHostVM,
                  getWorkersForHostSelect, getWorkersForHostTM);
 
 
@@ -22188,7 +22177,7 @@ int setHostForWorkerSelect(ListExpr args){
 
 Operator setHostForWorkerOp("setHostForWorker", 
                  setHostForWorkerSpec.getStr(), 
-                 12, setHostForWorkerVM,
+                 setHostForWorkerVM,
                  setHostForWorkerSelect, setHostForWorkerTM);
 
 
@@ -22395,7 +22384,7 @@ OperatorSpec changeHostsSpec(
 
 Operator changeHostsOp("changeHosts", 
                  changeHostsSpec.getStr(), 
-                 24, changeHostsVM,
+                 changeHostsVM,
                  changeHostsSelect, changeHostsTM);
 /*
 3 Implementation of the Algebra

@@ -1232,7 +1232,6 @@ Value mapping of the distribute operator for spatial distribution.
     Operator drelfdistributeOp(
         "drelfdistribute",
         drelfdistributeSpec.getStr( ),
-        24,
         drelfdistributeVM,
         distributeSelect,
         distributeTM<DFRel, DFArray>
@@ -1302,7 +1301,6 @@ Value mapping of the distribute operator for spatial distribution.
     Operator dreldistributeOp(
         "dreldistribute",
         dreldistributeSpec.getStr( ),
-        24,
         dreldistributeVM,
         distributeSelect,
         distributeTM<DRel, DArray>

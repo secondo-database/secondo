@@ -6683,7 +6683,6 @@ const std::string isknnSpec  =
 Operator distancescan (
          "distancescan",        // name
          distanceScanSpec,      // specification
-         4,                     //number of overloaded functions
          distanceScanMap,       // value mapping
          distanceScanSelect,
          distanceScanTypeMap    // type mapping
@@ -6692,7 +6691,6 @@ Operator distancescan (
 Operator distancescan2 (
          "distancescan2",        // name
          distanceScan2Spec,      // specification
-         4,                     //number of overloaded functions
          distanceScan2Map,       // value mapping
          distanceScanSelect,
          distanceScanTypeMap    // type mapping
@@ -6701,7 +6699,6 @@ Operator distancescan2 (
 Operator distancescan2S (
          "distancescan2S",        // name
          distanceScan2SSpec,      // specification
-         4,                     //number of overloaded functions
          distanceScan2SMap,       // value mapping
          distanceScanSelect,
          distanceScan2STypeMap    // type mapping
@@ -6710,7 +6707,6 @@ Operator distancescan2S (
 Operator distancescan3 (
          "distancescan3",        // name
          distanceScan3Spec,      // specification
-         25,                     //number of overloaded functions
          distanceScan3Map,       // value mapping
          distanceScan3Select,
          distanceScan3TypeMap    // type mapping
@@ -6736,7 +6732,6 @@ Operator knearest (
 Operator knearest_dist (
          "knearest_dist",            // name
          knearestdistSpec,          // specification
-         2,
          newknearest_distMap,           // value mapping
          knearestdistSelect,
          knearestdistTypeMap        // type mapping
@@ -10826,7 +10821,6 @@ int CellIndexSelect(ListExpr args)
 Operator cellindex(
         "cellindex",
         CellIndexSpec,
-        2,
         CellIndexFunMap,
         CellIndexSelect,
         CellIndexTypeMap

@@ -7267,7 +7267,6 @@ const string OpPassesSpec  =
 Operator tempnetpasses (
   "passes",
   OpPassesSpec,
-  2,
   OpPassesvaluemap,
   OpPassesSelect,
   OpPassesTypeMap );
@@ -7461,7 +7460,6 @@ const string OpAtSpec  =
 
 Operator tempnetat("at",
                 OpAtSpec,
-                2,
                 OpAtValueMap,
                 OpAtSelect,
                 OpAtTypeMap );
@@ -7696,7 +7694,6 @@ const string OpDeftimeSpec  =
 
 Operator tempnetdeftime("deftime",
                 OpDeftimeSpec,
-                2,
                 OpDeftimeValueMapping,
                 OpDeftimeSelect,
                 OpDeftimeTypeMap );
@@ -8147,7 +8144,6 @@ ValueMapping OpLengthValueMap[] = {
 
 Operator tempnetlength("length",
                     OpTLengthSpec,
-                    2,
                     OpLengthValueMap,
                     OpLengthSelect,
                     OpLengthTypeMapping );
@@ -8319,7 +8315,6 @@ const string OpPresentSpec  =
 Operator tempnetpresent(
                 "present",
                 OpPresentSpec,
-                2,
                 OpPresentValueMap,
                 OpPresentSelect,
                 OpPresentTypeMap );

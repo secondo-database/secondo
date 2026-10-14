@@ -1077,7 +1077,6 @@ CloneCpoints
     Operator importpointcloudOp(
         "importpointcloud",
         importpointcloudSpec.getStr(),
-        2,
         importpointcloudVM,
         importpointcloudSelect,
         importpointcloudTM); 

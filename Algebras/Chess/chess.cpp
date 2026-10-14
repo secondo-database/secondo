@@ -1275,19 +1275,19 @@ struct piececountInfo : OperatorInfo {
     syntax =    "_ piececount[_]";
     meaning =   "Returns number of respective figures for the given "
                 "material or position. The regerded figures can be specified "
-		"by names or by a sequence of their first letter, or the "
-		"special set constants \"all\", \"white\" and \"black\"";
+        "by names or by a sequence of their first letter, or the "
+        "special set constants \"all\", \"white\" and \"black\"";
   }
 
 };
 
 const string maps_pc[2][3] = { {MATERIAL, STRING, INT}, 
-	                       {POSITION, STRING, INT} };
+                           {POSITION, STRING, INT} };
 
 static ListExpr 
 piececount_tm(ListExpr args)
 {
-  return SimpleMaps<2,3>(maps_pc, args);	 
+  return SimpleMaps<2,3>(maps_pc, args);     
 }
 
 int
@@ -1341,7 +1341,7 @@ struct equalInfo : OperatorInfo {
     signature = "material x material -> bool, position x string -> bool";
     syntax =    "_ = _";
     meaning =   "Returns true if both values are exactly equal. In the case "
-	        "of positions the move must not be equal";
+            "of positions the move must not be equal";
   }
 
 };
@@ -1355,8 +1355,8 @@ struct approxequalInfo : OperatorInfo {
     signature = "material x material -> bool, position x string -> bool";
     syntax =    "_ ~ _";
     meaning =   "Returns true if both weighted sums of material are equal. "
-	        "In the case of positions the material of the whole board "
-		"is used.";
+            "In the case of positions the material of the whole board "
+        "is used.";
   }
 
 };
@@ -1370,7 +1370,7 @@ struct lessInfo : OperatorInfo {
     signature = "material x material -> bool, position x string -> bool";
     syntax =    "_ < _";
     meaning =   "Returns true if the weighted sum of the material, or"
-	        "the material given by the position is less than the other";
+            "the material given by the position is less than the other";
   }
 
 };
@@ -1381,12 +1381,12 @@ struct lessInfo : OperatorInfo {
 */
 
 const string maps_equal[2][3] = { {MATERIAL, MATERIAL, BOOL}, 
-	                          {POSITION, POSITION, BOOL} };
+                              {POSITION, POSITION, BOOL} };
 
 static ListExpr 
 equal_tm(ListExpr args)
 {
-  return SimpleMaps<2,3>(maps_equal, args);	 
+  return SimpleMaps<2,3>(maps_equal, args);     
 }
 
 int
@@ -1418,7 +1418,7 @@ int approxequal_vm( Word * args, Word & result,
   result = qp->ResultStorage( s );
 
   static_cast<CcBool*>( result.addr )->Set( true, 
-		              arg1->ComparePieceValues( arg2 ) == 0 );
+                      arg1->ComparePieceValues( arg2 ) == 0 );
   return 0;
 }
 
@@ -1431,7 +1431,7 @@ int less_vm( Word * args, Word & result,
   result = qp->ResultStorage( s );
 
   static_cast<CcBool*>( result.addr )->Set( true, 
-		              ( arg1->ComparePieceValues( arg2 ) < 0 ) );
+                      ( arg1->ComparePieceValues( arg2 ) < 0 ) );
 
   return 0;
 }
@@ -1875,19 +1875,19 @@ ListExpr positionsTypeMap( ListExpr args )
 Dieser Fehler ist in der movingpoints-Implementierung enthalten:
 
 Wenn eine Figur geschlagen wird, wandert sie auf die Koordinaten (x,
-y+-2), wenn seine Anfangskoordinaten (x,y) waren; dabei gilt "+" für
-schwarze und "-" für weiße Figuren. Z.B. wandert die weiße Dame auf die
+y+-2), wenn seine Anfangskoordinaten (x,y) waren; dabei gilt "+" fuer
+schwarze und "-" fuer weisse Figuren. Z.B. wandert die weisse Dame auf die
 Koordinaten (4.0, -1.0).
 Handelt es ich bei der geschlagenen Figur um einen Offizier, der aus
 einer Bauernumwandlung hervorging, so zeigen seine Anfangskoordinaten
 auf die gegnerische Grundlinie. Er zieht also auf die Linie 6, wenn er
-weiß ist, auf die Linie 3, wenn er schwarz ist - und da gehört er nun
+weiss ist, auf die Linie 3, wenn er schwarz ist - und da gehoert er nun
 wirklich nicht hin.
 
-Mögliche Lösungsvarianten wären:
+Moegliche Loesungsvarianten waeren:
 
-- Änderung des Figurtyps beim umgewandelten Bauern statt Erzeugung einer
-neuen Figur (das hat Vor- und Nachteile für manche analytischen Abfragen)
+- Aenderung des Figurtyps beim umgewandelten Bauern statt Erzeugung einer
+neuen Figur (das hat Vor- und Nachteile fuer manche analytischen Abfragen)
 
 - Setzen eines Flags "isPromotedPawn" oder so, das bei der Berechnung
 des Abstellplatzes ausgewertet wird
@@ -1895,8 +1895,8 @@ des Abstellplatzes ausgewertet wird
 - Festlegen des Abstellplatzes bei der Initialisierung, statt sie erst
 im Moment des Schlagens zu berechnen
 
-Bei der 2. und 3. Lösung müßte man noch überlegen, was ein geeigneter
-Abstellplatz ist und wie man zuverlässig vermeidet, daß dort mehrere
+Bei der 2. und 3. Loesung muesste man noch ueberlegen, was ein geeigneter
+Abstellplatz ist und wie man zuverlaessig vermeidet, dass dort mehrere
 Figuren abgestellt werden.
 
 */
@@ -2215,7 +2215,7 @@ Operator piecesOp (
 Operator moveNoOp (
   "moveNo",
   moveNoSpec,
-  2, moveNoMap,
+  moveNoMap,
   moveNoSelect,
   moveNoTypeMap
 );
@@ -2318,7 +2318,7 @@ public:
     AddOperator( &checkOp );
     AddOperator( &capturesOp );
     AddOperator( piececountInfo(), piececount_vms, 
-		                   piececount_sf, piececount_tm );
+                           piececount_sf, piececount_tm );
 
     AddOperator( equalInfo(), equal_vms, equal_sf, equal_tm );
     AddOperator( approxequalInfo(), approxequal_vms, equal_sf, equal_tm );

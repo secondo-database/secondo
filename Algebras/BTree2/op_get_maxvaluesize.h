@@ -37,7 +37,6 @@ class get_maxvaluesize {
 
   static Operator def;
   static ValueMapping valueMappings[];
-  static int numberOfValueMappings;
 };
 
 } // end namespace Operators

@@ -840,7 +840,6 @@ array of value mapping functions for each operator.
     return new Operator(
     "rotate",
     Spatial3DSpecRotate,
-    3,
     spatial3drotatemap,
     Spatial3DSelect,
     Spatial3DRotateMap
@@ -851,7 +850,6 @@ array of value mapping functions for each operator.
     return new Operator(
     "mirror",
     Spatial3DSpecMirror,
-    3,
     spatial3dmirrormap,
     Spatial3DSelect,
     Spatial3DMirrorMap
@@ -862,7 +860,6 @@ array of value mapping functions for each operator.
     return new Operator(
     "translate",
     Spatial3DSpecTranslate,
-    3,
     spatial3dtranslatemap,
     Spatial3DSelect,
     Spatial3DTranslateMap
@@ -873,7 +870,6 @@ array of value mapping functions for each operator.
     return new Operator(
     "scaleDir",
     Spatial3DSpecScaleDir,
-    3,
     spatial3dscaledirmap,
     Spatial3DSelect,
     Spatial3DScaleDirMap
@@ -884,7 +880,6 @@ array of value mapping functions for each operator.
     return new Operator(
     "scale",
     Spatial3DSpecScale,
-    3,
     spatial3dscalemap,
     Spatial3DSelect,
     Spatial3DScaleMap

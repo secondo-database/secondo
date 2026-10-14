@@ -37,7 +37,6 @@ class get_maxkeysize {
 
   static Operator def;
   static ValueMapping valueMappings[];
-  static int numberOfValueMappings;
 };
 
 } // end namespace Operators

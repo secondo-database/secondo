@@ -148,7 +148,7 @@ int be_repartFunSelect(ListExpr args) {
 
 */
 Operator be_repartFunOp("be_repart_fun", be_repartFunSpec.getStr(),
-                        sizeof(be_repartFunVM), be_repartFunVM,
+                        be_repartFunVM,
                         be_repartFunSelect, be_repartFunTM);
 
 } // namespace BasicEngine

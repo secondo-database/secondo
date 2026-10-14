@@ -1230,25 +1230,25 @@ type mapping
 
 */
 
-Operator insideOp("inside", insideSpec.getStr(), 3,
+Operator insideOp("inside", insideSpec.getStr(),
                   insideVM, insideSelect, insideTM);
 
-Operator containsOp("contains", containsSpec.getStr(), 1,
+Operator containsOp("contains", containsSpec.getStr(),
                   containsVM, containsSelect, containsTM);
 
-Operator mapOp("mp", mapSpec.getStr(), 3,
+Operator mapOp("mp", mapSpec.getStr(),
                mapVM, mapSelect, mapTM);
 
-Operator mapColOp("mp", mapColSpec.getStr(), 3,
+Operator mapColOp("mp", mapColSpec.getStr(),
                   mapColVM, mapColSelect, mapColTM);
 
-Operator countOp("count", countSpec.getStr(), 3,
+Operator countOp("count", countSpec.getStr(),
                   countVM, countSelect, countTM);
 
-Operator plusOp("+", plusSpec.getStr(), 3,
+Operator plusOp("+", plusSpec.getStr(),
                   plusVM, plusSelect, plusTM);
 
-Operator showarrayOp("showarray", showarraySpec.getStr(), 3,
+Operator showarrayOp("showarray", showarraySpec.getStr(),
                     showarrayVM, showarraySelect, showarrayTM);
 
 /*

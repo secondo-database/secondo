@@ -900,7 +900,6 @@ OperatorSpec memloadSpec(
 Operator memloadOp(
   "memload",
   memloadSpec.getStr(),
-  3,
   memloadVM,
   memloadSelect,
   memloadTM
@@ -924,7 +923,6 @@ OperatorSpec memloadflobSpec(
 Operator memloadflobOp(
   "memloadflob",
   memloadflobSpec.getStr(),
-  3,
   memloadflobVM,
   memloadSelect,
   memloadTM
@@ -1250,7 +1248,6 @@ OperatorSpec mfeedSpec(
 Operator mfeedOp (
     "mfeed",
     mfeedSpec.getStr(),
-    4,
     mfeedVM,
     mfeedSelect,
     mfeedTypeMap
@@ -1556,7 +1553,6 @@ OperatorSpec gettuplesSpec(
 Operator gettuplesOp(
   "gettuples",
   gettuplesSpec.getStr(),
-  4,
   gettuplesVM,
   gettuplesSelect,
   gettuplesTM
@@ -1672,7 +1668,6 @@ int memobjectSelect(ListExpr args){
 Operator memobjectOp (
     "memobject",
     memobjectSpec.getStr(),
-    2,
     memobjectVM,
     memobjectSelect,
     memobjectTypeMap
@@ -2062,7 +2057,6 @@ OperatorSpec mcreatertreeSpec(
 Operator mcreatertreeOp(
   "mcreatertree",
   mcreatertreeSpec.getStr(),
-  8,
   mcreatertreeVM,
   mcreatertreeSelect,
   mcreatertreeTM
@@ -2365,7 +2359,6 @@ OperatorSpec meminsertSpec(
 Operator meminsertOp (
     "meminsert",
     meminsertSpec.getStr(),
-    2,
     meminsertVM,
     meminsertSelect,
     meminsertTypeMap
@@ -2620,7 +2613,6 @@ OperatorSpec mwindowintersectsSpec(
 Operator mwindowintersectsOp (
     "mwindowintersects",
     mwindowintersectsSpec.getStr(),
-    16,
     mwindowintersectsValMap,
     mwindowintersectsSelect,
     mwindowintersectsTypeMap
@@ -2801,7 +2793,6 @@ OperatorSpec mwindowintersectsSSpec(
 Operator mwindowintersectsSOp(
    "mwindowintersectsS",
    mwindowintersectsSSpec.getStr(),
-   8,
    mwindowintersectsSVM,
    mwindowintersectsSSelect,
    mwindowintersectsSTM<true>
@@ -3203,7 +3194,6 @@ OperatorSpec mcreateAVLtreeSpec(
 Operator mcreateAVLtreeOp (
     "mcreateAVLtree",
     mcreateAVLtreeSpec.getStr(),
-    3,
     mcreateAVLtreeVM,
     mcreateAVLtreeSelect,
     mcreateAVLtreeTypeMap
@@ -3541,7 +3531,6 @@ OperatorSpec mexactmatchSpec(
 Operator mexactmatchOp (
     "mexactmatch",
     mexactmatchSpec.getStr(),
-    4,
     mexactmatchVM,
     mexactmatchSelect,
     mexactmatchTM
@@ -3567,7 +3556,6 @@ OperatorSpec matchbelowSpec(
 Operator matchbelowOp (
     "matchbelow",
     matchbelowSpec.getStr(),
-    4,
     matchbelowVM,
     mexactmatchSelect,
     mexactmatchTM
@@ -3763,7 +3751,6 @@ OperatorSpec mrangeSpec(
 Operator mrangeOp (
     "mrange",
     mrangeSpec.getStr(),
-    8,
     mrangeVM,
     mrangeSelect,
     mrangeTypeMap
@@ -3997,7 +3984,6 @@ OperatorSpec mrangeSSpec(
 Operator mexactmatchSOp(
   "mexactmatchS",
   mexactmatchSSpec.getStr(),
-  2,
   mrangeSVM,
   mrangeSSelect,
   mexactmatchSTM<true>
@@ -4006,7 +3992,6 @@ Operator mexactmatchSOp(
 Operator mrangeSOp(
   "mrangeS",
   mrangeSSpec.getStr(),
-  2,
   mrangeSVM,
   mrangeSSelect,
   mrangeSTM<true>
@@ -4130,7 +4115,6 @@ OperatorSpec matchbelowSSpec(
 Operator matchbelowSOp(
   "matchbelowS",
   matchbelowSSpec.getStr(),
-  2,
   matchbelowSVM,
   matchbelowSSelect,
   matchbelowSTM<true>
@@ -4612,7 +4596,6 @@ OperatorSpec mcreatemtreeSpec(
 Operator mcreatemtreeOp(
    "mcreatemtree",
    mcreatemtreeSpec.getStr(),
-   24,
    mcreatemtreeVM,
    mcreatemtreeSelect,
    mcreatemtreeTM
@@ -4999,7 +4982,6 @@ OperatorSpec mcreatemtree2Spec(
 Operator mcreatemtree2Op(
    "mcreatemtree2",
    mcreatemtree2Spec.getStr(),
-   24,
    mcreatemtree2VMs,
    mcreatemtree2Select,
    mcreatemtree2TM
@@ -5196,7 +5178,6 @@ OperatorSpec minsertmtreeSpec(
 Operator minsertmtreeOp(
   "minsertmtree",
    minsertmtreeSpec.getStr(),
-   24,
    minsertmtreeVM,
    minsertmtreeSelect,
    minsertmtreeTM
@@ -5403,7 +5384,6 @@ OperatorSpec mdistRange2Spec(
 Operator mdistRange2Op(
    "mdistRange2",
    mdistRange2Spec.getStr(),
-   24,
    mdistRange2VM,
    mdistRange2Select,
    mdistRange2TM<true>
@@ -5602,7 +5582,6 @@ OperatorSpec mdistScan2Spec(
 Operator mdistScan2Op(
    "mdistScan2",
    mdistScan2Spec.getStr(),
-   24,
    mdistScan2VM,
    mdistScan2Select,
    mdistScan2TM<true>
@@ -6014,7 +5993,6 @@ OperatorSpec mdistRangeSpec(
 Operator mdistRangeOp(
    "mdistRange",
    mdistRangeSpec.getStr(),
-   116,
    mdistRangeVM,
    mdistRangeScanSelect<4>,
    mdistRangeTM
@@ -6355,7 +6333,6 @@ OperatorSpec mclosestCenterNSpec(
 Operator mclosestCenterNOp(
    "mclosestCenterN",
    mclosestCenterNSpec.getStr(),
-   136,
    mclosestCenterNVM,
    mdistRangeScanSelect<3>,
    mclosestCenterNTM
@@ -6669,7 +6646,6 @@ OperatorSpec mdistRangeNSpec(
 Operator mdistRangeNOp(
    "mdistRangeN",
    mdistRangeNSpec.getStr(),
-   68,
    mdistRangeNVM<1>,
    mdistRangeNSelect,
    mdistRangeNTM<1>
@@ -6694,7 +6670,6 @@ OperatorSpec mdistRangeN2Spec(
 Operator mdistRangeN2Op(
    "mdistRangeN2",
    mdistRangeN2Spec.getStr(),
-   68,
    mdistRangeNVM<2>,
    mdistRangeNSelect,
    mdistRangeNTM<2>
@@ -6718,7 +6693,6 @@ OperatorSpec mdistRangeN5Spec(
 Operator mdistRangeN5Op(
    "mdistRangeN5",
    mdistRangeN5Spec.getStr(),
-   68,
    mdistRangeNVM<5>,
    mdistRangeNSelect,
    mdistRangeNTM<5>
@@ -6742,7 +6716,6 @@ OperatorSpec mdistRangeN6Spec(
 Operator mdistRangeN6Op(
    "mdistRangeN6",
    mdistRangeN6Spec.getStr(),
-   68,
    mdistRangeNVM<6>,
    mdistRangeNSelect,
    mdistRangeNTM<6>
@@ -6766,7 +6739,6 @@ OperatorSpec mdistRangeN7Spec(
 Operator mdistRangeN7Op(
    "mdistRangeN7",
    mdistRangeN7Spec.getStr(),
-   68,
    mdistRangeNVM<7>,
    mdistRangeNSelect,
    mdistRangeNTM<7>
@@ -6790,7 +6762,6 @@ OperatorSpec mdistRangeN8Spec(
 Operator mdistRangeN8Op(
    "mdistRangeN8",
    mdistRangeN8Spec.getStr(),
-   68,
    mdistRangeNVM<8>,
    mdistRangeNSelect,
    mdistRangeNTM<8>
@@ -7074,7 +7045,6 @@ OperatorSpec mnearestNeighborN8Spec(
 Operator mnearestNeighborN7Op(
    "mnearestNeighborN7",
    mnearestNeighborN7Spec.getStr(),
-   68,
    mnearestNeighborNVM<7>,
    mdistRangeScanSelect<4>,
    mnearestNeighborNTM<7>
@@ -7083,7 +7053,6 @@ Operator mnearestNeighborN7Op(
 Operator mnearestNeighborN8Op(
    "mnearestNeighborN8",
    mnearestNeighborN8Spec.getStr(),
-   68,
    mnearestNeighborNVM<8>,
    mdistRangeScanSelect<4>,
    mnearestNeighborNTM<8>
@@ -7424,7 +7393,6 @@ OperatorSpec mdistScanSpec(
 Operator mdistScanOp(
    "mdistScan",
    mdistScanSpec.getStr(),
-   116,
    mdistScanVM,
    mdistRangeScanSelect<3>,
    mdistScanTM
@@ -7870,7 +7838,6 @@ OperatorSpec mcreatettreeSpec(
 Operator mcreatettreeOp (
     "mcreatettree",
     mcreatettreeSpec.getStr(),
-    2,
     mcreatettreeVM,
     mcreatettreeSelect,
     mcreatettreeTypeMap
@@ -8163,7 +8130,6 @@ OperatorSpec minsertttreeSpec(
 Operator minsertttreeOp (
     "minsertttree",
     minsertttreeSpec.getStr(),
-    4,
     minsertttreeVM,
     minsertttreeSelect<MInsertTree>,
     minsertdeletetreeTypeMap<MemoryTTreeObject>
@@ -8190,7 +8156,6 @@ OperatorSpec mdeletettreeSpec(
 Operator mdeletettreeOp (
     "mdeletettree",
     mdeletettreeSpec.getStr(),
-    4,
     minsertttreeVM,
     minsertttreeSelect<MDeleteTree>,
     minsertdeletetreeTypeMap<MemoryTTreeObject>
@@ -8229,7 +8194,6 @@ int minsertavltreeSelect(ListExpr args){
 Operator minsertavltreeOp (
     "minsertavltree",
     minsertavltreeSpec.getStr(),
-    2,
     minsertAVLtreeVM,
     minsertavltreeSelect,
     minsertdeletetreeTypeMap<MemoryAVLObject>
@@ -8264,7 +8228,6 @@ int mdeleteavltreeSelect(ListExpr args){
 Operator mdeleteavltreeOp (
     "mdeleteavltree",
     mdeleteavltreeSpec.getStr(),
-    2,
     mdeleteAVLtreeVM,
     mdeleteavltreeSelect,
     minsertdeletetreeTypeMap<MemoryAVLObject>
@@ -8464,7 +8427,6 @@ OperatorSpec mcreateinsertrelSpec(
 Operator mcreateinsertrelOp (
   "mcreateinsertrel",             // name
   mcreateinsertrelSpec.getStr(),  // specification
-  2,
   mcreateauxiliaryrelVM,        // value mapping
   mcreateauxiliaryrelSelect,    // trivial selection function
   mcreateinsertrelTM       // type mapping
@@ -8489,7 +8451,6 @@ OperatorSpec mcreatedeleterelSpec(
 Operator mcreatedeleterelOp(
   "mcreatedeleterel",             // name
   mcreatedeleterelSpec.getStr(),  // specification
-  2,
   mcreateauxiliaryrelVM,             // value mapping
   mcreateauxiliaryrelSelect,         // trivial selection function
   mcreatedeleterelTM         // type mapping
@@ -8517,7 +8478,6 @@ OperatorSpec mcreateupdaterelSpec(
 Operator mcreateupdaterelOp (
   "mcreateupdaterel",             // name
   mcreateupdaterelSpec.getStr(),  // specification
-  2,
   mcreateauxiliaryrelVM,             // value mapping
   mcreateauxiliaryrelSelect,         // selection function
   mcreateupdaterelTM         // type mapping
@@ -8782,7 +8742,6 @@ OperatorSpec minsertSpec(
 Operator minsertOp (
     "minsert",
     minsertSpec.getStr(),
-    2,
     minsertVM,
     minsertSelect,
     minsertTypeMap<2,false>
@@ -8950,7 +8909,6 @@ OperatorSpec minsertsaveSpec(
 Operator minsertsaveOp (
     "minsertsave",
     minsertsaveSpec.getStr(),
-    4,
     minsertsaveVM,
     minsertsaveSelect,
     minsertTypeMap<3,false>
@@ -9211,7 +9169,6 @@ OperatorSpec minserttupleSpec(
 Operator minserttupleOp (
     "minserttuple",
     minserttupleSpec.getStr(),
-    2,
     minserttupleVM,
     minserttupleSelect,
     minserttupleTypeMap<2>
@@ -9409,7 +9366,6 @@ OperatorSpec minserttuplesaveSpec(
 Operator minserttuplesaveOp (
     "minserttuplesave",
     minserttupleSpec.getStr(),
-    4,
     minserttuplesaveVM,
     minserttuplesaveSelect,
     minserttupleTypeMap<3>
@@ -9666,7 +9622,6 @@ OperatorSpec mdeleteSpec(
 Operator mdeleteOp (
     "mdelete",
     mdeleteSpec.getStr(),
-    2,
     mdeleteVM,
     mdeleteSelect,
     mdeleteTM<false>
@@ -9733,7 +9688,6 @@ OperatorSpec mdeletesaveSpec(
 Operator mdeletesaveOp (
     "mdeletesave",
     mdeletesaveSpec.getStr(),
-    4,
     mdeletesaveVM,
     mdeletesaveSelect,
     mdeleteTM<true>
@@ -9929,7 +9883,6 @@ OperatorSpec mdeletepec(
 Operator mdeletebyidOp (
     "mdeletebyid",
     mdeletepec.getStr(),
-    2,
     mdeletebyidVM,
     mdeleteelect,
     mdeletebyidTypeMap
@@ -10099,7 +10052,6 @@ OperatorSpec mdeletedirectSpec(
 Operator mdeletedirectOp(
   "mdeletedirect",
   mdeletedirectSpec.getStr(),
-  2,
   mdeletedirectVM,
   mdeletedirectSelect,
   mdeletedirectTM
@@ -10239,7 +10191,6 @@ OperatorSpec mdeletedirectsaveSpec(
 Operator mdeletedirectsaveOp(
   "mdeletedirectsave",
   mdeletedirectsaveSpec.getStr(),
-  4,
   mdeletedirectsaveVM,
   mdeletedirectsaveSelect,
   mdeletedirectsaveTM
@@ -10510,7 +10461,6 @@ OperatorSpec mupdateSpecN(
 Operator mupdateNOp(
   "mupdate",
   mupdateSpecN.getStr(),
-  2,
   mupdateVMN,
   mupdateSelectN,
   mupdateTM
@@ -10896,7 +10846,6 @@ OperatorSpec mupdateSpec(
 Operator mupdateOp (
     "mupdate",
     mupdateSpec.getStr(),
-    2,
     mupdateVM,
     mupdateSelect,
     mupdateTypeMap<false>
@@ -10948,7 +10897,6 @@ OperatorSpec mupdatesaveSpec(
 Operator mupdatesaveOp (
     "mupdatesave",
     mupdatesaveSpec.getStr(),
-    4,
     mupdatesaveVM,
     mupdatesaveSelect,
     mupdateTypeMap<true>
@@ -11294,7 +11242,6 @@ OperatorSpec mupdatebyidSpec(
 Operator mupdatebyidOp (
     "mupdatebyid",
     mupdatebyidSpec.getStr(),
-    2,
     mupdatebyidVM,
     mupdatebyidSelect,
     mupdatebyidTypeMap
@@ -11594,7 +11541,6 @@ OperatorSpec mupdatedirect2Spec(
 Operator mupdatedirect2Op (
     "mupdatedirect2",
     mupdatedirect2Spec.getStr(),
-    2,
     mupdatedirect2VM,
     mupdatedirect2Select,
     mupdatedirect2TM
@@ -11780,7 +11726,6 @@ OperatorSpec moinsertSpec(
 Operator moinsertOp (
     "moinsert",
     moinsertSpec.getStr(),
-    4,
     moinsertVM,
     moinsertSelect<MOInsert>,
     minsertTypeMap<2,true>
@@ -11813,7 +11758,6 @@ OperatorSpec modeleteSpec(
 Operator modeleteOp (
     "modelete",
     modeleteSpec.getStr(),
-    4,
     moinsertVM,
     moinsertSelect<MODelete>,
     minsertTypeMap<2,true>
@@ -12308,7 +12252,6 @@ OperatorSpec morightrangeSpec(
 Operator morangeOp (
     "morange",
     morangeSpec.getStr(),
-    6,
     morangeVM,
     morangeSelect<Range>,
     morangeTypeMap<Range>
@@ -12321,7 +12264,6 @@ Operator morangeOp (
 Operator moleftrangeOp (
     "moleftrange",
     moleftrangeSpec.getStr(),
-    6,
     morangeVM,
     morangeSelect<LeftRange>,
     morangeTypeMap<LeftRange>
@@ -12334,7 +12276,6 @@ Operator moleftrangeOp (
 Operator morightrangeOp (
     "morightrange",
     morightrangeSpec.getStr(),
-    6,
     morangeVM,
     morangeSelect<RightRange>,
     morangeTypeMap<RightRange>
@@ -12943,7 +12884,6 @@ OperatorSpec moshortestpathdSpec(
 Operator moshortestpathdOp (
     "moshortestpathd",
     moshortestpathdSpec.getStr(),
-    2,
     moshortestpathdVM,
     moshortestpathSelect,
     moshortestpathTypeMap<DIJKSTRA>
@@ -13320,7 +13260,6 @@ OperatorSpec moshortestpathaSpec(
 Operator moshortestpathaOp (
     "moshortestpatha",
     moshortestpathaSpec.getStr(),
-    2,
     moshortestpathaVM,
     moshortestpathSelect,
     moshortestpathTypeMap<ASTAR>
@@ -13695,7 +13634,6 @@ OperatorSpec moconnectedcomponentsSpec(
 Operator moconnectedcomponentsOp (
     "moconnectedcomponents",
     moconnectedcomponentsSpec.getStr(),
-    2,
     moconnectedcomponentsVM,
     moconnectedcomponentsSelect,
     moconnectedcomponentsTypeMap
@@ -13940,7 +13878,6 @@ OperatorSpec mquicksortSpec(
 Operator mquicksortOp (
     "mquicksort",
     mquicksortSpec.getStr(),
-    4,
     mquicksortVM,
     mquicksortSelect<Sort>,
     mquicksortTypeMap<Sort>
@@ -13966,7 +13903,6 @@ OperatorSpec mquicksortbySpec(
 Operator mquicksortbyOp (
     "mquicksortby",
     mquicksortbySpec.getStr(),
-    4,
     mquicksortVM,
     mquicksortSelect<SortBy>,
     mquicksortTypeMap<SortBy>
@@ -14525,7 +14461,6 @@ OperatorSpec mgshortestpathdSpec(
 Operator mgshortestpathdOp (
     "mgshortestpathd",
     mgshortestpathdSpec.getStr(),
-    2,
     mgshortestpathdVM,
     mgshortestpathdSelect,
     mgshortestpathdTypeMap<false>
@@ -14747,7 +14682,6 @@ OperatorSpec mgshortestpathaSpec(
 Operator mgshortestpathaOp (
     "mgshortestpatha",
     mgshortestpathaSpec.getStr(),
-    2,
     mgshortestpathaVM,
     mgshortestpathaSelect,
     mgshortestpathdTypeMap<true>
@@ -15134,7 +15068,6 @@ OperatorSpec mgconnectedcomponentsSpec(
 Operator mgconnectedcomponents_oldOp (
     "mgconnectedcomponents_old",
     mgconnectedcomponentsSpec.getStr(),
-    2,
     mgconnectedcomponentsVM,
     mgconnectedcomponentsSelect,
     mgconnectedcomponentsTypeMap<false>
@@ -15143,7 +15076,6 @@ Operator mgconnectedcomponents_oldOp (
 Operator mgconnectedcomponentsOp (
     "mgconnectedcomponents",
     mgconnectedcomponentsSpec.getStr(),
-    2,
     mgconnectedcomponentsVM2,
     mgconnectedcomponentsSelect,
     mgconnectedcomponentsTypeMap<false>
@@ -15153,7 +15085,6 @@ Operator mgconnectedcomponentsOp (
 Operator mgconnectedcomponentsNOp (
     "mgconnectedcomponentsN",
     mgconnectedcomponentsSpec.getStr(),
-    2,
     mgconnectedcomponentsVM3,
     mgconnectedcomponentsSelect,
     mgconnectedcomponentsTypeMap<true>
@@ -16430,7 +16361,6 @@ OperatorSpec sizemvSpec(
 Operator sizemvOp(
   "sizemv",
   sizemvSpec.getStr(),
-  2,
   sizemvVM,
   sizemvSelect,
   sizemvTM
@@ -16516,7 +16446,6 @@ OperatorSpec getmvSpec(
 Operator getmvOp(
   "getmv",
   getmvSpec.getStr(),
-  2,
   getmvVM,
   getmvSelect,
   getmvTM
@@ -16613,7 +16542,6 @@ OperatorSpec putmvSpec(
 Operator putmvOp(
   "putmv",
   putmvSpec.getStr(),
-  2,
   putmvVM,
   putmvSelect,
   putmvTM
@@ -16682,7 +16610,6 @@ OperatorSpec isSortedmvSpec(
 Operator isSortedmvOp(
   "isSortedmv",
   isSortedmvSpec.getStr(),
-  2,
   isSortedmvVM,
   isSortedmvSelect,
   isSortedmvTM
@@ -16757,7 +16684,6 @@ OperatorSpec sortmvSpec(
 Operator sortmvOp(
   "sortmv",
   sortmvSpec.getStr(),
-  2,
   sortmvVM,
   sortmvSelect,
   sortmvTM
@@ -16861,7 +16787,6 @@ OperatorSpec feedmvSpec(
 Operator feedmvOp(
   "feedmv",
   feedmvSpec.getStr(),
-  2,
   feedmvVM,
   feedmvSelect,
   feedmvTM
@@ -16951,7 +16876,6 @@ OperatorSpec findmvSpec(
 Operator findmvOp(
 "findmv",
 findmvSpec.getStr(),
-2,
 findmvVM,
 findmvSelect,
 findmvTM
@@ -17039,7 +16963,6 @@ OperatorSpec matchbelowmvSpec(
 Operator matchbelowmvOp(
   "matchbelowmv",
   matchbelowmvSpec.getStr(),
-  2,
   matchbelowmvVM,
   matchbelowmvSelect,
   matchbelowmvTM
@@ -17259,7 +17182,6 @@ OperatorSpec insertmvSpec(
 Operator insertmvOp(
   "insertmv",
    insertmvSpec.getStr(),
-   4,
    insertmvVM,
    insertmvSelect,
    insertmvTM
@@ -17346,7 +17268,6 @@ OperatorSpec pwrapSpec(
 Operator pwrapOp(
   "pwrap",
   pwrapSpec.getStr(),
-  2,
   pwrapVM,
   pwrapSelect,
   pwrapTM
@@ -17519,7 +17440,6 @@ OperatorSpec matchbelow2Spec(
 Operator matchbelow2Op(
   "matchbelow2",
   matchbelow2Spec.getStr(),
-  4,
   matchbelow2VM,
   matchbelow2Select,
   matchbelow2TM
@@ -17613,7 +17533,6 @@ OperatorSpec countSpec(
 Operator countOp(
   "count",
   countSpec.getStr(),
-  3,
   countVM,
   countSelect,
   countTM
@@ -17774,7 +17693,6 @@ OperatorSpec sizeSpec(
 Operator sizeOp(
   "size",
   sizeSpec.getStr(),
-  2,
   sizeVM,
   sizeSelect,
   sizeTM<MemoryPQueueObject>
@@ -17893,7 +17811,6 @@ OperatorSpec mfeedpqSpec(
 Operator mfeedpqOp(
   "mfeedpq",
   mfeedpqSpec.getStr(),
-  2,
   mfeedpqVM,
   mfeedpqSelect,
   mfeedpqTM
@@ -17991,7 +17908,6 @@ OperatorSpec mfeedpqSizeSpec(
 Operator mfeedpqSizeOp(
   "mfeedpqSize",
   mfeedpqSizeSpec.getStr(),
-  2,
   mfeedpqSizeVM,
   mfeedpqSizeSelect,
   mfeedpqSizeTM
@@ -18111,7 +18027,6 @@ OperatorSpec mfeedpqAbortSpec(
 Operator mfeedpqAbortOp(
   "mfeedpqAbort",
   mfeedpqAbortSpec.getStr(),
-  4,
   mfeedpqAbortVM,
   mfeedpqAbortSelect,
   mfeedpqAbortTM
@@ -18228,7 +18143,6 @@ OperatorSpec minsertTupleSpec(
 Operator minsertTuplepqOp(
    "minserttuplepq",
    minsertTupleSpec.getStr(),
-   2,
    minsertTuplepqVM,
    minsertTuplepqSelect,
    minsertTuplepq
@@ -18459,7 +18373,6 @@ OperatorSpec minserttuplepqprojectUSpec(
 Operator minserttuplepqprojectUOp(
   "minserttuplepqprojectU",
   minserttuplepqprojectUSpec.getStr(),
-  4,
   minserttuplepqprojectVM,
   minserttuplepqprojectSelect,
   minserttuplepqprojectTM
@@ -18480,7 +18393,6 @@ OperatorSpec minserttuplepqprojectSpec(
 Operator minserttuplepqprojectOp(
   "minserttuplepqproject",
   minserttuplepqprojectSpec.getStr(),
-  4,
   minserttuplepqprojectVM,
   minserttuplepqprojectSelect,
   minserttuplepqprojectTM
@@ -18643,7 +18555,6 @@ OperatorSpec mpqreorderSpec(
 Operator mpqreorderOp(
   "mpqreorder",
   mpqreorderSpec.getStr(),
-  2,
   mpqreorderVM,
   mpqreorderSelect,
   mpqreorderTM<2>
@@ -18664,7 +18575,6 @@ OperatorSpec mpqreorderupdateSpec(
 Operator mpqreorderupdateOp(
   "mpqreorderupdate",
   mpqreorderupdateSpec.getStr(),
-  2,
   mpqreorderVM,
   mpqreorderSelect,
   mpqreorderTM<3>
@@ -18843,7 +18753,6 @@ OperatorSpec mfeedstackSpec(
 Operator mfeedstackOp(
   "mfeedstack",
   mfeedstackSpec.getStr(),
-  2,
   mfeedstackVM,
   mfeedstackSelect,
   mfeedstackTM
@@ -18880,7 +18789,6 @@ int stacksizeSelect(ListExpr args){
 Operator stacksizeOp(
   "stacksize",
    stacksizeSpec.getStr(),
-   2,
    stacksizeVM,
    stacksizeSelect,
    sizeTM<MemoryStackObject>
@@ -18995,7 +18903,6 @@ OperatorSpec insertmstackSpec(
 Operator insertmstackOp(
   "insertmstack",
   insertmstackSpec.getStr(),
-  2,
   insertmstackVM,
   insertmstackSelect,
   insertmstackTM
@@ -19102,7 +19009,6 @@ OperatorSpec mblockSpec(
 Operator mblockOp(
   "mblock",
   mblockSpec.getStr(),
-  2,
   mblockVM,
   mblockSelect,
   mblockTM
@@ -19293,7 +19199,6 @@ OperatorSpec createmgraph2Spec(
 Operator createmgraph2Op(
   "createmgraph2",
   createmgraph2Spec.getStr(),
-  2,
   createmgraph2VM,
   createmgraph2Select,
   createmgraph2TM  
@@ -19302,7 +19207,6 @@ Operator createmgraph2Op(
 Operator createmgraph2flobOp(
   "createmgraph2flob",
   createmgraph2Spec.getStr(),
-  2,
   createmgraph2flobVM,
   createmgraph2Select,
   createmgraph2TM  
@@ -19533,7 +19437,6 @@ OperatorSpec mg2insertorigSpec(
 Operator mg2insertorigOp(
   "mg2insertorig",
   mg2insertorigSpec.getStr(),
-  4,
   mg2insertorigVM,
   mg2insertorigSelect,
   mg2insertorigTM
@@ -19647,7 +19550,6 @@ OperatorSpec mg2insertSpec(
 Operator mg2insertOp(
   "mg2insert",
   mg2insertSpec.getStr(),
-  2,
   mg2insertVM,
   mginsertSelect,
   mginsertTM<MGraph2>
@@ -19731,7 +19633,6 @@ OperatorSpec mg2feedSpec(
 Operator mg2feedOp(
   "mg2feed",
   mg2feedSpec.getStr(),
-  2,
   mg2feedVM,
   mgfeedSelect,
   mgfeedTM<MGraph2>
@@ -19811,7 +19712,6 @@ OperatorSpec mg2nodemapSpec(
 Operator mg2nodemapOp(
   "mg2nodemap",
   mg2nodemapSpec.getStr(),
-  4,
   mg2nodemapVM,
   mg2nodemapSelect,
   mg2nodemapTM
@@ -19869,7 +19769,6 @@ OperatorSpec mg2numverticesSpec(
 Operator mg2numverticesOp(
   "mg2numvertices",
   mg2numverticesSpec.getStr(),
-  2,
   mg2numverticesVM,
   mgnumverticesSelect,
   mgnumverticesTM<MGraph2>
@@ -20002,7 +19901,6 @@ OperatorSpec mg2predecessorsSpec(
 Operator mg2successorsOp(
 "mg2successors",
 mg2successorsSpec.getStr(),
-2,
 mg2successorsVM,
 mgsuccpredSelect,
 mgsuccpredTM<MGraph2>
@@ -20012,7 +19910,6 @@ mgsuccpredTM<MGraph2>
 Operator mg2predecessorsOp(
 "mg2predecessors",
 mg2predecessorsSpec.getStr(),
-2,
 mg2predecessorsVM,
 mgsuccpredSelect,
 mgsuccpredTM<MGraph2>
@@ -20098,7 +19995,6 @@ OperatorSpec mg2numpredecessorsSpec(
 Operator mg2numsuccessorsOp(
   "mg2numsuccessors",
   mg2numsuccessorsSpec.getStr(),
-  2,
   mg2numsuccessorsVM,
   mgnumsuccpredSelect,
   mgnumsuccpredTM<MGraph2>
@@ -20107,7 +20003,6 @@ Operator mg2numsuccessorsOp(
 Operator mg2numpredecessorsOp(
   "mg2numpredecessors",
   mg2numpredecessorsSpec.getStr(),
-  2,
   mg2numpredecessorsVM,
   mgnumsuccpredSelect,
   mgnumsuccpredTM<MGraph2>
@@ -20177,7 +20072,6 @@ OperatorSpec mg2disconnectSpec(
 Operator mg2disconnectOp(
   "mg2disconnect",
   mg2disconnectSpec.getStr(),
-  2,
   mg2disconnectVM,
   mgdisconnectSelect,
   mgdisconnectTM<MGraph2>
@@ -20253,7 +20147,6 @@ OperatorSpec mg2deleteEdgesSpec(
 Operator mg2deleteEdgesOp(
   "mg2deleteEdges",
   mg2deleteEdgesSpec.getStr(),
-  2,
   mg2deleteEdgesVM,
   mgdeleteEdgesSelect,
   mgdeleteEdgesTM<MGraph2>
@@ -20438,7 +20331,6 @@ OperatorSpec mg3insertSpec(
 Operator mg3insertOp(
   "mg3insert",
   mg3insertSpec.getStr(),
-  2,
   mg3insertVM,
   mginsertSelect,
   mginsertTM<MGraph3>
@@ -20467,7 +20359,6 @@ OperatorSpec mg3feedSpec(
 Operator mg3feedOp(
   "mg3feed",
   mg3feedSpec.getStr(),
-  2,
   mg3feedVM,
   mgfeedSelect,
   mgfeedTM<MGraph3>
@@ -20494,7 +20385,6 @@ OperatorSpec mg3numverticesSpec(
 Operator mg3numverticesOp(
   "mg3numvertices",
   mg3numverticesSpec.getStr(),
-  2,
   mg3numverticesVM,
   mgnumverticesSelect,
   mgnumverticesTM<MGraph3>
@@ -20542,7 +20432,6 @@ OperatorSpec mg3predecessorsSpec(
 Operator mg3successorsOp(
 "mg3successors",
 mg3successorsSpec.getStr(),
-2,
 mg3successorsVM,
 mgsuccpredSelect,
 mgsuccpredTM<MGraph3>
@@ -20552,7 +20441,6 @@ mgsuccpredTM<MGraph3>
 Operator mg3predecessorsOp(
 "mg3predecessors",
 mg3predecessorsSpec.getStr(),
-2,
 mg3predecessorsVM,
 mgsuccpredSelect,
 mgsuccpredTM<MGraph3>
@@ -20591,7 +20479,6 @@ OperatorSpec mg3numpredecessorsSpec(
 Operator mg3numsuccessorsOp(
   "mg3numsuccessors",
   mg3numsuccessorsSpec.getStr(),
-  2,
   mg3numsuccessorsVM,
   mgnumsuccpredSelect,
   mgnumsuccpredTM<MGraph3>
@@ -20600,7 +20487,6 @@ Operator mg3numsuccessorsOp(
 Operator mg3numpredecessorsOp(
   "mg3numpredecessors",
   mg3numpredecessorsSpec.getStr(),
-  2,
   mg3numpredecessorsVM,
   mgnumsuccpredSelect,
   mgnumsuccpredTM<MGraph3>
@@ -20627,7 +20513,6 @@ OperatorSpec mg3disconnectSpec(
 Operator mg3disconnectOp(
   "mg3disconnect",
   mg3disconnectSpec.getStr(),
-  2,
   mg3disconnectVM,
   mgdisconnectSelect,
   mgdisconnectTM<MGraph3>
@@ -20656,7 +20541,6 @@ OperatorSpec mg3deleteEdgesSpec(
 Operator mg3deleteEdgesOp(
   "mg3deleteEdges",
   mg3deleteEdgesSpec.getStr(),
-  2,
   mg3deleteEdgesVM,
   mgdeleteEdgesSelect,
   mgdeleteEdgesTM<MGraph3>
@@ -20858,7 +20742,6 @@ OperatorSpec mg23connctedcomponentsSpec(
 Operator mg2connectedcomponentsOp(
   "mg2connectedcomponents",
   mg23connctedcomponentsSpec.getStr(),
-  2,
   mg2connectedcomponentsVM,
   mg23connectedcomponentsSelect,
   mg23connectedcomponentsTM<MGraph2,false>
@@ -20867,7 +20750,6 @@ Operator mg2connectedcomponentsOp(
 Operator mg3connectedcomponentsOp(
   "mg3connectedcomponents",
   mg23connctedcomponentsSpec.getStr(),
-  2,
   mg3connectedcomponentsVM,
   mg23connectedcomponentsSelect,
   mg23connectedcomponentsTM<MGraph3,false>
@@ -20885,7 +20767,6 @@ OperatorSpec mg23connctedcomponentsNSpec(
 Operator mg2connectedcomponentsNOp(
   "mg2connectedcomponentsN",
   mg23connctedcomponentsNSpec.getStr(),
-  2,
   mg2connectedcomponents2VM,
   mg23connectedcomponentsSelect,
   mg23connectedcomponentsTM<MGraph2,true>
@@ -20894,7 +20775,6 @@ Operator mg2connectedcomponentsNOp(
 Operator mg3connectedcomponentsNOp(
   "mg3connectedcomponentsN",
   mg23connctedcomponentsNSpec.getStr(),
-  2,
   mg3connectedcomponents2VM,
   mg23connectedcomponentsSelect,
   mg23connectedcomponentsTM<MGraph3,true>
@@ -21068,7 +20948,6 @@ OperatorSpec mg3contractSpec(
 Operator mg2contractOp(
   "mg2contract",
   mg2contractSpec.getStr(),
-  2,
   mg2contractVM,
   mgcontractSelect,
   mgcontractTM<MGraph2, true>
@@ -21077,7 +20956,6 @@ Operator mg2contractOp(
 Operator mg3contractOp(
   "mg3contract",
   mg3contractSpec.getStr(),
-  2,
   mg3contractVM,
   mgcontractSelect,
   mgcontractTM<MGraph3,true>
@@ -21211,7 +21089,6 @@ OperatorSpec mg3minPathCostSpec(
 Operator mg2minPathCostOp(
   "mg2minPathCost",
   mg2minPathCostSpec.getStr(),
-  2,
   mg2minPathCostVM,
   mgminPathCostSelect,
   mgminPathCostTM<MGraph2>
@@ -21220,7 +21097,6 @@ Operator mg2minPathCostOp(
 Operator mg3minPathCostOp(
   "mg3minPathCost",
   mg3minPathCostSpec.getStr(),
-  2,
   mg3minPathCostVM,
   mgminPathCostSelect,
   mgminPathCostTM<MGraph3>
@@ -21333,7 +21209,6 @@ OperatorSpec mg3exportddsgSpec(
 Operator mg2exportddsgOp(
   "mg2exportddsg",
   mg2exportddsgSpec.getStr(),
-  8,
   mg2exportddsgVM,
   exportddsgSelect,
   exportddsgTM<MGraph2>
@@ -21342,7 +21217,6 @@ Operator mg2exportddsgOp(
 Operator mg3exportddsgOp(
   "mg3exportddsg",
   mg3exportddsgSpec.getStr(),
-  8,
   mg3exportddsgVM,
   exportddsgSelect,
   exportddsgTM<MGraph3>
@@ -21441,7 +21315,6 @@ OperatorSpec mgraphPrintSpec(
 Operator mgraphPrintOp(
    "mgraphPrint",
    mgraphPrintSpec.getStr(),
-   2,
    mgraphPrintVM,
    mgraphPrintSelect,
    mgraphPrintTM   
@@ -21541,7 +21414,6 @@ OperatorSpec mgraph2textSpec(
 Operator mgraph2textOp(
    "mgraph2text",
    mgraph2textSpec.getStr(),
-   2,
    mgraph2textVM,
    mgraph2textSelect,
    mgraph2textTM   
@@ -22195,7 +22067,6 @@ OperatorSpec importCHSpec(
 Operator importCHOp(
   "importCH",
    importCHSpec.getStr(),
-   2,
    importCHVM,
    importCHSelect,
    importCHTM
@@ -22448,7 +22319,6 @@ int mmergejoinprojectSelect(ListExpr args){
 Operator mmergejoinprojectOp(
    "mmergejoinproject",
    mmergejoinprojectSpec.getStr(),
-   4, 
    mmergejoinprojectVM,
    mmergejoinprojectSelect,
    mmergejoinprojectTM
@@ -22715,7 +22585,6 @@ OperatorSpec mcreatentreeSpec(
 Operator mcreatentreeOp(
    "mcreatentree",
    mcreatentreeSpec.getStr(),
-   17,
    mcreatentreeVM<1>,
    mcreatentreeSelect,
    mcreatentreeTM<1>
@@ -22878,7 +22747,6 @@ OperatorSpec mcreatentree2Spec(
 Operator mcreatentree2Op(
    "mcreatentree2",
    mcreatentree2Spec.getStr(),
-   17,
    mcreatentree2VM,
    mcreatentree2Select,
    mcreatentreeTM<2>
@@ -22920,7 +22788,6 @@ OperatorSpec mcreatentree5Spec(
 Operator mcreatentree5Op(
    "mcreatentree5",
    mcreatentree5Spec.getStr(),
-   17,
    mcreatentreeVM<5>,
    mcreatentreeSelect,
    mcreatentreeTM<5>
@@ -22962,7 +22829,6 @@ OperatorSpec mcreatentree6Spec(
 Operator mcreatentree6Op(
    "mcreatentree6",
    mcreatentree6Spec.getStr(),
-   17,
    mcreatentreeVM<6>,
    mcreatentreeSelect,
    mcreatentreeTM<6>
@@ -23004,7 +22870,6 @@ OperatorSpec mcreatentree7Spec(
 Operator mcreatentree7Op(
    "mcreatentree7",
    mcreatentree7Spec.getStr(),
-   17,
    mcreatentreeVM<7>,
    mcreatentreeSelect,
    mcreatentreeTM<7>
@@ -23046,7 +22911,6 @@ OperatorSpec mcreatentree8Spec(
 Operator mcreatentree8Op(
    "mcreatentree8",
    mcreatentree8Spec.getStr(),
-   17,
    mcreatentreeVM<8>,
    mcreatentreeSelect,
    mcreatentreeTM<8>
@@ -23282,7 +23146,6 @@ OperatorSpec minsertntreeSpec(
 Operator minsertntreeOp(
   "minsertntree",
    minsertntreeSpec.getStr(),
-   68,
    minsertntreeVM,
    minsertdeletentreeSelect,
    minsertdeletentreeTM
@@ -23460,7 +23323,6 @@ OperatorSpec mdeletentreeSpec(
 Operator mdeletentreeOp(
   "mdeletentree",
    mdeletentreeSpec.getStr(),
-   68,
    mdeletentreeVM,
    minsertdeletentreeSelect,
    minsertdeletentreeTM
@@ -23618,7 +23480,6 @@ OperatorSpec exportntreeSpec(
 Operator exportntreeOp(
    "exportntree",
    exportntreeSpec.getStr(),
-   34,
    exportntreeVM,
    exportntreeSelect,
    exportntreeTM
@@ -23738,7 +23599,6 @@ OperatorSpec importntree7Spec(
 Operator importntree7Op (
     "importntree7",
     importntree7Spec.getStr(),
-    17,
     importntreeVM<7>,
     importntreeSelect,
     importntreeTM<7>
@@ -23756,7 +23616,6 @@ OperatorSpec importntree8Spec(
 Operator importntree8Op (
     "importntree8",
     importntree8Spec.getStr(),
-    17,
     importntreeVM<8>,
     importntreeSelect,
     importntreeTM<8>

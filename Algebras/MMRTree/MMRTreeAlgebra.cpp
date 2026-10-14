@@ -359,7 +359,6 @@ ValueMapping realJoinMMRTreeVM[] = {
 Operator realJoinMMRTree(
   "realJoinMMRTree",
   realJoinMMRTreeSpec,
-  16,
   realJoinMMRTreeVM,
   realJoinSelect,
   realJoinMMRTreeTM 
@@ -414,7 +413,6 @@ ValueMapping realJoinMMRTreeVecVM[] = {
 Operator realJoinMMRTreeVec(
   "realJoinMMRTreeVec",
   realJoinMMRTreeSpec,
-  16,
   realJoinMMRTreeVecVM,
   realJoinSelect,
   realJoinMMRTreeTM 
@@ -682,7 +680,6 @@ ValueMapping statMMRTreevm[] = {
 Operator statMMRTree (
   "statMMRTree",
   statMMRTreeSpec,
-  2, 
   statMMRTreevm,
   statMMRTreeSelect,
   statMMRTreeTM);
@@ -970,7 +967,6 @@ ValueMapping joinMMRTreeItvm[] = {
 Operator joinMMRTreeIt (
   "joinMMRTreeIt",
   realJoinMMRTreeSpec,
-  16, 
   joinMMRTreeItvm,
   realJoinSelect ,
   realJoinMMRTreeTM
@@ -1042,7 +1038,6 @@ ValueMapping joinMMRTreeItVecvm[] = {
 Operator joinMMRTreeItVec (
   "joinMMRTreeItVec",
   realJoinMMRTreeSpec,
-  16, 
   joinMMRTreeItVecvm,
   realJoinSelect ,
   realJoinMMRTreeTM
@@ -1588,7 +1583,6 @@ CreateCostEstimation ItSpatialJoinCostEstimationList[]
 Operator itSpatialJoin(
       "itSpatialJoin",
        realJoinMMRTreeSpec,
-       16, 
        ItSpatialJoinVM,
        realJoinSelect ,
        realJoinMMRTreeTM,
@@ -1598,7 +1592,6 @@ Operator itSpatialJoin(
 Operator itSpatialJoinR(
       "itSpatialJoinR",
        realJoinMMRTreeSpec,
-       16, 
        ItSpatialJoinRVM,
        realJoinSelect ,
        realJoinMMRTreeTM,
@@ -2175,7 +2168,6 @@ int SimJoinSelect(ListExpr args){
 Operator SimJoinOp(
   "simJoin",
   SimJoinSpec.getStr(),
-  3,
   SimJoinVM,
   SimJoinSelect,
   SimJoinTM<false>

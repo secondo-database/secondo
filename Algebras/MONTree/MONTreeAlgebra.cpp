@@ -970,7 +970,6 @@ const string CreateMONTreeSpec  =
 Operator createmontree (
           "createmontree",       // name
           CreateMONTreeSpec,     // specification
-          6,                  // Number of overloaded functions
           createmontreemap, // value mapping
           CreateMONTreeSelect,   // trivial selection function
           CreateMONTreeTypeMap   // type mapping
@@ -1542,7 +1541,6 @@ ValueMapping windowtimeintersectss [] = { MON_WindowTimeIntersectsS,
 Operator windowtimeintersectsS (
          "windowtimeintersectsS",
          windowtimeintersectsSSpec,
-         2,
          windowtimeintersectss,
          WindowTimeIntersectsSSelection,
          MON_WindowTimeIntersectsSTypeMap

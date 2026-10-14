@@ -180,7 +180,6 @@ const std::string createSSPHandlerOpSpec =
 Operator createSSPHandler_Op(
     "createSSPHandler",
     createSSPHandlerOpSpec,
-    1,
     createSSPHandler,
     createSSPHandler_Select,
     createSSPHandler_TM

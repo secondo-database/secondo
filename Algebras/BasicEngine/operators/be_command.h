@@ -93,7 +93,7 @@ int be_commandSelect(ListExpr args) {
 
 */
 Operator be_commandOp("be_command", be_commandVMSpec.getStr(),
-                      sizeof(be_commandVM), be_commandVM, be_commandSelect,
+                      be_commandVM, be_commandSelect,
                       be_commandTM);
 
 } // namespace BasicEngine

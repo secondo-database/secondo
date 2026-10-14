@@ -112,7 +112,7 @@ int be_querySelect(ListExpr args) {
 1.5.6 Operator instance
 
 */
-Operator be_queryOp("be_query", be_queryVMSpec.getStr(), sizeof(be_queryVM),
+Operator be_queryOp("be_query", be_queryVMSpec.getStr(),
                     be_queryVM, be_querySelect, be_queryTM);
 
 } // namespace BasicEngine

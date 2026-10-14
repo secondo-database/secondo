@@ -4836,7 +4836,7 @@ wgetFun (Word* args, Word& result, int message, Word& local, Supplier s,
         else {
           delete checkUrl;
           checkUrl = NULL;
-        }	    
+        }        
       }
       if( !exturl )
       {
@@ -5844,7 +5844,6 @@ Operator webgetfiles (
 Operator webwget (
   "wget",     //name
   wgetSpec,         //specification
-  2,      //number of functions
   webwgetMap,  //value mapping
   webwget_pagegetSelect,  //trivial selection function
   wgetTypeMap    //type mapping
@@ -5858,7 +5857,6 @@ Operator webwget (
 Operator webpageget (
   "pageget",     //name
   pagegetSpec,         //specification
-  2,      //number of functions
   webpagegetMap,  //value mapping
   webwget_pagegetSelect,  //trivial selection function
   pagegetTypeMap    //type mapping
@@ -5872,7 +5870,6 @@ Operator webpageget (
 Operator webhtmlget (
   "htmlget",     //name
   htmlgetSpec,         //specification
-  2,      //number of functions
   webhtmlgetMap,  //value mapping
   webwget_pagegetSelect,  //trivial selection function
   htmlgetTypeMap    //type mapping
@@ -5886,7 +5883,6 @@ Operator webhtmlget (
 Operator webequal (
   "webequal",     //name
   webequalSpec,  //specification
-  3,      //number of functions
   webequalMap,  //value mapping
   webequalSelect,  //trivial selection function
   webequalTypeMap    //type mapping

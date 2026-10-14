@@ -560,7 +560,6 @@ OperatorSpec drelspatialjoinSpec(
 Operator drelspatialjoinOp(
     "drelspatialjoin",
     drelspatialjoinSpec.getStr( ),
-    4,
     drelspatialjoinVM,
     drelspatialjoinSelect,
     drelspatialjoinTM

@@ -274,7 +274,6 @@ OperatorSpec getOpSpec(const string opName, const string opResult){
 Operator plusOP(
   "+",
   getOpSpec("+","sum").getStr(),
-  9,
   plusVM,
   arOpsSelect,
   arOpsTM
@@ -283,7 +282,6 @@ Operator plusOP(
 Operator minusOP(
   "-",
   getOpSpec("-","difference").getStr(),
-  9,
   minusVM,
   arOpsSelect,
   arOpsTM
@@ -292,7 +290,6 @@ Operator minusOP(
 Operator mulOP(
   "*",
   getOpSpec("*","product").getStr(),
-  9,
   mulVM,
   arOpsSelect,
   arOpsTM
@@ -301,7 +298,6 @@ Operator mulOP(
 Operator divideOP(
   "/",
   getOpSpec("/","quotient").getStr(),
-  9,
   divideVM,
   arOpsSelect,
   arOpsTM
@@ -369,7 +365,6 @@ OperatorSpec timePlusSpec(
 Operator timePlusOP(
   "+",
   timePlusSpec.getStr(),
-  2,
   timePlusVM,
   timePlusSelect,
   timePlusTM
@@ -460,7 +455,6 @@ OperatorSpec timeMinusSpec(
 Operator timeMinusOP(
   "-",
   timeMinusSpec.getStr(),
-  3,
   timeMinusVM,
   timeMinusSelect,
   timeMinusTM
@@ -553,7 +547,6 @@ OperatorSpec timeMulSpec(
 Operator timeDivOP(
   "/",
   timeDivSpec.getStr(),
-  5,
   timeDivVM,
   timeMulDivSelect,
   timeMulDivTM
@@ -562,7 +555,6 @@ Operator timeDivOP(
 Operator timeMulOP(
   "*",
   timeMulSpec.getStr(),
-  5,
   timeMulVM,
   timeMulDivSelect,
   timeMulDivTM
@@ -738,7 +730,6 @@ OperatorSpec toPreciseSpec(
 Operator toPreciseOP(
   "toPrecise",
   toPreciseSpec.getStr(),
-  11,
   toPreciseVM,
   toPreciseSelect,
   toPreciseTM
@@ -909,7 +900,6 @@ OperatorSpec translateSpec(
 Operator translateOP(
   "translate",
   translateSpec.getStr(),
-  50,
   translateVM,
   translateSelect,
   translateTM
@@ -1081,7 +1071,6 @@ OperatorSpec scaleSpec(
 Operator scaleOP(
   "scale",
   scaleSpec.getStr(),
-  50,
   scaleVM,
   scaleSelect,
   scaleTM
@@ -1188,7 +1177,6 @@ OperatorSpec makePrecPointSpec(
 Operator makePrecPointOP(
   "makePrecPoint",
   makePrecPointSpec.getStr(),
-  25,
   makePrecPointVM,
   makePrecPointSelect,
   makePrecPointTM
@@ -1268,7 +1256,6 @@ OperatorSpec containsSpec(
 Operator containsOP(
   "contains",
   containsSpec.getStr(),
-  2,
   containsVM,
   containsSelect,
   containsTM
@@ -1354,7 +1341,6 @@ OperatorSpec intersectsSpec(
 Operator intersectsOP(
   "intersects",
   intersectsSpec.getStr(),
-  2,
   intersectsVM,
   intersectsSelect,
   intersectsTM
@@ -1452,7 +1438,6 @@ OperatorSpec unionSpec(
 Operator unionOP(
   "union",
   unionSpec.getStr(),
-  3,
   unionVM,
   unionSelect,
   unionTM
@@ -1537,7 +1522,6 @@ OperatorSpec intersectionSpec(
 Operator intersectionOP(
   "intersection",
   intersectionSpec.getStr(),
-  2,
   intersectionVM,
   intersectionSelect,
   intersectionTM
@@ -1623,7 +1607,6 @@ OperatorSpec differenceSpec(
 Operator differenceOP(
   "difference",
   differenceSpec.getStr(),
-  2,
   differenceVM,
   differenceSelect,
   differenceTM
@@ -1718,7 +1701,6 @@ OperatorSpec str2preciseSpec(
 Operator str2preciseOP(
   "str2precise",
   str2preciseSpec.getStr(),
-  2,
   str2preciseVM,
   str2preciseSelect,
   str2preciseTM
@@ -1786,7 +1768,6 @@ OperatorSpec noElementsSpec(
 Operator noElementsOP(
   "noElements",
   noElementsSpec.getStr(),
-  3,
   noElementsVM,
   noElementsSelect,
   noElementsTM
@@ -1933,7 +1914,6 @@ OperatorSpec halfSegmentsSpec(
 Operator halfSegmentsOP(
   "halfSegments",
   halfSegmentsSpec.getStr(),
-  2,
   halfSegmentsVM,
   halfSegmentsSelect,
   halfSegmentsTM
@@ -2001,7 +1981,6 @@ OperatorSpec verticesSpec(
 Operator verticesOP(
   "vertices",
   verticesSpec.getStr(),
-  2,
   verticesVM,
   verticesSelect,
   verticesTM
@@ -2073,7 +2052,6 @@ OperatorSpec boundarySpec(
 Operator boundaryOP(
   "boundary",
   boundarySpec.getStr(),
-  1,
   boundaryVM,
   boundarySelect,
   boundaryTM
@@ -2151,7 +2129,6 @@ OperatorSpec bboxSpec(
 Operator bboxOP(
   "bbox",
   bboxSpec.getStr(),
-  4,
   bboxVM,
   bboxSelect,
   bboxTM
@@ -2273,7 +2250,6 @@ Operator instance
 Operator collectOP(
   "collectprecise",
   collectSpec.getStr(),
-  3,
   collectVM,
   collectSelect,
   collectTM

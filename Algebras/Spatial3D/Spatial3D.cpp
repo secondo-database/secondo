@@ -193,7 +193,6 @@ OperatorSpec makePoint3DSpec(
 Operator makePoint3DOp(
    "makePoint3D",
    makePoint3DSpec.getStr(),
-   10,
    makePoint3DVM,
    makePoint3DSelect,
    makePoint3DTM

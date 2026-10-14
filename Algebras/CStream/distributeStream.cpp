@@ -320,7 +320,6 @@ const std::string distributeStreamOpSpec =
 Operator distributeStream_Op(
     "distributeStream",
     distributeStreamOpSpec,
-    2,
     distributeStream,
     distributeStream_Select,
     distributeStream_TM

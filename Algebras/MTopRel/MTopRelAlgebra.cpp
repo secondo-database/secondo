@@ -405,7 +405,6 @@ ValueMapping toprelseqVM[] = {
 Operator toprelseq(
            "toprelseq",
            toprelseqSpec,
-           12,
            toprelseqVM,
            toprelseqSelect,
            toprelseqTM);
@@ -612,7 +611,6 @@ const string clusterseqSpec =
 Operator clusterseq(
            "clusterseq",
            clusterseqSpec,
-           12,
            clusterseqVM,
            toprelseqSelect,
            clusterseqTM);
@@ -1024,7 +1022,6 @@ const string mtoppredSpec =
 Operator mtoppred(
            "mtoppred",
            mtoppredSpec,
-           12,
            mtoppredVM,
            mtoppredSelect,
            mtoppredTM);

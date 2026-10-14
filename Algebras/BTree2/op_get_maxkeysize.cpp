@@ -144,7 +144,6 @@ string get_maxkeysize::Specification() {
          " ) )";
 }
 
-int get_maxkeysize::numberOfValueMappings = 2;
 ValueMapping get_maxkeysize::valueMappings[] = {
                   get_maxkeysize::ValueMapping_Default,
                   get_maxkeysize::ValueMapping_BTree,
@@ -153,7 +152,6 @@ ValueMapping get_maxkeysize::valueMappings[] = {
 Operator get_maxkeysize::def (
           "get_maxkeysize",                     // name
           get_maxkeysize::Specification(),      // specification
-          get_maxkeysize::numberOfValueMappings,// number of functions
           get_maxkeysize::valueMappings,        // value mapping
           get_maxkeysize::Select,               // trivial selection function
           get_maxkeysize::TypeMapping           // type mapping

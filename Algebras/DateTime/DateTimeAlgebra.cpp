@@ -3276,7 +3276,6 @@ Operator dt_today(
 Operator dt_day(
        "day_of",            // name
        DaySpec,             // specification
-       2,                   // number of functions
        DayValueMap,
        InstantOrDurationIntSelect,
        InstantOrDurationIntTM);
@@ -3319,7 +3318,6 @@ Operator dt_second(
 Operator dt_millisecond(
        "millisecond_of",           // name
        MillisecondSpec,            // specification
-       2,                          // number of functions
        MillisecondValueMap,
        InstantOrDurationIntSelect,
        InstantOrDurationIntTM);
@@ -3405,7 +3403,6 @@ Operator dt_equals(
 Operator dt_mul(
        "*", // name
        MulSpec, // specification
-       4,
        MulVM,
        MulSelect,
        MulTM);
@@ -3420,7 +3417,6 @@ Operator dt_weekday(
 Operator dt_theInstant(
        "theInstant",               // name
        TheInstantSpec,             // specification
-       7,                          // number of functions
        TheInstantValueMap,
        TheInstantSelect,
        TheInstantTM);
@@ -3442,7 +3438,6 @@ Operator dt_instant2real(
 Operator dt_create_duration(
        "create_duration",          // name
        CreateDurationSpec,         // specification
-       4,                          // number of functions
        CreateDurationValueMap,
        create_durationSelect,
        CreateDurationTM);
@@ -3450,7 +3445,6 @@ Operator dt_create_duration(
 Operator dt_create_instant(
        "create_instant",          // name
        CreateInstantSpec,         // specification
-       2,                          // number of functions
        CreateInstantValueMap,
        TheInstantSelect,
        CreateInstantTM);
@@ -3466,7 +3460,6 @@ Operator dt_tostring(
 Operator str2instant(
        "str2instant",
         str2instantSpec,
-        2,
         str2instantvm,
         str2instantSelect,
         str2instantTM

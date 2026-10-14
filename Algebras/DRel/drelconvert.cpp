@@ -198,7 +198,6 @@ Creates a d[f]rel.
     Operator drel2darrayOp(
         "drel2darray",
         drel2darraySpec.getStr( ),
-        4,
         drel2darrayVM,
         drel2darraySelect,
         drel2darrayTM

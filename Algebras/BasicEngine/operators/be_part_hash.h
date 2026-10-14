@@ -120,7 +120,7 @@ int be_partHashSelect(ListExpr args) {
 
 */
 Operator be_partHashOp("be_part_hash", be_partHashSpec.getStr(),
-                       sizeof(be_partHashVM), be_partHashVM, be_partHashSelect,
+                       be_partHashVM, be_partHashSelect,
                        be_partHashTM);
 
 } // namespace BasicEngine

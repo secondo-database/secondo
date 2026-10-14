@@ -436,7 +436,6 @@ ValueMapping statRindexvm[] = {
 Operator statRindex (
   "statRindex",
   statRindexSpec,
-  2,
   statRindexvm,
   statRindexSelect,
   statRindexTM);
@@ -1046,7 +1045,6 @@ int realJoinIndexSelect(ListExpr args){
 Operator realJoinRindex (
   "realJoinRindex",
   realJoinRindexSpec,
-  2,
   realJoinRindexVM,
   realJoinIndexSelect,
   realJoinRindexTM);
@@ -1064,7 +1062,6 @@ ValueMapping realJoinRindexVecVM[] = {
 Operator realJoinRindexVec (
   "realJoinRindexVec",
   realJoinRindexSpec,
-  2,
   realJoinRindexVecVM,
   realJoinIndexSelect,
   realJoinRindexTM);

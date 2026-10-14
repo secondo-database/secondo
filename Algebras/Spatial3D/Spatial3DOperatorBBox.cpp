@@ -164,7 +164,6 @@ namespace spatial3DOperatorBBox {
     return new Operator(
     "bbox3d",
     bbox3dSpec.getStr(),
-    2,
     bbox3dVM,
     Spatial3dBBoxSelect,
     Spatial3dBBoxMap

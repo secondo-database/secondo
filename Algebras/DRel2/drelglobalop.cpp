@@ -856,7 +856,6 @@ Operator specification of the sortby operator.
     Operator rdupOp(
         "rdup",
         rdupSpec.getStr( ),
-        2,
         drelglobaldmapVM,
         drelglobaldmapSelect,
         rdupTM
@@ -869,7 +868,6 @@ Operator specification of the sortby operator.
     Operator sortOp(
         "sort",
         sortSpec.getStr( ),
-        2,
         drelglobaldmapVM,
         drelglobaldmapSelect,
         sortTM
@@ -882,7 +880,6 @@ Operator specification of the sortby operator.
     Operator drelgroupbyOp(
         "drelgroupby",
         drelgroupbySpec.getStr( ),
-        2,
         drelglobaldmapVM,
         drelglobaldmapSelect,
         drelgroupbyTM
@@ -895,7 +892,6 @@ Operator specification of the sortby operator.
     Operator sortbyOp(
         "sortby",
         sortbySpec.getStr( ),
-        2,
         drelglobaldmapVM,
         drelglobaldmapSelect,
         sortbyTM

@@ -462,7 +462,6 @@ const string CsvExportSpec  =
 
 Operator csvexport( "csvexport",
                      CsvExportSpec,
-                     2,
                      csvexportmap,
                      csvExportSelect,
                      csvexportTM);
@@ -1584,7 +1583,6 @@ int csvimportSelect(ListExpr args){
 */
 Operator csvimport( "csvimport",
                     csvimportSpec,
-                    2,
                     csvimportVM,
                     csvimportSelect,
                     csvimportTM);
@@ -2204,7 +2202,6 @@ const string get_linesSpec  =
 
 Operator get_lines( "get_lines",
                      get_linesSpec,
-                     2,
                      get_linesMAPS,
                      get_linesSel,
                      get_linesTM);
@@ -2637,7 +2634,6 @@ const string shpexportSpec  =
 
 Operator shpexport( "shpexport",
                      shpexportSpec,
-                     2,
                      shpexportmap,
                      shpexportSelect,
                      shpexportTM);
@@ -4997,7 +4993,6 @@ int stringORtextSelect( ListExpr args )
 */
 Operator isFile ( "isFile",
                    isFileSpec,
-                   2,
                    isFilevaluemap,
                    stringORtextSelect,
                    stringORtext2boolTM);
@@ -5067,7 +5062,6 @@ const string removeFileSpec  =
 */
 Operator removeFile ( "removeFile",
                    removeFileSpec,
-                   2,
                    removeFilevaluemap,
                    stringORtextSelect,
                    stringORtext2boolTM);
@@ -5202,7 +5196,6 @@ const string rtf2txtfileSpec  =
 
 Operator rtf2txtfile ( "rtf2txtfile",
                    rtf2txtfileSpec,
-                   2,
                    rtf2txtfilevaluemap,
                    stringORtextSelect,
                    stringORtext2boolTM);
@@ -5312,7 +5305,6 @@ Operator Instance for operator ~createDirectory~
 */
 Operator createDirectory ( "createDirectory",
                    createDirectorySpec,
-                   2,
                    createDirectoryvaluemap,
                    stringORtextSelect,
                    createDirectoryTM);
@@ -5417,7 +5409,6 @@ const string fileSizeSpec =
 */
 Operator fileSize ( "fileSize",
                    fileSizeSpec,
-                   2,
                    fileSizevaluemap,
                    stringORtextSelect,
                    stringORtextOPTIONbool2intTM);
@@ -5483,7 +5474,6 @@ Uses ~stringORtextSelect~.
 */
 Operator isDirectory ( "isDirectory",
                    isDirectorySpec,
-                   2,
                    isDirectoryvaluemap,
                    stringORtextSelect,
                    stringORtext2boolTM);
@@ -5648,7 +5638,6 @@ int stringORtext_stringORtext_Select( ListExpr args )
 */
 Operator writeFile ( "writeFile",
                    writeFileSpec,
-                   4,
                    writeFilevaluemap,
                    stringORtext_stringORtext_Select,
                    stringORtext_stringORtext_OPTIONALbool2boolTM);
@@ -5769,7 +5758,6 @@ Uses ~stringORtextSelect~.
 */
 Operator readFile ( "readFile",
                    readFileSpec,
-                   2,
                    readFilevaluemap,
                    stringORtextSelect,
                    stringORtext2textTM);
@@ -5892,7 +5880,6 @@ Uses ~stringORtext\_stringORtextSelect~.
 */
 Operator moveFile ( "moveFile",
                    moveFileSpec,
-                   4,
                    moveFilevaluemap,
                    stringORtext_stringORtext_Select,
                    moveOrCopyFileTM);
@@ -5913,7 +5900,6 @@ ValueMapping copyFileVM[] = {moveOrCopyFileVM<CcString, CcString, false>,
 
 Operator copyFile( "copyFile",
                    copyFileSpec.getStr(),
-                   4,
                    copyFileVM,
                    stringORtext_stringORtext_Select,
                    moveOrCopyFileTM);
@@ -5968,7 +5954,6 @@ OperatorSpec basenameSpec(
 Operator basenameOp(
   "basename",
   basenameSpec.getStr(),
-  2,
   basenameVM,
   basenameSelect,
   basenameTM
@@ -6143,7 +6128,6 @@ Uses ~stringORtextSelect~.
 */
 Operator getDirectory( "getDirectory",
                    getDirectorySpec,
-                   2,
                    getDirectoryvaluemap,
                    stringORtextSelect,
                    stringORtext_OPTIONALint2textstreamTM);
@@ -6321,7 +6305,6 @@ int fromCSVtextSelect(ListExpr args){
 
 Operator fromCSVtext( "fromCSVtext",
                    fromCSVtextSpec,
-                   2,
                    fromCSVtextvaluemap,
                    fromCSVtextSelect,
                    CSVIMPORTABLE_textORstring2CSVIMPORATABLETM);
@@ -6801,7 +6784,6 @@ Operator Instance
 Operator sqlExport(
   "sqlExport",
   sqlExportSpec.getStr(),
-  2,
   sqlExportVM,
   sqlExportSelect,
   sqlExportTM
@@ -7102,7 +7084,6 @@ OperatorSpec removeDirectorySpec(
 Operator removeDirectoryOp(
   "removeDirectory",
   removeDirectorySpec.getStr(),
-  2,
   removeDirectoryVM,
   removeDirectorySelect,
   removeDirectoryTM
@@ -7209,7 +7190,6 @@ OperatorSpec shpBoxSpec(
 Operator shpBoxOp(
    "shpBox",
    shpBoxSpec.getStr(),
-   2,
    shpBoxVM,
    shpBoxSelect,
    shpBoxTM
@@ -7557,7 +7537,6 @@ OperatorSpec shpCollectSpec(
 Operator shpCollectOp(
   "shpCollect",
   shpCollectSpec.getStr(),
-  4,
   shpCollectVM,
   shpCollectSelect,
   shpCollectTM
@@ -7906,7 +7885,6 @@ OperatorSpec db3CollectSpec(
 Operator db3CollectOp(
   "db3Collect",
   db3CollectSpec.getStr(),
-  4,
   db3CollectVM,
   db3CollectSelect,
   db3CollectTM
@@ -8049,7 +8027,6 @@ OperatorSpec noShpRecordsSpec(
 Operator noShpRecordsOp(
   "noShpRecords",
   noShpRecordsSpec.getStr(),
-  2,
   noShpRecordsVM,
   noShpRecordsSelect,
   noShpRecordsTM
@@ -8171,7 +8148,6 @@ OperatorSpec noDB3RecordsSpec(
 Operator noDB3RecordsOp(
   "noDB3Records",
   noDB3RecordsSpec.getStr(),
-  2,
   noDB3RecordsVM,
   noDB3RecordsSelect,
   noDB3RecordsTM
@@ -8301,7 +8277,6 @@ OperatorSpec createShxSpec(
 Operator createShxOp(
   "createShx",
   createShxSpec.getStr(),
-  4,
   createShxVM,
   createShxSelect,
   createShxTM
@@ -8761,7 +8736,6 @@ OperatorSpec extractShpPartSpec(
 Operator extractShpPartOp(
   "extractShpPart",
   extractShpPartSpec.getStr(),
-  4,
   extractShpPartVM,
   extractShpPartSelect,
   extractShpPartTM
@@ -8962,7 +8936,6 @@ OperatorSpec extractDB3PartSpec(
 Operator extractDB3PartOp(
   "extractDB3Part",
   extractDB3PartSpec.getStr(),
-  4,
   extractDB3PartVM,
   extractDB3PartSelect,
   extractDB3PartTM
@@ -9194,7 +9167,6 @@ OperatorSpec splitShpSpec(
 Operator splitShpOp(
   "splitShp",
   splitShpSpec.getStr(),
-  2,
   splitShpVM,
   splitShpSelect,
   splitShpTM
@@ -9354,7 +9326,6 @@ OperatorSpec splitDB3Spec(
 Operator splitDB3Op(
   "splitDB3",
   splitDB3Spec.getStr(),
-  2,
   splitDB3VM,
   splitDB3Select,
   splitDB3TM
@@ -10672,7 +10643,6 @@ OperatorSpec importaisSpec(
 Operator importaisOp(
   "importais",
   importaisSpec.getStr(),
-  2,
   importaisVM,
   importaisSelect,
   importaisTM
@@ -10887,7 +10857,6 @@ OperatorSpec exportBinCSVSpec(
 Operator exportBinCSVOp(
   "exportBinCSV",
   exportBinCSVSpec.getStr(),
-  2,
   exportBinCSVVM,
   exportBinCSVSelect,
   exportBinCSVTM
@@ -11105,7 +11074,6 @@ OperatorSpec importBinCSVSimpleSpec(
 Operator importBinCSVSimpleOp(
   "importBinCSVSimple",
    importBinCSVSimpleSpec.getStr(),
-   2,
    importBinCSVSimpleVM,
    importBinCSVSimpleSelect,
    importBinCSVSimpleTM

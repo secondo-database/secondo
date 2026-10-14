@@ -714,7 +714,6 @@ ValueMapping createhashmap[] = { CreateHashValueMapping_Rel,
 Operator createhash (
           "createhash",             // name
           CreateHashSpec,           // specification
-          2,                         // number of overloaded functions
           createhashmap,            // value mapping
           CreateHashSelect,         // trivial selection function
           CreateHashTypeMap         // type mapping

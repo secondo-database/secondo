@@ -538,7 +538,6 @@ const std::string foreverQueriesOpSpec =
 Operator foreverQueries_Op(
     "foreverQueries",
     foreverQueriesOpSpec,
-    1,
     foreverQueries,
     foreverQueries_Select,
     foreverQueries_TM

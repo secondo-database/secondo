@@ -6071,7 +6071,6 @@ Operator mbool2mset (
 Operator unionmset (
     "union",    //name
     UnionSpec,     //specification
-    2,
     UnionVMMap,       //value mapping
     MSSetSelect<0>, //trivial selection function
     UnionTM        //type mapping
@@ -6096,7 +6095,6 @@ Operator union2mset (
 Operator equals (
     "=",    //name
     EqualsSpec,     //specification
-    2,
     EqualsVMMap,       //value mapping
     MSSetSelect<0>, //trivial selection function
     EqualsTM        //type mapping
@@ -6105,7 +6103,6 @@ Operator equals (
 Operator nequals (
     "#",    //name
     EqualsSpec,     //specification
-    2,
     NEqualsVMMap,       //value mapping
     MSSetSelect<0>, //trivial selection function
     EqualsTM        //type mapping
@@ -6114,7 +6111,6 @@ Operator nequals (
 Operator minus (
     "-",    //name
     MinusSpec,     //specification
-    2,
     MinusVMMap,       //value mapping
     MSSetSelect<0>, //trivial selection function
     MinusTM        //type mapping
@@ -6123,7 +6119,6 @@ Operator minus (
 Operator cardinality (
     "cardinality",    //name
     CardinalitySpec,     //specification
-    4,
     CardinalityVMMap,       //value mapping
     MUISSetSelect<0>,
     CardinalityTM        //type mapping
@@ -6141,7 +6136,6 @@ Operator intstream2set (
 Operator boundingregion (
     "boundingregion",               // name
     BoundingRegionSpec,             // specification
-    3,
     BoundingRegionVMMap,                 // value mapping
     MUISetSelect<1>, // trivial selection function
     BoundingRegionTM          // type mapping
@@ -6150,7 +6144,6 @@ Operator boundingregion (
 Operator members (
     "members",               // name
     MembersSpec,             // specification
-    3,
     MembersVMMap,                 // value mapping
     MUISetSelect<1>, // trivial selection function
     MembersTM          // type mapping
@@ -6192,7 +6185,6 @@ Operator generateboids( "generateboids",
 
 Operator issubset (    "issubset",    //name
     IsSubsetSpec,     //specification
-    3,
     IsSubsetVMMap,       //value mapping
     MUSSetSelect<0>, //trivial selection function
     IsSubsetTM        //type mapping
@@ -6220,21 +6212,18 @@ Operator msetunits("units",
 
 Operator init( "initial",
     InitFinSpec,
-    2,
     InitVMMap,
     InitFinSelect,
     InitFinTM );
 
 Operator final( "final",
     InitFinSpec,
-    2,
     FinVMMap,
     InitFinSelect,
     InitFinTM );
 
 Operator deftime( "deftime",
     DeftimeSpec,
-    2,
     DeftimeVMMap,
     MUSetSelect<0>,
     DeftimeTM );

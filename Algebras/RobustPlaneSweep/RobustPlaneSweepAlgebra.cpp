@@ -3275,28 +3275,24 @@ Operator spatialcrossings2("crossings",
 
 Operator spatialintersection2("intersection",
                               SpatialIntersectionSpec,
-                              12,
                               spatialintersectionVM,
                               SpatialSetOpSelect,
                               SpatialIntersectionTypeMap);
 
 Operator spatialminus2("minus",
                        SpatialMinusSpec,
-                       12,
                        spatialminusVM,
                        SpatialSetOpSelect,
                        SpatialMinusTypeMap);
 
 Operator spatialunion2("union",
                        SpatialUnionSpec,
-                       12,
                        spatialunionVM,
                        SpatialSetOpSelect,
                        SpatialUnionTypeMap);
 
 Operator spatialintersects2("intersects",
                             SpatialSpecIntersects,
-                            8,
                             spatialintersectsmap,
                             SpatialSelectIntersects,
                             IntersectsTM);

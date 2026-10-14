@@ -122,7 +122,7 @@ int be_repartRandomSelect(ListExpr args) {
 
 */
 Operator be_repartRandomOp("be_repart_random", be_repartRandomSpec.getStr(),
-                           sizeof(be_repartRandomVM), be_repartRandomVM,
+                           be_repartRandomVM,
                            be_repartRandomSelect, be_repartRandomTM);
 
 } // namespace BasicEngine

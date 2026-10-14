@@ -246,15 +246,18 @@ class Operator
 {
 
  public:
+  template<std::size_t N>
   Operator( const std::string& nm,
             const std::string& spec,
-            const int noF,
-            ValueMapping vms[],
+            ValueMapping (&vms)[N],
             SelectFunction sf,
             TypeMapping tm,
-            CreateCostEstimation* createCE = 0 );
+            CreateCostEstimation* createCE = 0 )
+    : Operator( nm, spec, vms, static_cast<int>(N), sf, tm, createCE ) {}
 /*
-Constructs an operator with ~noF~ overloaded evaluation functions.
+Constructs an operator with one overloaded evaluation function per entry of
+~vms~. As with the ~OperatorInfo~ version below, the count is read off the
+array type.
 
 */
   Operator( const std::string& nm,
@@ -562,6 +565,14 @@ std::ostream& Print(std::ostream& o) const;
 
     private:
 
+    Operator( const std::string& nm,
+              const std::string& spec,
+              ValueMapping vms[],
+              int noF,
+              SelectFunction sf,
+              TypeMapping tm,
+              CreateCostEstimation* createCE );
+
     Operator( const OperatorInfo& oi,
               ValueMapping vms[],
               int noF,
@@ -569,9 +580,9 @@ std::ostream& Print(std::ostream& o) const;
               TypeMapping tm,
               CreateCostEstimation* createCE );
 /*
-Implements the constructor above. Private on purpose: ~noF~ and ~vms~ can
-disagree, and the only caller that cannot get them out of step is the
-template, which reads the count off the array type.
+Implement the constructors above. Private on purpose: ~noF~ and ~vms~ can
+disagree, and the only callers that cannot get them out of step are the
+templates, which read the count off the array type.
 
 */
 

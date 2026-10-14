@@ -730,7 +730,6 @@ const std::string foreverStreamOpSpec =
 Operator foreverStream_Op(
     "foreverStream",
     foreverStreamOpSpec,
-    1,
     foreverStream,
     foreverStream_Select,
     foreverStream_TM
