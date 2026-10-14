@@ -60,15 +60,13 @@ class ProgressView
   ProgressView() : currentProgress(0.0), ofs(), 
                    initialized(false), startClock(0), msgList(), msg(0),
                    PROGRESS_NORM(50), 
-                   DETPROT(0), PROGTYPECARD(0), PROGTYPEPROG(0)
+                   PROGLOG(0), PROGTYPECARD(0), PROGTYPEPROG(0)
   {
 
     std::string parmFile = expandVar("$(SECONDO_CONFIG)");
     PROGRESS_NORM = SmiProfile::GetParameter("ProgressEstimation", 
       "ProgNorm", 50, parmFile);
-    DETPROT = SmiProfile::GetParameter("ProgressEstimation", 
-      "ProgProt", 0, parmFile);
-    DETPROT += 2 * SmiProfile::GetParameter("ProgressEstimation", 
+    PROGLOG = SmiProfile::GetParameter("ProgressEstimation",
       "ProgLog", 0, parmFile);
     PROGTYPECARD = SmiProfile::GetParameter("ProgressEstimation", 
       "ProgTypeCard", 0, parmFile);
@@ -78,14 +76,14 @@ class ProgressView
     {
       initialized = false;
       std::string fileName    = "proglogt.csv";
-      if (DETPROT & 2) ofs.open(fileName.c_str(), std::ios::app);
+      if (PROGLOG) ofs.open(fileName.c_str(), std::ios::app);
     }
   }
 
 
   ~ProgressView()
   {        
-    if (PROGTYPEPROG && (DETPROT & 2)) {
+    if (PROGTYPEPROG && PROGLOG) {
            ofs << std::endl; 
            ofs.close(); 
     }
@@ -113,7 +111,7 @@ class ProgressView
   {
     if (PROGTYPEPROG)
     {
-      if (DETPROT & 2) {
+      if (PROGLOG) {
         ofs << "'" << commandText << "'" << std::endl;
         ofs << std::endl;
       }
@@ -161,7 +159,7 @@ class ProgressView
                      NList(currentProgress)));
       msg->Send(nl,msgList.listExpr(),-1);
 
-      if (DETPROT & 2)
+      if (PROGLOG)
       {
        ofs << clocks << ";" ;
 
@@ -210,7 +208,7 @@ class ProgressView
       msgList = NList(NList("progress"), NList(NList(0), NList(-1)));
       msg->Send(nl,msgList.listExpr(),-1);
 
-      if (DETPROT & 2) {
+      if (PROGLOG) {
             ofs << std::endl;
       }
     }
@@ -224,7 +222,7 @@ class ProgressView
     NList msgList;
     MessageCenter* msg;
     int PROGRESS_NORM;
-    int DETPROT;
+    int PROGLOG;
     int PROGTYPECARD;
     int PROGTYPEPROG;
 };

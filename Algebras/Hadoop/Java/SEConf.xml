@@ -303,13 +303,6 @@
 		</item>
 		
 		<item>
-			<key>ProgProt</key>
-			<type>SINGLE</type>
-			<value>0</value>
-			<default>0</default>
-		</item>
-		
-		<item>
 			<key>ProgLog</key>
 			<type>SINGLE</type>
 			<value>1</value>
