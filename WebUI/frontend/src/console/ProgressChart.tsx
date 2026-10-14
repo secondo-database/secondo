@@ -1,8 +1,7 @@
 import { useState } from "react";
 import type { ProgressSample } from "../api/client";
 
-/** How the server's progress estimates moved while a query ran -- what
- *  Tools/ProgressWatcher charted from proglogt.csv. One small chart per
+/** How the server's progress estimates moved while a query ran. One small chart per
  *  estimate, each against the line it would have followed had it been right
  *  from the start: the gap between the two is how far off it was.
  *
@@ -21,8 +20,8 @@ interface Measure {
   /** The reference at sample `s`, given the first and the last one. */
   ref: (s: ProgressSample, first: ProgressSample, last: ProgressSample) => number;
   fmt: (v: number) => string;
-  /** A fixed scale; otherwise it spans the values shown, as ProgressWatcher's
-   *  did -- from zero, a cardinality estimate drifting by 3 % is a flat line. */
+  /** A fixed scale; otherwise it spans the values shown -- from zero, a
+   *  cardinality estimate drifting by 3 % is a flat line. */
   range?: [number, number];
 }
 

@@ -598,10 +598,9 @@ export function Console({
                 {planOpen && <pre className="plan">{e.plan}</pre>}
               </>
             )}
-            {/* How the server's estimates moved while it ran, as ProgressWatcher
-                charted them: each against the line it would have followed had
-                it been right from the start. Folded, since most of the time the
-                bar was all anyone wanted. */}
+            {/* How the server's estimates moved while it ran: each against the
+                line it would have followed had it been right from the start.
+                Folded, since most of the time the bar was all anyone wanted. */}
             {trace !== undefined && trace.length >= 2 && (
               <>
                 <button
