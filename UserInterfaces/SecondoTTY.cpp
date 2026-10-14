@@ -1068,6 +1068,7 @@ const char *keywords[] = {"abort",
                           "SEC2COUNTERS",
                           "SEC2COMMANDS",
                           "SEC2CACHEINFO",
+                          "SEC2PROGRESS",
                           (char *)0};
 
 /*

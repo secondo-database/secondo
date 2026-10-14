@@ -198,6 +198,10 @@ DerivedObjRel* devObjRel = 0;
 TypeInfoRel* typeInfoRel = 0;
 OperatorInfoRel* operatorInfoRel = 0;
 OperatorUsageRel* operatorUsageRel = 0;
+ProgressInfoRel* progressInfoRel = 0;
+
+// command counter, the CmdNr of the system tables
+static int CmdNr = 0;
 
 extern AlgebraListEntry& GetAlgebraEntry( const int j );
 
@@ -644,6 +648,7 @@ SecondoInterfaceTTY::Initialize( const string& user,
     typeInfoRel = new TypeInfoRel("SEC2TYPEINFO");
     operatorInfoRel = new OperatorInfoRel("SEC2OPERATORINFO");
     operatorUsageRel = new OperatorUsageRel("SEC2OPERATORUSAGE");
+    progressInfoRel = new ProgressInfoRel("SEC2PROGRESS");
 
     // The next table is currently only a dummy. This is necessary
     // that the catalog recognizes it as a system table. In the future
@@ -658,6 +663,7 @@ SecondoInterfaceTTY::Initialize( const string& user,
     st.insert(typeInfoRel);
     st.insert(operatorInfoRel);
     st.insert(operatorUsageRel);
+    st.insert(progressInfoRel);
     st.insert(devObjRel);
 
     // add size information into typeInfoRel
@@ -936,9 +942,11 @@ Command\_<name>.
     qp.setInterfaceCommandText(commandText);
 
 
-    // write textual command to progress protocol file
-    if ( !qp.progressView ) qp.progressView = new ProgressView();
-    qp.progressView->WriteCommandToProtocol( commandText );
+    // number the command, the progress estimates are recorded under it
+    CmdNr++;
+    if ( !qp.progressView )
+      qp.progressView = new ProgressView(progressInfoRel);
+    qp.progressView->SetCommandNr( CmdNr );
 
 
     // --- Transaction handling
@@ -1780,10 +1788,6 @@ Command\_<name>.
 
   cmdReal = cmdTime.diffSecondsReal();
   cmdCPU = cmdTime.diffSecondsCPU();
-
-  // initialize and increment query counter (better: command counter)
-  static int CmdNr = 0;
-  CmdNr++;
 
   // handle command times
   bool printCmdTimes = RTFlag::isActive("SI:PrintCmdTimes");

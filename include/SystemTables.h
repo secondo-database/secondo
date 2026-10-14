@@ -166,6 +166,112 @@ class CmdCtrRel : public SystemInfoRel
    }
 };
 
+/*
+The progress estimates of the queries run with progress estimation
+(~ProgTypeProg=1~), one tuple per update of the progress bar. ~CmdNr~ is the
+number of the command in SEC2COMMANDS, ~CPUTime~ the CPU time in ms since
+the query started. ~Progress~ and ~BProgress~ are fractions between 0 and 1.
+
+Only the tuples of the last 10 commands are kept, so the table does not grow
+without bound in a long session; to keep more, export it after each query.
+The table can be exported into a CSV file by a query, for example
+
+----    query SEC2PROGRESS feed csvexport['progress.csv', FALSE, TRUE] count
+----
+
+or, restricted to one command and together with its text,
+
+----    query SEC2PROGRESS feed filter[.CmdNr = 5]
+          SEC2COMMANDS feed project[CmdNr, CmdStr] {c} hashjoin[CmdNr, CmdNr_c]
+          remove[CmdNr_c] csvexport['progress5.csv', FALSE, TRUE] count
+----
+
+*/
+class ProgressInfoTuple : public InfoTuple
+{
+   int nr;
+   double cpuTime;
+   double card;
+   double time;
+   double progress;
+   double bTime;
+   double bProgress;
+
+   public:
+   ProgressInfoTuple( int num, double cpuT, double cardEst, double timeEst,
+                      double prog, double bTimeEst, double bProg ) :
+     nr(num),
+     cpuTime(cpuT),
+     card(cardEst),
+     time(timeEst),
+     progress(prog),
+     bTime(bTimeEst),
+     bProgress(bProg)
+   {}
+   virtual ~ProgressInfoTuple() {}
+
+   int getCmdNr() const { return nr; }
+
+   virtual NList valueList() const
+   {
+     NList value;
+     value.makeHead( NList(nr) );
+     value.append( NList(cpuTime) );
+     value.append( NList(card) );
+     value.append( NList(time) );
+     value.append( NList(progress) );
+     value.append( NList(bTime) );
+     value.append( NList(bProgress) );
+     return value;
+   }
+
+   virtual std::ostream& print(std::ostream& os) const
+   {
+      os << nr << sep << cpuTime << sep << card << sep << time
+         << sep << progress << sep << bTime << sep << bProgress;
+      return os;
+   }
+};
+
+
+class ProgressInfoRel : public SystemInfoRel
+{
+   public:
+   // the number of commands whose estimates are kept
+   static const int keptCommands = 10;
+
+   ProgressInfoRel(const std::string& name) : SystemInfoRel(name)
+   {}
+   virtual ~ProgressInfoRel() {}
+
+   // Drops the tuples of the commands before the last ~keptCommands~, when
+   // command ~cmdNr~ starts. Tuples are appended in command order, so these
+   // are a prefix of ~tuples~.
+   void dropOldCommands(int cmdNr)
+   {
+     std::vector<InfoTuple*>::iterator it = tuples.begin();
+     while ( it != tuples.end() &&
+             static_cast<ProgressInfoTuple*>(*it)->getCmdNr()
+               <= cmdNr - keptCommands )
+     {
+       delete *it;
+       it++;
+     }
+     tuples.erase(tuples.begin(), it);
+   }
+
+   virtual void initSchema()
+   {
+     addAttribute("CmdNr",     sym.INT()  );
+     addAttribute("CPUTime",   sym.REAL() );
+     addAttribute("Card",      sym.REAL() );
+     addAttribute("Time",      sym.REAL() );
+     addAttribute("Progress",  sym.REAL() );
+     addAttribute("BTime",     sym.REAL() );
+     addAttribute("BProgress", sym.REAL() );
+   }
+};
+
 class DerivedObjInfo : public InfoTuple
 {
    std::string name;

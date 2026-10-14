@@ -63,7 +63,7 @@ truncMonPid=""
 rc=0
 
 # Run from the temporary home. The TTY binaries drop cwd-relative files
-# (.secondo_history, proglogt.csv, temp_nested_list/, tmp/ -- the last two once
+# (.secondo_history, temp_nested_list/, tmp/ -- the last two once
 # per client process), and run-tests.sh invokes this with cwd=ClientServer/,
 # so without this the test litters the source tree. Everything below uses
 # absolute paths, and cleanup removes $home.

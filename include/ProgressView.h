@@ -51,42 +51,27 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Profiles.h"          // SmiProfile::GetParameter
 #include "Progress.h"
 #include "CharTransform.h"
+#include "SystemTables.h"     // ProgressInfoRel (SEC2PROGRESS)
 
 
 class ProgressView
 {
   public:
 
-  ProgressView() : currentProgress(0.0), ofs(), 
+  ProgressView(ProgressInfoRel* rel) : currentProgress(0.0),
                    initialized(false), startClock(0), msgList(), msg(0),
+                   progressRel(rel), cmdNr(0),
                    PROGRESS_NORM(50), 
-                   PROGLOG(0), PROGTYPECARD(0), PROGTYPEPROG(0)
+                   PROGTYPECARD(0), PROGTYPEPROG(0)
   {
 
     std::string parmFile = expandVar("$(SECONDO_CONFIG)");
     PROGRESS_NORM = SmiProfile::GetParameter("ProgressEstimation", 
       "ProgNorm", 50, parmFile);
-    PROGLOG = SmiProfile::GetParameter("ProgressEstimation",
-      "ProgLog", 0, parmFile);
     PROGTYPECARD = SmiProfile::GetParameter("ProgressEstimation", 
       "ProgTypeCard", 0, parmFile);
     PROGTYPEPROG = SmiProfile::GetParameter("ProgressEstimation", 
       "ProgTypeProg", 0, parmFile);
-    if (PROGTYPEPROG)
-    {
-      initialized = false;
-      std::string fileName    = "proglogt.csv";
-      if (PROGLOG) ofs.open(fileName.c_str(), std::ios::app);
-    }
-  }
-
-
-  ~ProgressView()
-  {        
-    if (PROGTYPEPROG && PROGLOG) {
-           ofs << std::endl; 
-           ofs.close(); 
-    }
   }
 
   void
@@ -106,16 +91,12 @@ class ProgressView
     }
   }
 
+  // the command number the following progress updates are recorded under
   void
-  WriteCommandToProtocol(const std::string& commandText)
+  SetCommandNr(int nr)
   {
-    if (PROGTYPEPROG)
-    {
-      if (PROGLOG) {
-        ofs << "'" << commandText << "'" << std::endl;
-        ofs << std::endl;
-      }
-    }
+    cmdNr = nr;
+    if (progressRel) progressRel->dropOldCommands(cmdNr);
   }
 
   void
@@ -159,34 +140,14 @@ class ProgressView
                      NList(currentProgress)));
       msg->Send(nl,msgList.listExpr(),-1);
 
-      if (PROGLOG)
+      // keep them for later analysis in the system table SEC2PROGRESS
+      if (progressRel)
       {
-       ofs << clocks << ";" ;
-
-
-
-        ofs << (size_t) progress.Card << ";";
-        ofs << (size_t) progress.Time << ";";
-        // write progress as a,b where b has two digits 
-        ofs << getProgStr(currentProgress*100.0) << ";";
-        // write bTime
-        ofs << (size_t) progress.BTime << ";";
-        // write BProgress 
-        ofs << getProgStr(bProgress*100) << ";";
-        ofs << std::endl;
+        progressRel->append(new ProgressInfoTuple(cmdNr, (double) clocks,
+                              progress.Card, progress.Time, currentProgress,
+                              progress.BTime, bProgress), false);
       }
     }
-  }
-
-  std::string getProgStr(const double v, const char sep=',') const{
-      std::stringstream ss;
-      ss << (int) v << sep;
-      int aftercomma = (int) (v*100.0+0.5) % 100;
-      if(aftercomma < 10){
-         ss << "0";
-      }
-      ss << aftercomma;
-      return ss.str();
   }
 
 
@@ -207,22 +168,18 @@ class ProgressView
       // mark end of progress messages
       msgList = NList(NList("progress"), NList(NList(0), NList(-1)));
       msg->Send(nl,msgList.listExpr(),-1);
-
-      if (PROGLOG) {
-            ofs << std::endl;
-      }
     }
   }
 
   private:
     double currentProgress;
-    std::ofstream ofs;
     bool initialized;
     clock_t startClock;
     NList msgList;
     MessageCenter* msg;
+    ProgressInfoRel* progressRel;
+    int cmdNr;
     int PROGRESS_NORM;
-    int PROGLOG;
     int PROGTYPECARD;
     int PROGTYPEPROG;
 };

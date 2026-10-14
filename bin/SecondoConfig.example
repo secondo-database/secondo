@@ -256,9 +256,12 @@ Persistent_AvgSize=512
 # Example: ProgNorm=50
 ProgNorm=50
 
-# PogLog controls the Log-Output to files proglog.csv and proglogt.csv
-# in the bin-folder (1 enables, 0 disables)
-ProgLog=1
+# With ProgTypeProg = 1 (below), every progress update is recorded in the
+# system table SEC2PROGRESS (CmdNr, CPUTime, Card, Time, Progress, BTime,
+# BProgress); CmdNr is the command's number in SEC2COMMANDS. Only the last
+# 10 commands are kept. To save the estimates to a CSV file, export the table
+# by a query:
+#   query SEC2PROGRESS feed csvexport['progress.csv', FALSE, TRUE] count
 
 # ProgTypeCard controls the progress estimation by using the message
 # CARDINALITY (1 enables, 0 disables)

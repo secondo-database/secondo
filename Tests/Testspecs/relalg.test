@@ -557,6 +557,10 @@ query SEC2COUNTERS feed count;
 #yields success
 query SEC2COMMANDS feed count;
 
+#testcase SEC2PROGRESS
+#yields success
+query SEC2PROGRESS feed count;
+
 #testcase SEC2CACHEINFO
 #yields success
 query SEC2CACHEINFO feed count;

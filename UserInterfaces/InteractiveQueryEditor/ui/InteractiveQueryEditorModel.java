@@ -62,7 +62,8 @@ public class InteractiveQueryEditorModel {
 				"operators", "query","restore", "save", "SHOW", "then",
 				"transaction", "type","types", "update","while",
 				"SEC2TYPEINFO","SEC2OPERATORUSAGE","SEC2OPERATORINFO",
-				"SEC2FILEINFO","SEC2COUNTERS","SEC2COMMANDS","SEC2CACHEINFO"};
+				"SEC2FILEINFO","SEC2COUNTERS","SEC2COMMANDS","SEC2CACHEINFO",
+				"SEC2PROGRESS"};
 	}
 
 	private String createHelpMessage() {
