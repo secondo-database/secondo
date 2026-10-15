@@ -76,9 +76,7 @@ that is
     Filter(Word* args, Word& result, int message,
            Word& local, Supplier s);
 
-#ifdef USE_PROGRESS
     static CostEstimation* FilterCostEstimationFunc();
-#endif
 
 };
 

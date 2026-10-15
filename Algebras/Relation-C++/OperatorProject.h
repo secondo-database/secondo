@@ -64,9 +64,7 @@ query processor to append it to the given arguments.
     Project(Word* args, Word& result, int message,
             Word& local, Supplier s);
 
-# ifdef USE_PROGRESS
     static CostEstimation* ProjectCostEstimationFunc();
-#endif
 
 };
 

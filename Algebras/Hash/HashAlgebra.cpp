@@ -770,90 +770,7 @@ ListExpr HashExactMatchTypeMap(ListExpr args)
 
 */
 
-#ifndef USE_PROGRESS
 
-// standard version
-
-
-struct HashExactMatchLocalInfo
-{
-  Relation* relation;
-  HashIterator* iter;
-};
-
-
-int
-HashExactMatch(Word* args, Word& result, int message, Word& local, Supplier s)
-{
-  Hash* hash;
-  Attribute* key;
-  Attribute* secondKey;
-  Tuple* tuple;
-  SmiRecordId id;
-  HashExactMatchLocalInfo* localInfo;
-
-  switch (message)
-  {
-    case OPEN :
-      localInfo = new HashExactMatchLocalInfo;
-      hash = (Hash*)args[0].addr;
-      localInfo->relation = (Relation*)args[1].addr;
-      key = (Attribute*)args[2].addr;
-
-      assert(hash != 0);
-      assert(localInfo->relation != 0);
-      assert(key != 0);
-
-      localInfo->iter = hash->ExactMatch(key);
-      if(localInfo->iter == 0)
-      {
-        delete localInfo;
-        return -1;
-      }
-      local = SetWord(localInfo);
-      return 0;
-
-    case REQUEST :
-      localInfo = (HashExactMatchLocalInfo*)local.addr;
-      assert(localInfo != 0);
-
-      if(localInfo->iter->Next())
-      {
-        id = localInfo->iter->GetId();
-        tuple = localInfo->relation->GetTuple( id );
-        if(tuple == 0)
-        {
-          cerr << "Could not find tuple for the given tuple id. "
-               << "Maybe the given hash and the given relation "
-               << "do not match." << endl;
-          assert(false);
-        }
-
-        result = SetWord(tuple);
-        return YIELD;
-      }
-      else
-      {
-        return CANCEL;
-      }
-
-    case CLOSE :
-      localInfo = (HashExactMatchLocalInfo*)local.addr;
-      if(localInfo){
-         delete localInfo->iter;
-         delete localInfo;
-         local.addr=0;
-      }
-      return 0;
-  }
-  return 0;
-}
-
-
-
-# else
-
-// progress version
 
 
 
@@ -1031,7 +948,6 @@ HashExactMatch(Word* args, Word& result, int message, Word& local, Supplier s)
   return 0;
 }
 
-#endif
 
 
 
@@ -1799,28 +1715,13 @@ class HashAlgebra : public Algebra
   {
     AddTypeConstructor( &cpphash );
 
-#ifndef USE_PROGRESS
-
     AddOperator(&createhash);
-    AddOperator(&hashexactmatch);
+    AddOperator(&hashexactmatch)->EnableProgress();
     AddOperator(&hashexactmatchs);
     AddOperator(&inserthash);
     AddOperator(&deletehash);
     AddOperator(&updatehash);
     AddOperator(&getfileinfohash);
-
-#else
-
-    AddOperator(&createhash);
-    AddOperator(&hashexactmatch);
-    hashexactmatch.EnableProgress();
-    AddOperator(&hashexactmatchs);
-    AddOperator(&inserthash);
-    AddOperator(&deletehash);
-    AddOperator(&updatehash);
-    AddOperator(&getfileinfohash);
-
-#endif
   }
   ~HashAlgebra() {};
 };

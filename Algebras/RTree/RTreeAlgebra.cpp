@@ -1091,102 +1091,7 @@ WindowIntersectsSelection( ListExpr args )
 
 */
 
-#ifndef USE_PROGRESS
 
-// standard version
-
-template <unsigned dim>
-struct WindowIntersectsLocalInfo
-{
-  Relation* relation;
-  R_Tree<dim, TupleId>* rtree;
-  BBox<dim> *searchBox;
-  bool first;
-};
-
-template <unsigned dim>
-int WindowIntersects( Word* args, Word& result,
-                      int message, Word& local,
-                      Supplier s )
-{
-  WindowIntersectsLocalInfo<dim> *localInfo;
-
-  switch (message)
-  {
-    case OPEN :
-    {
-      localInfo = new WindowIntersectsLocalInfo<dim>;
-      localInfo->rtree = (R_Tree<dim, TupleId>*)args[0].addr;
-      localInfo->relation = (Relation*)args[1].addr;
-      localInfo->first = true;
-      localInfo->searchBox =
-        new BBox<dim> (
-          (((StandardSpatialAttribute<dim> *)args[2].addr)->
-            BoundingBox()) );
-
-      assert(localInfo->rtree != 0);
-      assert(localInfo->relation != 0);
-      local.setAddr(localInfo);
-      return 0;
-    }
-
-    case REQUEST :
-    {
-      localInfo = (WindowIntersectsLocalInfo<dim>*)local.addr;
-      R_TreeLeafEntry<dim, TupleId> e;
-
-      if ( !localInfo->searchBox->IsDefined() )
-      { // search box is undefined -> no result!
-        return CANCEL;
-      }
-      else
-      {
-        if(localInfo->first)
-        {
-          localInfo->first = false;
-          if( localInfo->rtree->First( *localInfo->searchBox, e ) )
-          {
-            Tuple *tuple = localInfo->relation->GetTuple(e.info);
-            result.setAddr(tuple);
-            return YIELD;
-          }
-          else
-            return CANCEL;
-        }
-        else
-        {
-          if( localInfo->rtree->Next( e ) )
-          {
-            Tuple *tuple = localInfo->relation->GetTuple(e.info);
-            result.setAddr(tuple);
-            return YIELD;
-          }
-          else
-            return CANCEL;
-        }
-      }
-    }
-
-    case CLOSE :
-    {
-      if(local.addr)
-      {
-        localInfo = (WindowIntersectsLocalInfo<dim>*)local.addr;
-        delete localInfo->searchBox;
-        delete localInfo;
-        local.setAddr(Address(0));
-      }
-      return 0;
-    }
-  }
-  return 0;
-}
-
-
-
-# else
-
-// progress version
 
 template <unsigned dim>
 class WindowIntersectsLocalInfo: public ProgressLocalInfo
@@ -1383,7 +1288,6 @@ int WindowIntersects( Word* args, Word& result,
   return 0;
 }
 
-#endif
 
 
 /*
@@ -1572,192 +1476,7 @@ WindowIntersectsSSelection( ListExpr args )
 */
 
 
-#ifndef USE_PROGRESS
 
-// standard version
-
-
-template <unsigned dim, class LeafInfo>
-struct WindowIntersectsSLocalInfo
-{
-  R_Tree<dim, LeafInfo>* rtree;
-  BBox<dim> *searchBox;
-  TupleType *resultTupleType;
-  bool first;
-};
-
-template <unsigned dim>
-int WindowIntersectsSStandard( Word* args, Word& result,
-                               int message, Word& local,
-                               Supplier s )
-{
-  switch (message)
-  {
-    case OPEN :
-    {
-      WindowIntersectsSLocalInfo<dim, TupleId> *localInfo =
-        new WindowIntersectsSLocalInfo<dim, TupleId>();
-      localInfo->rtree = (R_Tree<dim, TupleId>*)args[0].addr;
-      localInfo->first = true;
-      localInfo->searchBox =
-        new BBox<dim> (
-          (((StandardSpatialAttribute<dim> *)args[1].addr)->
-            BoundingBox()) );
-      localInfo->resultTupleType =
-        new TupleType(nl->Second(GetTupleResultType(s)));
-      local.setAddr(localInfo);
-      return 0;
-    }
-
-    case REQUEST :
-    {
-      WindowIntersectsSLocalInfo<dim, TupleId> *localInfo =
-        (WindowIntersectsSLocalInfo<dim, TupleId>*)local.addr;
-      R_TreeLeafEntry<dim, TupleId> e;
-
-      if ( !localInfo->searchBox->IsDefined() )
-      { // search box is undefined -> no result!
-        return CANCEL;
-      }
-      else
-      {
-        if(localInfo->first)
-        {
-          localInfo->first = false;
-          if( localInfo->rtree->First( *localInfo->searchBox, e ) )
-          {
-            Tuple *tuple = new Tuple( localInfo->resultTupleType );
-            tuple->PutAttribute(0, new TupleIdentifier(true, e.info));
-            result.setAddr(tuple);
-            return YIELD;
-          }
-          else
-            return CANCEL;
-        }
-        else
-        {
-          if( localInfo->rtree->Next( e ) )
-          {
-            Tuple *tuple = new Tuple( localInfo->resultTupleType );
-            tuple->PutAttribute(0, new TupleIdentifier(true, e.info));
-            result.setAddr(tuple);
-            return YIELD;
-          }
-          else
-            return CANCEL;
-        }
-      }
-    }
-
-    case CLOSE :
-    {
-      if(local.addr)
-      {
-        WindowIntersectsSLocalInfo<dim, TupleId>* localInfo =
-          (WindowIntersectsSLocalInfo<dim, TupleId>*)local.addr;
-        delete localInfo->searchBox;
-        localInfo->resultTupleType->DeleteIfAllowed();
-        delete localInfo;
-        local.setAddr(Address(0));
-      }
-      return 0;
-    }
-  }
-  return 0;
-}
-
-template <unsigned dim>
-int WindowIntersectsSDoubleLayer( Word* args, Word& result,
-                                  int message, Word& local,
-                                  Supplier s )
-{
-  switch (message)
-  {
-    case OPEN :
-    {
-      WindowIntersectsSLocalInfo<dim, TwoLayerLeafInfo> *localInfo =
-        new WindowIntersectsSLocalInfo<dim, TwoLayerLeafInfo>();
-      localInfo->rtree =
-        (R_Tree<dim, TwoLayerLeafInfo>*)args[0].addr;
-      localInfo->first = true;
-      localInfo->searchBox =
-        new BBox<dim> (
-          (((StandardSpatialAttribute<dim> *)args[1].addr)->
-            BoundingBox()) );
-      localInfo->resultTupleType =
-        new TupleType(nl->Second(GetTupleResultType(s)));
-      local.setAddr(localInfo);
-      return 0;
-    }
-
-    case REQUEST :
-    {
-      WindowIntersectsSLocalInfo<dim, TwoLayerLeafInfo> *localInfo =
-        (WindowIntersectsSLocalInfo<dim, TwoLayerLeafInfo>*)
-        local.addr;
-      R_TreeLeafEntry<dim, TwoLayerLeafInfo> e;
-
-      if ( !localInfo->searchBox->IsDefined() )
-      { // search box is undefined -> no result!
-        return CANCEL;
-      }
-      else
-      {
-      if(localInfo->first)
-      {
-        localInfo->first = false;
-        if( localInfo->rtree->First( *localInfo->searchBox, e ) )
-        {
-          Tuple *tuple = new Tuple( localInfo->resultTupleType );
-          tuple->PutAttribute(
-            0, new TupleIdentifier( true, e.info.tupleId ) );
-          tuple->PutAttribute( 1, new CcInt( true, e.info.low ) );
-          tuple->PutAttribute( 2, new CcInt( true, e.info.high ) );
-          result.setAddr(tuple);
-          return YIELD;
-        }
-        else
-          return CANCEL;
-      }
-      else
-      {
-        if( localInfo->rtree->Next( e ) )
-        {
-          Tuple *tuple = new Tuple( localInfo->resultTupleType );
-          tuple->PutAttribute(
-            0, new TupleIdentifier( true, e.info.tupleId ) );
-          tuple->PutAttribute( 1, new CcInt( true, e.info.low ) );
-          tuple->PutAttribute( 2, new CcInt( true, e.info.high ) );
-          result.setAddr(tuple);
-          return YIELD;
-        }
-        else
-          return CANCEL;
-      }
-    }
-}
-
-    case CLOSE :
-    {
-      if(local.addr)
-      {
-        WindowIntersectsSLocalInfo<dim, TwoLayerLeafInfo> *localInfo =
-          (WindowIntersectsSLocalInfo<dim, TwoLayerLeafInfo>*)
-          local.addr;
-        delete localInfo->searchBox;
-        localInfo->resultTupleType->DeleteIfAllowed();
-        delete localInfo;
-        local.setAddr(Address(0));
-      }
-      return 0;
-    }
-  }
-  return 0;
-}
-
-# else
-
-// progress version
 
 template <unsigned dim, class LeafInfo>
 struct WindowIntersectsSLocalInfo: public ProgressLocalInfo
@@ -2138,7 +1857,6 @@ int WindowIntersectsSDoubleLayer( Word* args, Word& result,
   return 0;
 }
 
-#endif
 
 
 
@@ -2293,108 +2011,7 @@ tuple type. For ~gettuples~, it is ~2~, for ~gettuples2~, it is ~3~.
 
 
 
-#ifndef USE_PROGRESS
 
-// standard version
-
-
-struct GetTuplesLocalInfo
-{
-  Relation *relation;
-  int tidIndex;
-  TupleType *resultTupleType;
-};
-
-template<int TidIndexPos>
-    int GetTuples( Word* args, Word& result, int message,
-                   Word& local, Supplier s )
-{
-  GetTuplesLocalInfo *localInfo;
-  static MessageCenter* msg = MessageCenter::GetInstance();
-
-  switch (message)
-  {
-    case OPEN :
-    {
-      assert( TidIndexPos == 2 || TidIndexPos == 3);
-      int pos = TidIndexPos;
-      if(TidIndexPos==3){
-         pos = qp->GetNoSons(s) -1;
-      } 
-      qp->Open(args[0].addr);
-      localInfo = new GetTuplesLocalInfo();
-      localInfo->relation = (Relation*)args[1].addr;
-      localInfo->resultTupleType =
-          new TupleType(nl->Second(GetTupleResultType(s)));
-      localInfo->tidIndex = ((CcInt*)args[pos].addr)->GetIntval() - 1;
-//    cerr << "GetTuples<" << TidIndexPos << ">(): localInfo->tidIndex = "
-//         << localInfo->tidIndex << endl;
-      local.setAddr(localInfo);
-      return 0;
-    }
-
-    case REQUEST :
-    {
-      localInfo = (GetTuplesLocalInfo*)local.addr;
-
-      Word wTuple;
-      qp->Request(args[0].addr, wTuple);
-      while( qp->Received(args[0].addr) )
-      {
-        Tuple* sTuple = (Tuple*)wTuple.addr;
-        Tuple* resultTuple = new Tuple( localInfo->resultTupleType );
-        Tuple* relTuple = localInfo->relation->
-            GetTuple(((TupleIdentifier *)sTuple->
-            GetAttribute(localInfo->tidIndex))->GetTid());
-
-        if(!relTuple){
-          NList msg_list(NList("simple") ,
-                    NList("Warning: invalid tuple id"));
-          msg->Send(msg_list);
-          qp->Request(args[0].addr, wTuple);
-        } else {
-          int j = 0;
-
-          // Copy the attributes from the stream tuple
-          for( int i = 0; i < sTuple->GetNoAttributes(); i++ )
-          {
-            if( i != localInfo->tidIndex )
-              resultTuple->CopyAttribute( i, sTuple, j++ );
-          }
-          sTuple->DeleteIfAllowed();
-
-          for( int i = 0; i < relTuple->GetNoAttributes(); i++ )
-          {
-            resultTuple->CopyAttribute( i, relTuple, j++ );
-          }
-          relTuple->DeleteIfAllowed();
-
-          result.setAddr( resultTuple );
-          return YIELD;
-        }
-      }
-      return CANCEL;
-    }
-
-    case CLOSE :
-    {
-      qp->Close(args[0].addr);
-      if(local.addr)
-      {
-        localInfo = (GetTuplesLocalInfo*)local.addr;
-        localInfo->resultTupleType->DeleteIfAllowed();
-        delete localInfo;
-        local.setAddr(Address(0));
-      }
-      return 0;
-    }
-  }
-  return 0;
-}
-
-# else
-
-// progress version
 
 
 struct GetTuplesLocalInfo: public ProgressLocalInfo
@@ -2580,7 +2197,6 @@ template<int TidIndexPos>
   return 0;
 }
 
-#endif
 
 
 /*
@@ -6798,11 +6414,11 @@ class RTreeAlgebra : public Algebra
 
     AddOperator( &creatertree );
     AddOperator( &bulkloadrtree );
-    AddOperator( &windowintersects );
-    AddOperator( &windowintersectsS );
-    AddOperator( &gettuples );
+    AddOperator( &windowintersects )->EnableProgress();
+    AddOperator( &windowintersectsS )->EnableProgress();
+    AddOperator( &gettuples )->EnableProgress();
     AddOperator( &gettuplesdbl );
-    AddOperator( &gettuples2 );
+    AddOperator( &gettuples2 )->EnableProgress();
     AddOperator( &rtreenodes );
     AddOperator( &rtreetreeheight );
     AddOperator( &rtreenoofnodes );
@@ -6817,13 +6433,6 @@ class RTreeAlgebra : public Algebra
     AddOperator( &rtreegetleafentries );
     AddOperator(&dspatialJoin);
      dspatialJoin.SetUsesMemory();
-
-#ifdef USE_PROGRESS
-    windowintersects.EnableProgress();
-    windowintersectsS.EnableProgress();
-    gettuples.EnableProgress();
-    gettuples2.EnableProgress();
-#endif
 
   }
   ~RTreeAlgebra() {};

@@ -7883,9 +7883,9 @@ public:
     AddOperator(TUPSTREAM3Info(), 0, TUPSTREAM3Type);
 
 
-    AddOperator(&fconsumeOp);
+    AddOperator(&fconsumeOp)->EnableProgress();
     fconsumeOp.SetUsesArgsInTypeMapping();
-    AddOperator(&ffeedOp);
+    AddOperator(&ffeedOp)->EnableProgress();
     ffeedOp.SetUsesArgsInTypeMapping();
 
     AddOperator(&hadoopjoinOp);
@@ -7894,34 +7894,22 @@ public:
     AddOperator(&fdistributeOp);
     fdistributeOp.SetUsesArgsInTypeMapping();
 
-    AddOperator(&ffeed2Op);
+    AddOperator(&ffeed2Op)->EnableProgress();
     ffeed2Op.SetUsesArgsInTypeMapping();
 
-    AddOperator(&fconsume3Op);
+    AddOperator(&fconsume3Op)->EnableProgress();
     fconsume3Op.SetUsesArgsInTypeMapping();
-    AddOperator(&ffeed3Op);
+    AddOperator(&ffeed3Op)->EnableProgress();
     ffeed3Op.SetUsesArgsInTypeMapping();
-    AddOperator(&fetchFlobOp);
+    AddOperator(&fetchFlobOp)->EnableProgress();
     fetchFlobOp.SetUsesArgsInTypeMapping();
     fetchFlobOp.SetUsesMemory();
 
-    AddOperator(&fdistribute3Op);
+    AddOperator(&fdistribute3Op)->EnableProgress();
     fdistribute3Op.SetUsesArgsInTypeMapping();
 
     AddOperator(&genFlobResultOp);
 
-
-#ifdef USE_PROGRESS
-    fconsumeOp.EnableProgress();
-    fconsume3Op.EnableProgress();
-    fdistribute3Op.EnableProgress();
-
-    ffeedOp.EnableProgress();
-    ffeed2Op.EnableProgress();
-    ffeed3Op.EnableProgress();
-    fetchFlobOp.EnableProgress();
-
-#endif
 
   }
   ~HadoopParallelAlgebra()

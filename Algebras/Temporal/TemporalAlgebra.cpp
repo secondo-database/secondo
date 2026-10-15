@@ -22395,7 +22395,7 @@ class TemporalAlgebra : public Algebra
     AddOperator( &temporalpasses );
     AddOperator( &temporalinitial );
     AddOperator( &temporalfinal );
-    AddOperator( &temporalunits );
+    AddOperator( &temporalunits )->EnableProgress();
     AddOperator( &temporalgetunit );
     AddOperator( &temporalgetposition );
     AddOperator( &temporalbbox );
@@ -22491,10 +22491,6 @@ class TemporalAlgebra : public Algebra
     AddOperator(&getMPoint);
     AddOperator(&mpoint2cmpoint);
     AddOperator(&traversed);
-
-#ifdef USE_PROGRESS
-    temporalunits.EnableProgress();
-#endif
 
   }
   ~TemporalAlgebra() {};

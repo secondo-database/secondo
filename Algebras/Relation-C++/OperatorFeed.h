@@ -65,9 +65,7 @@ Result type of feed operation.
     static int
     Feed(Word* args, Word& result, int message, Word& local, Supplier s);
 
-#ifdef USE_PROGRESS
     static CostEstimation* FeedCostEstimationFunc();
-#endif
 
 };
 

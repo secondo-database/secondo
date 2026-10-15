@@ -444,11 +444,12 @@ Returns the specification string of the operator.
 
   void EnableProgress() { supportsProgress = true; }
 /*
-Sets the ~supportsProgress~ field.
+Sets the ~supportsProgress~ field. Usually chained on the registration
+of the operator in the algebra constructor.
 
 */
 
-  bool SupportsProgress() { return supportsProgress; }
+  bool SupportsProgress() const { return supportsProgress; }
 /*
 Checks the ~supportsProgress~ field.
 

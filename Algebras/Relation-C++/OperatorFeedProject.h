@@ -31,7 +31,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "Operator.h"
 
-#ifdef USE_PROGRESS
 
 struct FeedProjectInfo : OperatorInfo {
 
@@ -65,7 +64,6 @@ public:
                    Word& local,
                    Supplier s);
 };
-#endif
 
 #endif /* ALGEBRAS_RELATION_C___OPERATORFEEDPROJECT_H_ */
 

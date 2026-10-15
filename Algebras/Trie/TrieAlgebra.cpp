@@ -1323,7 +1323,7 @@ class TrieAlgebra : public Algebra {
      AddTypeConstructor( &triealg::invfiletc );
      triealg::insertInvFile.SetUsesMemory();
      
-     AddOperator(&triealg::createInvFile);
+     AddOperator(&triealg::createInvFile)->EnableProgress();
      triealg::createInvFile.SetUsesMemory();
      
      AddOperator(&triealg::getFileInfo);
@@ -1336,13 +1336,8 @@ class TrieAlgebra : public Algebra {
 
      AddOperator(&triealg::containsWordOp);
      AddOperator(&triealg::containsPrefixOp);
-     AddOperator(&triealg::insertInvFile);
+     AddOperator(&triealg::insertInvFile)->EnableProgress();
      triealg::insertInvFile.SetUsesMemory();
-
-#ifdef USE_PROGRESS
-     triealg::createInvFile.EnableProgress();
-     triealg::insertInvFile.EnableProgress();
-#endif
    }
 };
 

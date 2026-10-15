@@ -116,9 +116,7 @@ Operator ~consume~ accepts a stream of tuples and returns a relation.
     Consume(Word* args, Word& result, int message,
             Word& local, Supplier s);
 
-#ifdef USE_PROGRESS
     static CostEstimation* ConsumeCostEstimationFunc();
-#endif
 
 };
 

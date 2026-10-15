@@ -80,9 +80,7 @@ RelationAlgebra.h header file.
 #include "Symbols.h"
 #include "Stream.h"
 
-#ifdef USE_PROGRESS
 #include "../CostEstimation/RelationAlgebraCostEstimation.h"
-#endif
 
 #include "OperatorConsume.h"
 #include "OperatorFeed.h"
@@ -921,7 +919,6 @@ arguments.
 
 */
 
-#ifdef USE_PROGRESS
 Operator relalgfeed (
           "feed",                               // name
           FeedSpec,                             // specification
@@ -930,15 +927,6 @@ Operator relalgfeed (
           OperatorFeed::FeedTypeMap,            // type mapping
           OperatorFeed::FeedCostEstimationFunc  // CostEstimation
 );
-#else
-Operator relalgfeed (
-          "feed",                               // name
-          FeedSpec,                             // specification
-          OperatorFeed::Feed,                   // value mapping
-          Operator::SimpleSelect,               // trivial selection function
-          OperatorFeed::FeedTypeMap             // type mapping
-);
-#endif
 
 /*
 5.6.3 Specification of operator ~consume~
@@ -982,7 +970,6 @@ const string TConsumeSpec =
 5.6.4 Definition of operator ~consume~
 
 */
-#ifdef USE_PROGRESS
 Operator relalgconsume (
    "consume",                                   // name
    ConsumeSpec,                                 // specification
@@ -1009,32 +996,6 @@ Operator relalgtconsume (
    OperatorConsume::tconsume_tm,              // type mapping
    OperatorConsume::ConsumeCostEstimationFunc // Cost estimation
 );
-#else
-Operator relalgconsume (
-   "consume",                               // name
-   ConsumeSpec,                             // specification
-   OperatorConsume::Consume,                // value mapping
-   Operator::SimpleSelect,                  // trivial selection function
-   OperatorConsume::ConsumeTypeMap<false>   // type mapping
-);
-
-Operator relalgoconsume (
-   "oconsume",                              // name
-   OConsumeSpec,                            // specification
-   OperatorConsume::Consume,                // value mapping
-   Operator::SimpleSelect,                  // trivial selection function
-   OperatorConsume::ConsumeTypeMap<true>    // type mapping
-);
-
-
-Operator relalgtconsume (
-   "tconsume",                               // name
-   TConsumeSpec,                             // specification
-   OperatorConsume::Consume,                 // value mapping
-   Operator::SimpleSelect,                   // trivial selection function
-   OperatorConsume::tconsume_tm              // type mapping
-);
-#endif
 
 /*
 5.7 Operator ~attr~
@@ -1383,15 +1344,6 @@ const string ProjectSpec  =
 5.9.4 Definition of operator ~project~
 
 */
-#ifndef USE_PROGRESS
-Operator relalgproject (
-         "project",                               // name
-         ProjectSpec,                             // specification
-         OperatorProject::Project,                // value mapping
-         Operator::SimpleSelect,                  // trivial selection function
-         OperatorProject::ProjectTypeMap          // type mapping
-);
-#else
 Operator relalgproject (
          "project",                                                     // name
          ProjectSpec,                                          // specification
@@ -1400,7 +1352,6 @@ Operator relalgproject (
          OperatorProject::ProjectTypeMap,                       // type mapping
          OperatorProject::ProjectCostEstimationFunc          // cost estimation
 );
-#endif
 
 /*
 2.5 Operator ~remove~
@@ -1571,15 +1522,6 @@ const string RemoveSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
 2.5.4 Definition of operator ~remove~
 
 */
-#ifndef USE_PROGRESS
-Operator relalgremove (
-         "remove",                // name
-         RemoveSpec,              // specification
-         OperatorProject::Project,// value mapping
-         Operator::SimpleSelect,  // trivial selection function
-         RemoveTypeMap            // type mapping
-);
-#else
 Operator relalgremove (
          "remove",                                                      // name
          RemoveSpec,                                           // specification
@@ -1588,7 +1530,6 @@ Operator relalgremove (
          RemoveTypeMap,                                         // type mapping
          OperatorProject::ProjectCostEstimationFunc          // cost estimation
 );
-#endif
 
 
 
@@ -1642,176 +1583,7 @@ ListExpr ProductTypeMap(ListExpr args)
 
 */
 
-#ifndef USE_PROGRESS
 
-// standard version
-
-
-struct ProductLocalInfo
-{
-  TupleType *resultTupleType;
-  Tuple* currentTuple;
-  TupleBuffer *rightRel;
-  GenericRelationIterator *iter;
-};
-
-int
-Product(Word* args, Word& result, int message,
-        Word& local, Supplier s)
-{
-  Word r, u;
-  ProductLocalInfo* pli;
-  TupleType* tt = (TupleType*) qp->GetLocal2(s).addr;
-
-  switch (message)
-  {
-    case INIT : {
-       tt = new TupleType(nl->Second(GetTupleResultType(s)));
-       qp->GetLocal2(s).addr = tt;
-       return 0;
-    }
-    case FINISH : {
-       if(tt){
-         tt->DeleteIfAllowed();
-         qp->GetLocal2(s).addr=0;
-       }
-       return 0;
-    }
-
-
-    case OPEN :
-    {
-
-      long MAX_MEMORY = (qp->GetMemorySize(s) * 1024 * 1024);
-      cmsg.info("RA:ShowMemInfo")
-        << "Product.MAX_MEMORY ("
-        << MAX_MEMORY/1024 << " MB): " << endl;
-      cmsg.send();
-
-      qp->Open(args[0].addr);
-      qp->Request(args[0].addr, r);
-      pli = new ProductLocalInfo;
-      pli->currentTuple =
-        qp->Received(args[0].addr) ? (Tuple*)r.addr : 0;
-
-      /* materialize right stream */
-      qp->Open(args[1].addr);
-      qp->Request(args[1].addr, u);
-
-      if(qp->Received(args[1].addr))
-      {
-        pli->rightRel = new TupleBuffer( MAX_MEMORY );
-      }
-      else
-      {
-        pli->rightRel = 0;
-      }
-
-      while(qp->Received(args[1].addr))
-      {
-        Tuple *t = (Tuple*)u.addr;
-        pli->rightRel->AppendTuple( t );
-        t->DeleteIfAllowed();
-        qp->Request(args[1].addr, u);
-      }
-
-      if( pli->rightRel )
-      {
-        pli->iter = pli->rightRel->MakeScan();
-      }
-      else
-      {
-        pli->iter = 0;
-      }
-
-      tt->IncReference();
-      pli->resultTupleType = tt; 
-
-      local.setAddr(pli);
-      return 0;
-    }
-    case REQUEST :
-    {
-      Tuple *resultTuple, *rightTuple;
-      pli = (ProductLocalInfo*)local.addr;
-
-      if (pli->currentTuple == 0)
-      {
-        return CANCEL;
-      }
-      else
-      {
-        if( pli->rightRel == 0 ) // second stream is empty
-        {
-          return CANCEL;
-        }
-        else if( (rightTuple = pli->iter->GetNextTuple()) != 0 )
-        {
-          resultTuple = new Tuple( pli->resultTupleType );
-          Concat(pli->currentTuple, rightTuple, resultTuple);
-          rightTuple->DeleteIfAllowed();
-          result.setAddr(resultTuple);
-          return YIELD;
-        }
-        else
-        {
-          /* restart iterator for right relation and
-             fetch a new tuple from left stream */
-          pli->currentTuple->DeleteIfAllowed();
-          pli->currentTuple = 0;
-          delete pli->iter;
-          pli->iter = 0;
-          qp->Request(args[0].addr, r);
-          if (qp->Received(args[0].addr))
-          {
-            pli->currentTuple = (Tuple*)r.addr;
-            pli->iter = pli->rightRel->MakeScan();
-            rightTuple = pli->iter->GetNextTuple();
-            assert( rightTuple != 0 );
-            resultTuple = new Tuple( pli->resultTupleType );
-            Concat(pli->currentTuple, rightTuple, resultTuple);
-            rightTuple->DeleteIfAllowed();
-            result.setAddr(resultTuple);
-            return YIELD;
-          }
-          else
-          {
-            return CANCEL; // left stream exhausted
-          }
-        }
-      }
-    }
-    case CLOSE :
-    {
-      pli = (ProductLocalInfo*)local.addr;
-      if(pli)
-      {
-        if(pli->currentTuple != 0)
-          pli->currentTuple->DeleteIfAllowed();
-        if( pli->iter != 0 )
-          delete pli->iter;
-        pli->resultTupleType->DeleteIfAllowed();
-        if( pli->rightRel )
-        {
-          pli->rightRel->Clear();
-          delete pli->rightRel;
-        }
-        delete pli;
-        local.setAddr(0);
-      }
-
-      qp->Close(args[0].addr);
-      qp->Close(args[1].addr);
-
-      return 0;
-    }
-  }
-  return 0;
-}
-
-# else
-
-// progress version
 
 CostEstimation* ProductCostEstimatonFunc() 
 {
@@ -1970,7 +1742,6 @@ Product(Word* args, Word& result, int message,
   return 0;
 }
 
-#endif
 
 
 /*
@@ -1996,16 +1767,6 @@ const string ProductSpec  =
 5.10.4 Definition of operator ~product~
 
 */
-#ifndef USE_PROGRESS
-Operator relalgproduct (
-         "product",              // name
-         ProductSpec,            // specification
-         Product,                // value mapping
-         Operator::SimpleSelect, // trivial selection function
-         ProductTypeMap         // type mapping
-//         true                  // needs large amounts of memory
-);
-#else
 Operator relalgproduct (
          "product",                  // name
          ProductSpec,                // specification
@@ -2015,7 +1776,6 @@ Operator relalgproduct (
          ProductCostEstimatonFunc    // cost estimation
 //         true                      // needs large amounts of memory
 );
-#endif
 
 /*
 5.11 Operator ~count~
@@ -2136,9 +1896,7 @@ int TCountRel(Word* args, Word& result, int message,
   return 0;
 }
 
-#ifdef USE_PROGRESS
 
-// progress version
 CostEstimation* TcountStreamCostEstimationFunc() 
 {
    return new TCountStreamCostEstimation();
@@ -2202,7 +1960,6 @@ countboth_vm( Word* args, Word& result, int message,
 
 
 
-#endif
 
 
 
@@ -2283,15 +2040,6 @@ TCountSelect( ListExpr args ) {
 */
 ValueMapping countmap[] = {TCountStream, TCountRel };
 
-#ifndef USE_PROGRESS
-Operator relalgcount (
-         "count",           // name
-         TCountSpec,        // specification
-         countmap,          // value mapping functions
-         TCountSelect,      // selection function
-         TCountTypeMap      // type mapping
-);
-#else 
 
 CreateCostEstimation createCostEstimationList[] = {
           TcountStreamCostEstimationFunc, TcountRelCostEstimationFunc};
@@ -2305,7 +2053,6 @@ Operator relalgcount (
          createCostEstimationList // cost estimation
 );
 
-#endif
 
 
 const string TCountSpec2  =
@@ -4328,25 +4075,6 @@ const string BufferSpec2  =
 5.12.5 Definition of operator ~buffer~
 
 */
-#ifndef USE_PROGRESS
-Operator relalgbuffer (
-         "!",                 // name
-         BufferSpec,             // specification
-         BufferVM,                 // value mapping
-         BufferSelect,     // trivial selection function
-         BufferTypeMap           // type mapping
-);
-
-
-Operator relalgbuffer2 (
-         "!",                 // name
-         BufferSpec2,             // specification
-         Buffer2,                 // value mapping
-         Operator::SimpleSelect,     // trivial selection function
-         BufferTypeMap2           // type mapping
-);
-
-#else
 
 CreateCostEstimation bufferCostEstimationList[] 
   = {BufferCostEstimationFunc, BufferCostEstimationFunc};
@@ -4369,7 +4097,6 @@ Operator relalgbuffer2 (
          BufferCostEstimationFunc // cost estimation
 );
 
-#endif
 
 
 
@@ -4982,21 +4709,22 @@ class RelationAlgebra : public Algebra
     AddTypeConstructor( &cpprel );
     AddTypeConstructor( &cpptrel );
 
-    AddOperator(&relalgfeed);
-    AddOperator(&relalgconsume);
-    AddOperator(&relalgoconsume);
+    AddOperator(&relalgfeed)->EnableProgress();
+    AddOperator(&relalgconsume)->EnableProgress();
+    AddOperator(&relalgoconsume)->EnableProgress();
     AddOperator(&relalgTUPLE);
     AddOperator(&relalgTUPLE2);
     AddOperator(&relalgattr);
-    AddOperator(&relalgfilter); relalgfilter.SetUsesArgsInTypeMapping();
-    AddOperator(&relalgproject);
+    AddOperator(&relalgfilter)->EnableProgress();
+    relalgfilter.SetUsesArgsInTypeMapping();
+    AddOperator(&relalgproject)->EnableProgress();
     relalgproject.enableInitFinishSupport();
-    AddOperator(&relalgremove);
+    AddOperator(&relalgremove)->EnableProgress();
     relalgremove.enableInitFinishSupport();
-    AddOperator(&relalgproduct); 
+    AddOperator(&relalgproduct)->EnableProgress();
     relalgproduct.SetUsesMemory();
     relalgproduct.enableInitFinishSupport();
-    AddOperator(&relalgcount);
+    AddOperator(&relalgcount)->EnableProgress();
     AddOperator(&relalgcount2);
     AddOperator(&relalgroottuplesize);
     AddOperator(&relalgexttuplesize);
@@ -5006,15 +4734,15 @@ class RelationAlgebra : public Algebra
     AddOperator(&relalgrootattrsize);
     AddOperator(&relalgextattrsize);
     AddOperator(&relalgattrsize);
-    AddOperator(&relalgrename);
-    AddOperator(&relalgvalidateAttr);
-    AddOperator(&relalgrenameattr);
+    AddOperator(&relalgrename)->EnableProgress();
+    AddOperator(&relalgvalidateAttr)->EnableProgress();
+    AddOperator(&relalgrenameattr)->EnableProgress();
     relalgrenameattr.SetUsesArgsInTypeMapping();
-    AddOperator(&relalgbuffer);
+    AddOperator(&relalgbuffer)->EnableProgress();
     AddOperator(&relalgbuffer2);
     AddOperator(&relalggetfileinfo);
 
-    AddOperator(&relalgtconsume);
+    AddOperator(&relalgtconsume)->EnableProgress();
 
     // More recent programming interface for registering operators
     AddOperator( SizeCountersInfo(), sizecounters_vm, sizecounters_tm );
@@ -5043,21 +4771,6 @@ class RelationAlgebra : public Algebra
 Register operators which are able to handle progress messages
 
 */
-#ifdef USE_PROGRESS
-    relalgfeed.EnableProgress();
-    relalgconsume.EnableProgress();
-    relalgoconsume.EnableProgress();
-    relalgtconsume.EnableProgress();
-    relalgfilter.EnableProgress();
-    relalgproject.EnableProgress();
-    relalgremove.EnableProgress();
-    relalgproduct.EnableProgress();
-    relalgcount.EnableProgress();
-    relalgrename.EnableProgress();
-    relalgrenameattr.EnableProgress();
-    relalgvalidateAttr.EnableProgress();
-    relalgbuffer.EnableProgress();
-#endif
 
   }
   ~RelationAlgebra() {};

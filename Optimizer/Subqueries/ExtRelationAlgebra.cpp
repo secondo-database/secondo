@@ -807,67 +807,6 @@ ListExpr HeadTypeMap( ListExpr args )
 
 */
 
-#ifndef USE_PROGRESS
-
-struct HeadLocalInfo
-{
-  HeadLocalInfo( const int maxTuples = 0 ):
-    numTuples( 0 ),
-    maxTuples( maxTuples )
-    {}
-
-  int numTuples;
-  int maxTuples;
-};
-
-int Head(Word* args, Word& result, int message, Word& local, Supplier s)
-{
-  HeadLocalInfo *localInfo;
-  Word tupleWord;
-
-  switch(message)
-  {
-    case OPEN:
-
-      qp->Open(args[0].addr);
-      localInfo =
-        new HeadLocalInfo( ((CcInt*)args[1].addr)->GetIntval() );
-      local.setAddr( localInfo );
-      return 0;
-
-    case REQUEST:
-
-      localInfo = (HeadLocalInfo*)local.addr;
-      if(localInfo->numTuples >= localInfo->maxTuples)
-      {
-        return CANCEL;
-      }
-
-      qp->Request(args[0].addr, tupleWord);
-      if(qp->Received(args[0].addr))
-      {
-        result = tupleWord;
-        localInfo->numTuples++;
-        return YIELD;
-      }
-      else
-      {
-        return CANCEL;
-      }
-    case CLOSE:
-      if(local.addr)
-      {
-        localInfo = (HeadLocalInfo*)local.addr;
-        delete localInfo;
-        local.setAddr(0);
-      }
-      qp->Close(args[0].addr);
-      return 0;
-  }
-  return 0;
-}
-
-#else
 
 struct HeadLocalInfo
 {
@@ -969,7 +908,6 @@ int Head(Word* args, Word& result, int message, Word& local, Supplier s)
   return 0;
 }
 
-#endif
 
 
 /*
@@ -2775,85 +2713,7 @@ This operator removes duplicates from a sorted stream.
 
 */
 
-#ifndef USE_PROGRESS
 
-// standard version
-
-int RdupValueMapping(Word* args, Word& result, int message,
-                     Word& local, Supplier s)
-{
-  Word tuple(Address(0));
-  LexicographicalTupleCompareAlmost cmp;
-  Tuple* current = 0;
-  RTuple* lastOutput = 0;
-
-  switch(message)
-  {
-    case OPEN: {
-      qp->Open(args[0].addr);
-      local.addr = 0;
-      return 0;
-    }
-    case REQUEST: {
-      while(true)
-      {
-        qp->Request(args[0].addr, tuple);
-        if(qp->Received(args[0].addr))
-        {
-          // stream delivered a new tuple
-          if(local.addr != 0)
-          {
-            // there is a last tuple
-            current = static_cast<Tuple*>(tuple.addr);
-            lastOutput = static_cast<RTuple*>(local.addr);
-            if(cmp(current, lastOutput->tuple)
-              || cmp(lastOutput->tuple, current))
-            {
-              // tuples are not equal. Return the tuple
-              // stored in local info and store the current one
-              // there.
-
-        *lastOutput = RTuple( current );
-              result = tuple;
-              return YIELD;
-            }
-            else
-            {
-              // tuples are equal
-              current->DeleteIfAllowed();
-            }
-          }
-          else
-          {
-            // no last tuple stored
-      local.addr = new RTuple( static_cast<Tuple*>(tuple.addr) );
-      result = tuple;
-            return YIELD;
-          }
-        }
-  else
-        {
-          result.addr = 0;
-          return CANCEL;
-        }
-      }
-    }
-    case CLOSE: {
-      if( local.addr != 0 ){ // check if local is present
-         lastOutput = static_cast<RTuple*>(local.addr);
-         delete lastOutput;
-         local.setAddr(0);
-      }
-      qp->Close(args[0].addr);
-      return 0;
-    }
-  }
-  return 0;
-}
-
-# else
-
-// progress version
 
 
 struct RdupLocalInfo
@@ -3023,7 +2883,6 @@ int RdupValueMapping(Word* args, Word& result, int message,
 }
 
 
-#endif
 
 
 
@@ -3773,77 +3632,7 @@ ListExpr ExtendTypeMap( ListExpr args )
 
 */
 
-#ifndef USE_PROGRESS
 
-// standard version
-
-int Extend(Word* args, Word& result, int message, Word& local, Supplier s)
-{
-  Word t, value;
-  Tuple* tup;
-  Supplier supplier, supplier2, supplier3;
-  int nooffun;
-  ArgVectorPointer funargs;
-  TupleType *resultTupleType;
-  ListExpr resultType;
-
-  switch (message)
-  {
-    case OPEN :
-
-      qp->Open(args[0].addr);
-      resultType = GetTupleResultType( s );
-      resultTupleType = new TupleType( nl->Second( resultType ) );
-      local.setAddr( resultTupleType );
-      return 0;
-
-    case REQUEST :
-
-      resultTupleType = (TupleType *)local.addr;
-      qp->Request(args[0].addr,t);
-      if (qp->Received(args[0].addr))
-      {
-        tup = (Tuple*)t.addr;
-        Tuple *newTuple = new Tuple( resultTupleType );
-        for( int i = 0; i < tup->GetNoAttributes(); i++ ) {
-          //cout << (void*) tup << endl;
-          newTuple->CopyAttribute( i, tup, i );
-        }
-        supplier = args[1].addr;
-        nooffun = qp->GetNoSons(supplier);
-        for (int i=0; i < nooffun;i++)
-        {
-          supplier2 = qp->GetSupplier(supplier, i);
-          supplier3 = qp->GetSupplier(supplier2, 1);
-          funargs = qp->Argument(supplier3);
-          ((*funargs)[0]).setAddr(tup);
-          qp->Request(supplier3,value);
-          newTuple->PutAttribute( tup->GetNoAttributes()+i,
-                                  ((Attribute*)value.addr)->Clone() );
-        }
-        tup->DeleteIfAllowed();
-        result.setAddr(newTuple);
-        return YIELD;
-      }
-      else
-        return CANCEL;
-
-    case CLOSE :
-      if(local.addr)
-      {
-         ((TupleType *)local.addr)->DeleteIfAllowed();
-         local.setAddr(0);
-      }
-      qp->Close(args[0].addr);
-      return 0;
-  }
-  return 0;
-}
-
-
-# else
-
-// progress version
 
 
 class ExtendLocalInfo: public ProgressLocalInfo
@@ -4053,7 +3842,6 @@ int Extend(Word* args, Word& result, int message, Word& local, Supplier s)
   return 0;
 }
 
-#endif
 
 
 /*
@@ -4166,130 +3954,6 @@ request on a NULL pointer.
 
 */
 
-#ifndef USE_PROGRESS
-
-// standard version
-
-struct LoopjoinLocalInfo
-{
-  Word tuplex;
-  Word streamy;
-  TupleType *resultTupleType;
-};
-
-int Loopjoin(Word* args, Word& result, int message,
-             Word& local, Supplier s)
-{
-  ArgVectorPointer funargs = 0;
-
-  Word tuplex(Address(0));
-  Word tupley(Address(0));
-  Word tuplexy(Address(0));
-  Word streamy(Address(0));
-
-  Tuple* ctuplex = 0;
-  Tuple* ctupley = 0;
-  Tuple* ctuplexy = 0;
-
-  LoopjoinLocalInfo *localinfo = 0;
-
-  switch ( message )
-  {
-    case OPEN:
-      qp->Open (args[0].addr);
-      qp->Request(args[0].addr, tuplex);
-      if (qp->Received(args[0].addr))
-      {
-        funargs = qp->Argument(args[1].addr);
-        (*funargs)[0] = tuplex;
-        streamy=args[1];
-        qp->Open (streamy.addr);
-
-        localinfo = new LoopjoinLocalInfo;
-        ListExpr resultType = GetTupleResultType( s );
-        localinfo->resultTupleType =
-          new TupleType( nl->Second( resultType ) );
-        localinfo->tuplex = tuplex;
-        localinfo->streamy = streamy;
-        local.setAddr(localinfo);
-      }
-      else
-      {
-        local.setAddr(0);
-      }
-      return 0;
-
-    case REQUEST:
-      if (local.addr ==0) return CANCEL;
-      localinfo=(LoopjoinLocalInfo *) local.addr;
-      tuplex=localinfo->tuplex;
-      ctuplex=(Tuple*)tuplex.addr;
-      streamy=localinfo->streamy;
-      tupley.setAddr(0);
-      while (tupley.addr==0)
-      {
-        qp->Request(streamy.addr, tupley);
-        if (!(qp->Received(streamy.addr)))
-        {
-          qp->Close(streamy.addr);
-          ((Tuple*)tuplex.addr)->DeleteIfAllowed();
-          qp->Request(args[0].addr, tuplex);
-          if (qp->Received(args[0].addr))
-          {
-            funargs = qp->Argument(args[1].addr);
-            ctuplex=(Tuple*)tuplex.addr;
-            (*funargs)[0] = tuplex;
-            streamy=args[1];
-            qp->Open (streamy.addr);
-            tupley.setAddr(0);
-
-            localinfo->tuplex=tuplex;
-            localinfo->streamy=streamy;
-            local.setAddr(localinfo);
-          }
-          else
-          {
-            localinfo->streamy.setAddr(0);
-            localinfo->tuplex.setAddr(0);
-            return CANCEL;
-          }
-        }
-        else
-        {
-          ctupley=(Tuple*)tupley.addr;
-        }
-      }
-      ctuplexy = new Tuple( localinfo->resultTupleType );
-      tuplexy.setAddr(ctuplexy);
-      Concat(ctuplex, ctupley, ctuplexy);
-      ctupley->DeleteIfAllowed();
-      result = tuplexy;
-      return YIELD;
-
-    case CLOSE:
-      if( local.addr != 0 )
-      {
-        localinfo=(LoopjoinLocalInfo *) local.addr;
-        if( localinfo->streamy.addr != 0 )
-          qp->Close( localinfo->streamy.addr );
-
-        if( localinfo->tuplex.addr != 0 )
-          ((Tuple*)localinfo->tuplex.addr)->DeleteIfAllowed();
-
-        if( localinfo->resultTupleType != 0 )
-          localinfo->resultTupleType->DeleteIfAllowed();
-        delete localinfo;
-        local.setAddr(0);
-      }
-      qp->Close(args[0].addr);
-      return 0;
-  }
-
-  return 0;
-}
-
-
-#else
 
 // with support for progress queries
 
@@ -4487,7 +4151,6 @@ int Loopjoin(Word* args, Word& result, int message,
 }
 
 
-#endif
 
 
 
@@ -5197,90 +4860,7 @@ ListExpr ExtProjectExtendTypeMap(ListExpr args)
 
 */
 
-#ifndef USE_PROGRESS
 
-// standard version
-
-int
-ExtProjectExtendValueMap(Word* args, Word& result, int message,
-                         Word& local, Supplier s)
-{
-  //  cout << "ExtProjectExtendValueMap() called." << endl;
-  switch (message)
-  {
-    case OPEN :
-    {
-      ListExpr resultType = GetTupleResultType( s );
-      TupleType *tupleType = new TupleType(nl->Second(resultType));
-      local.addr = tupleType;
-      qp->Open(args[0].addr);
-      return 0;
-    }
-    case REQUEST :
-    {
-      Word elem1, elem2, value;
-      int i=0, noOfAttrs=0, index=0, nooffun=0;
-      Supplier son, supplier, supplier2, supplier3;
-      ArgVectorPointer extFunArgs;
-
-      qp->Request(args[0].addr, elem1);
-      if (qp->Received(args[0].addr))
-      {
-        TupleType *tupleType = (TupleType *)local.addr;
-        Tuple *currTuple     = (Tuple*) elem1.addr;
-        Tuple *resultTuple   = new Tuple( tupleType );
-
-        // copy attrs from projection list
-        noOfAttrs = ((CcInt*)args[3].addr)->GetIntval();
-        for(i = 0; i < noOfAttrs; i++)
-        {
-          son = qp->GetSupplier(args[4].addr, i);
-          qp->Request(son, elem2);
-          index = ((CcInt*)elem2.addr)->GetIntval();
-          resultTuple->CopyAttribute(index-1, currTuple, i);
-        }
-
-        // evaluate and add attrs from extension list
-        supplier = args[2].addr;           // get list of ext-functions
-        nooffun = qp->GetNoSons(supplier); // get num of ext-functions
-        for(i = 0; i< nooffun; i++)
-        {
-          supplier2 = qp->GetSupplier(supplier, i); // get an ext-function
-          supplier3 = qp->GetSupplier(supplier2, 1);
-          extFunArgs = qp->Argument(supplier3);
-          ((*extFunArgs)[0]).setAddr(currTuple);     // pass argument
-          qp->Request(supplier3,value);              // call extattr mapping
-//  The original implementation tried to avoid copying the function result,
-//  but somehow, this results in a strongly growing tuplebuffer on disk:
-//           resultTuple->PutAttribute(
-//             noOfAttrs + i, (Attribute*)value.addr );
-//           qp->ReInitResultStorage( supplier3 );
-          resultTuple->PutAttribute( noOfAttrs + i,
-                ((Attribute*)value.addr)->Clone() );
-        }
-        currTuple->DeleteIfAllowed();
-        result.setAddr(resultTuple);
-        return YIELD;
-      }
-      else return CANCEL;
-    }
-    case CLOSE :
-    {
-      if(local.addr)
-      {
-        ((TupleType *)local.addr)->DeleteIfAllowed();
-        qp->Close(args[0].addr);
-        local.setAddr(0);
-      }
-      return 0;
-    }
-  }
-  return 0;
-}
-
-# else
-
-// progress version
 
 class ProjectExtendLocalInfo: public ProgressLocalInfo
 {
@@ -5498,7 +5078,6 @@ ExtProjectExtendValueMap(Word* args, Word& result, int message,
   return 0;
 }
 
-#endif
 
 /*
 2.20.3 Specification of operator ~projectextend~
@@ -6231,200 +5810,7 @@ ListExpr GroupByTypeMap(ListExpr args)
 */
 
 
-#ifndef USE_PROGRESS
 
-
-struct GroupByLocalInfo
-{
-  Tuple *t;
-  TupleType *resultTupleType;
-  long MAX_MEMORY;
-  GroupByLocalInfo() : t(0), resultTupleType(0), MAX_MEMORY(0) {}
-};
-
-int GroupByValueMapping
-(Word* args, Word& result, int message, Word& local, Supplier supplier)
-{
-  Tuple *s = 0;
-  Word sWord(Address(0));
-  TupleBuffer* tp = 0;
-  GenericRelationIterator* relIter = 0;
-  int i = 0, j = 0, k = 0;
-  int numberatt = 0;
-  bool ifequal = false;
-  Word value(Address(0));
-  Supplier  value2;
-  Supplier supplier1;
-  Supplier supplier2;
-  int noOffun = 0;
-  ArgVectorPointer vector;
-  const int indexOfCountArgument = 3;
-  const int startIndexOfExtraArguments = indexOfCountArgument +1;
-  int attribIdx = 0;
-  GroupByLocalInfo *gbli = 0;
-
-  // The argument vector contains the following values:
-  // args[0] = stream of tuples
-  // args[1] = list of identifiers
-  // args[2] = list of functions
-  // args[3] = Number of extra arguments
-  // args[4 ...] = args added by APPEND
-
-  switch(message)
-  {
-    case OPEN:
-    {
-      // Get the first tuple pointer and store it in the
-      // GroupBylocalInfo structure
-      qp->Open (args[0].addr);
-      qp->Request(args[0].addr, sWord);
-      if (qp->Received(args[0].addr))
-      {
-        gbli = new GroupByLocalInfo();
-        gbli->t = (Tuple*)sWord.addr;
-        gbli->t->IncReference();
-        ListExpr resultType = GetTupleResultType( supplier );
-        gbli->resultTupleType = new TupleType( nl->Second( resultType ) );
-        gbli->MAX_MEMORY = qp->MemoryAvailableForOperator();
-        local.setAddr(gbli);
-
-        cmsg.info("ERA:ShowMemInfo")
-          << "GroupBy.MAX_MEMORY ("
-          << gbli->MAX_MEMORY / 1024 << " MB): = "
-          << gbli->MAX_MEMORY / gbli->t->GetExtSize()
-          << " Tuples" << std::endl;
-        cmsg.send();
-      }
-      else
-      {
-        local.setAddr(0);
-      }
-      return 0;
-    }
-    case REQUEST:
-    {
-      Counter::getRef("GroupBy:Request")++;
-      if(local.addr == 0)
-      {
-        return CANCEL;
-      }
-      gbli = (GroupByLocalInfo *)local.addr;
-      if( gbli->t == 0 ) { // Stream ends
-          return CANCEL;
-      }
-      tp = new TupleBuffer(gbli->MAX_MEMORY);
-      tp->AppendTuple(gbli->t);
-
-
-      // get number of attributes
-      numberatt = ((CcInt*)args[indexOfCountArgument].addr)->GetIntval();
-
-      ifequal = true;
-      // Get next tuple
-      qp->Request(args[0].addr, sWord);
-      while ((qp->Received(args[0].addr)) && ifequal)
-      {
-        s = (Tuple*)sWord.addr;
-        for (k = 0; k < numberatt; k++) // check if  tuples t = s
-        {
-          // loop over all grouping attributes
-          attribIdx =
-            ((CcInt*)args[startIndexOfExtraArguments+k].addr)->GetIntval();
-          j = attribIdx - 1;
-          if (((Attribute*)gbli->t->GetAttribute(j))->
-               Compare((Attribute *)s->GetAttribute(j)))
-          {
-            ifequal = false;
-            break;
-          }
-        }
-
-        if (ifequal) // store in tuple buffer
-        {
-          tp->AppendTuple(s);
-          s->DeleteIfAllowed();
-          qp->Request(args[0].addr, sWord);
-          // get next tuple
-        }
-        else
-        {
-          // store tuple pointer in local info
-          gbli->t->DecReference();
-          gbli->t->DeleteIfAllowed();
-          gbli->t = s;
-          gbli->t->IncReference();
-        }
-      }
-      if (ifequal)
-      // last group finished, stream ends
-      {
-        gbli->t->DecReference();
-        gbli->t->DeleteIfAllowed();
-        gbli->t = 0;
-      }
-
-      // create result tuple
-      Tuple *t = new Tuple( gbli->resultTupleType );
-      relIter = tp->MakeScan();
-      s = relIter->GetNextTuple();
-
-      // copy in grouping attributes
-      for(i = 0; i < numberatt; i++)
-      {
-        attribIdx =
-          ((CcInt*)args[startIndexOfExtraArguments+i].addr)->GetIntval();
-        t->CopyAttribute(attribIdx - 1, s, i);
-      }
-      s->DeleteIfAllowed();
-      value2 = (Supplier)args[2].addr; // list of functions
-      noOffun  =  qp->GetNoSons(value2);
-      delete relIter;
-
-      for(i = 0; i < noOffun; i++)
-      {
-        // prepare arguments for function i
-        supplier1 = qp->GetSupplier(value2, i);
-        supplier2 = qp->GetSupplier(supplier1, 1);
-        vector = qp->Argument(supplier2);
-        // The group was stored in a relation identified by symbol group
-        // which is a typemap operator. Here it is stored in the
-        // argument vector
-        ((*vector)[0]).setAddr(tp);
-
-        // compute value of function i and put it into the result tuple
-        qp->Request(supplier2, value);
-        t->PutAttribute(numberatt + i, (Attribute*)value.addr);
-        qp->ReInitResultStorage(supplier2);
-      }
-      result.setAddr(t);
-      delete tp;
-      return YIELD;
-    }
-    case CLOSE:
-    {
-      if( local.addr != 0 )
-      {
-        gbli = (GroupByLocalInfo *)local.addr;
-        if( gbli->resultTupleType != 0 )
-          gbli->resultTupleType->DeleteIfAllowed();
-        if( gbli->t != 0 )
-        {
-          gbli->t->DecReference();
-          gbli->t->DeleteIfAllowed();
-        }
-        delete gbli;
-        local.setAddr(0);
-      }
-      qp->Close(args[0].addr);
-      return 0;
-    }
-  }
-  return 0;
-}
-
-#else
-
-//progress version
 
 
 class GroupByLocalInfo: public ProgressLocalInfo
@@ -6770,7 +6156,6 @@ int GroupByValueMapping
   return 0;
 }
 
-#endif
 
 
 
@@ -7190,264 +6575,6 @@ ListExpr SymmJoinTypeMap(ListExpr args)
 
 */
 
-#ifndef USE_PROGRESS
-
-// standard version
-
-
-struct SymmJoinLocalInfo
-{
-  TupleType *resultTupleType;
-
-  TupleBuffer *rightRel;
-  GenericRelationIterator *rightIter;
-  TupleBuffer *leftRel;
-  GenericRelationIterator *leftIter;
-  bool right;
-  Tuple *currTuple;
-  bool rightFinished;
-  bool leftFinished;
-};
-
-int
-SymmJoin(Word* args, Word& result, int message, Word& local, Supplier s)
-{
-  Word r, l;
-  SymmJoinLocalInfo* pli;
-
-  switch (message)
-  {
-    case OPEN :
-    {
-      long MAX_MEMORY = qp->MemoryAvailableForOperator();
-      cmsg.info("ERA:ShowMemInfo") << "SymmJoin.MAX_MEMORY ("
-                                   << MAX_MEMORY/1024 << " MB): " << std::endl;
-      cmsg.send();
-      pli = new SymmJoinLocalInfo;
-      pli->rightRel = new TupleBuffer( MAX_MEMORY / 2 );
-      pli->rightIter = 0;
-      pli->leftRel = new TupleBuffer( MAX_MEMORY / 2 );
-      pli->leftIter = 0;
-      pli->right = true;
-      pli->currTuple = 0;
-      pli->rightFinished = false;
-      pli->leftFinished = false;
-
-      ListExpr resultType = GetTupleResultType( s );
-      pli->resultTupleType = new TupleType( nl->Second( resultType ) );
-
-      qp->Open(args[0].addr);
-      qp->Open(args[1].addr);
-
-      local.setAddr(pli);
-      return 0;
-    }
-    case REQUEST :
-    {
-      pli = (SymmJoinLocalInfo*)local.addr;
-
-      while( 1 )
-        // This loop will end in some of the returns.
-      {
-        if( pli->right )
-          // Get the tuple from the right stream and match it with the
-          // left stored buffer
-        {
-          if( pli->currTuple == 0 )
-          {
-            qp->Request(args[0].addr, r);
-            if( qp->Received( args[0].addr ) )
-            {
-              pli->currTuple = (Tuple*)r.addr;
-              pli->leftIter = pli->leftRel->MakeScan();
-            }
-            else
-            {
-              pli->rightFinished = true;
-              if( pli->leftFinished )
-                return CANCEL;
-              else
-              {
-                pli->right = false;
-                continue; // Go back to the loop
-              }
-            }
-          }
-
-          // Now we have a tuple from the right stream in currTuple
-          // and an open iterator on the left stored buffer.
-          Tuple *leftTuple = pli->leftIter->GetNextTuple();
-
-          if( leftTuple == 0 )
-            // There are no more tuples in the left iterator. We then
-            // store the current tuple in the right buffer and close the
-            // left iterator.
-          {
-            if( !pli->leftFinished )
-              // We only need to keep track of the right tuples if the
-              // left stream is not finished.
-            {
-              pli->rightRel->AppendTuple( pli->currTuple );
-              pli->right = false;
-            }
-
-            pli->currTuple->DeleteIfAllowed();
-            pli->currTuple = 0;
-
-            delete pli->leftIter;
-            pli->leftIter = 0;
-
-            continue; // Go back to the loop
-          }
-          else
-            // We match the tuples.
-          {
-            ArgVectorPointer funArgs = qp->Argument(args[2].addr);
-            ((*funArgs)[0]).setAddr( pli->currTuple );
-            ((*funArgs)[1]).setAddr( leftTuple );
-            Word funResult;
-            qp->Request(args[2].addr, funResult);
-            CcBool *boolFunResult = (CcBool*)funResult.addr;
-
-            if( boolFunResult->IsDefined() &&
-                boolFunResult->GetBoolval() )
-            {
-              Tuple *resultTuple = new Tuple( pli->resultTupleType );
-              Concat( pli->currTuple, leftTuple, resultTuple );
-              leftTuple->DeleteIfAllowed();
-              leftTuple = 0;
-              result.setAddr( resultTuple );
-              return YIELD;
-            }
-            else
-            {
-              leftTuple->DeleteIfAllowed();
-              leftTuple = 0;
-              continue; // Go back to the loop
-            }
-          }
-        }
-        else
-          // Get the tuple from the left stream and match it with the
-          // right stored buffer
-        {
-          if( pli->currTuple == 0 )
-          {
-            qp->Request(args[1].addr, l);
-            if( qp->Received( args[1].addr ) )
-            {
-              pli->currTuple = (Tuple*)l.addr;
-              pli->rightIter = pli->rightRel->MakeScan();
-            }
-            else
-            {
-              pli->leftFinished = true;
-              if( pli->rightFinished )
-                return CANCEL;
-              else
-              {
-                pli->right = true;
-                continue; // Go back to the loop
-              }
-            }
-          }
-
-          // Now we have a tuple from the left stream in currTuple and
-          // an open iterator on the right stored buffer.
-          Tuple *rightTuple = pli->rightIter->GetNextTuple();
-
-          if( rightTuple == 0 )
-            // There are no more tuples in the right iterator. We then
-            // store the current tuple in the left buffer and close
-            // the right iterator.
-          {
-            if( !pli->rightFinished )
-              // We only need to keep track of the left tuples if the
-              // right stream is not finished.
-            {
-              pli->leftRel->AppendTuple( pli->currTuple );
-              pli->right = true;
-            }
-
-            pli->currTuple->DeleteIfAllowed();
-            pli->currTuple = 0;
-
-            delete pli->rightIter;
-            pli->rightIter = 0;
-
-            continue; // Go back to the loop
-          }
-          else
-            // We match the tuples.
-          {
-            ArgVectorPointer funArgs = qp->Argument(args[2].addr);
-            ((*funArgs)[0]).setAddr( rightTuple );
-            ((*funArgs)[1]).setAddr( pli->currTuple );
-            Word funResult;
-            qp->Request(args[2].addr, funResult);
-            CcBool *boolFunResult = (CcBool*)funResult.addr;
-
-            if( boolFunResult->IsDefined() &&
-                boolFunResult->GetBoolval() )
-            {
-              Tuple *resultTuple = new Tuple( pli->resultTupleType );
-              Concat( rightTuple, pli->currTuple, resultTuple );
-              rightTuple->DeleteIfAllowed();
-              rightTuple = 0;
-              result.setAddr( resultTuple );
-              return YIELD;
-            }
-            else
-            {
-
-              rightTuple->DeleteIfAllowed();
-              rightTuple = 0;
-              continue; // Go back to the loop
-            }
-          }
-        }
-      }
-    }
-    case CLOSE :
-    {
-      pli = (SymmJoinLocalInfo*)local.addr;
-      if(pli)
-      {
-         if( pli->currTuple != 0 )
-           pli->currTuple->DeleteIfAllowed();
-
-         delete pli->leftIter;
-         delete pli->rightIter;
-         if( pli->resultTupleType != 0 )
-           pli->resultTupleType->DeleteIfAllowed();
-
-         if( pli->rightRel != 0 )
-         {
-           pli->rightRel->Clear();
-           delete pli->rightRel;
-         }
-
-         if( pli->leftRel != 0 )
-         {
-           pli->leftRel->Clear();
-           delete pli->leftRel;
-         }
-
-         delete pli;
-         local.setAddr(0);
-      }
-
-      qp->Close(args[0].addr);
-      qp->Close(args[1].addr);
-
-      return 0;
-    }
-  }
-  return 0;
-}
-
-
-#else
 
 // with support for progress queries
 
@@ -7781,7 +6908,6 @@ SymmJoin(Word* args, Word& result, int message, Word& local, Supplier s)
   return 0;
 }
 
-#endif
 
 
 
@@ -8898,7 +8024,7 @@ class ExtRelationAlgebra : public Algebra
     AddOperator(&extrelgroup);
     AddOperator(&extrelcancel);
     AddOperator(&extrelextract);
-    AddOperator(&extrelextend);
+    AddOperator(&extrelextend)->EnableProgress();
     AddOperator(&extrelconcat);
     AddOperator(&extrelmin);
     AddOperator(&extrelmax);
@@ -8926,52 +8052,34 @@ class ExtRelationAlgebra : public Algebra
     };
     AddOperator(statsInfo(), statsFuns, StatsSelect, StatsTypeMap);
 
-    AddOperator(&extrelhead);
-    AddOperator(&extrelsortby);
-    AddOperator(&extrelsort);
-    AddOperator(&extrelrdup);
+    AddOperator(&extrelhead)->EnableProgress();
+    AddOperator(&extrelsortby)->EnableProgress();
+    AddOperator(&extrelsort)->EnableProgress();
+    AddOperator(&extrelrdup)->EnableProgress();
     AddOperator(&extrelmergesec);
     AddOperator(&extrelmergediff);
     AddOperator(&extrelmergeunion);
-    AddOperator(&extrelmergejoin);
+    AddOperator(&extrelmergejoin)->EnableProgress();
 
-    AddOperator(&extrelsortmergejoin);
-                AddOperator(&extrelsmouterjoin);
-     AddOperator(&extrelhashjoin);
-    AddOperator(&extrelloopjoin);
+    AddOperator(&extrelsortmergejoin)->EnableProgress();
+                AddOperator(&extrelsmouterjoin)->EnableProgress();
+     AddOperator(&extrelhashjoin)->EnableProgress();
+    AddOperator(&extrelloopjoin)->EnableProgress();
     AddOperator(&extrelextendstream);
     AddOperator(&extrelprojectextendstream);
     AddOperator(&extrelloopsel);
-    AddOperator(&extrelgroupby);
+    AddOperator(&extrelgroupby)->EnableProgress();
     AddOperator(&extrelaggregate);
     AddOperator(&extrelaggregateB);
-    AddOperator(&extrelsymmjoin);
-                AddOperator(&extrelsymmouterjoin);
+    AddOperator(&extrelsymmjoin)->EnableProgress();
+                AddOperator(&extrelsymmouterjoin)->EnableProgress();
     AddOperator(&extrelsymmproductextend);
     AddOperator(&extrelsymmproduct);
-    AddOperator(&extrelprojectextend);
+    AddOperator(&extrelprojectextend)->EnableProgress();
     AddOperator(&krdup);
     AddOperator(&extreladdcounter);
     AddOperator(&ksmallest);
     AddOperator(&kbiggest);
-
-#ifdef USE_PROGRESS
-// support for progress queries
-   extrelextend.EnableProgress();
-   extrelhead.EnableProgress();
-   extrelsortby.EnableProgress();
-   extrelsort.EnableProgress();
-   extrelrdup.EnableProgress();
-   extrelmergejoin.EnableProgress();
-   extrelsortmergejoin.EnableProgress();
-         extrelsmouterjoin.EnableProgress();
-         extrelsymmouterjoin.EnableProgress();
-   extrelhashjoin.EnableProgress();
-   extrelloopjoin.EnableProgress();
-   extrelgroupby.EnableProgress();
-   extrelsymmjoin.EnableProgress();
-   extrelprojectextend.EnableProgress();
-#endif
   }
 
   ~ExtRelationAlgebra() {};

@@ -190,56 +190,6 @@ that is
 
 */
 
-  #ifndef USE_PROGRESS
-  // standard version
-
-  int
-  ceaFilterValueMap( Word* args,
-                     Word& result,
-                     int message,
-                     Word& local,
-                     Supplier s ) {
-    
-    switch ( message ) {
-      
-      case OPEN:
-        qp->Open (args[0].addr);
-        return 0;
-        
-      case REQUEST:
-      {
-        bool found = false;
-        Word elem;
-        Tuple* tuple = 0;
-
-        filterOp_t filterOp = (filterOp_t) args[1].addr;
-
-        qp->Request(args[0].addr, elem);
-        while (qp->Received(args[0].addr) && !found) {
-          tuple = (Tuple*)elem.addr;
-          found = filterOp(tuple);
-          if (!found) {
-            tuple->DeleteIfAllowed();
-            qp->Request(args[0].addr, elem);
-          }
-        }
-        if (found) {
-          result.setAddr(tuple);
-          return YIELD;
-        }
-        else
-          return CANCEL;
-      }
-      
-      case CLOSE:
-        qp->Close(args[0].addr);
-        return 0;
-    }
-    return 0;
-  }
-
-  #else
-  //progress version
   int
   ceaFilterValueMap(Word* args,
                     Word& result,
@@ -420,7 +370,6 @@ private variables.
     return done;
   }
   
-#endif
   
 /*
 4.1.4 Specification of operator ~filter~
@@ -582,93 +531,6 @@ Type mapping for ~extend~ is
 
 */
 
-  #ifndef USE_PROGRESS
-  // standard version
-  
-  int
-  ceaExtendValueMap(Word* args,
-                    Word& result,
-                    int message,
-                    Word& local,
-                    Supplier s ) {
-    
-    TupleType* resultTupleType;
-    
-    switch (message)
-    {
-      case OPEN:
-      {
-        ListExpr resultType;
-        
-        qp->Open(args[0].addr);
-        resultType = GetTupleResultType( s );
-        resultTupleType = new TupleType( nl->Second( resultType ) );
-        local.setAddr( resultTupleType );
-        return 0;
-      }
-      
-      case REQUEST:
-      {
-        Supplier supplier1, supplier2, supplier3;
-        Tuple* tuple;
-        Word elem, value, tmpArgs;
-        ArgVectorPointer funargs;
-        int nooffun;
-        
-        resultTupleType = (TupleType*)local.addr;
-        qp->Request(args[0].addr, elem);
-        if (qp->Received(args[0].addr)) {
-          tuple = (Tuple*)elem.addr;
-          Tuple* newTuple = new Tuple( resultTupleType );
-          for( int i = 0; i < tuple->GetNoAttributes(); i++ ) {
-            //cout << (void*) tuple << endl;
-            newTuple->CopyAttribute( i, tuple, i );
-          }
-          supplier1 = args[1].addr;
-          nooffun = qp->GetNoSons(supplier1);
-          for (int i=0; i < nooffun; i++) {
-            supplier2 = qp->GetSupplier(supplier1, i);
-            supplier3 = qp->GetSupplier(supplier2, 1);
-
-            if ((qp->getPtrCEQueryProcessor())->IsPointerNode( supplier3 )) {
-              //cout << "son [" << i << "] is a pointer." << endl;
-              
-              qp->Request(supplier3, tmpArgs);
-              extendOp_t extendOp = (extendOp_t) tmpArgs.addr;
-              newTuple->PutAttribute( tuple->GetNoAttributes()+i,
-                                      (extendOp(tuple))->Clone());
-
-            } else {
-              //cout << "son [" << i << "] is a map function." << endl;
-            
-              funargs = qp->Argument(supplier3);
-              ((*funargs)[0]).setAddr(tuple);
-              qp->Request(supplier3,value);
-              newTuple->PutAttribute( tuple->GetNoAttributes()+i,
-                                      ((Attribute*)value.addr)->Clone() );
-            }
-
-          }
-          tuple->DeleteIfAllowed();
-          result.setAddr(newTuple);
-          return YIELD;
-        } else
-          return CANCEL;
-      }
-      
-      case CLOSE:
-        if(local.addr) {
-          ((TupleType*)local.addr)->DeleteIfAllowed();
-          local.setAddr(0);
-        }
-        qp->Close(args[0].addr);
-        return 0;
-    }
-    return 0;
-  }
-  
-  # else
-  // progress version
 
   int
   ceaExtendValueMap(Word* args,
@@ -1021,7 +883,6 @@ private variables.
   CEAExtendLocalInfo::getAttrSizeExtTmp(int idx) {
     return attrSizeExtTmp[idx];
   }
-  #endif
 
 
 
@@ -1175,10 +1036,10 @@ The Constructor.
   : Algebra(),
     thisAlgID(-1) {
 
-    AddOperator(&ceaOperatorFilter);
+    AddOperator(&ceaOperatorFilter)->EnableProgress();
     ceaOperatorFilter.SetUsesArgsInTypeMapping();
     
-    AddOperator(&ceaOperatorExtend);
+    AddOperator(&ceaOperatorExtend)->EnableProgress();
     AddOperator(&ceaOperatorExecuteQuery);
     
 
@@ -1186,10 +1047,6 @@ The Constructor.
 Register operators which are able to handle progress messages
 
 */
-    #ifdef USE_PROGRESS
-      ceaOperatorFilter.EnableProgress();
-      ceaOperatorExtend.EnableProgress();
-    #endif
     
     CompiledExpressionsAlgebra::ceaActiv = true;
   }

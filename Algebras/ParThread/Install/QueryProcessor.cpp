@@ -4455,9 +4455,7 @@ Then call the operator's value mapping function.
 
 
 
-#ifdef USE_PROGRESS
           CheckProgress();
-#endif
           CheckHeartbeat();
 
           if(useHeartbeat){

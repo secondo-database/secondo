@@ -34,13 +34,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "RelationAlgebra.h"
 #include "Stream.h"
 
-#ifdef USE_PROGRESS
 #include "../CostEstimation/RelationAlgebraCostEstimation.h"
-#endif
 
 using namespace std;
 
-#ifdef USE_PROGRESS
 
 ListExpr OperatorFeedProject::feedproject_tm(ListExpr args)
 {
@@ -211,6 +208,5 @@ OperatorFeedProject::feedproject_vm(Word* args,
   } // end switch
   return 0;
 }
-#endif
 
 

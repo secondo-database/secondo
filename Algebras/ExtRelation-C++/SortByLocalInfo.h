@@ -43,50 +43,19 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #ifndef SORTBYLOCALINFO_
 #define SORTBYLOCALINFO_
-#ifndef USE_PROGRESS
-
-class SortByLocalInfo
-{
-  public:
-    SortByLocalInfo( Word stream,
-         const bool lexicographic,
-         void *tupleCmp );
-		~SortByLocalInfo();
-    Tuple *NextResultTuple();
-private:
-    void ShowPartitionInfo( int c, int a, int n,
-                int m, int r, GenericRelation* rel );
-    Word stream;
-    size_t currentIndex;
-
-    // tuple information
-    LexicographicalTupleCompare *lexiTupleCmp;
-    TupleCompareBy *tupleCmpBy;
-    bool lexicographic;
-
-    // sorted runs created by in memory heap filtering
-    size_t MAX_MEMORY;
-    typedef std::pair<TupleBuffer*, GenericRelationIterator*> SortedRun;
-    std::vector< SortedRun > relations;
-
-    typedef priority_queue<TupleAndRelPos> TupleQueue;
-    TupleQueue queue[2];
-    TupleQueue mergeTuples;
-};
-#else
 class SortByLocalInfo : protected ProgressWrapper
 {
   public:
     SortByLocalInfo( Word stream, const bool lexicographic, 
-		void *tupleCmp, ProgressLocalInfo* p, Supplier s);
-		~SortByLocalInfo();
-    Tuple* NextResultTuple();		
+        void *tupleCmp, ProgressLocalInfo* p, Supplier s);
+        ~SortByLocalInfo();
+    Tuple* NextResultTuple();        
     size_t TupleCount(){
       return tupleCount;
     }
-	private:
-		void ShowPartitionInfo( int c, int a, int n,
-		            int m, int r, GenericRelation* rel );
+    private:
+        void ShowPartitionInfo( int c, int a, int n,
+                    int m, int r, GenericRelation* rel );
     Word stream;
     size_t tupleCount;
 
@@ -101,7 +70,6 @@ class SortByLocalInfo : protected ProgressWrapper
 
     typedef TupleQueue Heap;
     Heap queue[2];
-    Heap mergeTuples;	
+    Heap mergeTuples;    
 };
-#endif
 #endif

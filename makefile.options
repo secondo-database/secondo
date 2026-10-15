@@ -89,9 +89,6 @@ CPPSTDOPTION = -std=c++17
 #thereby we set the file system to support much larger files
 DEFAULTCCFLAGS += -D_FILE_OFFSET_BITS=64
 
-# Flag for compiling code of operator value mappings which supports progress measurement. 
-DEFAULTCCFLAGS += -DUSE_PROGRESS
-
 
 # Flag for compiling code which uses serialization instead of copying class instances
 # on block. After changing this flag you need to do a make clean, rebuild secondo, and

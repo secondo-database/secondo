@@ -6208,7 +6208,7 @@ class CcAlgebra1 : public Algebra
     AddOperator( &ccsetintersection );
     AddOperator( &ccsetminus );
     AddOperator( &ccopkeywords );
-    AddOperator( &ccopifthenelse );
+    AddOperator( &ccopifthenelse )->EnableProgress();
     ccopifthenelse.SetRequestsArguments();
     AddOperator( &ccbetween );
     //AddOperator( &ccelapsedtime );
@@ -6261,10 +6261,6 @@ class CcAlgebra1 : public Algebra
     AddOperator (&isnanOp);
     AddOperator (&outerjoinOp);
 
-
-#ifdef USE_PROGRESS
-    ccopifthenelse.EnableProgress();
-#endif
 
 
 

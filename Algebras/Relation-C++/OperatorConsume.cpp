@@ -30,9 +30,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "Progress.h"
 
-#ifdef USE_PROGRESS
 #include "../CostEstimation/RelationAlgebraCostEstimation.h"
-#endif
 
 using namespace std;
 
@@ -56,39 +54,6 @@ ListExpr OperatorConsume::tconsume_tm(ListExpr args)
 
 */
 
-#ifndef USE_PROGRESS
-
-// standard version
-
-int
-OperatorConsume::Consume(Word* args, Word& result, int message,
-        Word& local, Supplier s)
-{
-  Word actual;
-
-  GenericRelation* rel = (GenericRelation*)((qp->ResultStorage(s)).addr);
-  if(rel->GetNoTuples() > 0)
-  {
-    rel->Clear();
-  }
-
-  Stream<Tuple> stream(args[0]);
-
-  stream.open;
-
-  Tuple* tup;
-  while( (tup = stream.request()) != 0){
-      rel->AppendTuple(tup);
-      tup->DeleteIfAllowed();
-  }
-  stream.close();
-
-  result.setAddr(rel);
-
-  return 0;
-}
-
-#else
 // Version with support for progress queries
 
 CostEstimation* OperatorConsume::ConsumeCostEstimationFunc() {
@@ -138,4 +103,3 @@ OperatorConsume::Consume(Word* args, Word& result, int message,
   return 0;
 }
 
-#endif

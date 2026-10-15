@@ -1604,62 +1604,6 @@ cout << nl->ToString(args) << endl;
                         nl->Second(nl->First(args))));
 }
 
-#ifndef USE_PROGRESS
-/*
-4.1.2 Value Mapping function of orange operators without progress estimation
-
-*/
-
-template<RangeKind rk> int ORangeValueMap(Word* args, Word& result, int message,
-                                          Word& local, Supplier s) {
-  GenericRelationIterator* rit;
-  OrderedRelation* r;
-  switch(message) {
-    case OPEN: {
-
-      CompositeKey fromKey;
-      CompositeKey toKey;
-      int l1 = 0;
-      int l2 = 0;
-      if(rk==Range) {
-        l1 = ((CcInt*)args[3].addr)->GetIntval();
-        l2 = ((CcInt*)args[4].addr)->GetIntval();
-      } else {
-        l1 = ((CcInt*)args[2].addr)->GetIntval();
-      }
-      r = (OrderedRelation*)args[0].addr;
-      if(rk==LeftRange) {
-        toKey = r->GetUpperRangeKey(args[1],l1);
-      } else if(rk==RightRange) {
-        fromKey = r->GetLowerRangeKey(args[1],l1);
-      } else if(rk==Range) {
-        fromKey = r->GetLowerRangeKey(args[1],l1);
-        toKey = r->GetUpperRangeKey(args[2],l2);
-      }
-      rit = r->MakeRangeScan(fromKey,toKey);
-      local.addr = rit;
-      return 0;
-    }
-    case REQUEST:
-      rit = (GenericRelationIterator*)local.addr;
-      Tuple* t;
-      if((t = rit->GetNextTuple())) {
-        result.setAddr(t);
-        return YIELD;
-      }
-      return CANCEL;
-      break;
-    case CLOSE:
-      if(local.addr) {
-        rit = (GenericRelationIterator*)local.addr;
-        delete rit;
-      }
-      return 0;
-  }
-  return 0;
-}
-
-#else
 
 struct ORangeLocalInfo: public ProgressLocalInfo
 {
@@ -1806,7 +1750,6 @@ template<RangeKind rk> int ORangeValueMap(Word* args, Word& result, int message,
   }
   return 0;
 }
-#endif
 
 /*
 4.1.4 Specifications of orange operators
@@ -4264,20 +4207,14 @@ class OrderedRelationAlgebra : public Algebra {
       AddTypeConstructor(&cppcompkey);
       cppcompkey.AssociateKind(Kind::DATA());
 
-      AddOperator(&oleftrange);
-      AddOperator(&orightrange);
-      AddOperator(&orange);
+      AddOperator(&oleftrange)->EnableProgress();
+      AddOperator(&orightrange)->EnableProgress();
+      AddOperator(&orange)->EnableProgress();
       AddOperator(&oshortestpathd);
       AddOperator(&oshortestpatha);
 
       AddOperator(&getotuples2Op);
       AddOperator(&getotuplesOp);
-
-      #ifdef USE_PROGRESS
-      oleftrange.EnableProgress();
-      orightrange.EnableProgress();
-      orange.EnableProgress();
-      #endif
     };
 
     ~OrderedRelationAlgebra() {};

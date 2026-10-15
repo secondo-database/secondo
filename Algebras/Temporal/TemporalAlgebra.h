@@ -9468,10 +9468,8 @@ int MappingUnits(Word* args, Word& result, int message, Word& local, Supplier s)
   UnitsLocalInfo<Mapping, Unit> *localinfo =
                       static_cast<UnitsLocalInfo<Mapping, Unit> *>(local.addr);
 
-#ifdef USE_PROGRESS
   ProgressInfo *pRes = (ProgressInfo*) result.addr;
   ProgressInfo p1;
-#endif
 
   switch( message )
   {
@@ -9497,16 +9495,8 @@ int MappingUnits(Word* args, Word& result, int message, Word& local, Supplier s)
       }
 
     case CLOSE:
-#ifndef USE_PROGRESS
-      if( local.addr != 0 )
-      {
-        delete localinfo;
-        local = SetWord(Address(0));
-      }
-#endif
       return 0;
 
-#ifdef USE_PROGRESS
     case REQUESTPROGRESS:
       if(local.addr == 0) {
         return CANCEL;
@@ -9556,7 +9546,6 @@ int MappingUnits(Word* args, Word& result, int message, Word& local, Supplier s)
         local = SetWord(Address(0));
       }
       return 0;
-#endif
 
   }
   /* should not happen */

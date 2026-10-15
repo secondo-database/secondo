@@ -431,7 +431,6 @@ spatialJoinSelection (ListExpr args)
 
 
 
-// progress version only
 
 /*
 3.5 ~SpatialJoinLocalInfo~: Auxiliary Class for operator ~spatialjoin~
@@ -1160,251 +1159,6 @@ ListExpr paraJoin2TypeMap(ListExpr args)
     }
 }
 
-#ifndef USE_PROGRESS
-
-// standard version
-
-int paraJoin2ValueMap(Word* args, Word& result,
-                int message, Word& local, Supplier s)
-{
-  pj2LocalInfo* li=0;
-
-  switch(message)
-  {
-    case OPEN:{
-      qp->Open(args[0].addr);
-      qp->Open(args[1].addr);
-
-      if (li)
-        delete li;
-      li = new pj2LocalInfo(args[0], args[1],
-                            args[5], args[6],
-                            args[4], s);
-      local.setAddr(li);
-      return 0;
-    }
-    case REQUEST:{
-      if (0 == local.addr)
-        return CANCEL;
-      li = (pj2LocalInfo*)local.addr;
-
-      result.setAddr(li->getNextTuple());
-      if (result.addr)
-        return YIELD;
-      else
-        return CANCEL;
-    }
-    case (1*FUNMSG)+OPEN:{
-      return 0;
-    }
-    case (2*FUNMSG)+OPEN:{
-      return 0;
-    }
-    case (1*FUNMSG)+REQUEST:{
-      if (0 == local.addr)
-        return CANCEL;
-      li = (pj2LocalInfo*)local.addr;
-
-      result.setAddr(li->getNextInputTuple(tupBufferA));
-      if (result.addr)
-        return YIELD;
-      else
-        return CANCEL;
-    }
-    case (2*FUNMSG)+REQUEST:{
-      if (0 == local.addr)
-        return CANCEL;
-      li = (pj2LocalInfo*)local.addr;
-
-      result.setAddr(li->getNextInputTuple(tupBufferB));
-      if (result.addr)
-        return YIELD;
-      else
-        return CANCEL;
-    }
-    case (1*FUNMSG)+CLOSE:{
-      return 0;
-    }
-    case (2*FUNMSG)+CLOSE:{
-      return 0;
-    }
-    case CLOSE:{
-      if (0 == local.addr)
-        return CANCEL;
-      li = (pj2LocalInfo*)local.addr;
-
-      delete li;
-      local.setAddr(0);
-      qp->Close(args[0].addr);
-      qp->Close(args[1].addr);
-      return 0;
-    }
-  }
-
-  //should never be here
-  return 0;
-}
-
-bool pj2LocalInfo::LoadTuples()
-{
-  bool loaded = false;
-
-  //Clear the buffer
-  if (ita){
-    delete ita; ita = 0;
-  }
-  if (tba){
-    delete tba; tba = 0;
-  }
-
-  if (itb){
-    delete itb; itb = 0;
-  }
-  if (tbb){
-    delete tbb; tbb = 0;
-   }
-
-  if (moreInputTuples)
-  {
-    if (cta == 0){
-      cta.setTuple(NextTuple(streamA));
-    }
-    if (ctb == 0){
-      
-      ctb.setTuple(NextTuple(streamB));
-    }
-  }
-  if ( cta == 0 || ctb == 0)
-  {
-    //one of the stream is exhausted
-    endOfStream = true;
-    moreInputTuples = false;
-    return loaded;
-  }
-
-  int cmp = CompareTuples(cta.tuple, keyAIndex,
-                          ctb.tuple, keyBIndex);
-
-  // Assume both streams are ordered by asc
-  while(0 != cmp)
-  {
-    if (cmp < 0)
-    {
-      //a < b, get more a until a >= b
-      while (cmp < 0)
-      {
-        cta.setTuple(NextTuple(streamA));
-        if ( cta == 0 )
-        {
-          endOfStream = true;
-          return loaded;
-        }
-        cmp = CompareTuples(cta.tuple, keyAIndex,
-                            ctb.tuple, keyBIndex);
-      }
-    }
-    else if (cmp > 0)
-    {
-      //a > b, get more b until a <= b
-      while (cmp > 0)
-      {
-        ctb.setTuple(NextTuple(streamB));
-        if ( ctb == 0 )
-          {
-            endOfStream = true;
-            return loaded;
-          }
-        cmp = CompareTuples(cta.tuple, keyAIndex,
-                            ctb.tuple, keyBIndex);
-      }
-    }
-  }
-
-  //Take all tuples from streamA, until the next tuple is bigger
-  //than the current one.
-  tba = new TupleBuffer(maxMem);
-  int cmpa = 0;
-  RTuple lta;
-  while ( (cta != 0) && (0 == cmpa) )
-  {
-    lta = cta;
-    tba->AppendTuple(lta.tuple);
-    cta.setTuple(NextTuple(streamA));
-    if ( cta != 0 )
-      cmpa = CompareTuples(lta.tuple, keyAIndex,
-                           cta.tuple, keyAIndex);
-  }
-
-  tbb = new TupleBuffer(maxMem);
-  int cmpb = 0;
-  RTuple ltb;
-  while ( (ctb != 0) && (0 == cmpb) )
-  {
-    ltb = ctb;
-    tbb->AppendTuple(ltb.tuple);
-    ctb.setTuple(NextTuple(streamB));
-    if ( ctb != 0 )
-      cmpb = CompareTuples(ltb.tuple, keyBIndex,
-                           ctb.tuple, keyBIndex);
-  }
-  if ((cta == 0) || (ctb == 0)){
-    moreInputTuples = false;
-  }
-
-  if ((0 == tba->GetNoTuples()) || (0 == tbb->GetNoTuples()))
-  {
-    endOfStream = true;
-    return loaded;
-  }
-
-  ita = tba->MakeScan();
-  itb = tbb->MakeScan();
-  loaded = true;
-
-  return loaded;
-}
-
-int pj2LocalInfo::CompareTuples(Tuple* ta, int kai,
-                                Tuple* tb, int kbi)
-{
-  Attribute* a = static_cast<Attribute*>(ta->GetAttribute(kai));
-  Attribute* b = static_cast<Attribute*>(tb->GetAttribute(kbi));
-
-  if (!a->IsDefined() || !b->IsDefined()){
-    cerr << "Undefined Tuples are contained." << endl;
-    return -1;
-  }
-
-  int cmp = a->Compare(b);
-  return cmp;
-}
-
-Tuple* pj2LocalInfo::getNextTuple()
-{
-  Word funResult(Address(0));
-
-  while(!endOfStream)
-  {
-    qp->Request(pf, funResult);
-    if (funResult.addr)
-      return (Tuple*)funResult.addr;
-    else if (endOfStream)
-    {
-      qp->Close(pf);
-      return 0;
-    }
-    else
-    {
-      qp->Close(pf);
-      if (LoadTuples())
-        qp->Open(pf);
-    }
-  }
-
-  return 0;
-}
-
-#else
 
 // with support for progress queries
 
@@ -1737,7 +1491,6 @@ Tuple* pj2LocalInfo::getNextTuple()
 
 
 
-#endif
 
 /*
 2.19.3 Specification of operator ~parajoin2~
@@ -1784,19 +1537,13 @@ class SpatialJoinAlgebra : public Algebra
  public:
   SpatialJoinAlgebra() : Algebra()
   {
-    AddOperator(&spatialjoin2);
+    AddOperator(&spatialjoin2)->EnableProgress();
       spatialjoin2.SetUsesMemory();
-    AddOperator(&parajoin2);
+    AddOperator(&parajoin2)->EnableProgress();
       parajoin2.SetUsesMemory();
 
     // AddOperator(paraJoin2Info(),
     //    paraJoin2ValueMap, paraJoin2TypeMap);
-
-#ifdef USE_PROGRESS
-// support for progress queries
-    spatialjoin2.EnableProgress();
-    parajoin2.EnableProgress();
-#endif
 
   }
   ~SpatialJoinAlgebra() {};

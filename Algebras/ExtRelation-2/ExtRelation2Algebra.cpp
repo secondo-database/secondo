@@ -3084,29 +3084,29 @@ class ExtRelation2Algebra : public Algebra
  public:
    ExtRelation2Algebra() : Algebra()
   {
-    AddOperator(&extrel2::extrelsort); 
+    AddOperator(&extrel2::extrelsort)->EnableProgress();
       extrel2::extrelsort.SetUsesMemory(); 
-    AddOperator(&extrel2::extrelsortParam);
+    AddOperator(&extrel2::extrelsortParam)->EnableProgress();
       extrel2::extrelsortParam.SetUsesMemory(); 
 
-    AddOperator(&extrel2::extrelsortby);
+    AddOperator(&extrel2::extrelsortby)->EnableProgress();
       extrel2::extrelsortby.SetUsesMemory(); 
-    AddOperator(&extrel2::extrelsortbyParam);
+    AddOperator(&extrel2::extrelsortbyParam)->EnableProgress();
       extrel2::extrelsortbyParam.SetUsesMemory(); 
 
-    AddOperator(&extrel2::extrelhybridhashjoin);
+    AddOperator(&extrel2::extrelhybridhashjoin)->EnableProgress();
       extrel2::extrelhybridhashjoin.SetUsesMemory();
-    AddOperator(&extrel2::extrelhybridhashjoinParam);
+    AddOperator(&extrel2::extrelhybridhashjoinParam)->EnableProgress();
       extrel2::extrelhybridhashjoinParam.SetUsesMemory();
 
-    AddOperator(&extrel2::extrelgracehashjoin);
+    AddOperator(&extrel2::extrelgracehashjoin)->EnableProgress();
       extrel2::extrelgracehashjoin.SetUsesMemory();
-    AddOperator(&extrel2::extrelgracehashjoinParam);
+    AddOperator(&extrel2::extrelgracehashjoinParam)->EnableProgress();
       extrel2::extrelgracehashjoinParam.SetUsesMemory();
 
-    AddOperator(&extrel2::extrelsortmergejoin);
+    AddOperator(&extrel2::extrelsortmergejoin)->EnableProgress();
       extrel2::extrelsortmergejoin.SetUsesMemory(); 
-    AddOperator(&extrel2::extrelsortmergejoinParam);
+    AddOperator(&extrel2::extrelsortmergejoinParam)->EnableProgress();
       extrel2::extrelsortmergejoinParam.SetUsesMemory(); 
 
     AddOperator(&extrel2::tuplefiletest);
@@ -3149,24 +3149,6 @@ class ExtRelation2Algebra : public Algebra
     AddOperator(&extrel2::pMergeOp);
     extrel2::pMergeOp.enableInitFinishSupport();
 
-
-#ifdef USE_PROGRESS
-// support for progress queries
-   extrel2::extrelsort.EnableProgress();
-   extrel2::extrelsortParam.EnableProgress();
-
-   extrel2::extrelsortby.EnableProgress();
-   extrel2::extrelsortbyParam.EnableProgress();
-
-   extrel2::extrelhybridhashjoin.EnableProgress();
-   extrel2::extrelhybridhashjoinParam.EnableProgress();
-
-   extrel2::extrelgracehashjoin.EnableProgress();
-   extrel2::extrelgracehashjoinParam.EnableProgress();
-
-   extrel2::extrelsortmergejoin.EnableProgress();
-   extrel2::extrelsortmergejoinParam.EnableProgress();
-#endif
   }
 
   ~ExtRelation2Algebra() {};

@@ -1369,9 +1369,8 @@ class GroupbyAlgebra : public Algebra
  public:
   GroupbyAlgebra() : Algebra()
   {
-    AddOperator(&groupby2);    
+    AddOperator(&groupby2)->EnableProgress();
     groupby2.SetUsesMemory();
-    groupby2.EnableProgress();
   };
 
   ~GroupbyAlgebra() {};

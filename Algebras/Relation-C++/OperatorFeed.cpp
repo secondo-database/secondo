@@ -34,9 +34,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "RelationAlgebra.h"
 #include "Stream.h"
 
-#ifdef USE_PROGRESS
 #include "../CostEstimation/RelationAlgebraCostEstimation.h"
-#endif
 
 using namespace std;
 
@@ -84,53 +82,6 @@ ListExpr OperatorFeed::FeedTypeMap(ListExpr args)
 */
 
 
-#ifndef USE_PROGRESS
-
-// standard version of code
-
-int
-OperatorFeed::Feed(Word* args, Word& result,
-                   int message, Word& local, Supplier s)
-{
-  GenericRelation* r;
-  GenericRelationIterator* rit;
-
-  switch (message)
-  {
-    case OPEN :
-      r = (GenericRelation*)args[0].addr;
-      rit = r->MakeScan();
-
-      local.addr = rit;
-      return 0;
-
-    case REQUEST :
-      rit = (GenericRelationIterator*)local.addr;
-      Tuple *t;
-      if ((t = rit->GetNextTuple()) != 0)
-      {
-        result.setAddr(t);
-        return YIELD;
-      }
-      else
-      {
-        return CANCEL;
-      }
-
-    case CLOSE :
-      if(local.addr)
-      {
-         rit = (GenericRelationIterator*)local.addr;
-         delete rit;
-         local.addr = 0;
-      }
-      return 0;
-  }
-  return 0;
-}
-
-
-#else
 
 // version with support for progress queries
 CostEstimation* OperatorFeed::FeedCostEstimationFunc() {
@@ -190,5 +141,4 @@ OperatorFeed::Feed(Word* args, Word& result,
   }
   return 0;
 }
-#endif
 

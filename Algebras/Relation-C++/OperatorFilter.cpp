@@ -34,9 +34,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "RelationAlgebra.h"
 #include "Stream.h"
 
-#ifdef USE_PROGRESS
 #include "../CostEstimation/RelationAlgebraCostEstimation.h"
-#endif
 
 using namespace std;
 
@@ -139,64 +137,6 @@ ListExpr OperatorFilter::FilterTypeMap(ListExpr args)
 */
 
 
-#ifndef USE_PROGRESS
-
-// standard version
-
-int
-OperatorFilter::Filter(Word* args, Word& result, int message,
-       Word& local, Supplier s)
-{
-  bool found = false;
-  Word elem, funresult;
-  ArgVectorPointer funargs;
-  Tuple* tuple = 0;
-
-  switch ( message )
-  {
-
-    case OPEN:
-
-      qp->Open (args[0].addr);
-      return 0;
-
-    case REQUEST:
-
-      funargs = qp->Argument(args[1].addr);
-      qp->Request(args[0].addr, elem);
-      found = false;
-      while (qp->Received(args[0].addr) && !found)
-      {
-        tuple = (Tuple*)elem.addr;
-        (*funargs)[0] = elem;
-        qp->Request(args[1].addr, funresult);
-        if (((Attribute*)funresult.addr)->IsDefined())
-        {
-          found = ((CcBool*)funresult.addr)->GetBoolval();
-        }
-        if (!found)
-        {
-          tuple->DeleteIfAllowed();
-          qp->Request(args[0].addr, elem);
-        }
-      }
-      if (found)
-      {
-        result.setAddr(tuple);
-        return YIELD;
-      }
-      else
-        return CANCEL;
-
-    case CLOSE:
-
-      qp->Close(args[0].addr);
-      return 0;
-  }
-  return 0;
-}
-
-#else
 CostEstimation* OperatorFilter::FilterCostEstimationFunc(){
    return new FilterCostEstimation();
 }
@@ -236,4 +176,3 @@ OperatorFilter::Filter(Word* args, Word& result, int message,
   return -1;
 }
 
-#endif

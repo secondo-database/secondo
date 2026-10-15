@@ -33,9 +33,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "RelationAlgebra.h"
 #include "Stream.h"
 
-#ifdef USE_PROGRESS
 #include "../CostEstimation/RelationAlgebraCostEstimation.h"
-#endif
 
 using namespace std;
 
@@ -163,87 +161,7 @@ ListExpr OperatorProject::ProjectTypeMap(ListExpr args)
 
 */
 
-#ifndef USE_PROGRESS
 
-// standard version
-
-
-int
-OperatorProject::Project(Word* args, Word& result, int message,
-        Word& local, Supplier s)
-{
-  TupleType* tt = (TupleType*) qp->GetLocal2(s).addr;
-
-  switch (message)
-  {
-    case INIT : {
-       tt = new TupleType(nl->Second(GetTupleResultType(s)));
-       qp->GetLocal2(s).addr= tt;
-       return 0;
-    }
-
-    case FINISH : {
-       if(tt){
-           tt->DeleteIfAllowed();
-           qp->GetLocal2(s).addr=0;
-       }
-       return 0;
-    }
-
-    case OPEN :
-    {
-      tt->IncReference();
-      TupleType *tupleType = tt;
-      local.addr = tupleType;
-
-      qp->Open(args[0].addr);
-      return 0;
-    }
-    case REQUEST :
-    {
-      Word elem1, elem2;
-      int noOfAttrs, index;
-      Supplier son;
-
-      qp->Request(args[0].addr, elem1);
-      if (qp->Received(args[0].addr))
-      {
-        TupleType *tupleType = (TupleType *)local.addr;
-        Tuple *t = new Tuple( tupleType );
-
-        noOfAttrs = ((CcInt*)args[2].addr)->GetIntval();
-        assert( t->GetNoAttributes() == noOfAttrs );
-
-        for( int i = 0; i < noOfAttrs; i++)
-        {
-          son = qp->GetSupplier(args[3].addr, i);
-          qp->Request(son, elem2);
-          index = ((CcInt*)elem2.addr)->GetIntval();
-          t->CopyAttribute(index-1, (Tuple*)elem1.addr, i);
-        }
-        ((Tuple*)elem1.addr)->DeleteIfAllowed();
-        result.setAddr(t);
-        return YIELD;
-      }
-      else return CANCEL;
-    }
-    case CLOSE :
-    {
-      qp->Close(args[0].addr);
-      if(local.addr)
-      {
-        ((TupleType *)local.addr)->DeleteIfAllowed();
-        local.setAddr(0);
-      }
-      return 0;
-    }
-  }
-  return 0;
-}
-
-# else
-
-// progress version
 
 CostEstimation* OperatorProject::ProjectCostEstimationFunc()
 {
@@ -344,5 +262,4 @@ OperatorProject::Project(Word* args, Word& result, int message,
   return 0;
 }
 
-#endif
 

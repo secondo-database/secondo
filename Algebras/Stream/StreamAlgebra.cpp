@@ -3763,16 +3763,9 @@ intstreamValueMap(Word* args, Word& result,
       }
     }
     case CLOSE: { // free the local storage
-#ifndef USE_PROGRESS
-      if (range != 0) {
-        delete range;
-        local.addr = 0;
-      }
-#endif
       return 0;
     }
 
-#ifdef USE_PROGRESS
     case CLOSEPROGRESS: {
       if (range != 0) {
         delete range;
@@ -3810,7 +3803,6 @@ intstreamValueMap(Word* args, Word& result,
       pRes->BProgress = 1.0;                    // blocking progress [0,1]
       return YIELD;
     }
-#endif
 
     default: {
       /* should never happen */
@@ -7073,17 +7065,17 @@ class StreamAlgebra : public Algebra
 public:
   StreamAlgebra() : Algebra()
   {
-    AddOperator( &streamcount );
+    AddOperator( &streamcount )->EnableProgress();
     AddOperator( &streamprintstream );
     AddOperator( &printstream2Op );
-    AddOperator( &streamtransformstream );
+    AddOperator( &streamtransformstream )->EnableProgress();
     AddOperator( &projecttransformstream );
-    AddOperator( &namedtransformstream );
-    AddOperator( &streamfeed );
+    AddOperator( &namedtransformstream )->EnableProgress();
+    AddOperator( &streamfeed )->EnableProgress();
     AddOperator( &streamuse );
     AddOperator( &streamuse2 );
     AddOperator( &streamaggregateS );
-    AddOperator( &streamfilter );
+    AddOperator( &streamfilter )->EnableProgress();
     AddOperator( ensure_Info("ensure"), ensure_vms, ensure_sf, ensure_tm );
     AddOperator( &echo );
     AddOperator( realstreamInfo(), realstreamFun, realstreamTypeMap );
@@ -7093,7 +7085,7 @@ public:
     AddOperator( &streamtail );
     streamtail.SetUsesMemory();
     AddOperator( &kinds);
-    AddOperator( &timeout);
+    AddOperator( &timeout)->EnableProgress();
     AddOperator( &isOrdered);
     AddOperator( &sbufferOp);
 
@@ -7107,7 +7099,7 @@ public:
     AddOperator(&xthOp);
     AddOperator(&minattrOp);
     AddOperator(&maxattrOp);
-    AddOperator(&nthOp);
+    AddOperator(&nthOp)->EnableProgress();
     AddOperator(&avgattrOp);
     AddOperator(&sumattrOp);
     AddOperator(&consumeOp);
@@ -7118,22 +7110,11 @@ public:
     AddOperator(&delaySOp);
 
     AddOperator(&syncOp);
-    AddOperator(&printStreamMessagesOp);
+    AddOperator(&printStreamMessagesOp)->EnableProgress();
     AddOperator(&containsOp);
     AddOperator(&someOp);
 
     AddOperator(&sideEffectOp); 
-
-#ifdef USE_PROGRESS
-    streamcount.EnableProgress();
-    streamtransformstream.EnableProgress();
-    namedtransformstream.EnableProgress();
-    streamfeed.EnableProgress();
-    streamfilter.EnableProgress();
-    timeout.EnableProgress();
-    nthOp.EnableProgress();
-    printStreamMessagesOp.EnableProgress();
-#endif
 
     std::srand(std::time(nullptr));
 

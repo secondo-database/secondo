@@ -76,9 +76,7 @@ if the complete query could be compiled by this algebra.
 #include "Algebra.h"
 #include "AlgebraManager.h"
 
-#ifdef USE_PROGRESS
 #include "Progress.h"
-#endif
 
 #include "CECompiler.h"
 
@@ -133,7 +131,6 @@ In the ~Progress~-Version used this class objects as data structure for the
 progress informations.
 
 */
-  #ifdef USE_PROGRESS
   class CEAFilterLocalInfo : public ProgressLocalInfo {
   public:
 /*
@@ -169,7 +166,6 @@ Definition of private variables and function.
     int returned;   //tuples returned
     bool done;      //arg stream exhaused
   };
-  #endif
 
 /*
 4.1.2 Type mapping function of operator ~filter~
@@ -225,7 +221,6 @@ In the ~Progress~-Version used this class objects as data structure for the
 progress informations.
 
 */
-  #ifdef USE_PROGRESS
   class CEAExtendLocalInfo : public ProgressLocalInfo {
   public:
 
@@ -286,7 +281,6 @@ Definition of private variables and function.
     double* attrSizeExtTmp;
     
   };
-  #endif
 
 /*
 4.2.2 Type mapping function of operator ~extend~

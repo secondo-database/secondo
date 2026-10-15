@@ -736,115 +736,7 @@ ListExpr IndexQueryTypeMap(ListExpr args)
 
 */
 
-#ifndef USE_PROGRESS
 
-// standard version
-
-
-struct IndexQueryLocalInfo
-{
-  Relation* relation;
-  BTreeIterator* iter;
-};
-
-
-template<int operatorId>
-int
-IndexQuery(Word* args, Word& result, int message, Word& local, Supplier s)
-{
-  BTree* btree;
-  Attribute* key;
-  Attribute* secondKey;
-  Tuple* tuple;
-  SmiRecordId id;
-  IndexQueryLocalInfo* localInfo;
-
-  switch (message)
-  {
-    case OPEN :
-      localInfo = new IndexQueryLocalInfo;
-      btree = (BTree*)args[0].addr;
-      localInfo->relation = (Relation*)args[1].addr;
-      key = (Attribute*)args[2].addr;
-      if(operatorId == RANGE)
-      {
-        secondKey = (Attribute*)args[3].addr;
-        assert(secondKey != 0);
-      }
-
-      assert(btree != 0);
-      assert(localInfo->relation != 0);
-      assert(key != 0);
-
-      switch(operatorId)
-      {
-        case EXACTMATCH:
-          localInfo->iter = btree->ExactMatch(key);
-          break;
-        case RANGE:
-          localInfo->iter = btree->Range(key, secondKey);
-          break;
-        case LEFTRANGE:
-          localInfo->iter = btree->LeftRange(key);
-          break;
-        case RIGHTRANGE:
-          localInfo->iter = btree->RightRange(key);
-          break;
-        default:
-          assert(false);
-      }
-
-      if(localInfo->iter == 0)
-      {
-        delete localInfo;
-        return -1;
-      }
-
-      local = SetWord(localInfo);
-      return 0;
-
-    case REQUEST :
-      localInfo = (IndexQueryLocalInfo*)local.addr;
-      assert(localInfo != 0);
-
-      if(localInfo->iter->Next())
-      {
-        id = localInfo->iter->GetId();
-        tuple = localInfo->relation->GetTuple( id );
-        if(tuple == 0)
-        {
-          cerr << "Could not find tuple for the given tuple id. "
-               << "Maybe the given btree and the given relation "
-               << "do not match." << endl;
-          assert(false);
-        }
-
-        result = SetWord(tuple);
-        return YIELD;
-      }
-      else
-      {
-        return CANCEL;
-      }
-
-    case CLOSE :
-      if(local.addr)
-      {
-        localInfo = (IndexQueryLocalInfo*)local.addr;
-        delete localInfo->iter;
-        delete localInfo;
-        local = SetWord(Address(0));
-      }
-      return 0;
-  }
-  return 0;
-}
-
-
-
-# else
-
-// progress version
 
 
 
@@ -1107,7 +999,6 @@ IndexQuery(Word* args, Word& result, int message, Word& local, Supplier s)
   return 0;
 }
 
-#endif
 
 
 
@@ -2265,13 +2156,11 @@ class BTreeAlgebra : public Algebra
   {
     AddTypeConstructor( &cppbtree );
 
-#ifndef USE_PROGRESS
-
     AddOperator(&createbtree);
-    AddOperator(&exactmatch);
-    AddOperator(&leftrange);
-    AddOperator(&rightrange);
-    AddOperator(&cpprange);
+    AddOperator(&exactmatch)->EnableProgress();
+    AddOperator(&leftrange)->EnableProgress();
+    AddOperator(&rightrange)->EnableProgress();
+    AddOperator(&cpprange)->EnableProgress();
     AddOperator(&exactmatchs);
     AddOperator(&leftranges);
     AddOperator(&rightranges);
@@ -2281,27 +2170,6 @@ class BTreeAlgebra : public Algebra
     AddOperator(&updatebtree);
     AddOperator(&getfileinfobtree);
     AddOperator(keyrangeInfo(), keyrange_vm, IndexQueryTypeMap<KEYRANGE> );
-
-#else
-
-    AddOperator(&createbtree);
-    AddOperator(&exactmatch);   exactmatch.EnableProgress();
-    AddOperator(&leftrange);    leftrange.EnableProgress();
-    AddOperator(&rightrange);   rightrange.EnableProgress();
-    AddOperator(&cpprange);     cpprange.EnableProgress();
-    AddOperator(&exactmatchs);
-    AddOperator(&leftranges);
-    AddOperator(&rightranges);
-    AddOperator(&cppranges);
-    AddOperator(&insertbtree);
-    AddOperator(&deletebtree);
-    AddOperator(&updatebtree);
-    AddOperator(&getfileinfobtree);
-    AddOperator(keyrangeInfo(), keyrange_vm, IndexQueryTypeMap<KEYRANGE> );
-
-#endif
-
-
   }
   ~BTreeAlgebra() {};
 };
