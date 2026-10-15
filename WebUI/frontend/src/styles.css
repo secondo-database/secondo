@@ -301,42 +301,40 @@ body.dragging {
 
 .cat-dbs {
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.3rem;
+  align-items: center;
+  gap: 0.4rem;
+  flex: none;
 }
 
-.cat-db {
+/* Taller than the other selects: it is the first thing the panel is used for. */
+.cat-db-select {
+  flex: 1;
+  min-width: 0;
+  min-height: 2rem;
   background: var(--surface);
-  border: 1px solid var(--border);
-  color: var(--text-2);
+  color: var(--text);
+  border: 1px solid var(--accent-solid);
   border-radius: 5px;
-  padding: 0.28rem 0.55rem;
-  font-size: 0.72rem;
+  padding: 0.3rem 0.45rem;
+  font-size: 0.8rem;
+  font-weight: 600;
   cursor: pointer;
 }
 
-/* Filled, not tinted: on a chip this size a border colour is not a state, and
-   which database is open is the one thing the panel has to answer at a glance. */
-.cat-db.active {
-  background: var(--accent-solid);
-  border-color: var(--accent-solid);
-  color: var(--accent-on);
-  font-weight: 600;
+/* Nothing open: the placeholder reads as a prompt, not as a database name. */
+.cat-db-select.empty {
+  border-color: var(--border-strong);
+  color: var(--muted);
+  font-weight: normal;
 }
 
-.cat-db.pending {
+.cat-db-select:hover:not(:disabled) {
   border-color: var(--accent);
 }
 
-.cat-db:disabled {
+.cat-db-select:disabled {
   opacity: 0.55;
   cursor: default;
-}
-
-.cat-db {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
 }
 
 .cat-spin {
@@ -368,11 +366,16 @@ body.dragging {
   font-size: 0.75rem;
 }
 
+/* The list is what scrolls, so the database row and the filter above it stay
+   in view; the catalog itself only scrolls when the window is too short even
+   for that. */
 .cat-objs {
   list-style: none;
   margin: 0;
   padding: 0;
   overflow-y: auto;
+  flex: 1 1 auto;
+  min-height: 6rem;
 }
 
 /* Row = "query it" plus, for a relation, "open it as a table". */
@@ -1853,10 +1856,10 @@ body.dragging {
 }
 
 /* The two log switches. Unlike their neighbours these are states, not actions,
-   so they carry a state the way `.cat-db.active` does -- and for the same
-   reason: at this size a border colour is not a state. Two signals, because one
-   of them is a colour and a colour alone is neither reliable across the two
-   themes nor readable to everyone: an accent wash that lights the button up,
+   so they carry a state -- and at this size a border colour is not a state.
+   Two signals, because one of them is a colour and a colour alone is neither
+   reliable across the two themes nor readable to everyone: an accent wash that
+   lights the button up,
    and a struck-through label when the block it names is hidden. The glyph is
    left to say which block the switch is for, which is its own job. */
 .dock-btn[aria-pressed] {
@@ -2981,7 +2984,7 @@ pre.plan {
 
   .dock-btn,
   .cat-collapse,
-  .cat-db,
+  .cat-db-select,
   .cat-obj,
   .cat-table,
   .input button {

@@ -41,7 +41,7 @@ try {
   });
 
   await page.goto(URL, { waitUntil: "networkidle0" });
-  await page.waitForSelector(".cat-db", { timeout: 15000 });
+  await page.waitForSelector(".cat-db-select", { timeout: 15000 });
 
   const names = () =>
     page.$$eval(".cat-objs .cat-oname", (els) => els.map((e) => e.textContent.trim()));
@@ -56,11 +56,7 @@ try {
   check(dbCalls > dbsBefore,
         `clicking it refetches the database list (${dbCalls - dbsBefore} call(s))`);
 
-  const handle = await page.evaluateHandle(
-    (n) => [...document.querySelectorAll(".cat-db")].find((b) => b.textContent.trim() === n),
-    DB
-  );
-  await handle.asElement().click();
+  await page.select(".cat-db-select", DB);
   await page.waitForSelector(".cat-obj", { timeout: 15000 });
   await wait(300);
 

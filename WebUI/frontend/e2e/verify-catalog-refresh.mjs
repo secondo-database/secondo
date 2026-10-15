@@ -45,7 +45,7 @@ try {
   });
 
   await page.goto(URL, { waitUntil: "networkidle0" });
-  await page.waitForSelector(".cat-db", { timeout: 15000 });
+  await page.waitForSelector(".cat-db-select", { timeout: 15000 });
 
   // The rendered list, which is what the user actually sees -- not the state
   // behind it.
@@ -91,11 +91,7 @@ try {
     return names();
   };
 
-  const handle = await page.evaluateHandle(
-    (n) => [...document.querySelectorAll(".cat-db")].find((b) => b.textContent.trim() === n),
-    DB
-  );
-  await handle.asElement().click();
+  await page.select(".cat-db-select", DB);
   await page.waitForSelector(".cat-obj", { timeout: 15000 });
   await wait(300);
 

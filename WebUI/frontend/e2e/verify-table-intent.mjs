@@ -33,7 +33,7 @@ try {
   page.on("pageerror", (e) => console.log("[pageerror]", e.message));
 
   await page.goto(URL, { waitUntil: "networkidle0" });
-  await page.waitForSelector(".cat-db", { timeout: 15000 });
+  await page.waitForSelector(".cat-db-select", { timeout: 15000 });
 
   const layerCount = () => page.$$eval(".lp-item", (els) => els.length);
   const entryCount = () => page.$$eval(".log .entry", (els) => els.length);
@@ -75,11 +75,7 @@ try {
   }
 
   // Open the database the suite is allowed to depend on.
-  const target = await page.evaluateHandle(
-    (n) => [...document.querySelectorAll(".cat-db")].find((b) => b.textContent.trim() === n),
-    DB
-  );
-  await target.asElement().click();
+  await page.select(".cat-db-select", DB);
   await page.waitForSelector(".cat-obj", { timeout: 15000 });
   check((await layerCount()) === 0, "no layers before anything is queried");
 

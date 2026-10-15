@@ -43,13 +43,11 @@ try {
   // 1) Catalog lists databases. berlintest is the one fixture every SECONDO
   //    installation restores, so it is the only one this suite may depend on --
   //    whatever else the server happens to hold is incidental.
-  const dbs = await page.$$eval(".cat-db", (els) => els.map((e) => e.textContent));
+  const dbs = await page.$$eval(".cat-db-select option", (els) => els.map((e) => e.value));
   check(dbs.includes("BERLINTEST"), `catalog lists databases (${dbs.join(",")})`);
 
   // 2) Open it from the catalog -> object list appears.
-  const target = await page.evaluateHandle(() =>
-    [...document.querySelectorAll(".cat-db")].find((b) => b.textContent === "BERLINTEST"));
-  await target.asElement().click();
+  await page.select(".cat-db-select", "BERLINTEST");
   await page.waitForSelector(".cat-obj", { timeout: 8000 });
   const objNames = await page.$$eval(".cat-obj .cat-oname", (els) =>
     els.map((e) => e.textContent));

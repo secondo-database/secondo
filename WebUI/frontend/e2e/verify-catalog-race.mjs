@@ -30,13 +30,9 @@ try {
     await client.send("Network.clearBrowserCookies"); // force a fresh session
     // Load without waiting for network idle, then click ASAP.
     await page.goto(URL, { waitUntil: "domcontentloaded" });
-    await page.waitForSelector(".cat-db", { timeout: 8000 });
-    // Click the database the instant the button exists (races the cookie).
-    await page.evaluate(() => {
-      const b = [...document.querySelectorAll(".cat-db")]
-        .find((x) => x.textContent.includes("BERLINTEST"));
-      b && b.click();
-    });
+    await page.waitForSelector(".cat-db-select", { timeout: 8000 });
+    // Pick the database the instant the selector exists (races the cookie).
+    await page.select(".cat-db-select", "BERLINTEST");
     try {
       await page.waitForSelector(".cat-obj", { timeout: 8000 });
       const n = await page.$$eval(".cat-obj", (els) => els.length);
@@ -57,12 +53,8 @@ try {
     r.continue();
   });
   await page.goto(URL, { waitUntil: "networkidle0" });
-  await page.waitForSelector(".cat-db", { timeout: 8000 });
-  await page.evaluate(() => {
-    const b = [...document.querySelectorAll(".cat-db")]
-      .find((x) => x.textContent.includes("BERLINTEST"));
-    b && b.click();
-  });
+  await page.waitForSelector(".cat-db-select", { timeout: 8000 });
+  await page.select(".cat-db-select", "BERLINTEST");
   let sawSpinner = false;
   for (let i = 0; i < 25; i++) {
     if (await page.$(".cat-spin")) { sawSpinner = true; break; }

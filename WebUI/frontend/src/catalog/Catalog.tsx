@@ -165,6 +165,8 @@ export function Catalog({
   );
   const busy = loadingObjects || pendingDb !== null;
   const shownDb = open ?? pendingDb;
+  // `databases` spells the names as the select's options do; `open` may not.
+  const selected = pendingDb ?? databases.find(isOpen) ?? "";
 
   return (
     <div className="catalog">
@@ -187,35 +189,35 @@ export function Catalog({
           )}
         </span>
       </div>
-      <div className="cat-dbs">
-        {databases.length === 0 && (
-          <p className="cat-hint">
-            No databases on the server, or it is not reachable yet.
-          </p>
-        )}
-        {databases.map((db) => (
-          <button
-            key={db}
-            className={
-              "cat-db" +
-              (isOpen(db) ? " active" : "") +
-              (pendingDb === db ? " pending" : "")
-            }
+      {databases.length === 0 ? (
+        <p className="cat-hint">
+          No databases on the server, or it is not reachable yet.
+        </p>
+      ) : (
+        // One row however many databases the server holds. Being native, it
+        // also brings type-to-find, and on a phone the system's own picker.
+        <div className="cat-dbs">
+          <select
+            className={"cat-db-select" + (selected ? "" : " empty")}
+            value={selected}
             disabled={pendingDb !== null}
-            // The chips are a single-select group; without this the selected one
-            // is only a colour, which is nothing to a screen reader.
-            aria-pressed={isOpen(db)}
-            onClick={() => void openDb(db)}
-            title={isOpen(db) ? `${db} is open` : `open database ${db}`}
+            aria-label="Database"
+            title={open ? `${open} is open` : "Open a database"}
+            onChange={(e) => void openDb(e.target.value)}
           >
-            {db}
-            {pendingDb === db && <span className="cat-spin" />}
-          </button>
-        ))}
-      </div>
-
-      {!shownDb && databases.length > 0 && (
-        <p className="cat-hint">Click a database to open it.</p>
+            {!selected && (
+              <option value="" disabled>
+                open a database…
+              </option>
+            )}
+            {databases.map((db) => (
+              <option key={db} value={db}>
+                {db}
+              </option>
+            ))}
+          </select>
+          {pendingDb && <span className="cat-spin" />}
+        </div>
       )}
 
       {shownDb && (

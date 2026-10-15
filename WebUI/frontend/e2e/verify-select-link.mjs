@@ -125,7 +125,7 @@ try {
     });
 
   await page.goto(URL, { waitUntil: "networkidle2" });
-  await page.waitForSelector(".cat-db", { timeout: 15000 });
+  await page.waitForSelector(".cat-db-select", { timeout: 15000 });
   await runCmd("open database berlintest");
   await page.waitForSelector(".input textarea", { timeout: 3000 });
 

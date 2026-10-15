@@ -57,9 +57,7 @@ try {
 
   // 1) Open berlintest and draw something. BBBike coordinates are not lon/lat,
   //    so the map stays Cartesian -- where there is no basemap at all.
-  const db = await page.evaluateHandle(() =>
-    [...document.querySelectorAll(".cat-db")].find((b) => b.textContent === "BERLINTEST"));
-  await db.asElement().click();
+  await page.select(".cat-db-select", "BERLINTEST");
   await page.waitForSelector(".cat-obj", { timeout: 8000 });
   const line = await page.evaluateHandle(() =>
     [...document.querySelectorAll(".cat-obj")].find((b) =>

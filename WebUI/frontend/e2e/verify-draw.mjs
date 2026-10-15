@@ -59,15 +59,11 @@ try {
   page.on("pageerror", (e) => console.log("[pageerror]", e.message));
 
   await page.goto(URL, { waitUntil: "networkidle0" });
-  await page.waitForSelector(".cat-db", { timeout: 15000 });
+  await page.waitForSelector(".cat-db-select", { timeout: 15000 });
 
   check(!(await page.$(".draw-toggle")), "no draw button before a database is open");
 
-  const dbBtn = await page.evaluateHandle(
-    (n) => [...document.querySelectorAll(".cat-db")].find((b) => b.textContent.trim() === n),
-    DB
-  );
-  await dbBtn.asElement().click();
+  await page.select(".cat-db-select", DB);
   await page.waitForSelector(".cat-obj", { timeout: 15000 });
   await page.waitForSelector(".draw-toggle", { timeout: 5000 });
   check(true, "the draw button appears once a database is open");

@@ -127,7 +127,7 @@ try {
     el.textContent.trim());
   check(/SQL (ready|off)/.test(sqlChip),
         `console header states the SQL capability (${sqlChip})`);
-  const catalogDbs = await page.$$eval(".cat-db", (els) => els.length);
+  const catalogDbs = await page.$$eval(".cat-db-select option", (els) => els.length);
   check(catalogDbs >= 3, `catalog is the single place listing databases (${catalogDbs})`);
 
   // --- 3) The layout gives the map the full width (console under it) ---
