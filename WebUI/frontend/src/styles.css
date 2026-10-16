@@ -479,6 +479,17 @@ body.dragging {
   inset: 0;
 }
 
+/* deck.gl 9.4's React wrapper leaves its widget root in normal flow, below the
+   full-height canvas, and places the hover tooltip relative to it -- so the
+   tooltip came out one map height above the pointer, mostly off the top. Pinned
+   to the map's origin, the offset it subtracts is zero again. Transparent to
+   the pointer, as it now covers the map. */
+.deck-widgets-root {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
 /* What the map says before anything has been queried. Centred in the pane and
    transparent to the pointer, so it never blocks a drag; only the example
    buttons take clicks. */
