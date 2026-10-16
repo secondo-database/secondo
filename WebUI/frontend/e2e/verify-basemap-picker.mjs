@@ -51,6 +51,13 @@ try {
     if (u.includes("World_Imagery")) tiles.imagery++;
     if (u.includes("World_Dark_Gray_Base")) tiles.darkgray++;
   });
+  // maplibre's worker script, by status. It looks for one next to its own
+  // module, which after bundling is a file nobody emitted -- a 404 that leaves
+  // every worker dead without breaking the raster tiles, so only this sees it.
+  const workers = [];
+  page.on("response", (r) => {
+    if (r.url().includes("maplibre-gl-worker")) workers.push(r.status());
+  });
 
   await page.goto(URL, { waitUntil: "networkidle0" });
   await sleep(800);
@@ -85,6 +92,8 @@ try {
 
   await sleep(3500); // let tiles load
   check(tiles.osm > 0, `OSM tiles loaded (${tiles.osm})`);
+  check(workers.length > 0 && workers.every((st) => st === 200),
+        `maplibre's worker script loads (${workers.join(", ") || "never requested"})`);
   await page.screenshot({ path: `${OUT}/basemap-osm.png` });
 
   // 3) Switch to satellite: different host, and the contrast must flip with it.

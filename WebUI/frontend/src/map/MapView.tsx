@@ -18,6 +18,11 @@ import {
 import { TripsLayer } from "@deck.gl/geo-layers";
 import { Map as BaseMap } from "react-map-gl/maplibre";
 import "maplibre-gl/dist/maplibre-gl.css";
+// maplibre looks for its worker next to its own module, which after bundling is
+// a file Vite never emits (/assets/maplibre-gl-worker.mjs, a 404). `?worker&url`
+// has Vite build the worker -- with the shared chunk it imports -- and hand over
+// where it put it. Only a URL, so maplibre itself still loads lazily.
+import maplibreWorkerUrl from "maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url";
 import type { LabelSeries, LabelUnit, MovingRegion, Trip } from "../api/client";
 import type { Layer, RGB, Selection } from "../layers/useLayers";
 import { isSelectedFeature } from "../layers/rows";
@@ -1147,7 +1152,11 @@ export function MapView({
         }}
       >
         {geographic && BASEMAPS[basemap].style && (
-          <BaseMap reuseMaps mapStyle={BASEMAPS[basemap].style} />
+          <BaseMap
+            reuseMaps
+            workerUrl={maplibreWorkerUrl}
+            mapStyle={BASEMAPS[basemap].style}
+          />
         )}
       </DeckGL>
       {/* How the map is drawn, in one row. One row and not a stack: below 520px

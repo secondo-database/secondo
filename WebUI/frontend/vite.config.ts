@@ -24,6 +24,9 @@ export default defineConfig({
     // lazily) and deck.gl (~0.92 MB). The limit sits just above maplibre.
     chunkSizeWarningLimit: 1100,
   },
+  // maplibre's worker is an ES module (it imports its shared chunk), and maplibre
+  // starts it as a module worker; Vite's default worker format is iife.
+  worker: { format: "es" },
   server: {
     port: 5173,
     proxy: {
