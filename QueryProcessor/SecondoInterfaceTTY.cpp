@@ -1988,6 +1988,11 @@ SecondoInterfaceTTY::Command_Query( const ListExpr list,
          {
            const bool sentWhole =
                  ctlg.OutObjectStreamed( resultType, result, *os );
+           // Close the bar the write drew (ResultProgress), if it drew one --
+           // before EndStreamedResult: until the frame's terminator, a message
+           // has to go into the frame as an M record, and that ends the
+           // redirection.
+           qp.progressView->FinishProgressView();
            sink->EndStreamedResult( sentWhole );
            streamed = true;
          }

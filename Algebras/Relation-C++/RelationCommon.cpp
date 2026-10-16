@@ -637,6 +637,7 @@ bool Relation::OutStreamed( ListExpr typeInfo, GenericRelationIterator* rit,
     // NestedList::release for the contract.
     nl->release(mark);
     written++;
+    qp->ResultProgress(written, noTuples);
     if ( truncate && written >= TRUNCATE_STREAMED_AFTER )
     {
       // Sent from inside the write, which is the point: the server has to

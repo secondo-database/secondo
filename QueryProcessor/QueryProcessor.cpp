@@ -4620,6 +4620,29 @@ a multiple of the one defined here.
   }
 }
 
+void
+QueryProcessor::ResultProgress( const size_t done, const size_t total )
+{
+  if ( !progressView || total == 0 ) {
+    return;
+  }
+
+  static clock_t lastClock = 0;
+  static const size_t progressDelta = 100;
+
+  // The first element starts the bar at once rather than after a tenth of a
+  // second; after that, a clock check every hundred elements.
+  if ( done != 1 && done % progressDelta != 0 ) {
+    return;
+  }
+  const clock_t now = clock();
+  if ( done != 1 && now >= lastClock && now - lastClock <= CLOCKS_PER_SEC/10 ) {
+    return;
+  }
+  lastClock = now;
+  progressView->ModifyCountedProgress( (double) done / total );
+}
+
 void QueryProcessor::CheckHeartbeat(){
     int h1 = SecondoSystem::GetInstance()->getHeart1();
     if(h1<1){

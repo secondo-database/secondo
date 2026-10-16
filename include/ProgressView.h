@@ -59,7 +59,8 @@ class ProgressView
   public:
 
   ProgressView(ProgressInfoRel* rel) : currentProgress(0.0),
-                   initialized(false), startClock(0), msgList(), msg(0),
+                   initialized(false), startClock(0), countedPoints(-1),
+                   msgList(), msg(0),
                    progressRel(rel), cmdNr(0),
                    PROGRESS_NORM(50), 
                    PROGTYPECARD(0), PROGTYPEPROG(0)
@@ -82,6 +83,7 @@ class ProgressView
     {
       initialized  = true;
        startClock  = clock();
+      countedPoints = -1;
       msg = MessageCenter::GetInstance();
 
       msgList = NList(NList("progress"), 
@@ -151,6 +153,32 @@ class ProgressView
   }
 
 
+  // A phase whose share done is counted rather than estimated -- writing the
+  // result to the client (Relation::OutStreamed). It moves the bar only: there
+  // is no estimate behind it to send as progressdetail or to keep in
+  // SEC2PROGRESS, where it would read as a perfect one.
+  void
+  ModifyCountedProgress(double share)
+  {
+    if (PROGTYPEPROG)
+    {
+      if (!initialized) InitProgressView();
+
+      share = std::min(1.0, std::max(0.0, share));
+      int cp = (int) (share*PROGRESS_NORM);
+      if (cp == countedPoints) {
+        return;
+      }
+      countedPoints = cp;
+
+      msgList = NList( NList("progress"),
+              NList( NList(cp),
+                     NList(PROGRESS_NORM)));
+      msg->Send(nl,msgList.listExpr(),-1);
+    }
+  }
+
+
   void
   FinishProgressView()
   {
@@ -175,6 +203,7 @@ class ProgressView
     double currentProgress;
     bool initialized;
     clock_t startClock;
+    int countedPoints;  // the bar's last value from ModifyCountedProgress
     NList msgList;
     MessageCenter* msg;
     ProgressInfoRel* progressRel;

@@ -425,6 +425,15 @@ Update the progress bar to the current progress value.
 
   void CheckProgress();
 
+  void ResultProgress( const size_t done, const size_t total );
+/*
+Show how much of the result has been written to the client, ~done~ of ~total~
+elements, throttled like ~CheckProgress~. Called per element by a type's
+~OutStreamedObject~; that is where a query like `query roads` spends its time,
+and it has no operator that could estimate it.
+
+*/
+
   void CheckHeartbeat();
 
 /*
