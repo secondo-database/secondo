@@ -1150,6 +1150,13 @@ Stores the current tree during query evaluation. Used for progress evaluation.
 Progress queries are admitted.
 
 */
+  clock_t resultLastClock;
+
+/*
+When ~ResultProgress~ last moved the bar. A member rather than a static, so
+that query processors running side by side do not share it.
+
+*/
   bool useHeartbeat;
 /*
 Flag indicating whether the heartbeat file should be updated or not.

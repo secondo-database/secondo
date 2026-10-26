@@ -332,7 +332,7 @@ QueryProcessor::QueryProcessor( NestedList* newNestedList,
     debugMode( false ),
     traceMode( false ), traceNodes( false ), debugLocal(false),
     debugProgress(false), traceProgress(false),debugTypeMapping(false),
-    globalMemory(_globalMemory)
+    globalMemory(_globalMemory), resultLastClock(0)
 {
   values.resize( MAXVALUES );
   argVectors.resize( MAXFUNCTIONS,0 );
@@ -4600,7 +4600,6 @@ QueryProcessor::ResultProgress( const size_t done, const size_t total )
     return;
   }
 
-  static clock_t lastClock = 0;
   static const size_t progressDelta = 100;
 
   // The first element starts the bar at once rather than after a tenth of a
@@ -4609,10 +4608,11 @@ QueryProcessor::ResultProgress( const size_t done, const size_t total )
     return;
   }
   const clock_t now = clock();
-  if ( done != 1 && now >= lastClock && now - lastClock <= CLOCKS_PER_SEC/10 ) {
+  if ( done != 1 && now >= resultLastClock
+       && now - resultLastClock <= CLOCKS_PER_SEC/10 ) {
     return;
   }
-  lastClock = now;
+  resultLastClock = now;
   progressView->ModifyCountedProgress( (double) done / total );
 }
 
