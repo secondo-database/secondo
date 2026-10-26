@@ -60,7 +60,7 @@ class ProgressView
 
   ProgressView(ProgressInfoRel* rel) : currentProgress(0.0),
                    initialized(false), startClock(0), countedPoints(-1),
-                   msgList(), msg(0),
+                   estimated(false), msgList(), msg(0),
                    progressRel(rel), cmdNr(0),
                    PROGRESS_NORM(50), 
                    PROGTYPECARD(0), PROGTYPEPROG(0)
@@ -98,6 +98,7 @@ class ProgressView
   SetCommandNr(int nr)
   {
     cmdNr = nr;
+    estimated = false;
     if (progressRel) progressRel->dropOldCommands(cmdNr);
   }
 
@@ -127,6 +128,7 @@ class ProgressView
               NList( NList(cp), 
                      NList(PROGRESS_NORM)));
         msg->Send(nl,msgList.listExpr(),-1);
+       estimated = true;
 
       uint64_t clocks = clock() - startClock;
       // convert clocks to milliseconds
@@ -156,11 +158,13 @@ class ProgressView
   // A phase whose share done is counted rather than estimated -- writing the
   // result to the client (Relation::OutStreamed). It moves the bar only: there
   // is no estimate behind it to send as progressdetail or to keep in
-  // SEC2PROGRESS, where it would read as a perfect one.
+  // SEC2PROGRESS, where it would read as a perfect one. And it stays off when
+  // the operator tree already drew a bar for this command: that bar has ended
+  // at 100 %, and a counted one starting over at 0 would only contradict it.
   void
   ModifyCountedProgress(double share)
   {
-    if (PROGTYPEPROG)
+    if (PROGTYPEPROG && !estimated)
     {
       if (!initialized) InitProgressView();
 
@@ -204,6 +208,7 @@ class ProgressView
     bool initialized;
     clock_t startClock;
     int countedPoints;  // the bar's last value from ModifyCountedProgress
+    bool estimated;     // this command's bar came from the operator tree
     NList msgList;
     MessageCenter* msg;
     ProgressInfoRel* progressRel;
