@@ -4602,13 +4602,18 @@ QueryProcessor::ResultProgress( const size_t done, const size_t total )
 
   static const size_t progressDelta = 100;
 
-  // The first element starts the bar at once rather than after a tenth of a
-  // second; after that, a clock check every hundred elements.
-  if ( done != 1 && done % progressDelta != 0 ) {
+  // The first element only starts the clock: like the estimated bar, this one
+  // appears once the write has taken a tenth of a second, so a short result
+  // draws none. After that, a clock check every hundred elements.
+  if ( done == 1 ) {
+    resultLastClock = clock();
+    return;
+  }
+  if ( done % progressDelta != 0 ) {
     return;
   }
   const clock_t now = clock();
-  if ( done != 1 && now >= resultLastClock
+  if ( now >= resultLastClock
        && now - resultLastClock <= CLOCKS_PER_SEC/10 ) {
     return;
   }

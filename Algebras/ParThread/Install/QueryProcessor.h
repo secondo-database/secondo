@@ -1153,7 +1153,8 @@ Progress queries are admitted.
   clock_t resultLastClock;
 
 /*
-When ~ResultProgress~ last moved the bar. A member rather than a static, so
+When ~ResultProgress~ last moved the bar, or when the write began if it has
+not drawn one yet. A member rather than a static, so
 that query processors running side by side do not share it.
 
 */
