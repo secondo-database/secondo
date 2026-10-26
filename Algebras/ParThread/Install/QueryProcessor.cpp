@@ -332,7 +332,7 @@ QueryProcessor::QueryProcessor( NestedList* newNestedList,
     debugMode( false ),
     traceMode( false ), traceNodes( false ), debugLocal(false),
     debugProgress(false), traceProgress(false),debugTypeMapping(false),
-    globalMemory(_globalMemory), resultLastClock(0)
+    globalMemory(_globalMemory)
 {
   values.resize( MAXVALUES );
   argVectors.resize( MAXFUNCTIONS,0 );
@@ -4605,19 +4605,23 @@ QueryProcessor::ResultProgress( const size_t done, const size_t total )
   // The first element only starts the clock: like the estimated bar, this one
   // appears once the write has taken a tenth of a second, so a short result
   // draws none. After that, a clock check every hundred elements.
+  //
+  // Wall time, unlike CheckProgress's clock(): a write to a slow client is
+  // spent waiting in send(), which costs no CPU time, and a bar going by CPU
+  // time would fall behind exactly there.
+  using std::chrono::steady_clock;
   if ( done == 1 ) {
-    resultLastClock = clock();
+    resultLastUpdate = steady_clock::now();
     return;
   }
   if ( done % progressDelta != 0 ) {
     return;
   }
-  const clock_t now = clock();
-  if ( now >= resultLastClock
-       && now - resultLastClock <= CLOCKS_PER_SEC/10 ) {
+  const steady_clock::time_point now = steady_clock::now();
+  if ( now - resultLastUpdate <= std::chrono::milliseconds(100) ) {
     return;
   }
-  resultLastClock = now;
+  resultLastUpdate = now;
   progressView->ModifyCountedProgress( (double) done / total );
 }
 

@@ -172,6 +172,7 @@ such as "ArgVectorPointer"[4], "Supplier"[4], "Word"[4], "Address"[4], etc.
 
 */
 #include <memory>
+#include <chrono>
 #include "SecondoCatalog.h"
 #include "SecondoSystem.h"
 #include "LogMsg.h"
@@ -1046,7 +1047,7 @@ Stores the current tree during query evaluation. Used for progress evaluation.
 Progress queries are admitted.
 
 */
-  clock_t resultLastClock;
+  std::chrono::steady_clock::time_point resultLastUpdate;
 
 /*
 When ~ResultProgress~ last moved the bar, or when the write began if it has
