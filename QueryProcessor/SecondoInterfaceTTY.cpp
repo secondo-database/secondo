@@ -947,6 +947,7 @@ Command\_<name>.
     if ( !qp.progressView )
       qp.progressView = new ProgressView(progressInfoRel);
     qp.progressView->SetCommandNr( CmdNr );
+    qp.SetResultPhase( QueryProcessor::NoResultOutput );
 
 
     // --- Transaction handling
@@ -1959,6 +1960,14 @@ SecondoInterfaceTTY::Command_Query( const ListExpr list,
 
        qp.ResetTimer();
 
+       // A result that reports its own write shares the progress bar with
+       // the evaluation: the estimate fills the evaluation's part, the write
+       // the rest (QueryProcessor::SetResultPhase).
+       const bool writeProgress = ctlg.CanOutObjectStreamed( resultType );
+       if ( writeProgress ) {
+         qp.SetResultPhase( QueryProcessor::ResultPending );
+       }
+
        qp.EvalP( tree, result, 1 );
 
        queryReal = queryTime.diffSecondsReal();
@@ -1977,6 +1986,9 @@ SecondoInterfaceTTY::Command_Query( const ListExpr list,
        // written after that. See ResultSink for why it cannot be any earlier
        // -- and what it costs that it cannot be any later.
        bool streamed = false;
+       if ( writeProgress ) {
+         qp.SetResultPhase( QueryProcessor::ResultWriting );
+       }
        ResultSink* sink = GetResultSink();
        if ( sink && ctlg.CanOutObjectStreamed( resultType ) )
        {
@@ -1991,8 +2003,8 @@ SecondoInterfaceTTY::Command_Query( const ListExpr list,
            // Close the bar the write drew (ResultProgress), if it drew one --
            // before EndStreamedResult: until the frame's terminator, a message
            // has to go into the frame as an M record, and that ends the
-           // redirection.
-           qp.progressView->FinishProgressView();
+           // redirection. Not at 100 % when the write broke off.
+           qp.progressView->FinishProgressView( sentWhole );
            sink->EndStreamedResult( sentWhole );
            streamed = true;
          }
@@ -2000,6 +2012,10 @@ SecondoInterfaceTTY::Command_Query( const ListExpr list,
 
        ListExpr valueList = streamed ? nl.TheEmptyList()
                                      : ctlg.OutObject( resultType, result );
+       // The write that was not streamed is done, too (a no-op after one that
+       // was).
+       qp.progressView->FinishProgressView();
+       qp.SetResultPhase( QueryProcessor::NoResultOutput );
 
        if (printQueryAnalysis)
        {
@@ -2044,6 +2060,13 @@ SecondoInterfaceTTY::Command_Query( const ListExpr list,
 
     errorCode = err;
   }
+
+  // A query that failed between its evaluation and the end of the write left
+  // the bar open; it did not get to 100 %.
+  if ( qp.progressView ) {
+    qp.progressView->FinishProgressView( false );
+  }
+  qp.SetResultPhase( QueryProcessor::NoResultOutput );
 
   qp.Destroy( tree, true );
   SmiEnvironment::SetFlag_NOSYNC(true);

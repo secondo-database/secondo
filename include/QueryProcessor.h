@@ -414,8 +414,30 @@ Update the progress bar to the current progress value.
 /*
 Show how much of the result has been written to the client, ~done~ of ~total~
 elements, throttled like ~CheckProgress~. Called per element by a type's
-~OutStreamedObject~; that is where a query like `query roads` spends its time,
-and it has no operator that could estimate it.
+~OutObject~ and ~OutStreamedObject~; that is where a query like `query roads`
+spends its time, and it has no operator that could estimate it. Only while the
+result phase is ~ResultWriting~: the same functions also write values that are
+not the query's result.
+
+*/
+
+  enum ResultPhase { NoResultOutput, ResultPending, ResultWriting };
+
+  void SetResultPhase( const ResultPhase phase ) { resultPhase = phase; }
+/*
+Whether the query's result is written to the client after the evaluation
+(~ResultPending~) and whether that is happening now (~ResultWriting~). With an
+output phase to come, the progress bar is shared: the operator tree's estimate
+fills the part the evaluation takes of the whole, the counted write the rest,
+and the bar is closed only after the write. Set by the ~query~ command for
+types that report their write (~SecondoCatalog::CanOutObjectStreamed~).
+
+*/
+
+  double ResultOutputTime( const ProgressInfo& p ) const;
+/*
+The estimated time in milliseconds to write a result of ~p.Card~ tuples of the
+sizes in ~p~ to the client, in the units of the operators' estimates.
 
 */
 
@@ -1053,6 +1075,12 @@ Progress queries are admitted.
 When ~ResultProgress~ last moved the bar, or when the write began if it has
 not drawn one yet. A member rather than a static, so
 that query processors running side by side do not share it.
+
+*/
+  ResultPhase resultPhase;
+
+/*
+See ~SetResultPhase~.
 
 */
   bool useHeartbeat;

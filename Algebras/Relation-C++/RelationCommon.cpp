@@ -532,11 +532,13 @@ GenericRelation *Relation::In( ListExpr typeInfo, ListExpr value,
   }
 }
 
-ListExpr Relation::Out( ListExpr typeInfo, GenericRelationIterator* rit )
+ListExpr Relation::Out( ListExpr typeInfo, GenericRelationIterator* rit,
+                        int noTuples )
 {
   Tuple* t=0;
   ListExpr l=nl->TheEmptyList();
   ListExpr lastElem=l, tlist=l, tupleTypeInfo=l;
+  int written = 0;
 
   //RelationIterator* rit = MakeScan();
 
@@ -558,6 +560,8 @@ ListExpr Relation::Out( ListExpr typeInfo, GenericRelationIterator* rit )
     }
     else
       lastElem = nl->Append(lastElem, tlist);
+    written++;
+    qp->ResultProgress(written, noTuples);
   }
   delete rit;
   return l;

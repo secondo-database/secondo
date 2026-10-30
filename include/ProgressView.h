@@ -60,7 +60,7 @@ class ProgressView
 
   ProgressView(ProgressInfoRel* rel) : currentProgress(0.0),
                    initialized(false), startClock(0), countedPoints(-1),
-                   estimated(false), msgList(), msg(0),
+                   countedBase(0.0), msgList(), msg(0),
                    progressRel(rel), cmdNr(0),
                    PROGRESS_NORM(50), 
                    PROGTYPECARD(0), PROGTYPEPROG(0)
@@ -98,12 +98,16 @@ class ProgressView
   SetCommandNr(int nr)
   {
     cmdNr = nr;
-    estimated = false;
+    countedBase = 0.0;
     if (progressRel) progressRel->dropOldCommands(cmdNr);
   }
 
+  // ~evalShare~ is the part of the bar the operator tree's estimate fills,
+  // when writing the result to the client follows (QueryProcessor::
+  // UpdateProgress); the write fills the rest, see ModifyCountedProgress.
+  // progress.Time already includes the write.
   void
-  ModifyProgressView(ProgressInfo progress)
+  ModifyProgressView(ProgressInfo progress, double evalShare = 1.0)
   {
     if (PROGTYPEPROG)
     {
@@ -116,6 +120,8 @@ class ProgressView
        if(currentProgress>1){
          currentProgress= 1;
        }
+       evalShare = std::min(1.0, std::max(0.0, evalShare));
+       currentProgress *= evalShare;
        double bProgress = progress.BProgress;
        bProgress = std::min(1.0,std::max(0.0,bProgress));
 
@@ -128,7 +134,7 @@ class ProgressView
               NList( NList(cp), 
                      NList(PROGRESS_NORM)));
         msg->Send(nl,msgList.listExpr(),-1);
-       estimated = true;
+       countedBase = evalShare;
 
       uint64_t clocks = clock() - startClock;
       // convert clocks to milliseconds
@@ -156,19 +162,20 @@ class ProgressView
 
 
   // A phase whose share done is counted rather than estimated -- writing the
-  // result to the client (Relation::OutStreamed). It moves the bar only: there
-  // is no estimate behind it to send as progressdetail or to keep in
-  // SEC2PROGRESS, where it would read as a perfect one. And it stays off when
-  // the operator tree already drew a bar for this command: that bar has ended
-  // at 100 %, and a counted one starting over at 0 would only contradict it.
+  // result to the client (Relation::Out, Relation::OutStreamed). It moves the
+  // bar only: there is no estimate behind it to send as progressdetail or to
+  // keep in SEC2PROGRESS, where it would read as a perfect one. It fills the
+  // part of the bar the operator tree's estimate left over, so the bar goes on
+  // from there instead of starting again; all of it when there was none.
   void
   ModifyCountedProgress(double share)
   {
-    if (PROGTYPEPROG && !estimated)
+    if (PROGTYPEPROG)
     {
       if (!initialized) InitProgressView();
 
       share = std::min(1.0, std::max(0.0, share));
+      share = countedBase + (1.0 - countedBase) * share;
       int cp = (int) (share*PROGRESS_NORM);
       if (cp == countedPoints) {
         return;
@@ -183,18 +190,23 @@ class ProgressView
   }
 
 
+  // ~complete~ is false when the command did not get to the end -- a result
+  // write that failed -- so the bar is closed without claiming 100 %.
   void
-  FinishProgressView()
+  FinishProgressView(bool complete = true)
   {
     if (PROGTYPEPROG && initialized)
     {
       initialized = false;
 
       // set progress to 100%
-      msgList = NList( NList("progress"),
-                           NList(NList(PROGRESS_NORM), 
-                           NList(PROGRESS_NORM)));
-      msg->Send(nl,msgList.listExpr(), -1);
+      if (complete)
+      {
+        msgList = NList( NList("progress"),
+                             NList(NList(PROGRESS_NORM), 
+                             NList(PROGRESS_NORM)));
+        msg->Send(nl,msgList.listExpr(), -1);
+      }
     
 
       // mark end of progress messages
@@ -208,7 +220,8 @@ class ProgressView
     bool initialized;
     clock_t startClock;
     int countedPoints;  // the bar's last value from ModifyCountedProgress
-    bool estimated;     // this command's bar came from the operator tree
+    double countedBase; // where ModifyCountedProgress starts: the share the
+                        // operator tree's estimate filled, 0 if there was none
     NList msgList;
     MessageCenter* msg;
     ProgressInfoRel* progressRel;

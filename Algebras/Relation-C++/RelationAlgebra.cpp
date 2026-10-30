@@ -440,7 +440,7 @@ ListExpr
 OutRel(ListExpr typeInfo, Word  value)
 {
   Relation* rel = ((Relation *)value.addr);
-  return rel->Out( typeInfo, rel->MakeScan() );
+  return rel->Out( typeInfo, rel->MakeScan(), rel->GetNoTuples() );
 }
 
 /*

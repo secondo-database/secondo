@@ -331,7 +331,7 @@ QueryProcessor::QueryProcessor( NestedList* newNestedList,
     debugMode( false ),
     traceMode( false ), traceNodes( false ), debugLocal(false),
     debugProgress(false), traceProgress(false),debugTypeMapping(false),
-    globalMemory(_globalMemory)
+    globalMemory(_globalMemory), resultPhase(NoResultOutput)
 {
   values.resize( MAXVALUES );
   argVectors.resize( MAXFUNCTIONS,0 );
@@ -4192,7 +4192,11 @@ QueryProcessor::EvalP( void* node,
   }
 
   allowProgress = false;
-  progressView->FinishProgressView();
+  // With the result still to be written, the bar stays open for that; the
+  // query command closes it (see SetResultPhase).
+  if ( resultPhase == NoResultOutput ) {
+    progressView->FinishProgressView();
+  }
   // mark end of heartbeats
   ListExpr l = nl->TwoElemList(nl->SymbolAtom("heartbeat"), 
                                nl->IntAtom(0));
@@ -4571,7 +4575,19 @@ QueryProcessor::UpdateProgress()
       allowProgress = false;
 
       if ( RequestProgress(QueryTree, &progress) ) {
-        if ( progressView ) progressView->ModifyProgressView(progress);
+        // With the result to be written after the evaluation, the estimate
+        // fills only the evaluation's share of the bar (see SetResultPhase).
+        double evalShare = 1.0;
+        if ( resultPhase == ResultPending ) {
+          const double outTime = ResultOutputTime(progress);
+          if ( progress.Time + outTime > 0 ) {
+            evalShare = progress.Time / (progress.Time + outTime);
+          }
+          progress.Time += outTime;
+        }
+        if ( progressView ) {
+          progressView->ModifyProgressView(progress, evalShare);
+        }
       }
 
       allowProgress = true;
@@ -4623,7 +4639,7 @@ a multiple of the one defined here.
 void
 QueryProcessor::ResultProgress( const size_t done, const size_t total )
 {
-  if ( !progressView || total == 0 ) {
+  if ( !progressView || total == 0 || resultPhase != ResultWriting ) {
     return;
   }
 
@@ -4650,6 +4666,36 @@ QueryProcessor::ResultProgress( const size_t done, const size_t total )
   }
   resultLastUpdate = now;
   progressView->ModifyCountedProgress( (double) done / total );
+}
+
+/*
+A constant of the result write's cost from the progress constants file, or
+~fallback~ when the file has none -- a site's own file may predate them.
+
+*/
+static double
+resultOutputConstant( const string& name, const double fallback )
+{
+  try {
+    return ProgressConstants::getValue("QueryProcessor", "result", name);
+  } catch ( const char* ) {
+    return fallback;
+  }
+}
+
+double
+QueryProcessor::ResultOutputTime( const ProgressInfo& p ) const
+{
+  // The model of consume's estimate: per tuple, per byte of root and
+  // extension, per byte of FLOBs -- for lines and regions, writing out the
+  // FLOBs is most of the work. The fallbacks are the values of
+  // bin/ProgressConstants.csv, which says how they were found.
+  static const double uOut = resultOutputConstant("uOut", 0.0382);
+  static const double vOut = resultOutputConstant("vOut", 0.000426);
+  static const double wOut = resultOutputConstant("wOut", 0.000268);
+
+  const double flobSize = std::max(0.0, p.Size - p.SizeExt);
+  return p.Card * ( uOut + vOut * p.SizeExt + wOut * flobSize );
 }
 
 void QueryProcessor::CheckHeartbeat(){

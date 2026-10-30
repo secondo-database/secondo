@@ -2858,10 +2858,12 @@ the objects. Corresponds to the ~RestoreFromList~-function of type
 constructor ~rel~.
 
 */
-    static ListExpr Out( ListExpr typeInfo, GenericRelationIterator* rit );
+    static ListExpr Out( ListExpr typeInfo, GenericRelationIterator* rit,
+                         int noTuples = 0 );
 /*
 Writes a relation into a ~ListExpr~ format.
-Corresponds to the ~Out~-function of type constructor ~rel~.
+Corresponds to the ~Out~-function of type constructor ~rel~. With the number of
+tuples ~noTuples~ known, the write reports its progress, as ~OutStreamed~ does.
 
 */
     static bool OutStreamed( ListExpr typeInfo, GenericRelationIterator* rit,
