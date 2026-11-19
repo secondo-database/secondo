@@ -23,7 +23,7 @@ jobs:
         uses: actions/checkout@v7
 
       - name: Setup ccache
-        uses: hendrikmuhs/ccache-action@v1.2.24
+        uses: hendrikmuhs/ccache-action@v1.2.25
         with:
           key: ${{ matrix.os }}
           max-size: 1G
@@ -407,7 +407,7 @@ jobs:
         uses: actions/checkout@v7
 
       - name: Setup ccache
-        uses: hendrikmuhs/ccache-action@v1.2.24
+        uses: hendrikmuhs/ccache-action@v1.2.25
         with:
           # Its own key: -fsanitize=thread and -O1 change every command line, so
           # these objects would never hit the build-linux cache -- sharing a key
@@ -578,7 +578,7 @@ jobs:
         uses: actions/checkout@v7
 
       - name: Setup ccache
-        uses: hendrikmuhs/ccache-action@v1.2.24
+        uses: hendrikmuhs/ccache-action@v1.2.25
         with:
           key: ${{ matrix.os }}-${{ runner.arch }}
           # See the note on the Linux job's ccache step above.
