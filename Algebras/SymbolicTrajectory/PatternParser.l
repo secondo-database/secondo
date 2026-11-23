@@ -53,9 +53,9 @@ bool openQuotes = false;
 %option nounput
 %option noinput
 
-%x condition
-%x result
-%x assignment
+%x CONDITION
+%x RESULT
+%x ASSIGNMENT
 
 si [+-]?[0-9]+
 ui [0-9]+
@@ -101,57 +101,57 @@ closeregex (\]\+)|(\]\*)|(\]\?)|\]
 <INITIAL>{wildcard} {patternlval.text = strdup(patterntext); return ZZWILDCARD;}
 <INITIAL>{contents} {patternlval.text = strdup(patterntext); return ZZCONTENTS;}
 <INITIAL>\| {return '|';}
-<INITIAL>{rightarrow} {BEGIN(result); return ZZRIGHTARROW;}
+<INITIAL>{rightarrow} {BEGIN(RESULT); return ZZRIGHTARROW;}
 <INITIAL>\n {return ZZEND;}
-<INITIAL>{doubleslash} {BEGIN(condition); return ZZDOUBLESLASH;}
-<condition>{vardottype} {patternlval.text = strdup(patterntext); return ZZVAR_DOT_TYPE;}
-<condition>{attrname} {patternlval.text = strdup(patterntext); return ZZATTRNAME;}
-<condition>{rightarrow} {BEGIN(result); return ZZRIGHTARROW;}
-<condition>{const_op} {patternlval.text = strdup(patterntext); return ZZCONST_OP;}
-<condition>\, {if (!openQuotes && openParentheses == 0 && openBrackets == 0) {
+<INITIAL>{doubleslash} {BEGIN(CONDITION); return ZZDOUBLESLASH;}
+<CONDITION>{vardottype} {patternlval.text = strdup(patterntext); return ZZVAR_DOT_TYPE;}
+<CONDITION>{attrname} {patternlval.text = strdup(patterntext); return ZZATTRNAME;}
+<CONDITION>{rightarrow} {BEGIN(RESULT); return ZZRIGHTARROW;}
+<CONDITION>{const_op} {patternlval.text = strdup(patterntext); return ZZCONST_OP;}
+<CONDITION>\, {if (!openQuotes && openParentheses == 0 && openBrackets == 0) {
                  return ',';
                }
                else {
                  return ZZCOMMA;
                }
               }
-<condition>\( {if (!openQuotes) {
+<CONDITION>\( {if (!openQuotes) {
                  ++openParentheses;
                  return '(';
                }
               }
-<condition>\) {if (!openQuotes) {
+<CONDITION>\) {if (!openQuotes) {
                  --openParentheses;
                  return ')';
                }
               }
-<condition>\[ {if (!openQuotes) {
+<CONDITION>\[ {if (!openQuotes) {
                  ++openBrackets;
                  return '[';
                }
               }
-<condition>\] {if (!openQuotes) {
+<CONDITION>\] {if (!openQuotes) {
                  --openBrackets;
                  return ']';
                }
               }
-<condition>\" {openQuotes = !openQuotes;}
-<condition>\n {BEGIN(INITIAL); return ZZEND;}
-<result>{variable} {patternlval.text = strdup(patterntext); return ZZVARIABLE;}
-<result>\( {return '(';}
-<result>\) {return ')';}
-<result>{doubleslash} {BEGIN(assignment); return ZZDOUBLESLASH;}
-<result>\n {BEGIN(INITIAL); return ZZEND;}
-<assignment>[ \a\b\f\t\v\r]+ {}
-<assignment>{vardottype2} {patternlval.text = strdup(patterntext); return ZZVAR_DOT_TYPE;}
-<assignment>{assign} {return ZZASSIGN;}
-<assignment>{const_op} {patternlval.text = strdup(patterntext); return ZZCONST_OP;}
-<assignment>\, {return ',';}
-<assignment>\( {return '(';}
-<assignment>\) {return ')';}
-<assignment>\[ {return '[';}
-<assignment>\] {return ']';}
-<assignment>\n {BEGIN(INITIAL); return ZZEND;}
+<CONDITION>\" {openQuotes = !openQuotes;}
+<CONDITION>\n {BEGIN(INITIAL); return ZZEND;}
+<RESULT>{variable} {patternlval.text = strdup(patterntext); return ZZVARIABLE;}
+<RESULT>\( {return '(';}
+<RESULT>\) {return ')';}
+<RESULT>{doubleslash} {BEGIN(ASSIGNMENT); return ZZDOUBLESLASH;}
+<RESULT>\n {BEGIN(INITIAL); return ZZEND;}
+<ASSIGNMENT>[ \a\b\f\t\v\r]+ {}
+<ASSIGNMENT>{vardottype2} {patternlval.text = strdup(patterntext); return ZZVAR_DOT_TYPE;}
+<ASSIGNMENT>{assign} {return ZZASSIGN;}
+<ASSIGNMENT>{const_op} {patternlval.text = strdup(patterntext); return ZZCONST_OP;}
+<ASSIGNMENT>\, {return ',';}
+<ASSIGNMENT>\( {return '(';}
+<ASSIGNMENT>\) {return ')';}
+<ASSIGNMENT>\[ {return '[';}
+<ASSIGNMENT>\] {return ']';}
+<ASSIGNMENT>\n {BEGIN(INITIAL); return ZZEND;}
 <INITIAL>. {patternlval.text = strdup(patterntext); BEGIN(INITIAL); return ZZERROR;}
 %%
 namespace stj {
