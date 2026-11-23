@@ -265,6 +265,10 @@ export interface CatalogObject {
   kind: "spatial" | "temporal" | "other";
   // A flat relation -- the only thing the table view can open and edit.
   relation: boolean;
+  // The full type expression as nested-list text, e.g. `(rel (tuple (...)))`.
+  type_nl: string;
+  // A relation's attributes, each type in full; null for anything else.
+  attributes: { name: string; type: string }[] | null;
 }
 
 /** Read one page of a stored relation *with* its tuple identifiers, which is

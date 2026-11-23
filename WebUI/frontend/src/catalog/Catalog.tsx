@@ -59,6 +59,9 @@ export function Catalog({
   const [open, setOpen] = useState<string | null>(null);
   const [objects, setObjects] = useState<CatalogObject[]>([]);
   const [filter, setFilter] = useState("");
+  // Objects whose full type is unfolded under their row. Keyed by name, so a
+  // refresh keeps a row open as long as the object is still there.
+  const [expanded, setExpanded] = useState<ReadonlySet<string>>(new Set());
   const [loadingObjects, setLoadingObjects] = useState(false);
   const [pendingDb, setPendingDb] = useState<string | null>(null);
   // A refresh the user asked for, as opposed to one a command triggered. Only
@@ -160,6 +163,14 @@ export function Catalog({
     onImport(file);
   }
 
+  function toggleType(name: string) {
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (!next.delete(name)) next.add(name);
+      return next;
+    });
+  }
+
   const shown = objects.filter((o) =>
     o.name.toLowerCase().includes(filter.toLowerCase())
   );
@@ -248,16 +259,28 @@ export function Catalog({
             {!busy && objects.length > 0 && shown.length === 0 && (
               <li className="cat-hint">No object matches “{filter}”.</li>
             )}
-            {shown.map((o) => (
-              <li key={o.name}>
+            {shown.map((o) => {
+              const unfolded = expanded.has(o.name);
+              return (
+              <li key={o.name} className={unfolded ? "unfolded" : undefined}>
                 <button
                   className={"cat-obj kind-" + o.kind}
                   onClick={() => void onRun(`query ${o.name}`)}
-                  title={`query ${o.name}   (${o.type})`}
+                  title={`query ${o.name}   ${o.type_nl}`}
                 >
                   <span className="cat-ic">{KIND_ICON[o.kind]}</span>
                   <span className="cat-oname">{o.name}</span>
-                  <span className="cat-otype">{o.type}</span>
+                </button>
+                {/* The badge is the way to the full type: a relation's schema
+                    is otherwise a getTypeNL away in the console. */}
+                <button
+                  className="cat-otype"
+                  onClick={() => toggleType(o.name)}
+                  aria-expanded={unfolded}
+                  title={(unfolded ? "Hide" : "Show") + ` the type of ${o.name}`}
+                >
+                  {o.type}
+                  <span className="cat-caret">{unfolded ? "▾" : "▸"}</span>
                 </button>
                 {/* Only a stored relation can be opened as an editable table. */}
                 {o.relation && (
@@ -269,8 +292,25 @@ export function Catalog({
                     ▤
                   </button>
                 )}
+                {unfolded && (
+                  <div className="cat-type">
+                    {o.attributes ? (
+                      <dl>
+                        {o.attributes.map((a) => (
+                          <div key={a.name} className="cat-attr">
+                            <dt>{a.name}</dt>
+                            <dd>{a.type}</dd>
+                          </div>
+                        ))}
+                      </dl>
+                    ) : (
+                      <code>{o.type_nl}</code>
+                    )}
+                  </div>
+                )}
               </li>
-            ))}
+              );
+            })}
           </ul>
         </>
       )}

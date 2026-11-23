@@ -99,7 +99,7 @@ body {
 
 /* Controls that sit flush in a list or a grid cell: an outset ring would be
    clipped by the scroll container or cover the neighbouring row. */
-:where(.cat-obj, .cat-table, .lp-name, .lp-mini, .rt-tab, .rt-label, .rt-close,
+:where(.cat-obj, .cat-otype, .cat-table, .lp-name, .lp-mini, .rt-tab, .rt-label, .rt-close,
   .tv-grid td input, .tv-grid td select, .tv-rowbtn, .rail-btn):focus-visible {
   outline-offset: -2px;
 }
@@ -179,6 +179,7 @@ body {
 .plots-toggle,
 .rt-close,
 .cat-table,
+.cat-otype,
 .tv-rowbtn,
 .fold,
 .details-head button {
@@ -378,10 +379,17 @@ body.dragging {
   min-height: 6rem;
 }
 
-/* Row = "query it" plus, for a relation, "open it as a table". */
+/* Row = "query it", "show its type" and, for a relation, "open it as a
+   table". The type panel wraps onto a line of its own underneath. */
 .cat-objs li {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
+}
+
+.cat-objs li.unfolded {
+  box-shadow: inset 2px 0 0 var(--accent);
+  margin: 0.15rem 0;
 }
 
 .cat-table {
@@ -403,7 +411,8 @@ body.dragging {
   display: flex;
   align-items: center;
   gap: 0.4rem;
-  width: 100%;
+  flex: 1;
+  min-width: 0;
   background: none;
   border: none;
   color: var(--text);
@@ -441,8 +450,67 @@ body.dragging {
 }
 
 .cat-otype {
-  color: var(--faint);
-  font-size: 0.68rem;
+  background: none;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  padding: 0.22rem 0.4rem;
+  border-radius: 4px;
+  font-size: 0.72rem;
+  gap: 0.25rem;
+  white-space: nowrap;
+}
+
+.cat-otype:hover,
+.cat-otype[aria-expanded="true"] {
+  color: var(--accent);
+}
+
+.cat-otype:hover {
+  background: var(--surface);
+}
+
+.cat-caret {
+  font-size: 0.7rem;
+}
+
+/* The unfolded type: a relation's attributes one per line, anything else as
+   its nested-list text. Selectable, so it can be copied into a query. */
+.cat-type {
+  flex-basis: 100%;
+  padding: 0.1rem 0.5rem 0.4rem 1.7rem;
+  font-family: ui-monospace, Menlo, monospace;
+  font-size: 0.74rem;
+  color: var(--text);
+  user-select: text;
+  overflow-x: auto;
+}
+
+.cat-type dl {
+  margin: 0;
+}
+
+.cat-attr {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: space-between;
+  padding: 0.1rem 0;
+}
+
+.cat-attr dt {
+  white-space: nowrap;
+}
+
+.cat-attr dd {
+  margin: 0;
+  color: var(--muted);
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
+.cat-type code {
+  font: inherit;
+  overflow-wrap: anywhere;
 }
 
 .pane {
@@ -2997,6 +3065,7 @@ pre.plan {
   .cat-collapse,
   .cat-db-select,
   .cat-obj,
+  .cat-otype,
   .cat-table,
   .input button {
     min-height: 2.5rem;

@@ -101,3 +101,28 @@ def test_a_missing_field_loses_the_field_not_the_entry():
 
 def test_a_non_inquiry_answer_yields_nothing():
     assert parse_operators(parse("(int 3)")) == []
+
+
+def test_parse_objects_full_type():
+    by_name = {o["name"]: o for o in parse_objects(parse(OBJECTS))}
+    # The inquiry's extra wrapper list is gone.
+    assert by_name["thecenter"]["type_nl"] == "region"
+    assert by_name["thecenter"]["attributes"] is None
+    assert by_name["Orte"]["type_nl"] == "(rel (tuple ((Ort string))))"
+    assert by_name["Part"]["attributes"] == [
+        {"name": "Moid", "type": "int"},
+        {"name": "MP", "type": "mpoint"},
+        {"name": "ML", "type": "mlabels"},
+    ]
+
+
+def test_parse_objects_nested_attribute_type_kept_whole():
+    tree = parse(
+        "(inquiry (objects (OBJECTS "
+        "(OBJECT N () ((rel (tuple ((Id int) (Sub (arel (tuple ((X real)))))))))))))"
+    )
+    (obj,) = parse_objects(tree)
+    assert obj["attributes"] == [
+        {"name": "Id", "type": "int"},
+        {"name": "Sub", "type": "(arel (tuple ((X real))))"},
+    ]

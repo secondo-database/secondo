@@ -14,6 +14,8 @@ For each object we surface its name, a short type label (the outermost type
 constructor, e.g. ``rel`` / ``mpoint`` / ``region``), a ``kind`` hint
 (``spatial`` / ``temporal`` / ``other``) so the UI can flag what will draw, and
 whether it is a flat relation -- the only thing the table view can open and edit.
+The full type travels along too, as text and, for a relation, as its attribute
+list, so the catalog can show a schema without asking the server again.
 
 ``list operators`` is the vocabulary half of the same idea: what the *server*
 can do, as opposed to what the open database holds. See ``parse_operators``.
@@ -23,7 +25,8 @@ from __future__ import annotations
 import re
 
 from .nlparser import Node
-from .table import RELATION_TYPES
+from .nlwriter import to_text
+from .table import RELATION_TYPES, TUPLE_TYPES
 
 _SPATIAL = {"point", "points", "line", "sline", "dline", "region", "rect"}
 _TEMPORAL = {
@@ -60,21 +63,46 @@ def _entries(tree: Node) -> list[Node]:
     return objects[1:]
 
 
+def _unwrap(wrapper: Node) -> Node:
+    """The inquiry wraps the type expression in extra lists -- a relation is
+    listed as ``((rel ...))``, an object of type ``region`` as ``((region))``.
+    A one-element list is never a type expression of its own, so peel them all.
+    """
+    while isinstance(wrapper, list) and len(wrapper) == 1:
+        wrapper = wrapper[0]
+    return wrapper
+
+
 def object_type_expr(tree: Node, name: str) -> Node | None:
     """One object's *full* type expression, so a relation's schema can be read
-    without a second command. ``parse_objects`` only keeps a label.
-
-    The inquiry wraps the type expression in one extra list -- an object of type
-    ``region`` is listed as ``((region))`` -- which is peeled off here so the
-    result is the type expression itself.
-    """
+    without a second command."""
     for obj in _entries(tree):
         if isinstance(obj, list) and len(obj) >= 4 and obj[0] == "OBJECT" and obj[1] == name:
-            wrapper = obj[3]
-            if isinstance(wrapper, list) and len(wrapper) == 1:
-                return wrapper[0]
-            return wrapper
+            return _unwrap(obj[3])
     return None
+
+
+def _attributes(type_expr: Node) -> list[dict] | None:
+    """``(rel (tuple ((Name Type)...)))`` -> ``[{name, type}]``, or None.
+
+    Unlike ``table.columns_of`` each type is kept whole, so a nested relation or
+    a parameterised type reads as what it is rather than as its constructor.
+    """
+    if not (isinstance(type_expr, list) and len(type_expr) == 2):
+        return None
+    if type_expr[0] not in RELATION_TYPES:
+        return None
+    tuple_expr = type_expr[1]
+    if not (isinstance(tuple_expr, list) and len(tuple_expr) == 2):
+        return None
+    if tuple_expr[0] not in TUPLE_TYPES or not isinstance(tuple_expr[1], list):
+        return None
+    out: list[dict] = []
+    for attr in tuple_expr[1]:
+        if not (isinstance(attr, list) and len(attr) == 2 and isinstance(attr[0], str)):
+            return None
+        out.append({"name": attr[0], "type": to_text(attr[1])})
+    return out
 
 
 def parse_objects(tree: Node) -> list[dict]:
@@ -85,7 +113,7 @@ def parse_objects(tree: Node) -> list[dict]:
         if not (isinstance(obj, list) and len(obj) >= 4 and obj[0] == "OBJECT"):
             continue
         name = obj[1]
-        type_expr = obj[3]
+        type_expr = _unwrap(obj[3])
         syms = set(_symbols(type_expr))
         if syms & _TEMPORAL:
             kind = "temporal"
@@ -100,6 +128,8 @@ def parse_objects(tree: Node) -> list[dict]:
                 "type": type_label,
                 "kind": kind,
                 "relation": type_label in RELATION_TYPES,
+                "type_nl": to_text(type_expr),
+                "attributes": _attributes(type_expr),
             }
         )
     result.sort(key=lambda o: str(o["name"]).lower())
