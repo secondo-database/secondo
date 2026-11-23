@@ -20,9 +20,15 @@ interface Props {
 const NAME_RE = /^[A-Za-z]\w*$/;
 const MAX_NAME = 48;
 
-/** `region1`, `region2`, ... -- the first one the database does not have. */
+/**
+ * `queryRect1`, `queryRegion2`, ... -- the first one the database does not
+ * have. Not `rect1`, ...: `rect1`, `rect3`, `rect4` and `rect8` are type
+ * constructors, and an object named like a type or operator makes the
+ * optimizer reject the whole database ("Unknown relation" for every query).
+ */
 export function freeName(type: string, taken: Set<string>): string {
-  for (let i = 1; ; i++) if (!taken.has(`${type}${i}`)) return `${type}${i}`;
+  const base = `query${type.charAt(0).toUpperCase()}${type.slice(1)}`;
+  for (let i = 1; ; i++) if (!taken.has(`${base}${i}`.toLowerCase())) return `${base}${i}`;
 }
 
 export function SaveShapeDialog({ shape, database, existingNames, runStep, onClose }: Props) {
