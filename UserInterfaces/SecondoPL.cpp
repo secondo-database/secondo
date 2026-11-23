@@ -45,6 +45,7 @@ support for calling Secondo from PROLOG.
 
 #include "SWI-Prolog.h"
 #include "SecondoPL.h"
+#include "StringUtils.h"
 
 
 // NVK ADDED
@@ -1510,25 +1511,70 @@ static bool optimizerHasDatabase(const string& dbLower) {
   return rc != 0;
 }
 
-bool embeddedOptimizerUseDatabase(const string& dbName) {
+// The database (lower-cased) whose schema the optimizer last rejected, or "".
+// Its databaseName fact is still asserted then -- the optimizer asserts it
+// before checking the schema -- so it cannot be trusted for that database.
+static string schemaRejectedDb = "";
+
+bool embeddedOptimizerUseDatabase(const string& dbName, string& errMsg) {
+  errMsg = "";
   if ( !embeddedOptimizerInitialized ) {
+    errMsg = "optimizer not initialized";
     return false;
   }
   string dbLower = dbName;
   for ( size_t i = 0; i < dbLower.size(); i++ ) {
     dbLower[i] = tolower((unsigned char) dbLower[i]);
   }
-  if ( optimizerHasDatabase(dbLower) ) {
+  if ( optimizerHasDatabase(dbLower) && schemaRejectedDb != dbLower ) {
     return true;  // schema already loaded for this database
+  }
+  if ( dbName.find('\'') != string::npos ) {
+    errMsg = "invalid database name";
+    return false;
   }
   // The database is open at the kernel, but the optimizer has not loaded its
   // schema. Drive the optimizer's open-database logic (which asserts
   // databaseName and runs updateCatalog): close the currently open database,
   // then reopen it through the optimizer. The database ends up open again,
   // transparently to the client.
+  static const string rejected = "::SCHEMA-REJECTED::";
+  static const string openFailed = "::OPEN-FAILED::";
   runOptimizerSecondo1("close database");
-  runOptimizerSecondo1(string("open database ") + dbName);
-  return optimizerHasDatabase(dbLower);
+  string goal =
+      "( catch(secondo('open database " + dbName + "'), E,"
+      "        ( write('" + rejected + "'),"
+      "          ( E = error_SQL(_::_::M) -> write(M) ; write(E) ) ))"
+      "  -> true ; write('" + openFailed + "') )";
+  string output = "", goalErr = "";
+  bool ok = embeddedOptimizerRunGoal( goal, output, goalErr );
+
+  size_t pos = string::npos;
+  if ( !ok ) {
+    errMsg = goalErr;
+  } else if ( (pos = output.find(rejected)) != string::npos ) {
+    errMsg = output.substr(pos + rejected.size());
+    schemaRejectedDb = dbLower;
+  } else if ( (pos = output.find(openFailed)) != string::npos ) {
+    // The kernel refused to open the database; what the optimizer printed
+    // about it ("Command failed with error code ...") is the explanation.
+    errMsg = output.substr(0, pos);
+  } else if ( optimizerHasDatabase(dbLower) ) {
+    schemaRejectedDb = "";
+    // What opening printed (catalog INFO lines, ...) used to go to stdout.
+    cout << output << flush;
+    return true;
+  }
+
+  stringutils::trim( errMsg );
+  if ( errMsg.compare(0, 6, "ERROR:") == 0 ) {
+    errMsg = errMsg.substr(6);
+    stringutils::trim( errMsg );
+  }
+  if ( errMsg.empty() ) {
+    errMsg = "the optimizer could not open database " + dbName;
+  }
+  return false;
 }
 
 /*

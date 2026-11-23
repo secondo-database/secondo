@@ -576,12 +576,16 @@ SecondoServer::ensureOptimizerReady(string& errMsg, bool requireDb)
   // The optimizer needs the schema of the open database. It only learns it
   // when the database is opened through its own logic, so make sure it is
   // loaded (the client opened the database directly at the kernel).
+  // A directive (requireDb false) still runs when that fails: it may be just
+  // what is needed to find out why (checkObjectNamingConvention, ...).
   if ( SecondoSystem::GetInstance()->IsDatabaseOpen() )
   {
     string openDb = SecondoSystem::GetInstance()->GetDatabaseName();
-    if ( !embeddedOptimizerUseDatabase( openDb ) )
+    string loadErr = "";
+    if ( !embeddedOptimizerUseDatabase( openDb, loadErr ) && requireDb )
     {
-      errMsg = "Could not load the database schema into the optimizer.";
+      errMsg = "Could not load the schema of database " + openDb
+               + " into the optimizer:\n" + loadErr;
       return false;
     }
   }

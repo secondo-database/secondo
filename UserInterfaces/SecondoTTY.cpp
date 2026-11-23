@@ -721,15 +721,21 @@ SecondoTTY::CallSecondo()
     }
     else
     {
-      if ( SecondoSystem::GetInstance()->IsDatabaseOpen() )
-      {
-        embeddedOptimizerUseDatabase(
-            SecondoSystem::GetInstance()->GetDatabaseName() );
-      }
+      string loadErr = "";
+      string openDb = SecondoSystem::GetInstance()->IsDatabaseOpen()
+                      ? SecondoSystem::GetInstance()->GetDatabaseName() : "";
       string plan = "", optErr = "";
       double costs = 0.0;
       bool alreadyExecuted = false;
-      if ( embeddedSqlToPlan( optCmd, plan, costs, optErr, alreadyExecuted ) )
+      if ( !openDb.empty() && !embeddedOptimizerUseDatabase( openDb, loadErr ) )
+      {
+        // Same wording as SecondoServer::ensureOptimizerReady.
+        errorCode = ERR_OPTIMIZER_NOT_AVAILABLE;
+        errorMessage = "Could not load the schema of database " + openDb
+                       + " into the optimizer:\n" + loadErr;
+      }
+      else if ( embeddedSqlToPlan( optCmd, plan, costs, optErr,
+                                   alreadyExecuted ) )
       {
         if ( alreadyExecuted )
         {
@@ -785,10 +791,13 @@ SecondoTTY::CallSecondo()
     }
     else
     {
+      // A failed schema load does not stop a directive: it may be just what
+      // is needed to find out why (checkObjectNamingConvention, ...).
       if ( SecondoSystem::GetInstance()->IsDatabaseOpen() )
       {
+        string loadErr = "";
         embeddedOptimizerUseDatabase(
-            SecondoSystem::GetInstance()->GetDatabaseName() );
+            SecondoSystem::GetInstance()->GetDatabaseName(), loadErr );
       }
       string out = "", optErr = "";
       if ( embeddedOptimizerRunGoal( optCmd, out, optErr ) )

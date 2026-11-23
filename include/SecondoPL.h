@@ -79,10 +79,13 @@ bool embeddedSqlToPlan(const std::string& sql, std::string& plan,
 Ensure the embedded optimizer has loaded the schema of database ~dbName~ (the
 one currently open at the kernel). The optimizer only learns a database's schema
 when it is opened through its own logic, so this drives that (close + reopen)
-when needed. Returns true if the optimizer now tracks the database.
+when needed. Returns true if the optimizer now tracks the database; otherwise
+~errMsg~ says why (e.g. the optimizer rejected the schema because an object is
+named like a type or operator), and the next call tries again.
 
 */
-bool embeddedOptimizerUseDatabase(const std::string& dbName);
+bool embeddedOptimizerUseDatabase(const std::string& dbName,
+                                  std::string& errMsg);
 
 /*
 Run an arbitrary optimizer control directive (a Prolog goal given as text, e.g.

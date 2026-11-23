@@ -683,6 +683,36 @@ SQL
   else
     echo "OK (error): optimizer error reported as plain text"
   fi
+
+  # A database the optimizer rejects while loading its schema: an object named
+  # like a type constructor (rect3) fails checkObjectNamingConvention. That
+  # used to be swallowed, leaving every later query with a misleading "Unknown
+  # relation". The reason must reach the client, and once the object is gone
+  # the same connection must recover without reconnecting.
+  cat >"$home/sqlschema.sec" <<SQL
+open database $DBNAME;
+let rect3 = [const rect value (0.0 1.0 0.0 1.0)];
+select count(*) from ten;
+delete rect3;
+select count(*) from ten;
+close database;
+q;
+SQL
+  SecondoCS -h 127.0.0.1 -p "$SEC_PORT" -i "$home/sqlschema.sec" \
+    >"$home/sqlschema.log" 2>&1
+
+  if ! grep -q "reserved keyword" "$home/sqlschema.log" \
+     || ! grep -qF "[rect3]" "$home/sqlschema.log"; then
+    echo "FAIL (schema): the optimizer's schema error did not reach the client"
+    tail -20 "$home/sqlschema.log"
+    rc=1
+  elif ! grep -q "Optimized plan:" "$home/sqlschema.log"; then
+    echo "FAIL (schema): no recovery after the offending object was deleted"
+    tail -20 "$home/sqlschema.log"
+    rc=1
+  else
+    echo "OK (schema): schema rejection reported, recovered after the fix"
+  fi
 fi
 
 #

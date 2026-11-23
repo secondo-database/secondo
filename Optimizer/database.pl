@@ -693,7 +693,7 @@ checkObjectNamingConvention :-
            ['\nERROR:\tThe database contains objects having reserved keyword ',
            '\n--->\tnames or names of type constructors or operators.',
            '\n--->\tPlease rename the following objects or deactivate the',
-           '\n--->\algebras exporting the according types/operators:\n',
+           '\n--->\talgebras exporting the according types/operators:\n',
            '\n--->\t\t',SortedKeyClashesA,'\n'],'',ErrMsg),
          write_list(['\nERROR:\t',ErrMsg]), nl, nl,
          throw(error_SQL(database_checkObjectNamingConvention(SortedKeyClashes)
