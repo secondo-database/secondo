@@ -231,7 +231,6 @@ OLD_APPS := bin/SecondoTTYBDB \
 	    bin/TestRunner \
 	    bin/TestRunnerApp \
 	    Optimizer/SecondoPL \
-	    Optimizer/SecondoPLCS \
 
 .PHONY: remove-old-apps
 remove-old-apps:

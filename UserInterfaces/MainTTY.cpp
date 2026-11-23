@@ -141,13 +141,15 @@ int main(const int argc, char *argv[]) {
     ProgMesHandler *pmh = new ProgMesHandler();
     msg->AddHandler(pmh);
 
-// -pl starts the raw Prolog shell (used for optimizer development). It is only
-// meaningful for the standalone kernel binary; the client/server build
-// (SEC_TTYCS, i.e. SecondoCS) is a pure network client. The former -pltty
-// (mixed SQL + kernel TTY) mode has been retired: the regular TTY now runs the
-// SQL dialect directly, both embedded and over the network (see
+// -pl starts the raw Prolog shell (used for optimizer development):
+// in the standalone kernel binary (SecondoPL), and in SecondoPLClient
+// (SEC_PLCS), where the optimizer runs in this client and talks to a
+// running monitor. SecondoCS itself (SEC_TTYCS without SEC_PLCS) is a
+// pure network client without Prolog.  The former -pltty (mixed SQL +
+// kernel TTY) mode has been retired: the regular TTY now runs the SQL
+// dialect directly, both embedded and over the network (see
 // SecondoTTY::CallSecondo).
-#if defined(SECONDO_PL) && !defined(SEC_TTYCS)
+#if defined(SECONDO_PL) && (!defined(SEC_TTYCS) || defined(SEC_PLCS))
     if (tp.isPLMode())
       return SecondoPLMode(tp);
 #endif

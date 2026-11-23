@@ -1,0 +1,30 @@
+#
+# Startup script for the optimizer Prolog shell as a client of a running
+# SecondoMonitor (host/port via -h/-p, the config file or SECONDO_PORT)
+
+VALGRIND_STD_OPTIONS=" --num-callers=25 --suppressions=../bin/vgs.txt --error-limit=no "
+SEC=../bin/SecondoPLClient
+
+if [ "$1" == "--valgrind" ]; then
+  shift
+  runner="valgrind $VALGRIND_STD_OPTIONS  $SEC"
+else 
+if [ "$1" == "--valgrindlc" ]; then
+  shift
+  runner="valgrind $VALGRIND_STD_OPTIONS --leak-check=full $SEC"
+else  
+if [ "$1" == "--profile" ]; then
+  shift
+  runner="valgrind --tool=callgrind --dump-instr=yes  --trace-jump=yes  $SEC"
+else
+  runner="$SEC"
+fi
+fi
+fi  
+
+if [ $(swipl --help 2>&1 | grep stack-limit | wc -l) -gt 0 ]; then
+   $runner  -pl $* pl -g true --stack-limit=256M
+else
+   $runner  -pl -L256M -G256M $* pl -g true
+fi
+

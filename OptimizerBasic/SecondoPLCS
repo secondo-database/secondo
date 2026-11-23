@@ -1,6 +1,10 @@
 #!/bin/sh
 #
-# Startup script for running SECONDOTTY in optimizer mode
+# Startup script for the optimizer Prolog shell as a client of a running
+# SecondoMonitor (host/port via -h/-p, the config file or SECONDO_PORT)
 
-../bin/SecondoCS -pl $*
-
+if [ $(swipl --help 2>&1 | grep stack-limit | wc -l) -gt 0 ]; then
+   ../bin/SecondoPLClient -pl $* pl -g true --stack-limit=256M
+else
+   ../bin/SecondoPLClient -pl -L256M -G256M $* pl -g true
+fi

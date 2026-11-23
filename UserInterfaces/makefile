@@ -71,6 +71,15 @@ PLOBJ := SecondoPL.$(OBJEXT) $(SECONDOPLMODE1).$(OBJEXT)
 PL_OBJECTS := $(PLOBJ) $(ENTROPY_OBJ)
 APPLOBJECTS += $(PLOBJ)
 CCFLAGS += $(PLINCLUDEFLAGS) -DSECONDO_PL
+# SecondoPLClient: the SecondoPL Prolog shell as a client of a running monitor.
+# The optimizer runs in this process; its secondo/2 calls go over the network.
+# Like SecondoBDB for SecondoPL, it is started via a script of its own name in
+# the optimizer directory (Optimizer/SecondoPLCS, OptimizerBasic/SecondoPLCS).
+PLCS_OBJECTS := MainTTYPLCS.$(OBJEXT) SecondoPLCS.$(OBJEXT) \
+	$(SECONDOPLMODE1).$(OBJEXT) $(ENTROPY_OBJ) SecondoInterfaceCS.$(OBJEXT) \
+	SecondoTTYCS.$(OBJEXT) TestRunnerCS.$(OBJEXT)
+PLCS_DEP_FILES := MainTTYPLCS.dep SecondoPLCS.dep
+APPLICATIONS += $(BINDIR)/SecondoPLClient
 endif
 
 BDB_OBJECTS :=   ../ClientServer/SecondoServer.$(OBJEXT)
@@ -119,7 +128,8 @@ entropy:
 
 .PHONY: clean
 clean:
-	$(RM) *.dep $(APPLOBJECTS) $(APPLICATIONS) $(ENTROPY_OBJ) $(DEP_FILES) $(CS_OBJECTS) $(CS_DEP_FILES)
+	$(RM) *.dep $(APPLOBJECTS) $(APPLICATIONS) $(ENTROPY_OBJ) $(DEP_FILES) $(CS_OBJECTS) $(CS_DEP_FILES) \
+	      $(PLCS_OBJECTS) $(PLCS_DEP_FILES)
 	$(MAKE) -C InteractiveQueryEditor clean
 
 #
@@ -138,6 +148,12 @@ clean:
 # binary a version of it that no longer matches the class. That is not a link
 # error, it is a crash somewhere else entirely.
 CS_DEP_FILES := MainTTYCS.dep SecondoTTYCS.dep TestRunnerCS.dep
+
+MainTTYPLCS.$(OBJEXT): MainTTY.cpp
+	$(CC) -c -o $@ $< $(CCFLAGS) -DSEC_TTYCS -DSEC_PLCS $(CPPSTDOPTION) -MMD -MP -MF MainTTYPLCS.dep
+
+SecondoPLCS.$(OBJEXT): SecondoPL.cpp $(ENTROPY_OBJ)
+	$(CC) -c -DSECONDO_CLIENT_SERVER -o $@ $< $(CCFLAGS) $(CPPSTDOPTION) -MMD -MP -MF SecondoPLCS.dep
 
 MainTTYCS.$(OBJEXT): MainTTY.$(OBJEXT)
 MainTTYCS.$(OBJEXT): MainTTY.cpp
@@ -161,7 +177,7 @@ TestRunnerCS.$(OBJEXT): TestRunner.cpp
 # from the *.cpp in this directory, and these objects are named after sources
 # that do not exist.
 ifneq ($(MAKECMDGOALS),clean)
--include $(CS_DEP_FILES)
+-include $(CS_DEP_FILES) $(PLCS_DEP_FILES)
 endif
 
 # Rules for linkage
@@ -181,6 +197,7 @@ $(BINDIR)/Secondo$(SMIUP)$(EXEEXT):  $(APP_LIB) $(ALG_LIST) $(FLOB) $(PL_OBJECTS
 # 
 # SecondoCS is a pure client/server TTY client. It does NOT embed the optimizer
 # (no -pl / -pltty); the SQL dialect is sent to the server's optimizer instead.
+# The Prolog shell against a running monitor is the separate SecondoPLClient below.
 # It always needs readline (for the interactive history); in optimizer builds
 # RL_LD_FLAG is empty because readline used to come in via the (now removed)
 # Prolog link flags, so link it explicitly here.
@@ -195,4 +212,10 @@ $(BINDIR)/CheckExamples$(EXEEXT): CheckExamples.$(OBJEXT) cmsg.$(OBJEXT) $(FLOB)
 $(BINDIR)/SecondoCS$(EXEEXT): $(SECLIBFILES) $(FLOB)
 $(BINDIR)/SecondoCS$(EXEEXT): $(CS_OBJECTS) $(APP_LIB) $(FLOB)
 	$(LD) $(EXEFLAGS) $(LDFLAGS) $(PROFILERFLAGS) -o $@ $(filter %.o, $^) -lappCommon $(OPTLIB_LIBS) $(LD_LINK_LIBS) $(RL_LD_FLAG) -lreadline -lncurses $(COMMON_LD_FLAGS)
+
+# SecondoPLClient (optimizer builds only): SecondoPL linked against the client/server
+# interface instead of the kernel, so it needs Prolog but no algebra libs.
+$(BINDIR)/SecondoPLClient$(EXEEXT): $(SECLIBFILES) $(FLOB)
+$(BINDIR)/SecondoPLClient$(EXEEXT): $(PLCS_OBJECTS) $(APP_LIB) $(FLOB)
+	$(LD) $(EXEFLAGS) $(LDFLAGS) $(PROFILERFLAGS) -o $@ $(filter %.o, $^) -lappCommon $(OPTLIB_LIBS) $(LD_LINK_LIBS) $(PLLDFLAGS) -lreadline -lncurses $(COMMON_LD_FLAGS)
 
